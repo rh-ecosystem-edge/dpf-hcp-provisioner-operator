@@ -1,0 +1,98 @@
+# Development deployment values for DPF-HCP Bridge Operator
+# Use this file for development/testing environments
+
+# Operator image configuration
+image:
+  repository: quay.io/lhadad/dpf-hcp-bridge-operator
+  tag: latest
+  pullPolicy: Always
+
+# Single replica for development
+replicaCount: 1
+
+# Development namespace
+namespace: dpf-hcp-bridge-system
+
+# Service account
+serviceAccount:
+  name: dpf-hcp-bridge-operator-controller-manager
+  annotations: {}
+
+# Lower resource requirements for development
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+# Debug logging for development
+logLevel: debug
+
+# Leader election (can be disabled for single replica dev)
+leaderElection:
+  enabled: true
+
+# Health probe configuration
+healthProbe:
+  port: 8081
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# Security contexts
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - "ALL"
+
+# Run on master nodes (same as production)
+nodeSelector:
+  node-role.kubernetes.io/master: ""
+
+# Tolerate master node taints
+tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+# No affinity for dev (unlike production which spreads across zones)
+affinity: {}
+
+# Pod annotations
+podAnnotations:
+  kubectl.kubernetes.io/default-container: manager
+
+# Development BlueField image mappings (empty or test images)
+blueFieldImages: {}
+  # Example format (uncomment and replace with real URLs):
+  # "4.19.0-ec.5": "quay.io/your-org/bluefield-rhcos:4.19.0-ec.5"
+  # "4.18.0": "quay.io/your-org/bluefield-rhcos:4.18.0"
+  # "4.17.0": "quay.io/your-org/bluefield-rhcos:4.17.0"
+
+# Namespace labels
+namespaceLabels:
+  control-plane: controller-manager
+  app.kubernetes.io/name: dpf-hcp-bridge-operator
+  app.kubernetes.io/managed-by: Helm
+  environment: development
+
+# Common labels for all resources
+commonLabels:
+  environment: development
+  team: edge-infrastructure
+
+# Common annotations
+commonAnnotations:
+  managed-by: "Red Hat Edge Infrastructure Team"
+  purpose: "development-testing"

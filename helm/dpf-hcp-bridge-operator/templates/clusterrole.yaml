@@ -1,0 +1,77 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "dpf-hcp-bridge-operator.fullname" . }}-manager-role
+  labels:
+    {{- include "dpf-hcp-bridge-operator.labels" . | nindent 4 }}
+rules:
+# Permissions for DPFHCPBridge custom resources
+- apiGroups:
+  - provisioning.dpu.hcp.io
+  resources:
+  - dpfhcpbridges
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - provisioning.dpu.hcp.io
+  resources:
+  - dpfhcpbridges/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - provisioning.dpu.hcp.io
+  resources:
+  - dpfhcpbridges/status
+  verbs:
+  - get
+  - patch
+  - update
+
+# Leader election permissions (required for HA)
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# Event creation permissions (for notifications)
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+
+# ConfigMap read permissions (for BlueField image mapping)
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+
+# DPUCluster read permissions (for reference validation)
+- apiGroups:
+  - provisioning.dpu.nvidia.com
+  resources:
+  - dpuclusters
+  verbs:
+  - get
+  - list
+  - watch

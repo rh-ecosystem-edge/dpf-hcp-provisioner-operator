@@ -1,0 +1,122 @@
+# Default values for dpf-hcp-bridge-operator
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Operator image configuration
+image:
+  # Repository for the operator image
+  repository: quay.io/lhadad/dpf-hcp-bridge-operator
+  # Image tag (defaults to Chart appVersion if not specified)
+  tag: v0.1.0
+  # Image pull policy
+  pullPolicy: IfNotPresent
+
+# Number of operator replicas (1 for leader election)
+replicaCount: 1
+
+# Namespace where the operator will be deployed
+namespace: dpf-hcp-bridge-system
+
+# Service account configuration
+serviceAccount:
+  # Name of the service account
+  name: dpf-hcp-bridge-operator-controller-manager
+  # Annotations to add to the service account
+  annotations: {}
+
+# Resource limits and requests for the operator pod
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Log level for the operator (debug, info, error)
+logLevel: info
+
+# Leader election configuration
+leaderElection:
+  # Enable leader election (required for HA)
+  enabled: true
+
+# Health probe configuration
+healthProbe:
+  # Port for health probes
+  port: 8081
+  # Liveness probe configuration
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  # Readiness probe configuration
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# Security context for the operator pod
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Security context for the operator container
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - "ALL"
+
+# Operator pod placement configuration
+placement:
+  # Target node type for operator deployment
+  # Valid values: master, worker, custom
+  # - master: Deploy on control plane nodes (default)
+  # - worker: Deploy on worker nodes
+  # - custom: Use custom nodeSelector/tolerations/affinity below
+  #
+  # Examples:
+  #   Deploy on masters (default):
+  #     helm install dpf-hcp-bridge ./helm/dpf-hcp-bridge-operator
+  #   Deploy on workers:
+  #     helm install dpf-hcp-bridge ./helm/dpf-hcp-bridge-operator --set placement.target=worker
+  #   Deploy with custom placement:
+  #     helm install dpf-hcp-bridge ./helm/dpf-hcp-bridge-operator --set placement.target=custom \
+  #       --set nodeSelector.custom-label=custom-value
+  target: master
+
+# Node selector for operator pod placement (only used when placement.target=custom)
+# When using master/worker presets, this is automatically configured
+nodeSelector: {}
+
+# Tolerations for operator pod placement (only used when placement.target=custom)
+# When using master/worker presets, this is automatically configured
+tolerations: []
+
+# Affinity rules for operator pod placement (only used when placement.target=custom)
+affinity: {}
+
+# Pod annotations
+podAnnotations:
+  kubectl.kubernetes.io/default-container: manager
+
+# OCP-to-BlueField image mappings (initially empty - user will add later)
+# This ConfigMap is used by the operator to map OCP release images to BlueField container images
+blueFieldImages: {}
+  # Format: "ocp-version": "bluefield-image-url"
+  # Example mappings (uncomment and update with real values when available):
+  # "4.19.0-ec.5": "quay.io/edge-infrastructure/bluefield-rhcos:4.19.0-ec.5"
+  # "4.18.0": "quay.io/edge-infrastructure/bluefield-rhcos:4.18.0"
+  # "4.17.0": "quay.io/edge-infrastructure/bluefield-rhcos:4.17.0"
+
+# Namespace labels
+namespaceLabels:
+  control-plane: controller-manager
+  app.kubernetes.io/name: dpf-hcp-bridge-operator
+  app.kubernetes.io/managed-by: Helm
+
+# Additional labels to apply to all resources
+commonLabels: {}
+
+# Additional annotations to apply to all resources
+commonAnnotations: {}

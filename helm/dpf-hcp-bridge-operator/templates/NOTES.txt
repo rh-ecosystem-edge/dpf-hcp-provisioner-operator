@@ -1,0 +1,103 @@
+==================================================================================
+  DPF-HCP Bridge Operator has been successfully installed!
+==================================================================================
+
+Namespace: {{ include "dpf-hcp-bridge-operator.namespace" . }}
+Release Name: {{ .Release.Name }}
+
+The operator is now managing DPU clusters with HyperShift hosted control planes.
+
+NEXT STEPS:
+
+1. Verify the operator is running:
+
+   kubectl get pods -n {{ include "dpf-hcp-bridge-operator.namespace" . }}
+
+   You should see the controller-manager pod in a Running state.
+
+2. Check operator logs:
+
+   kubectl logs -n {{ include "dpf-hcp-bridge-operator.namespace" . }} \
+     -l control-plane=controller-manager -f
+
+3. Verify the CRD is installed:
+
+   kubectl get crd dpfhcpbridges.provisioning.dpu.hcp.io
+
+{{- if not .Values.blueFieldImages }}
+
+4. IMPORTANT: Add BlueField image mappings to the ConfigMap
+
+   The operator needs OCP-to-BlueField image mappings to function properly.
+
+   Edit the ConfigMap directly:
+
+   kubectl edit configmap ocp-bluefield-images -n {{ include "dpf-hcp-bridge-operator.namespace" . }}
+
+   Or update your values.yaml and upgrade the release:
+
+   blueFieldImages:
+     "4.19.0-ec.5": "<bluefield-container-image-url>"
+     "4.18.0": "<bluefield-container-image-url>"
+
+   Then upgrade:
+
+   helm upgrade {{ .Release.Name }} ./helm/dpf-hcp-bridge-operator
+{{- end }}
+
+5. Create your first DPFHCPBridge custom resource:
+
+   Example CR template:
+
+   apiVersion: provisioning.dpu.hcp.io/v1alpha1
+   kind: DPFHCPBridge
+   metadata:
+     name: my-dpu-cluster
+     namespace: default
+   spec:
+     baseDomain: clusters.example.com
+     dpuClusterRef:
+       name: my-dpucluster
+       namespace: default
+     etcdStorageClass: ocs-storagecluster-ceph-rbd
+     ocpReleaseImage: quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-x86_64
+     pullSecretRef:
+       name: my-pull-secret
+     sshKeySecretRef:
+       name: my-ssh-key
+     virtualIP: 192.168.1.100
+     controlPlaneAvailabilityPolicy: HighlyAvailable
+
+   Apply it with:
+
+   kubectl apply -f dpfhcpbridge.yaml
+
+PREREQUISITES:
+
+Ensure the following operators are installed on your management cluster:
+- MCE Operator (Multi-Cluster Engine)
+- DPF Operator (Data Processing Framework)
+- HyperShift Operator
+- ODF Operator (OpenShift Data Foundation)
+- MetalLB Operator (if using LoadBalancer service type)
+
+TROUBLESHOOTING:
+
+- View operator events:
+  kubectl get events -n {{ include "dpf-hcp-bridge-operator.namespace" . }} --sort-by='.lastTimestamp'
+
+- Check DPFHCPBridge status:
+  kubectl get dpfhcpbridge -A
+  kubectl describe dpfhcpbridge <name> -n <namespace>
+
+- Common issues:
+  * Missing BlueField image mapping: Add to ocp-bluefield-images ConfigMap
+  * DPUCluster not found: Ensure DPUCluster CR exists and is referenced correctly
+  * Pull secret missing: Create secret with 'pullsecret' key in CR namespace
+  * SSH key missing: Create secret with 'ssh-publickey' key in CR namespace
+
+For more information:
+- Documentation: https://github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator
+- Issues: https://github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/issues
+
+==================================================================================

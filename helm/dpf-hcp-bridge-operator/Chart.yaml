@@ -1,0 +1,19 @@
+apiVersion: v2
+name: dpf-hcp-bridge-operator
+description: Kubernetes operator that bridges DPF and Hypershift, abstracting the complexity of Hypershift management and automating the full lifecycle of Hypershift in a DPU context
+type: application
+version: 0.1.1
+appVersion: v0.1.0
+keywords:
+  - operator
+  - kubernetes
+  - hypershift
+  - dpu
+  - bluefield
+  - openshift
+home: https://github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator
+sources:
+  - https://github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator
+maintainers:
+  - name: Red Hat Ecosystem Edge Team
+    email: ecosystem-edge@redhat.com

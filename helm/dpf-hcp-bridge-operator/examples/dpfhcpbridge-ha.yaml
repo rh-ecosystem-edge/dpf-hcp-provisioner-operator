@@ -1,0 +1,41 @@
+# High Availability DPFHCPBridge Custom Resource Example
+# This example creates a production DPU cluster with HA configuration
+# Uses HighlyAvailable control plane with LoadBalancer service exposure (requires VirtualIP)
+
+apiVersion: provisioning.dpu.hcp.io/v1alpha1
+kind: DPFHCPBridge
+metadata:
+  name: prod-dpu-cluster
+  namespace: production
+  labels:
+    environment: production
+    team: edge-infrastructure
+spec:
+  # Base domain for the hosted cluster
+  baseDomain: prod.clusters.company.com
+
+  # Reference to production DPUCluster
+  dpuClusterRef:
+    name: prod-dpucluster
+    namespace: dpu-production
+
+  # Storage class for etcd
+  etcdStorageClass: ocs-storagecluster-ceph-rbd
+
+  # OCP release image
+  ocpReleaseImage: quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-x86_64
+
+  # Pull secret
+  pullSecretRef:
+    name: prod-pull-secret
+
+  # SSH key
+  sshKeySecretRef:
+    name: prod-ssh-key
+
+  # Virtual IP for LoadBalancer (required for HighlyAvailable)
+  virtualIP: 192.168.100.50
+
+  # High availability control plane (3 replicas)
+  # This automatically enables LoadBalancer service exposure
+  controlPlaneAvailabilityPolicy: HighlyAvailable
