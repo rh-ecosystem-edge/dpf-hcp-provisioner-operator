@@ -34,16 +34,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/dpucluster"
 )
 
 // DPFHCPBridgeReconciler reconciles a DPFHCPBridge object
 type DPFHCPBridgeReconciler struct {
 	client.Client
-	Scheme        *runtime.Scheme
-	Recorder      record.EventRecorder
-	ImageResolver *bluefield.ImageResolver
+	Scheme              *runtime.Scheme
+	Recorder            record.EventRecorder
+	ImageResolver       *bluefield.ImageResolver
+	DPUClusterValidator *dpucluster.Validator
 }
 
 // +kubebuilder:rbac:groups=provisioning.dpu.hcp.io,resources=dpfhcpbridges,verbs=get;list;watch;create;update;patch;delete
@@ -52,6 +55,7 @@ type DPFHCPBridgeReconciler struct {
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups=provisioning.dpu.nvidia.com,resources=dpuclusters,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -80,7 +84,16 @@ func (r *DPFHCPBridgeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// This ensures phase reflects the current state for feature gating
 	r.updatePhaseFromConditions(&cr)
 
-	// Feature 1: Resolve BlueField Image
+	// Feature: DPUCluster Validation
+	log.V(1).Info("Running DPUCluster validation feature")
+	if result, err := r.DPUClusterValidator.ValidateDPUCluster(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil {
+			log.Error(err, "DPUCluster validation failed")
+		}
+		return result, err
+	}
+
+	// Feature: Resolve BlueField Image
 	// Only validate image during initial creation/retry (Pending/Failed phases)
 	// Once cluster is provisioned (Provisioning/Ready), skip validation to avoid
 	// false failures when old OCP versions are removed from ConfigMap
@@ -116,6 +129,11 @@ func (r *DPFHCPBridgeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.configMapToRequests),
 			builder.WithPredicates(configMapPredicate()),
+		).
+		Watches(
+			&dpuprovisioningv1alpha1.DPUCluster{},
+			handler.EnqueueRequestsFromMapFunc(r.dpuClusterToRequests),
+			builder.WithPredicates(dpuClusterPredicate()),
 		).
 		Named("dpfhcpbridge").
 		Complete(r)
@@ -177,6 +195,77 @@ func (r *DPFHCPBridgeReconciler) configMapToRequests(ctx context.Context, obj cl
 	return requests
 }
 
+// dpuClusterPredicate filters DPUCluster events to watch for deletion and updates
+func dpuClusterPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			// Watch creation - reconcile affected DPFHCPBridge CR
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			// Watch updates - reconcile affected DPFHCPBridge CR
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			// CRITICAL: Watch deletion to alert users
+			return true
+		},
+	}
+}
+
+// dpuClusterToRequests maps DPUCluster events to reconcile requests for DPFHCPBridge CRs
+// that reference the affected DPUCluster.
+// Note: the relationship is 1:1 (one DPFHCPBridge per DPUCluster), but we still
+// iterate to find the matching CR since we don't know the CR name from the DPUCluster.
+func (r *DPFHCPBridgeReconciler) dpuClusterToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+
+	dpuCluster, ok := obj.(*dpuprovisioningv1alpha1.DPUCluster)
+	if !ok {
+		log.Error(nil, "Failed to convert object to DPUCluster", "object", obj)
+		return []reconcile.Request{}
+	}
+
+	// List all DPFHCPBridge CRs cluster-wide
+	var bridgeList provisioningv1alpha1.DPFHCPBridgeList
+	if err := r.List(ctx, &bridgeList); err != nil {
+		log.Error(err, "Failed to list DPFHCPBridge CRs for DPUCluster watch")
+		return []reconcile.Request{}
+	}
+
+	// Find the DPFHCPBridge CR that references this DPUCluster (should be at most one per 1:1 relationship)
+	requests := make([]reconcile.Request, 0, 1)
+	for _, bridge := range bridgeList.Items {
+		if bridge.Spec.DPUClusterRef.Name == dpuCluster.Name &&
+			bridge.Spec.DPUClusterRef.Namespace == dpuCluster.Namespace {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      bridge.Name,
+					Namespace: bridge.Namespace,
+				},
+			})
+
+			// there should only be one DPFHCPBridge per DPUCluster
+			// If we find multiple, log a warning but still reconcile all of them
+			if len(requests) > 1 {
+				log.Info("WARNING: Multiple DPFHCPBridge CRs reference the same DPUCluster (violates 1:1 relationship)",
+					"dpuCluster", dpuCluster.Name,
+					"dpuClusterNamespace", dpuCluster.Namespace,
+					"count", len(requests))
+			}
+		}
+	}
+
+	if len(requests) > 0 {
+		log.Info("DPUCluster changed, reconciling DPFHCPBridge CR",
+			"dpuCluster", dpuCluster.Name,
+			"dpuClusterNamespace", dpuCluster.Namespace,
+			"affectedCRs", len(requests))
+	}
+
+	return requests
+}
+
 // updatePhaseFromConditions computes the phase based on all conditions
 // This follows the Kubernetes pattern where phase is derived from conditions,
 // not set by individual features (similar to NVIDIA DPUCluster controller)
@@ -187,6 +276,9 @@ func (r *DPFHCPBridgeReconciler) updatePhaseFromConditions(cr *provisioningv1alp
 		condType string
 		negative bool // true if ConditionTrue = bad, false if ConditionFalse = bad
 	}{
+		{"DPUClusterMissing", true},       // True = cluster missing = bad
+		{"ClusterTypeValid", false},       // False = type invalid = bad
+		{"DPUClusterInUse", true},         // True = cluster already in use = bad
 		{"BlueFieldImageResolved", false}, // False = image not resolved = bad
 	}
 
@@ -199,6 +291,8 @@ func (r *DPFHCPBridgeReconciler) updatePhaseFromConditions(cr *provisioningv1alp
 		}
 
 		// Determine if this condition represents a failure
+		// For negative conditions: True = bad (e.g., DPUClusterMissing=True means missing)
+		// For positive conditions: False = bad (e.g., ClusterTypeValid=False means invalid)
 		isFailed := (check.negative && cond.Status == metav1.ConditionTrue) ||
 			(!check.negative && cond.Status == metav1.ConditionFalse)
 

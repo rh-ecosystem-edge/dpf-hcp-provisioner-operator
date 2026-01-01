@@ -57,3 +57,11 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - provisioning.dpu.nvidia.com
+  resources:
+  - dpuclusters
+  verbs:
+  - get
+  - list
+  - watch

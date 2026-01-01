@@ -37,9 +37,11 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/dpucluster"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -52,6 +54,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(provisioningv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(dpuprovisioningv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -206,11 +209,15 @@ func main() {
 	// Initialize BlueField Image Resolver
 	imageResolver := bluefield.NewImageResolver(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
 
+	// Initialize DPUCluster Validator
+	dpuClusterValidator := dpucluster.NewValidator(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+
 	if err := (&controller.DPFHCPBridgeReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Recorder:      mgr.GetEventRecorderFor("dpfhcpbridge-controller"),
-		ImageResolver: imageResolver,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Recorder:            mgr.GetEventRecorderFor("dpfhcpbridge-controller"),
+		ImageResolver:       imageResolver,
+		DPUClusterValidator: dpuClusterValidator,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DPFHCPBridge")
 		os.Exit(1)
