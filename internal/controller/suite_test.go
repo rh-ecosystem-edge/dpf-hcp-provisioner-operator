@@ -130,6 +130,7 @@ var _ = BeforeSuite(func() {
 		NodePoolManager:      hostedcluster.NewNodePoolManager(k8sManager.GetClient(), k8sManager.GetScheme()),
 		HostedClusterManager: hostedcluster.NewHostedClusterManager(k8sManager.GetClient(), k8sManager.GetScheme()),
 		FinalizerManager:     hostedcluster.NewFinalizerManager(k8sManager.GetClient()),
+		StatusSyncer:         hostedcluster.NewStatusSyncer(k8sManager.GetClient()),
 	}
 	err = reconciler.SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())

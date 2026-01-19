@@ -231,6 +231,9 @@ func main() {
 	// Initialize Finalizer Manager
 	finalizerManager := hostedcluster.NewFinalizerManager(mgr.GetClient())
 
+	// Initialize Status Syncer for HostedCluster status mirroring
+	statusSyncer := hostedcluster.NewStatusSyncer(mgr.GetClient())
+
 	if err := (&controller.DPFHCPBridgeReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
@@ -242,6 +245,7 @@ func main() {
 		HostedClusterManager: hostedClusterManager,
 		NodePoolManager:      nodePoolManager,
 		FinalizerManager:     finalizerManager,
+		StatusSyncer:         statusSyncer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DPFHCPBridge")
 		os.Exit(1)

@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 
+	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -56,6 +57,7 @@ type DPFHCPBridgeReconciler struct {
 	HostedClusterManager *hostedcluster.HostedClusterManager
 	NodePoolManager      *hostedcluster.NodePoolManager
 	FinalizerManager     *hostedcluster.FinalizerManager
+	StatusSyncer         *hostedcluster.StatusSyncer
 }
 
 const (
@@ -207,6 +209,18 @@ func (r *DPFHCPBridgeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		log.V(1).Info("Skipping HostedCluster/NodePool creation - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
 	}
 
+	// Feature: HostedCluster Status Mirroring
+	// Sync status from HostedCluster to DPFHCPBridge
+	// This runs in all phases (Pending, Provisioning, Ready) to keep status up-to-date
+	// Only syncs if hostedClusterRef is set (after HostedCluster creation)
+	log.V(1).Info("Syncing status from HostedCluster")
+	if result, err := r.StatusSyncer.SyncStatusFromHostedCluster(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil {
+			log.Error(err, "Status sync failed")
+		}
+		return result, err
+	}
+
 	// Compute final phase from all conditions after features have updated them
 	r.updatePhaseFromConditions(&cr)
 
@@ -238,6 +252,11 @@ func (r *DPFHCPBridgeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.secretToRequests),
 			builder.WithPredicates(secretPredicate()),
+		).
+		Watches(
+			&hyperv1.HostedCluster{},
+			handler.EnqueueRequestsFromMapFunc(r.hostedClusterToRequests),
+			builder.WithPredicates(hostedClusterPredicate()),
 		).
 		Named("dpfhcpbridge").
 		Complete(r)
@@ -442,6 +461,99 @@ func (r *DPFHCPBridgeReconciler) secretToRequests(ctx context.Context, obj clien
 	}
 
 	return requests
+}
+
+// hostedClusterPredicate filters HostedCluster events to watch for status changes
+func hostedClusterPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			// Watch creation - reconcile to set initial status
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			// Only reconcile if status changed (not spec)
+			// This prevents unnecessary reconciliations when we update the HostedCluster spec
+			oldHC, oldOK := e.ObjectOld.(*hyperv1.HostedCluster)
+			newHC, newOK := e.ObjectNew.(*hyperv1.HostedCluster)
+			if !oldOK || !newOK {
+				return false
+			}
+
+			// Compare status conditions to detect changes
+			return !conditionsEqual(oldHC.Status.Conditions, newHC.Status.Conditions)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			// Watch deletion - reconcile to handle cleanup
+			return true
+		},
+	}
+}
+
+// conditionsEqual compares two condition slices for equality
+func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
+	if len(oldConds) != len(newConds) {
+		return false
+	}
+
+	// Create maps for O(n) comparison
+	oldMap := make(map[string]metav1.Condition)
+	for _, c := range oldConds {
+		oldMap[c.Type] = c
+	}
+
+	// Compare each new condition
+	for _, newCond := range newConds {
+		oldCond, exists := oldMap[newCond.Type]
+		if !exists {
+			return false
+		}
+		if oldCond.Status != newCond.Status ||
+			oldCond.Reason != newCond.Reason ||
+			oldCond.Message != newCond.Message {
+			return false
+		}
+	}
+
+	return true
+}
+
+// hostedClusterToRequests maps HostedCluster events to reconcile requests for DPFHCPBridge CRs
+// that own the HostedCluster (via labels)
+func (r *DPFHCPBridgeReconciler) hostedClusterToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+
+	hc, ok := obj.(*hyperv1.HostedCluster)
+	if !ok {
+		log.Error(nil, "Failed to convert object to HostedCluster", "object", obj)
+		return []reconcile.Request{}
+	}
+
+	// Extract DPFHCPBridge name and namespace from labels
+	bridgeName := hc.Labels["dpfhcpbridge.provisioning.dpu.hcp.io/name"]
+	bridgeNamespace := hc.Labels["dpfhcpbridge.provisioning.dpu.hcp.io/namespace"]
+
+	if bridgeName == "" || bridgeNamespace == "" {
+		// HostedCluster not owned by DPFHCPBridge (no labels)
+		log.V(2).Info("HostedCluster not owned by DPFHCPBridge, skipping",
+			"hostedCluster", hc.Name,
+			"namespace", hc.Namespace)
+		return []reconcile.Request{}
+	}
+
+	log.V(1).Info("HostedCluster changed, reconciling owning DPFHCPBridge",
+		"hostedCluster", hc.Name,
+		"namespace", hc.Namespace,
+		"bridge", bridgeName,
+		"bridgeNamespace", bridgeNamespace)
+
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      bridgeName,
+				Namespace: bridgeNamespace,
+			},
+		},
+	}
 }
 
 // updatePhaseFromConditions computes the phase based on all conditions
