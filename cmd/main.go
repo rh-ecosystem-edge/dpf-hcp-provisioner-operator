@@ -43,7 +43,9 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/bluefield"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/dpucluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/secrets"
 	// +kubebuilder:scaffold:imports
 )
@@ -228,8 +230,18 @@ func main() {
 	// Initialize NodePool Manager
 	nodePoolManager := hostedcluster.NewNodePoolManager(mgr.GetClient(), mgr.GetScheme())
 
-	// Initialize Finalizer Manager
-	finalizerManager := hostedcluster.NewFinalizerManager(mgr.GetClient())
+	// Initialize Kubeconfig Injector
+	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+
+	// Initialize Finalizer Manager with pluggable cleanup handlers
+	// Handlers are executed in registration order
+	finalizerManager := finalizer.NewManager(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+
+	// Register cleanup handlers in order (dependent resources first)
+	// 1. Kubeconfig injection cleanup (removes kubeconfig from DPUCluster namespace)
+	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller")))
+	// 2. HostedCluster cleanup (removes HostedCluster, NodePool, and secrets)
+	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller")))
 
 	// Initialize Status Syncer for HostedCluster status mirroring
 	statusSyncer := hostedcluster.NewStatusSyncer(mgr.GetClient())
@@ -246,6 +258,7 @@ func main() {
 		NodePoolManager:      nodePoolManager,
 		FinalizerManager:     finalizerManager,
 		StatusSyncer:         statusSyncer,
+		KubeconfigInjector:   kubeconfigInjector,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DPFHCPBridge")
 		os.Exit(1)

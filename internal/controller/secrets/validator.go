@@ -125,13 +125,10 @@ func (v *Validator) ValidateSecrets(ctx context.Context, cr *provisioningv1alpha
 func (v *Validator) handleSSHKeySecretMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.SecretsValid)
-
 	message := fmt.Sprintf("SSH key secret '%s' not found in namespace '%s'",
 		cr.Spec.SSHKeySecretRef.Name, cr.Namespace)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.SecretsValid,
 		Status:             metav1.ConditionFalse,
@@ -140,10 +137,9 @@ func (v *Validator) handleSSHKeySecretMissing(ctx context.Context, cr *provision
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonSSHKeySecretMissing, message)
 		log.Info("SSH key secret not found",
 			"secretName", cr.Spec.SSHKeySecretRef.Name,
@@ -164,13 +160,10 @@ func (v *Validator) handleSSHKeySecretMissing(ctx context.Context, cr *provision
 func (v *Validator) handleSSHKeySecretInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.SecretsValid)
-
 	message := fmt.Sprintf("SSH key secret '%s' is missing required key '%s'",
 		cr.Spec.SSHKeySecretRef.Name, SSHPublicKeySecretKey)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.SecretsValid,
 		Status:             metav1.ConditionFalse,
@@ -179,10 +172,9 @@ func (v *Validator) handleSSHKeySecretInvalid(ctx context.Context, cr *provision
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonSSHKeySecretInvalid, message)
 		log.Info("SSH key secret is invalid",
 			"secretName", cr.Spec.SSHKeySecretRef.Name,
@@ -203,13 +195,10 @@ func (v *Validator) handleSSHKeySecretInvalid(ctx context.Context, cr *provision
 func (v *Validator) handlePullSecretMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.SecretsValid)
-
 	message := fmt.Sprintf("Pull secret '%s' not found in namespace '%s'",
 		cr.Spec.PullSecretRef.Name, cr.Namespace)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.SecretsValid,
 		Status:             metav1.ConditionFalse,
@@ -218,10 +207,9 @@ func (v *Validator) handlePullSecretMissing(ctx context.Context, cr *provisionin
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonPullSecretMissing, message)
 		log.Info("Pull secret not found",
 			"secretName", cr.Spec.PullSecretRef.Name,
@@ -242,13 +230,10 @@ func (v *Validator) handlePullSecretMissing(ctx context.Context, cr *provisionin
 func (v *Validator) handlePullSecretInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.SecretsValid)
-
 	message := fmt.Sprintf("Pull secret '%s' is missing required key '%s'",
 		cr.Spec.PullSecretRef.Name, PullSecretKey)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.SecretsValid,
 		Status:             metav1.ConditionFalse,
@@ -257,10 +242,9 @@ func (v *Validator) handlePullSecretInvalid(ctx context.Context, cr *provisionin
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonPullSecretInvalid, message)
 		log.Info("Pull secret is invalid",
 			"secretName", cr.Spec.PullSecretRef.Name,
@@ -281,13 +265,10 @@ func (v *Validator) handlePullSecretInvalid(ctx context.Context, cr *provisionin
 func (v *Validator) handleSecretsAccessDenied(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, secretType string, err error) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.SecretsValid)
-
 	message := fmt.Sprintf("Operator lacks RBAC permissions to access %s in namespace '%s': %v",
 		secretType, cr.Namespace, err)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.SecretsValid,
 		Status:             metav1.ConditionFalse,
@@ -296,10 +277,9 @@ func (v *Validator) handleSecretsAccessDenied(ctx context.Context, cr *provision
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonSecretsAccessDenied, message)
 		log.Error(err, "RBAC permission denied for secret",
 			"secretType", secretType,
@@ -321,18 +301,13 @@ func (v *Validator) handleSecretsValid(ctx context.Context, cr *provisioningv1al
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	// Get previous condition to check for recovery
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.SecretsValid)
 
 	// Check for recovery
-	if previousCondition != nil && previousCondition.Status == metav1.ConditionFalse {
-		log.Info("Secrets recovered from invalid/missing state",
-			"previousReason", previousCondition.Reason)
-	}
 
 	message := fmt.Sprintf("Both SSH key secret '%s' and pull secret '%s' are valid",
 		cr.Spec.SSHKeySecretRef.Name, cr.Spec.PullSecretRef.Name)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.SecretsValid,
 		Status:             metav1.ConditionTrue,
@@ -341,10 +316,9 @@ func (v *Validator) handleSecretsValid(ctx context.Context, cr *provisioningv1al
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed (e.g., recovered from invalid state)
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeNormal, ReasonSecretsValid, message)
 		log.Info("Secrets validated",
 			"sshKeySecret", cr.Spec.SSHKeySecretRef.Name,
@@ -359,15 +333,4 @@ func (v *Validator) handleSecretsValid(ctx context.Context, cr *provisioningv1al
 
 	// Success - continue with reconciliation
 	return ctrl.Result{}, nil
-}
-
-// shouldEmitEvent determines if an event should be emitted based on condition changes
-func shouldEmitEvent(previous, current *metav1.Condition) bool {
-	if previous == nil {
-		// First time setting this condition - emit event
-		return true
-	}
-
-	// Emit event if status or reason changed
-	return previous.Status != current.Status || previous.Reason != current.Reason
 }

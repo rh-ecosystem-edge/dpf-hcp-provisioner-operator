@@ -101,7 +101,7 @@ rules:
   - list
   - watch
 
-# DPUCluster read permissions (for reference validation)
+# DPUCluster permissions (for reference validation and kubeconfig injection)
 - apiGroups:
   - provisioning.dpu.nvidia.com
   resources:
@@ -109,6 +109,8 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 
 # HyperShift HostedCluster and NodePool permissions

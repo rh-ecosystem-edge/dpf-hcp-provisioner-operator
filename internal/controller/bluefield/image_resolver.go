@@ -237,7 +237,6 @@ func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provision
 	log := log.FromContext(ctx)
 
 	// Get previous condition to check if we need to emit event
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.BlueFieldImageResolved)
 
 	// Update status field
 	cr.Status.BlueFieldContainerImage = blueFieldImage
@@ -251,10 +250,9 @@ func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provision
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition status/reason changed
-	if conditionChanged(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		r.Recorder.Event(cr, corev1.EventTypeNormal, reasonImageResolved,
 			fmt.Sprintf("BlueField container image resolved for OCP version %s: %s", version, blueFieldImage))
 	}
@@ -280,7 +278,6 @@ func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provision
 	log.V(1).Info("Validation error - check CR spec", "error", err.Error())
 
 	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.BlueFieldImageResolved)
 
 	// Clear status field
 	cr.Status.BlueFieldContainerImage = ""
@@ -305,10 +302,9 @@ func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provision
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if conditionChanged(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		r.Recorder.Event(cr, corev1.EventTypeWarning, reason, message)
 	}
 
@@ -327,7 +323,6 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 	log.V(1).Info("Permanent error - user action required", "version", version, "error", err.Error())
 
 	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.BlueFieldImageResolved)
 
 	// Clear status field
 	cr.Status.BlueFieldContainerImage = ""
@@ -358,10 +353,9 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if conditionChanged(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		r.Recorder.Event(cr, corev1.EventTypeWarning, reason, message)
 	}
 
@@ -379,7 +373,6 @@ func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioni
 	log := log.FromContext(ctx)
 
 	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.BlueFieldImageResolved)
 
 	// Determine reason based on error type
 	var reason, message string
@@ -392,19 +385,18 @@ func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioni
 		message = fmt.Sprintf("Transient error accessing ConfigMap: %v", err)
 	}
 
-	// Update condition only on first occurrence or if reason changed
-	if previousCondition == nil || previousCondition.Reason != reason {
-		condition := metav1.Condition{
-			Type:               provisioningv1alpha1.BlueFieldImageResolved,
-			Status:             metav1.ConditionFalse,
-			Reason:             reason,
-			Message:            message,
-			LastTransitionTime: metav1.Now(),
-			ObservedGeneration: cr.Generation,
-		}
-		meta.SetStatusCondition(&cr.Status.Conditions, condition)
+	// Update condition and check if it changed
+	condition := metav1.Condition{
+		Type:               provisioningv1alpha1.BlueFieldImageResolved,
+		Status:             metav1.ConditionFalse,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+		ObservedGeneration: cr.Generation,
+	}
 
-		// Emit event
+	// Emit event only if condition changed
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		r.Recorder.Event(cr, corev1.EventTypeWarning, reason, message)
 	}
 
@@ -417,12 +409,4 @@ func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioni
 
 	// Return error to trigger controller-runtime's native exponential backoff
 	return ctrl.Result{}, err
-}
-
-// conditionChanged checks if a condition status or reason changed
-func conditionChanged(previous, current *metav1.Condition) bool {
-	if previous == nil {
-		return true // First time setting condition
-	}
-	return previous.Status != current.Status || previous.Reason != current.Reason
 }

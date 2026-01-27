@@ -140,6 +140,13 @@ var _ = Describe("DPFHCPBridge Phase Transitions", func() {
 			_ = k8sClient.Delete(ctx, &bridge)
 		}
 
+		// Clean up HostedClusters
+		hcList := &hyperv1.HostedClusterList{}
+		_ = k8sClient.List(ctx, hcList)
+		for _, hc := range hcList.Items {
+			_ = k8sClient.Delete(ctx, &hc)
+		}
+
 		// Clean up DPUCluster
 		dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -159,6 +166,12 @@ var _ = Describe("DPFHCPBridge Phase Transitions", func() {
 		_ = k8sClient.Delete(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      sshKeySecretName,
+				Namespace: testNamespace,
+			},
+		})
+		_ = k8sClient.Delete(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "phase-test-ready-admin-kubeconfig",
 				Namespace: testNamespace,
 			},
 		})
@@ -357,6 +370,159 @@ var _ = Describe("DPFHCPBridge Phase Transitions", func() {
 				}
 				// If CR still exists, phase should be Deleting
 				return bridge.Status.Phase == provisioningv1alpha1.PhaseDeleting
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("should transition to Provisioning when HostedCluster is created", func() {
+			// Create DPFHCPBridge
+			bridge := &provisioningv1alpha1.DPFHCPBridge{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "phase-test-provisioning",
+					Namespace: testNamespace,
+				},
+				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					BaseDomain:                     "test-cluster.example.com",
+					OCPReleaseImage:                ocpReleaseImage,
+					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
+					PullSecretRef:                  corev1.LocalObjectReference{Name: pullSecretName},
+					EtcdStorageClass:               "standard",
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+				},
+			}
+			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+
+			// Wait for Pending phase
+			Eventually(func() provisioningv1alpha1.DPFHCPBridgePhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-provisioning", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return ""
+				}
+				return bridge.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhasePending))
+
+			// Set HostedClusterRef to simulate HostedCluster creation
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-provisioning", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return err
+				}
+				bridge.Status.HostedClusterRef = &corev1.ObjectReference{
+					Name:      "phase-test-provisioning",
+					Namespace: testNamespace,
+				}
+				return k8sClient.Status().Update(ctx, bridge)
+			}, timeout, interval).Should(Succeed())
+
+			// Controller should transition to Provisioning
+			Eventually(func() provisioningv1alpha1.DPFHCPBridgePhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-provisioning", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return ""
+				}
+				return bridge.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseProvisioning))
+		})
+
+		It("should stay in Provisioning when HostedCluster is available BUT kubeconfig is NOT injected", func() {
+			// Create DPFHCPBridge
+			bridge := &provisioningv1alpha1.DPFHCPBridge{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "phase-test-not-ready",
+					Namespace: testNamespace,
+				},
+				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					BaseDomain:                     "test-cluster.example.com",
+					OCPReleaseImage:                ocpReleaseImage,
+					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
+					PullSecretRef:                  corev1.LocalObjectReference{Name: pullSecretName},
+					EtcdStorageClass:               "standard",
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+				},
+			}
+			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+
+			// Wait for Pending phase
+			Eventually(func() provisioningv1alpha1.DPFHCPBridgePhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-not-ready", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return ""
+				}
+				return bridge.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhasePending))
+
+			// Mock: Simulate controller setting HostedCluster created (move to Provisioning)
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-not-ready", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return err
+				}
+				bridge.Status.HostedClusterRef = &corev1.ObjectReference{
+					Name:      "phase-test-not-ready",
+					Namespace: testNamespace,
+				}
+				return k8sClient.Status().Update(ctx, bridge)
+			}, timeout, interval).Should(Succeed())
+
+			// Wait for Provisioning phase
+			Eventually(func() provisioningv1alpha1.DPFHCPBridgePhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-not-ready", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return ""
+				}
+				return bridge.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseProvisioning))
+
+			// Mock: Simulate HC available but kubeconfig NOT injected
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-not-ready", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return err
+				}
+				// Set HC available = True, kubeconfig injected = False
+				meta.SetStatusCondition(&bridge.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.HostedClusterAvailable,
+					Status:             metav1.ConditionTrue,
+					Reason:             "Available",
+					Message:            "HostedCluster is available",
+					LastTransitionTime: metav1.Now(),
+				})
+				meta.SetStatusCondition(&bridge.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.KubeConfigInjected,
+					Status:             metav1.ConditionFalse,
+					Reason:             provisioningv1alpha1.ReasonKubeConfigPending,
+					Message:            "Waiting for kubeconfig secret",
+					LastTransitionTime: metav1.Now(),
+				})
+				return k8sClient.Status().Update(ctx, bridge)
+			}, timeout, interval).Should(Succeed())
+
+			// Controller should stay in Provisioning (not Ready) since kubeconfig not injected
+			Consistently(func() provisioningv1alpha1.DPFHCPBridgePhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-not-ready", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return ""
+				}
+				return bridge.Status.Phase
+			}, time.Second*3, interval).Should(Equal(provisioningv1alpha1.PhaseProvisioning))
+
+			// Verify Ready condition is False or not set
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-not-ready", Namespace: testNamespace}, bridge)
+				if err != nil {
+					return false
+				}
+
+				readyCond := meta.FindStatusCondition(bridge.Status.Conditions, provisioningv1alpha1.Ready)
+				// Ready should either be False or not set yet
+				return readyCond == nil || readyCond.Status == metav1.ConditionFalse
 			}, timeout, interval).Should(BeTrue())
 		})
 	})

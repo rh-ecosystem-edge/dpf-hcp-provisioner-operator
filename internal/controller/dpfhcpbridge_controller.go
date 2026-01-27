@@ -41,7 +41,9 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/bluefield"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/dpucluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/secrets"
 )
 
@@ -56,8 +58,9 @@ type DPFHCPBridgeReconciler struct {
 	SecretManager        *hostedcluster.SecretManager
 	HostedClusterManager *hostedcluster.HostedClusterManager
 	NodePoolManager      *hostedcluster.NodePoolManager
-	FinalizerManager     *hostedcluster.FinalizerManager
+	FinalizerManager     *finalizer.Manager
 	StatusSyncer         *hostedcluster.StatusSyncer
+	KubeconfigInjector   *kubeconfiginjection.KubeconfigInjector
 }
 
 const (
@@ -71,7 +74,7 @@ const (
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
-// +kubebuilder:rbac:groups=provisioning.dpu.nvidia.com,resources=dpuclusters,verbs=get;list;watch
+// +kubebuilder:rbac:groups=provisioning.dpu.nvidia.com,resources=dpuclusters,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
@@ -232,7 +235,28 @@ func (r *DPFHCPBridgeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return result, err
 	}
 
+	// Feature: Kubeconfig Injection
+	// Inject HostedCluster kubeconfig into DPUCluster namespace and update DPUCluster CR
+	// Only runs after HostedCluster creation (hostedClusterRef is set)
+	if cr.Status.HostedClusterRef != nil {
+		log.V(1).Info("Running kubeconfig injection feature")
+		if result, err := r.KubeconfigInjector.InjectKubeconfig(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+			if err != nil {
+				log.Error(err, "Kubeconfig injection failed")
+			}
+			return result, err
+		}
+	} else {
+		log.V(1).Info("Skipping kubeconfig injection - HostedCluster not created yet")
+	}
+
+	// Compute Ready condition based on all operational requirements
+	// This must run AFTER all features have updated their conditions
+	// (HostedClusterAvailable, KubeConfigInjected, etc.)
+	r.computeReadyCondition(ctx, &cr)
+
 	// Compute final phase from all conditions after features have updated them
+	// This must run AFTER computeReadyCondition since it checks the Ready condition
 	r.updatePhaseFromConditions(&cr)
 
 	// Persist status with computed phase
@@ -273,6 +297,11 @@ func (r *DPFHCPBridgeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				handler.OnlyControllerOwner(),
 			),
 			builder.WithPredicates(hostedClusterPredicate()),
+		).
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.kubeconfigSecretToRequests),
+			builder.WithPredicates(kubeconfiginjection.IsHostedClusterKubeconfigSecretPredicate()),
 		).
 		Named("dpfhcpbridge").
 		Complete(r)
@@ -505,6 +534,12 @@ func hostedClusterPredicate() predicate.Predicate {
 	}
 }
 
+// kubeconfigSecretToRequests maps HC kubeconfig secret events to reconcile requests for DPFHCPBridge CRs
+// Uses the kubeconfiginjection.FindBridgeForKubeconfigSecret function
+func (r *DPFHCPBridgeReconciler) kubeconfigSecretToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	return kubeconfiginjection.FindBridgeForKubeconfigSecret(ctx, r.Client, obj)
+}
+
 // conditionsEqual compares two condition slices for equality
 func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 	if len(oldConds) != len(newConds) {
@@ -531,6 +566,59 @@ func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 	}
 
 	return true
+}
+
+// computeReadyCondition determines if the DPFHCPBridge is fully operational and sets the Ready condition.
+//
+// Ready state requires ALL of the following currently implemented features:
+// 1. HostedCluster is available and healthy (HostedClusterAvailable=True)
+// 2. Kubeconfig successfully injected into DPUCluster (KubeConfigInjected=True)
+//
+// This function should be called AFTER all feature reconciliation completes, so that all
+// sub-conditions (HostedClusterAvailable, KubeConfigInjected, etc.) are up-to-date.
+//
+// TODO: Add additional requirement checks here as new features are implemented
+func (r *DPFHCPBridgeReconciler) computeReadyCondition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) {
+	log := logf.FromContext(ctx)
+
+	// Requirement 1: HostedCluster must be available
+	// This is set by the StatusSyncer after mirroring HostedCluster status
+	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
+	if hcAvailable == nil || hcAvailable.Status != metav1.ConditionTrue {
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:    provisioningv1alpha1.Ready,
+			Status:  metav1.ConditionFalse,
+			Reason:  provisioningv1alpha1.ReasonHostedClusterNotReady,
+			Message: "Waiting for HostedCluster to become available",
+		})
+		log.V(1).Info("Not ready: HostedCluster not available")
+		return
+	}
+
+	// Requirement 2: Kubeconfig must be injected
+	// This is set by the KubeconfigInjector after successful injection
+	kubeconfigInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+	if kubeconfigInjected == nil || kubeconfigInjected.Status != metav1.ConditionTrue {
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:    provisioningv1alpha1.Ready,
+			Status:  metav1.ConditionFalse,
+			Reason:  provisioningv1alpha1.ReasonKubeConfigNotInjected,
+			Message: "Waiting for kubeconfig injection to DPUCluster",
+		})
+		log.V(1).Info("Not ready: Kubeconfig not injected")
+		return
+	}
+
+	// TODO: Add additional requirement checks here for future features
+
+	// All requirements met - set Ready to True
+	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		Type:    provisioningv1alpha1.Ready,
+		Status:  metav1.ConditionTrue,
+		Reason:  provisioningv1alpha1.ReasonAllComponentsOperational,
+		Message: "All required components are operational",
+	})
+	log.Info("DPFHCPBridge is ready")
 }
 
 // updatePhaseFromConditions computes the phase based on all conditions

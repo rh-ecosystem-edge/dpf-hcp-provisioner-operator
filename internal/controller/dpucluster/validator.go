@@ -130,15 +130,12 @@ func (v *Validator) validateClusterType(ctx context.Context, cr *provisioningv1a
 func (v *Validator) handleClusterTypeInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
-
 	// Note: Phase will be computed from conditions by the reconciler
 
 	message := fmt.Sprintf("DPUCluster '%s' has unsupported type '%s'. This operator only supports non-Kamaji cluster types",
 		dpuCluster.Name, dpuCluster.Spec.Type)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.ClusterTypeValid,
 		Status:             metav1.ConditionFalse,
@@ -147,10 +144,8 @@ func (v *Validator) handleClusterTypeInvalid(ctx context.Context, cr *provisioni
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
-
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonClusterTypeUnsupported, message)
 		log.Info("Unsupported cluster type detected",
 			"dpuClusterType", dpuCluster.Spec.Type)
@@ -170,17 +165,11 @@ func (v *Validator) handleClusterTypeInvalid(ctx context.Context, cr *provisioni
 func (v *Validator) handleClusterTypeValid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
-	// Get previous condition to check for recovery
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
-
 	// Note: Phase will be computed from conditions by the reconciler
-	if previousCondition != nil && previousCondition.Status == metav1.ConditionFalse {
-		log.Info("ClusterType recovered from unsupported type")
-	}
 
 	message := fmt.Sprintf("DPUCluster type '%s' is supported", dpuCluster.Spec.Type)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.ClusterTypeValid,
 		Status:             metav1.ConditionTrue,
@@ -189,10 +178,9 @@ func (v *Validator) handleClusterTypeValid(ctx context.Context, cr *provisioning
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed (e.g., recovered from unsupported type)
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeNormal, ReasonClusterTypeValid, message)
 		log.Info("ClusterType validated",
 			"dpuClusterType", dpuCluster.Spec.Type)
@@ -247,14 +235,11 @@ func (v *Validator) validateDPUClusterExclusivity(ctx context.Context, cr *provi
 func (v *Validator) handleDPUClusterInUse(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster, conflictingBridge *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-exclusivity")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
-
 	message := fmt.Sprintf("DPUCluster '%s/%s' is already in use by DPFHCPBridge '%s/%s'. Each DPUCluster can only be referenced by one DPFHCPBridge",
 		dpuCluster.Namespace, dpuCluster.Name,
 		conflictingBridge.Namespace, conflictingBridge.Name)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.DPUClusterInUse,
 		Status:             metav1.ConditionTrue,
@@ -263,10 +248,9 @@ func (v *Validator) handleDPUClusterInUse(ctx context.Context, cr *provisioningv
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonDPUClusterInUse, message)
 		log.Info("DPUCluster already in use",
 			"dpuClusterName", dpuCluster.Name,
@@ -288,17 +272,10 @@ func (v *Validator) handleDPUClusterInUse(ctx context.Context, cr *provisioningv
 func (v *Validator) handleDPUClusterAvailable(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-exclusivity")
 
-	// Get previous condition to check for recovery
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
-
-	if previousCondition != nil && previousCondition.Status == metav1.ConditionTrue {
-		log.Info("DPUCluster recovered from in-use state")
-	}
-
 	message := fmt.Sprintf("DPUCluster '%s/%s' is available (not in use by another DPFHCPBridge)",
 		dpuCluster.Namespace, dpuCluster.Name)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.DPUClusterInUse,
 		Status:             metav1.ConditionFalse,
@@ -307,10 +284,9 @@ func (v *Validator) handleDPUClusterAvailable(ctx context.Context, cr *provision
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed (e.g., recovered from in-use state)
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeNormal, ReasonDPUClusterAvailable, message)
 		log.Info("DPUCluster is available",
 			"dpuClusterName", dpuCluster.Name,
@@ -331,7 +307,7 @@ func (v *Validator) handleDPUClusterAvailable(ctx context.Context, cr *provision
 func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuClusterRef provisioningv1alpha1.DPUClusterReference) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
-	// Get previous condition to determine if this is a new error
+	// Get previous condition to determine if this is a new error or deletion
 	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
 
 	// Determine message based on whether cluster was previously found
@@ -349,7 +325,7 @@ func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisionin
 		reason = ReasonDPUClusterNotFound
 	}
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.DPUClusterMissing,
 		Status:             metav1.ConditionTrue,
@@ -358,10 +334,9 @@ func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisionin
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
-	// Emit event only if condition status or reason changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	// Emit event only if condition changed
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, reason, message)
 		log.Info("DPUCluster not found",
 			"dpuClusterName", dpuClusterRef.Name,
@@ -384,13 +359,10 @@ func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisionin
 func (v *Validator) handleDPUClusterAccessDenied(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuClusterRef provisioningv1alpha1.DPUClusterReference, err error) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
-
 	message := fmt.Sprintf("Operator lacks RBAC permissions to access DPUCluster '%s' in namespace '%s': %v",
 		dpuClusterRef.Name, dpuClusterRef.Namespace, err)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.DPUClusterMissing,
 		Status:             metav1.ConditionTrue,
@@ -399,10 +371,9 @@ func (v *Validator) handleDPUClusterAccessDenied(ctx context.Context, cr *provis
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeWarning, ReasonDPUClusterAccessDenied, message)
 		log.Error(err, "RBAC permission denied for DPUCluster",
 			"dpuClusterName", dpuClusterRef.Name,
@@ -423,17 +394,10 @@ func (v *Validator) handleDPUClusterAccessDenied(ctx context.Context, cr *provis
 func (v *Validator) handleDPUClusterFound(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
-	// Get previous condition
-	previousCondition := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
-
-	if previousCondition != nil && previousCondition.Status == metav1.ConditionTrue {
-		log.Info("DPUCluster recovered from missing state")
-	}
-
 	message := fmt.Sprintf("DPUCluster '%s' found in namespace '%s'",
 		dpuCluster.Name, dpuCluster.Namespace)
 
-	// Set condition
+	// Set condition and check if it changed
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.DPUClusterMissing,
 		Status:             metav1.ConditionFalse,
@@ -442,10 +406,9 @@ func (v *Validator) handleDPUClusterFound(ctx context.Context, cr *provisioningv
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
-	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
 	// Emit event only if condition changed (e.g., recovered from missing state)
-	if shouldEmitEvent(previousCondition, &condition) {
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		v.recorder.Event(cr, corev1.EventTypeNormal, ReasonDPUClusterFound, message)
 		log.Info("DPUCluster found",
 			"dpuClusterName", dpuCluster.Name,
@@ -460,15 +423,4 @@ func (v *Validator) handleDPUClusterFound(ctx context.Context, cr *provisioningv
 
 	// Success - continue with reconciliation
 	return ctrl.Result{}, nil
-}
-
-// shouldEmitEvent determines if an event should be emitted based on condition changes
-func shouldEmitEvent(previous, current *metav1.Condition) bool {
-	if previous == nil {
-		// First time setting this condition - emit event
-		return true
-	}
-
-	// Emit event if status or reason changed
-	return previous.Status != current.Status || previous.Reason != current.Reason
 }

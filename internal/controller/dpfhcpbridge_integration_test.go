@@ -32,6 +32,11 @@ import (
 )
 
 var _ = Describe("DPFHCPBridge Integration Tests with envtest", func() {
+	const (
+		timeout  = time.Second * 30
+		interval = time.Second * 1
+	)
+
 	ctx := context.Background()
 
 	AfterEach(func() {
@@ -41,6 +46,13 @@ var _ = Describe("DPFHCPBridge Integration Tests with envtest", func() {
 		for _, bridge := range bridgeList.Items {
 			_ = k8sClient.Delete(ctx, &bridge)
 		}
+
+		// Wait for all deletions to complete to prevent race conditions with next test
+		Eventually(func() int {
+			bridgeList := &provisioningv1alpha1.DPFHCPBridgeList{}
+			_ = k8sClient.List(ctx, bridgeList)
+			return len(bridgeList.Items)
+		}, timeout, interval).Should(Equal(0))
 	})
 
 	Context("Complete CR Lifecycle", func() {
@@ -168,9 +180,6 @@ var _ = Describe("DPFHCPBridge Integration Tests with envtest", func() {
 
 			Expect(updated.Status.Phase).To(Equal(provisioningv1alpha1.PhaseProvisioning))
 			Expect(updated.Generation).To(Equal(initialGeneration), "Status update should not increment generation")
-
-			// Clean up
-			_ = k8sClient.Delete(ctx, bridge)
 		})
 
 		It("should support full status population", func() {
@@ -243,9 +252,6 @@ var _ = Describe("DPFHCPBridge Integration Tests with envtest", func() {
 			Expect(retrieved.Status.Conditions).To(HaveLen(1))
 			Expect(retrieved.Status.HostedClusterRef).NotTo(BeNil())
 			Expect(retrieved.Status.KubeConfigSecretRef).NotTo(BeNil())
-
-			// Clean up
-			_ = k8sClient.Delete(ctx, bridge)
 		})
 	})
 
@@ -284,7 +290,7 @@ var _ = Describe("DPFHCPBridge Integration Tests with envtest", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(bridgeList.Items).To(HaveLen(len(bridgeNames)))
 
-			// Verify each bridge
+			// Verify each bridge exists
 			foundNames := make(map[string]bool)
 			for _, bridge := range bridgeList.Items {
 				foundNames[bridge.Name] = true
@@ -292,11 +298,6 @@ var _ = Describe("DPFHCPBridge Integration Tests with envtest", func() {
 
 			for _, name := range bridgeNames {
 				Expect(foundNames[name]).To(BeTrue(), "Bridge %q should be in the list", name)
-			}
-
-			// Clean up
-			for _, bridge := range bridgeList.Items {
-				_ = k8sClient.Delete(ctx, &bridge)
 			}
 		})
 	})

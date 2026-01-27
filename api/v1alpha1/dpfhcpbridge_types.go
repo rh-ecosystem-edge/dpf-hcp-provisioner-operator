@@ -196,6 +196,34 @@ const (
 	DPUClusterInUse string = "DPUClusterInUse"
 )
 
+// Condition reasons for DPFHCPBridge Ready status.
+// These are used as the Reason field in the Ready condition to indicate why the bridge is ready or not ready.
+const (
+	// ReasonAllComponentsOperational indicates all required components are operational and healthy.
+	ReasonAllComponentsOperational string = "AllComponentsOperational"
+
+	// ReasonHostedClusterNotReady indicates the HostedCluster is not yet available or healthy.
+	// Used when: HostedClusterAvailable condition is False or not set.
+	ReasonHostedClusterNotReady string = "HostedClusterNotReady"
+
+	// ReasonKubeConfigNotInjected indicates the kubeconfig has not been injected into DPUCluster.
+	// Used when: KubeConfigInjected condition is False or not set.
+	ReasonKubeConfigNotInjected string = "KubeConfigNotInjected"
+)
+
+// Condition reasons for DPFHCPBridge KubeConfigInjected status.
+// These are used as the Reason field in the KubeConfigInjected condition.
+const (
+	// ReasonKubeConfigInjected indicates kubeconfig was successfully injected into DPUCluster.
+	ReasonKubeConfigInjected string = "Injected"
+
+	// ReasonKubeConfigPending indicates waiting for Hypershift to create the kubeconfig secret.
+	ReasonKubeConfigPending string = "KubeconfigPending"
+
+	// ReasonKubeConfigInjectionFailed indicates kubeconfig injection failed.
+	ReasonKubeConfigInjectionFailed string = "InjectionFailed"
+)
+
 // DPFHCPBridgeStatus defines the observed state of DPFHCPBridge
 type DPFHCPBridgeStatus struct {
 	// Phase represents the current lifecycle phase

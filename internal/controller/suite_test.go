@@ -40,7 +40,9 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/bluefield"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/dpucluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/secrets"
 	// +kubebuilder:scaffold:imports
 )
@@ -119,6 +121,14 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up DPFHCPBridge controller")
+	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller"))
+
+	// Initialize Finalizer Manager with pluggable cleanup handlers
+	finalizerManager := finalizer.NewManager(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller"))
+	// Register cleanup handlers in order (dependent resources first)
+	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller")))
+	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller")))
+
 	reconciler := &DPFHCPBridgeReconciler{
 		Client:               k8sManager.GetClient(),
 		Scheme:               k8sManager.GetScheme(),
@@ -129,8 +139,9 @@ var _ = BeforeSuite(func() {
 		SecretManager:        hostedcluster.NewSecretManager(k8sManager.GetClient(), k8sManager.GetScheme()),
 		NodePoolManager:      hostedcluster.NewNodePoolManager(k8sManager.GetClient(), k8sManager.GetScheme()),
 		HostedClusterManager: hostedcluster.NewHostedClusterManager(k8sManager.GetClient(), k8sManager.GetScheme()),
-		FinalizerManager:     hostedcluster.NewFinalizerManager(k8sManager.GetClient()),
+		FinalizerManager:     finalizerManager,
 		StatusSyncer:         hostedcluster.NewStatusSyncer(k8sManager.GetClient()),
+		KubeconfigInjector:   kubeconfigInjector,
 	}
 	err = reconciler.SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
