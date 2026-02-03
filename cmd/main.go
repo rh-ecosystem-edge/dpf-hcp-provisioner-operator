@@ -40,13 +40,16 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/metallb"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
+	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -61,6 +64,7 @@ func init() {
 	utilruntime.Must(provisioningv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(dpuprovisioningv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(hyperv1.AddToScheme(scheme))
+	utilruntime.Must(metallbv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -212,48 +216,60 @@ func main() {
 		os.Exit(1)
 	}
 
+	client := mgr.GetClient()
+	recorder := mgr.GetEventRecorderFor(common.ControllerName)
+	scheme := mgr.GetScheme()
+
 	// Initialize BlueField Image Resolver
-	imageResolver := bluefield.NewImageResolver(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
+	imageResolver := bluefield.NewImageResolver(client, recorder)
 
 	// Initialize DPUCluster Validator
-	dpuClusterValidator := dpucluster.NewValidator(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
+	dpuClusterValidator := dpucluster.NewValidator(client, recorder)
 
 	// Initialize Secrets Validator
-	secretsValidator := secrets.NewValidator(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
+	secretsValidator := secrets.NewValidator(client, recorder)
 
 	// Initialize Secret Manager for HostedCluster lifecycle
-	secretManager := hostedcluster.NewSecretManager(mgr.GetClient(), mgr.GetScheme())
+	secretManager := hostedcluster.NewSecretManager(client, scheme)
 
 	// Initialize HostedCluster Manager
-	hostedClusterManager := hostedcluster.NewHostedClusterManager(mgr.GetClient(), mgr.GetScheme())
+	hostedClusterManager := hostedcluster.NewHostedClusterManager(client, scheme)
 
 	// Initialize NodePool Manager
-	nodePoolManager := hostedcluster.NewNodePoolManager(mgr.GetClient(), mgr.GetScheme())
+	nodePoolManager := hostedcluster.NewNodePoolManager(client, scheme)
 
 	// Initialize Kubeconfig Injector
-	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
+	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(client, recorder)
+
+	// Initialize MetalLB Manager
+	metalLBManager := metallb.NewMetalLBManager(client, recorder)
 
 	// Initialize Finalizer Manager with pluggable cleanup handlers
 	// Handlers are executed in registration order
-	finalizerManager := finalizer.NewManager(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
+	finalizerManager := finalizer.NewManager(client, recorder)
 
-	// Register cleanup handlers in order (dependent resources first)
+	// Register cleanup handlers in order (dependent resources first, dependencies last)
 	// 1. Kubeconfig injection cleanup (removes kubeconfig from DPUCluster namespace)
-	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller")))
-	// 2. HostedCluster cleanup (removes HostedCluster, NodePool, and secrets)
-	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller")))
+	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(client, recorder))
+	// 2. HostedCluster cleanup (removes HostedCluster, NodePool, services, and secrets)
+	//    Must run before MetalLB cleanup because LoadBalancer services depend on IPAddressPool
+	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(client, recorder))
+	// 3. MetalLB cleanup (removes IPAddressPool and L2Advertisement)
+	//    Must run after HostedCluster cleanup to avoid deleting IPs while services still exist
+	finalizerManager.RegisterHandler(metallb.NewCleanupHandler(client, recorder))
 
 	// Initialize Status Syncer for HostedCluster status mirroring
-	statusSyncer := hostedcluster.NewStatusSyncer(mgr.GetClient())
+	statusSyncer := hostedcluster.NewStatusSyncer(client)
 
 	if err := (&controller.DPFHCPProvisionerReconciler{
-		Client:               mgr.GetClient(),
-		Scheme:               mgr.GetScheme(),
-		Recorder:             mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"),
+		Client:               client,
+		Scheme:               scheme,
+		Recorder:             recorder,
 		ImageResolver:        imageResolver,
 		DPUClusterValidator:  dpuClusterValidator,
 		SecretsValidator:     secretsValidator,
 		SecretManager:        secretManager,
+		MetalLBManager:       metalLBManager,
 		HostedClusterManager: hostedClusterManager,
 		NodePoolManager:      nodePoolManager,
 		FinalizerManager:     finalizerManager,

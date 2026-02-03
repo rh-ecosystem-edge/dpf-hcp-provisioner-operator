@@ -105,6 +105,7 @@ type DPFHCPProvisionerSpec struct {
 	// Must be a routable IP in the management cluster network
 	// This field is immutable.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="virtualIP is immutable"
+	// +kubebuilder:validation:XValidation:rule="self == '' || isIP(self)",message="virtualIP must be a valid IP address"
 	// +immutable
 	// +optional
 	VirtualIP string `json:"virtualIP,omitempty"`
@@ -194,6 +195,10 @@ const (
 
 	// DPUClusterInUse indicates whether the DPUCluster is already in use by another DPFHCPProvisioner.
 	DPUClusterInUse string = "DPUClusterInUse"
+
+	// MetalLBConfigured indicates whether MetalLB resources (IPAddressPool and L2Advertisement)
+	// have been successfully created and are in sync with the DPFHCPProvisioner spec.
+	MetalLBConfigured string = "MetalLBConfigured"
 )
 
 // Condition reasons for DPFHCPProvisioner Ready status.

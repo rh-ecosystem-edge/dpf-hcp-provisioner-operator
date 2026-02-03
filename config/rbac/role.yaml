@@ -74,6 +74,19 @@ rules:
   verbs:
   - get
 - apiGroups:
+  - metallb.io
+  resources:
+  - ipaddresspools
+  - l2advertisements
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - provisioning.dpu.hcp.io
   resources:
   - dpfhcpprovisioners

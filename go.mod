@@ -1,8 +1,6 @@
 module github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
 
-go 1.24.4
-
-toolchain go1.24.11
+go 1.25
 
 require (
 	github.com/nvidia/doca-platform v0.0.0-20251115082520-81369e955c6c
@@ -10,11 +8,12 @@ require (
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift/hypershift v0.1.71
 	github.com/openshift/hypershift/api v0.0.0-20251229083354-c1d28e31a05d
+	go.universe.tf/metallb v0.15.3
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
-	sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/controller-runtime v0.22.3
 )
 
 require (

@@ -134,3 +134,18 @@ rules:
   - nodepools/status
   verbs:
   - get
+
+# MetalLB permissions (for LoadBalancer service exposure)
+- apiGroups:
+  - metallb.io
+  resources:
+  - ipaddresspools
+  - l2advertisements
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

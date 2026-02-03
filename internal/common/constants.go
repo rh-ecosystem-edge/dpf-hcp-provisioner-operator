@@ -21,4 +21,25 @@ const (
 	// DPFHCPProvisionerName is the resource kind name used in logs, metrics, events, etc.
 	// If the CR is renamed, update this constant once and it propagates everywhere.
 	DPFHCPProvisionerName = "dpfhcpprovisioner"
+
+	// ControllerName is the name used for event recorders
+	ControllerName = "dpfhcpprovisioner-controller"
+)
+
+// Label keys for cross-namespace resource ownership tracking
+const (
+	// LabelDPFHCPProvisionerName is the label key for the DPFHCPProvisioner name
+	// Used to track resources owned by a specific DPFHCPProvisioner across namespaces
+	LabelDPFHCPProvisionerName = "dpfhcpprovisioner.dpu.hcp.io/name"
+
+	// LabelDPFHCPProvisionerNamespace is the label key for the DPFHCPProvisioner namespace
+	// Used to track resources owned by a specific DPFHCPProvisioner across namespaces
+	LabelDPFHCPProvisionerNamespace = "dpfhcpprovisioner.dpu.hcp.io/namespace"
+)
+
+// Namespace constants
+const (
+	// OpenshiftOperatorsNamespace is the namespace for OpenShift operator resources
+	// Used for MetalLB resources and other operator-managed resources
+	OpenshiftOperatorsNamespace = "openshift-operators"
 )

@@ -33,6 +33,7 @@ import (
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 )
 
 var _ = Describe("Kubeconfig Injection Reconciler", func() {
@@ -132,8 +133,8 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			// Destination secret should have "super-admin.conf" key (DPF operator expects this)
 			Expect(destSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("fake-kubeconfig-data")))
-			Expect(destSecret.Labels[LabelOwnedBy]).To(Equal("test-provisioner"))
-			Expect(destSecret.Labels[LabelNamespace]).To(Equal("test-ns"))
+			Expect(destSecret.Labels[common.LabelDPFHCPProvisionerName]).To(Equal("test-provisioner"))
+			Expect(destSecret.Labels[common.LabelDPFHCPProvisionerNamespace]).To(Equal("test-ns"))
 
 			// DPUCluster updated
 			updatedDPU := &dpuprovisioningv1alpha1.DPUCluster{}
@@ -550,8 +551,8 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			}, recreatedSecret)
 			Expect(err).NotTo(HaveOccurred(), "Secret should be recreated")
 			Expect(recreatedSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("kubeconfig-data")))
-			Expect(recreatedSecret.Labels[LabelOwnedBy]).To(Equal("test-provisioner"))
-			Expect(recreatedSecret.Labels[LabelNamespace]).To(Equal("test-ns"))
+			Expect(recreatedSecret.Labels[common.LabelDPFHCPProvisionerName]).To(Equal("test-provisioner"))
+			Expect(recreatedSecret.Labels[common.LabelDPFHCPProvisionerNamespace]).To(Equal("test-ns"))
 
 			// DPUCluster should NOT be modified (already updated)
 			afterDPU := &dpuprovisioningv1alpha1.DPUCluster{}

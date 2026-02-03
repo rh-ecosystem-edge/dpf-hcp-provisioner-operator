@@ -61,9 +61,9 @@ func (h *CleanupHandler) Name() string {
 // 1. List all secrets with labels matching this DPFHCPProvisioner
 // 2. Delete each found secret
 //
-// Labels used for finding secrets:
-// - dpf-hcp-provisioner-operator/owned-by: <provisioner-name>
-// - dpf-hcp-provisioner-operator/namespace: <provisioner-namespace>
+// Labels used for finding secrets (defined in internal/common/constants.go):
+// - common.LabelDPFHCPProvisionerName: <provisioner-name>
+// - common.LabelDPFHCPProvisionerNamespace: <provisioner-namespace>
 //
 // Returns:
 // - nil if cleanup succeeded or secrets are already gone
@@ -80,8 +80,8 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	secretList := &corev1.SecretList{}
 	err := h.client.List(ctx, secretList,
 		client.MatchingLabels{
-			LabelOwnedBy:   cr.Name,
-			LabelNamespace: cr.Namespace,
+			common.LabelDPFHCPProvisionerName:      cr.Name,
+			common.LabelDPFHCPProvisionerNamespace: cr.Namespace,
 		})
 	if err != nil {
 		log.Error(err, "Failed to list kubeconfig secrets")

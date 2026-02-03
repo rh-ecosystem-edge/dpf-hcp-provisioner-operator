@@ -178,6 +178,8 @@ spec:
                 x-kubernetes-validations:
                 - message: virtualIP is immutable
                   rule: self == oldSelf
+                - message: virtualIP must be a valid IP address
+                  rule: self == '' || isIP(self)
             required:
             - baseDomain
             - dpuClusterRef

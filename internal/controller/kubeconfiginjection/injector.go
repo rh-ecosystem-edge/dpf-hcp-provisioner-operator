@@ -45,12 +45,6 @@ const (
 
 	// DestinationKubeconfigSecretKey is the key name for kubeconfig data in the destination secret (expected by DPF operator)
 	DestinationKubeconfigSecretKey = "super-admin.conf"
-
-	// LabelOwnedBy is the label key for ownership tracking
-	LabelOwnedBy = "dpf-hcp-provisioner-operator/owned-by"
-
-	// LabelNamespace is the label key for namespace tracking
-	LabelNamespace = "dpf-hcp-provisioner-operator/namespace"
 )
 
 // KubeconfigInjector handles kubeconfig injection from HostedCluster to DPUCluster
@@ -418,8 +412,8 @@ func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context
 			Name:      sourceSecretName,
 			Namespace: provisioner.Spec.DPUClusterRef.Namespace,
 			Labels: map[string]string{
-				LabelOwnedBy:   provisioner.Name,
-				LabelNamespace: provisioner.Namespace,
+				common.LabelDPFHCPProvisionerName:      provisioner.Name,
+				common.LabelDPFHCPProvisionerNamespace: provisioner.Namespace,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,

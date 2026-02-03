@@ -45,6 +45,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/metallb"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
 )
 
@@ -57,6 +58,7 @@ type DPFHCPProvisionerReconciler struct {
 	DPUClusterValidator  *dpucluster.Validator
 	SecretsValidator     *secrets.Validator
 	SecretManager        *hostedcluster.SecretManager
+	MetalLBManager       *metallb.MetalLBManager
 	HostedClusterManager *hostedcluster.HostedClusterManager
 	NodePoolManager      *hostedcluster.NodePoolManager
 	FinalizerManager     *finalizer.Manager
@@ -83,6 +85,8 @@ const (
 // +kubebuilder:rbac:groups=hypershift.openshift.io,resources=hostedclusters/status,verbs=get
 // +kubebuilder:rbac:groups=hypershift.openshift.io,resources=nodepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=hypershift.openshift.io,resources=nodepools/status,verbs=get
+// +kubebuilder:rbac:groups=metallb.io,resources=ipaddresspools,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=metallb.io,resources=l2advertisements,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -175,6 +179,16 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Recompute phase after validations to ensure HostedCluster creation only proceeds if all validations pass
 	r.updatePhaseFromConditions(&cr)
+
+	// Feature: MetalLB Configuration
+	// Configure MetalLB resources (IPAddressPool and L2Advertisement) when LoadBalancer exposure is needed
+	log.V(1).Info("Configuring MetalLB resources")
+	if result, err := r.MetalLBManager.ConfigureMetalLB(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if err != nil {
+			log.Error(err, "MetalLB configuration failed")
+		}
+		return result, err
+	}
 
 	// Feature: Copy Secrets to clusters namespace
 	// Only run during Pending phase (all validations must pass first)
@@ -603,7 +617,24 @@ func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) {
 	log := logf.FromContext(ctx)
 
-	// Requirement 1: HostedCluster must be available
+	// Requirement 1: MetalLB must be configured (if required)
+	// This is only required when exposing services through LoadBalancer
+	// Checked first because MetalLB configuration happens before HostedCluster creation
+	if cr.ShouldExposeThroughLoadBalancer() {
+		metalLBConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.MetalLBConfigured)
+		if metalLBConfigured == nil || metalLBConfigured.Status != metav1.ConditionTrue {
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.Ready,
+				Status:  metav1.ConditionFalse,
+				Reason:  "MetalLBNotConfigured",
+				Message: "Waiting for MetalLB configuration to complete",
+			})
+			log.V(1).Info("Not ready: MetalLB not configured")
+			return
+		}
+	}
+
+	// Requirement 2: HostedCluster must be available
 	// This is set by the StatusSyncer after mirroring HostedCluster status
 	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
 	if hcAvailable == nil || hcAvailable.Status != metav1.ConditionTrue {
@@ -617,7 +648,7 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	// Requirement 2: Kubeconfig must be injected
+	// Requirement 3: Kubeconfig must be injected
 	// This is set by the KubeconfigInjector after successful injection
 	kubeconfigInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 	if kubeconfigInjected == nil || kubeconfigInjected.Status != metav1.ConditionTrue {
