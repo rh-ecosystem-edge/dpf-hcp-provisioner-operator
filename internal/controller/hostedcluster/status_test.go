@@ -28,14 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 var _ = Describe("Status Syncer", func() {
 	var (
 		ctx          context.Context
 		syncer       *StatusSyncer
-		cr           *provisioningv1alpha1.DPFHCPBridge
+		cr           *provisioningv1alpha1.DPFHCPProvisioner
 		hc           *hyperv1.HostedCluster
 		scheme       *runtime.Scheme
 		fakeClient   *fake.ClientBuilder
@@ -48,19 +48,19 @@ var _ = Describe("Status Syncer", func() {
 		Expect(provisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
 		Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
 
-		// Create test DPFHCPBridge CR
-		cr = &provisioningv1alpha1.DPFHCPBridge{
+		// Create test DPFHCPProvisioner CR
+		cr = &provisioningv1alpha1.DPFHCPProvisioner{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:       "test-bridge",
+				Name:       "test-provisioner",
 				Namespace:  "default",
 				Generation: 1,
 			},
-			Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 				OCPReleaseImage: "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
 			},
-			Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+			Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 				HostedClusterRef: &corev1.ObjectReference{
-					Name:       "test-bridge",
+					Name:       "test-provisioner",
 					Namespace:  "default",
 					Kind:       "HostedCluster",
 					APIVersion: "hypershift.openshift.io/v1beta1",
@@ -71,7 +71,7 @@ var _ = Describe("Status Syncer", func() {
 		// Create test HostedCluster with status
 		hc = &hyperv1.HostedCluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-bridge",
+				Name:      "test-provisioner",
 				Namespace: "default",
 			},
 			Status: hyperv1.HostedClusterStatus{
@@ -114,13 +114,13 @@ var _ = Describe("Status Syncer", func() {
 
 		It("should handle missing HostedCluster gracefully", func() {
 			// Create CR without corresponding HostedCluster
-			crNoHC := &provisioningv1alpha1.DPFHCPBridge{
+			crNoHC := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-bridge-no-hc",
+					Name:       "test-provisioner-no-hc",
 					Namespace:  "default",
 					Generation: 1,
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
 						Name:       "missing-hc",
 						Namespace:  "default",
@@ -143,22 +143,22 @@ var _ = Describe("Status Syncer", func() {
 			// Create HostedCluster without status conditions
 			hcNoStatus := &hyperv1.HostedCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-no-status",
+					Name:      "test-provisioner-no-status",
 					Namespace: "default",
 				},
 				Status: hyperv1.HostedClusterStatus{
 					Conditions: nil, // No conditions yet
 				},
 			}
-			crNoStatus := &provisioningv1alpha1.DPFHCPBridge{
+			crNoStatus := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-bridge-no-status",
+					Name:       "test-provisioner-no-status",
 					Namespace:  "default",
 					Generation: 1,
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
-						Name:       "test-bridge-no-status",
+						Name:       "test-provisioner-no-status",
 						Namespace:  "default",
 						Kind:       "HostedCluster",
 						APIVersion: "hypershift.openshift.io/v1beta1",
@@ -176,7 +176,7 @@ var _ = Describe("Status Syncer", func() {
 			Expect(result.RequeueAfter).To(BeZero())
 		})
 
-		It("should mirror all 7 HostedCluster conditions to DPFHCPBridge", func() {
+		It("should mirror all 7 HostedCluster conditions to DPFHCPProvisioner", func() {
 			// Add the 7 conditions we mirror from the spec
 			hc.Status.Conditions = []metav1.Condition{
 				{Type: string(hyperv1.HostedClusterAvailable), Status: metav1.ConditionTrue, Reason: "Test"},

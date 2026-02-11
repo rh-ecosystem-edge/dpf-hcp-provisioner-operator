@@ -19,11 +19,11 @@ package finalizer
 import (
 	"context"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 // CleanupHandler defines the interface for cleanup handlers that are executed
-// during finalizer cleanup when a DPFHCPBridge CR is deleted.
+// during finalizer cleanup when a DPFHCPProvisioner CR is deleted.
 //
 // Handlers are executed in the order they are registered with the Manager.
 // Each handler should clean up resources it created and return an error if
@@ -42,5 +42,5 @@ type CleanupHandler interface {
 	//
 	// The handler should be idempotent - calling Cleanup multiple times should
 	// be safe and result in the same final state.
-	Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) error
+	Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error
 }

@@ -31,7 +31,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 const (
@@ -61,7 +61,7 @@ func NewValidator(client client.Client, recorder record.EventRecorder) *Validato
 }
 
 // ValidateDPUCluster validates that the referenced DPUCluster exists
-func (v *Validator) ValidateDPUCluster(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (v *Validator) ValidateDPUCluster(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
 	// Get reference to DPUCluster
@@ -99,7 +99,7 @@ func (v *Validator) ValidateDPUCluster(ctx context.Context, cr *provisioningv1al
 		return result, err
 	}
 
-	// DPUCluster exists and type is valid - validate exclusivity (not in use by another DPFHCPBridge)
+	// DPUCluster exists and type is valid - validate exclusivity (not in use by another DPFHCPProvisioner)
 	if result, err := v.validateDPUClusterExclusivity(ctx, cr, &dpuCluster); err != nil || result.Requeue || result.RequeueAfter > 0 {
 		return result, err
 	}
@@ -110,7 +110,7 @@ func (v *Validator) ValidateDPUCluster(ctx context.Context, cr *provisioningv1al
 
 // validateClusterType validates that DPUCluster.Spec.Type is not kamaji
 // This operator only supports non-Kamaji cluster types
-func (v *Validator) validateClusterType(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
+func (v *Validator) validateClusterType(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
 	log.V(1).Info("Validating cluster type",
@@ -127,7 +127,7 @@ func (v *Validator) validateClusterType(ctx context.Context, cr *provisioningv1a
 }
 
 // handleClusterTypeInvalid handles the case when DPUCluster type is kamaji (unsupported)
-func (v *Validator) handleClusterTypeInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
+func (v *Validator) handleClusterTypeInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
 	// Note: Phase will be computed from conditions by the reconciler
@@ -162,7 +162,7 @@ func (v *Validator) handleClusterTypeInvalid(ctx context.Context, cr *provisioni
 }
 
 // handleClusterTypeValid handles the case when DPUCluster type is valid (not kamaji)
-func (v *Validator) handleClusterTypeValid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
+func (v *Validator) handleClusterTypeValid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
 	// Note: Phase will be computed from conditions by the reconciler
@@ -196,48 +196,48 @@ func (v *Validator) handleClusterTypeValid(ctx context.Context, cr *provisioning
 	return ctrl.Result{}, nil
 }
 
-// validateDPUClusterExclusivity validates that the DPUCluster is not already in use by another DPFHCPBridge
-// Ensures 1:1 relationship between DPFHCPBridge and DPUCluster
-func (v *Validator) validateDPUClusterExclusivity(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
+// validateDPUClusterExclusivity validates that the DPUCluster is not already in use by another DPFHCPProvisioner
+// Ensures 1:1 relationship between DPFHCPProvisioner and DPUCluster
+func (v *Validator) validateDPUClusterExclusivity(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-exclusivity")
 
 	log.V(1).Info("Validating DPUCluster exclusivity",
 		"dpuClusterName", dpuCluster.Name,
 		"dpuClusterNamespace", dpuCluster.Namespace)
 
-	// List all DPFHCPBridge resources in the cluster
-	var bridgeList provisioningv1alpha1.DPFHCPBridgeList
-	if err := v.client.List(ctx, &bridgeList); err != nil {
-		log.Error(err, "Failed to list DPFHCPBridge resources")
+	// List all DPFHCPProvisioner resources in the cluster
+	var provisionerList provisioningv1alpha1.DPFHCPProvisionerList
+	if err := v.client.List(ctx, &provisionerList); err != nil {
+		log.Error(err, "Failed to list DPFHCPProvisioner resources")
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	// Check if any OTHER DPFHCPBridge references the same DPUCluster
-	for _, bridge := range bridgeList.Items {
-		// Skip the current DPFHCPBridge (compare by namespace/name)
-		if bridge.Namespace == cr.Namespace && bridge.Name == cr.Name {
+	// Check if any OTHER DPFHCPProvisioner references the same DPUCluster
+	for _, provisioner := range provisionerList.Items {
+		// Skip the current DPFHCPProvisioner (compare by namespace/name)
+		if provisioner.Namespace == cr.Namespace && provisioner.Name == cr.Name {
 			continue
 		}
 
-		// Check if this bridge references the same DPUCluster
-		if bridge.Spec.DPUClusterRef.Name == dpuCluster.Name &&
-			bridge.Spec.DPUClusterRef.Namespace == dpuCluster.Namespace {
-			// Found another DPFHCPBridge using this DPUCluster
-			return v.handleDPUClusterInUse(ctx, cr, dpuCluster, &bridge)
+		// Check if this provisioner references the same DPUCluster
+		if provisioner.Spec.DPUClusterRef.Name == dpuCluster.Name &&
+			provisioner.Spec.DPUClusterRef.Namespace == dpuCluster.Namespace {
+			// Found another DPFHCPProvisioner using this DPUCluster
+			return v.handleDPUClusterInUse(ctx, cr, dpuCluster, &provisioner)
 		}
 	}
 
-	// No other DPFHCPBridge is using this DPUCluster - it's available
+	// No other DPFHCPProvisioner is using this DPUCluster - it's available
 	return v.handleDPUClusterAvailable(ctx, cr, dpuCluster)
 }
 
-// handleDPUClusterInUse handles the case when DPUCluster is already in use by another DPFHCPBridge
-func (v *Validator) handleDPUClusterInUse(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster, conflictingBridge *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+// handleDPUClusterInUse handles the case when DPUCluster is already in use by another DPFHCPProvisioner
+func (v *Validator) handleDPUClusterInUse(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuCluster *dpuprovisioningv1alpha1.DPUCluster, conflictingProvisioner *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-exclusivity")
 
-	message := fmt.Sprintf("DPUCluster '%s/%s' is already in use by DPFHCPBridge '%s/%s'. Each DPUCluster can only be referenced by one DPFHCPBridge",
+	message := fmt.Sprintf("DPUCluster '%s/%s' is already in use by DPFHCPProvisioner '%s/%s'. Each DPUCluster can only be referenced by one DPFHCPProvisioner",
 		dpuCluster.Namespace, dpuCluster.Name,
-		conflictingBridge.Namespace, conflictingBridge.Name)
+		conflictingProvisioner.Namespace, conflictingProvisioner.Name)
 
 	// Set condition and check if it changed
 	condition := metav1.Condition{
@@ -255,7 +255,7 @@ func (v *Validator) handleDPUClusterInUse(ctx context.Context, cr *provisioningv
 		log.Info("DPUCluster already in use",
 			"dpuClusterName", dpuCluster.Name,
 			"dpuClusterNamespace", dpuCluster.Namespace,
-			"conflictingBridge", conflictingBridge.Namespace+"/"+conflictingBridge.Name)
+			"conflictingProvisioner", conflictingProvisioner.Namespace+"/"+conflictingProvisioner.Name)
 	}
 
 	// Update status
@@ -269,10 +269,10 @@ func (v *Validator) handleDPUClusterInUse(ctx context.Context, cr *provisioningv
 }
 
 // handleDPUClusterAvailable handles the case when DPUCluster is available (not in use)
-func (v *Validator) handleDPUClusterAvailable(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
+func (v *Validator) handleDPUClusterAvailable(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-exclusivity")
 
-	message := fmt.Sprintf("DPUCluster '%s/%s' is available (not in use by another DPFHCPBridge)",
+	message := fmt.Sprintf("DPUCluster '%s/%s' is available (not in use by another DPFHCPProvisioner)",
 		dpuCluster.Namespace, dpuCluster.Name)
 
 	// Set condition and check if it changed
@@ -304,7 +304,7 @@ func (v *Validator) handleDPUClusterAvailable(ctx context.Context, cr *provision
 }
 
 // handleDPUClusterMissing handles the case when DPUCluster is not found
-func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuClusterRef provisioningv1alpha1.DPUClusterReference) (ctrl.Result, error) {
+func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuClusterRef provisioningv1alpha1.DPUClusterReference) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
 	// Get previous condition to determine if this is a new error or deletion
@@ -315,7 +315,7 @@ func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisionin
 	var reason string
 	if previousCondition != nil && previousCondition.Status == metav1.ConditionFalse {
 		// DPUCluster was previously found but now deleted
-		message = fmt.Sprintf("Referenced DPUCluster '%s' in namespace '%s' has been deleted. Please delete this DPFHCPBridge to clean up",
+		message = fmt.Sprintf("Referenced DPUCluster '%s' in namespace '%s' has been deleted. Please delete this DPFHCPProvisioner to clean up",
 			dpuClusterRef.Name, dpuClusterRef.Namespace)
 		reason = ReasonDPUClusterDeleted
 	} else {
@@ -351,12 +351,12 @@ func (v *Validator) handleDPUClusterMissing(ctx context.Context, cr *provisionin
 	}
 
 	// Do NOT requeue - this is a permanent error requiring manual intervention
-	// User must either create the DPUCluster or delete the DPFHCPBridge
+	// User must either create the DPUCluster or delete the DPFHCPProvisioner
 	return ctrl.Result{}, nil
 }
 
 // handleDPUClusterAccessDenied handles RBAC permission errors
-func (v *Validator) handleDPUClusterAccessDenied(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuClusterRef provisioningv1alpha1.DPUClusterReference, err error) (ctrl.Result, error) {
+func (v *Validator) handleDPUClusterAccessDenied(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuClusterRef provisioningv1alpha1.DPUClusterReference, err error) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
 	message := fmt.Sprintf("Operator lacks RBAC permissions to access DPUCluster '%s' in namespace '%s': %v",
@@ -391,7 +391,7 @@ func (v *Validator) handleDPUClusterAccessDenied(ctx context.Context, cr *provis
 }
 
 // handleDPUClusterFound handles the case when DPUCluster is found
-func (v *Validator) handleDPUClusterFound(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
+func (v *Validator) handleDPUClusterFound(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, dpuCluster *dpuprovisioningv1alpha1.DPUCluster) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "dpucluster-validation")
 
 	message := fmt.Sprintf("DPUCluster '%s' found in namespace '%s'",

@@ -76,7 +76,7 @@ rules:
 - apiGroups:
   - provisioning.dpu.hcp.io
   resources:
-  - dpfhcpbridges
+  - dpfhcpprovisioners
   verbs:
   - create
   - delete
@@ -88,13 +88,13 @@ rules:
 - apiGroups:
   - provisioning.dpu.hcp.io
   resources:
-  - dpfhcpbridges/finalizers
+  - dpfhcpprovisioners/finalizers
   verbs:
   - update
 - apiGroups:
   - provisioning.dpu.hcp.io
   resources:
-  - dpfhcpbridges/status
+  - dpfhcpprovisioners/status
   verbs:
   - get
   - patch

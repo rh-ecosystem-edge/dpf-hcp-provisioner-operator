@@ -1,0 +1,42 @@
+apiVersion: provisioning.dpu.hcp.io/v1alpha1
+kind: DPFHCPProvisioner
+metadata:
+  labels:
+    app.kubernetes.io/name: dpf-hcp-provisioner-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: dpfhcpprovisioner-sample
+  namespace: dpf-hcp-provisioner-system
+spec:
+  # Reference to DPUCluster (can be in different namespace)
+  dpuClusterRef:
+    name: dpu-cluster-sample
+    namespace: dpf-operator-system
+
+  # Base domain for hosted cluster DNS
+  baseDomain: clusters.example.com
+
+  # OCP release image
+  ocpReleaseImage: quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi
+
+  # SSH key secret reference (same namespace as DPFHCPProvisioner)
+  sshKeySecretRef:
+    name: prod-ssh-key
+
+  # Pull secret reference (same namespace as DPFHCPProvisioner)
+  pullSecretRef:
+    name: prod-pull-secret
+
+  # Storage class for etcd (optional)
+  etcdStorageClass: ceph-rbd-retain
+
+  # Control plane availability policy - HighlyAvailable for production
+  # When HighlyAvailable, virtualIP is required
+  # When SingleReplica, virtualIP is optional
+  controlPlaneAvailabilityPolicy: HighlyAvailable
+
+  # Virtual IP for LoadBalancer service exposure
+  # Required when controlPlaneAvailabilityPolicy is HighlyAvailable
+  # Optional when controlPlaneAvailabilityPolicy is SingleReplica
+  # If provided with SingleReplica, services will be exposed via LoadBalancer
+  # If not provided with SingleReplica, services will be exposed via NodePort
+  virtualIP: 192.168.1.100

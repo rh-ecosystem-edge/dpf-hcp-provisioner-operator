@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 func TestSecretsValidator(t *testing.T) {
@@ -53,7 +53,7 @@ var _ = Describe("Secrets Validator", func() {
 		ctx = context.Background()
 		recorder = record.NewFakeRecorder(100)
 
-		// Create scheme with DPFHCPBridge types
+		// Create scheme with DPFHCPProvisioner types
 		scheme = runtime.NewScheme()
 		Expect(provisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
@@ -84,14 +84,14 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				// Create DPFHCPBridge referencing the secrets
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create DPFHCPProvisioner referencing the secrets
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -103,24 +103,24 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(sshSecret, pullSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(sshSecret, pullSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.SecretsValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.SecretsValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonSecretsValid))
@@ -153,13 +153,13 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -171,22 +171,22 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(sshSecret, pullSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(sshSecret, pullSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
 				// First reconciliation - should emit event
-				_, _ = validator.ValidateSecrets(ctx, bridge)
+				_, _ = validator.ValidateSecrets(ctx, provisioner)
 				Eventually(recorder.Events).Should(Receive(ContainSubstring("SecretsValid")))
 
-				// Get updated bridge for second reconciliation
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				// Get updated provisioner for second reconciliation
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Second reconciliation - should NOT emit event (condition unchanged)
-				_, _ = validator.ValidateSecrets(ctx, &updatedBridge)
+				_, _ = validator.ValidateSecrets(ctx, &updatedProvisioner)
 				Consistently(recorder.Events).ShouldNot(Receive())
 			})
 		})
@@ -204,13 +204,13 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "missing-ssh-key",
 						},
@@ -222,24 +222,24 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(pullSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(pullSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.SecretsValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.SecretsValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonSSHKeySecretMissing))
@@ -275,13 +275,13 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -293,24 +293,24 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(sshSecret, pullSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(sshSecret, pullSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.SecretsValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.SecretsValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonSSHKeySecretInvalid))
@@ -335,13 +335,13 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -353,24 +353,24 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(sshSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(sshSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.SecretsValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.SecretsValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonPullSecretMissing))
@@ -406,13 +406,13 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -424,24 +424,24 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(sshSecret, pullSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(sshSecret, pullSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.SecretsValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.SecretsValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonPullSecretInvalid))
@@ -455,13 +455,13 @@ var _ = Describe("Secrets Validator", func() {
 
 		Context("when RBAC permission is denied", func() {
 			It("should set SecretsValid=False with AccessDenied reason and not requeue", func() {
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -475,14 +475,14 @@ var _ = Describe("Secrets Validator", func() {
 				fakeClient = &forbiddenSecretsClient{
 					Client: fake.NewClientBuilder().
 						WithScheme(scheme).
-						WithObjects(bridge).
-						WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+						WithObjects(provisioner).
+						WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 						Build(),
 				}
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
@@ -512,14 +512,14 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				// Create bridge with previous SSHKeySecretMissing condition
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create provisioner with previous SSHKeySecretMissing condition
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -527,7 +527,7 @@ var _ = Describe("Secrets Validator", func() {
 							Name: "pull-secret",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						Conditions: []metav1.Condition{
 							{
 								Type:               provisioningv1alpha1.SecretsValid,
@@ -542,22 +542,22 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(sshSecret, pullSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(sshSecret, pullSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify condition is now True (recovered)
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.SecretsValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.SecretsValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonSecretsValid))
@@ -585,14 +585,14 @@ var _ = Describe("Secrets Validator", func() {
 					},
 				}
 
-				// Create bridge with previous PullSecretInvalid condition
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create provisioner with previous PullSecretInvalid condition
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						SSHKeySecretRef: corev1.LocalObjectReference{
 							Name: "ssh-key",
 						},
@@ -600,7 +600,7 @@ var _ = Describe("Secrets Validator", func() {
 							Name: "pull-secret",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						Conditions: []metav1.Condition{
 							{
 								Type:               provisioningv1alpha1.SecretsValid,
@@ -615,22 +615,22 @@ var _ = Describe("Secrets Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(sshSecret, pullSecret, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(sshSecret, pullSecret, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, bridge)
+				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify condition is now True (recovered)
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.SecretsValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.SecretsValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonSecretsValid))

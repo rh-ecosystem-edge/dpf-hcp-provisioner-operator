@@ -27,10 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
-// StatusSyncer manages status synchronization from HostedCluster to DPFHCPBridge
+// StatusSyncer manages status synchronization from HostedCluster to DPFHCPProvisioner
 type StatusSyncer struct {
 	client.Client
 }
@@ -40,13 +40,13 @@ func NewStatusSyncer(c client.Client) *StatusSyncer {
 	return &StatusSyncer{Client: c}
 }
 
-// SyncStatusFromHostedCluster mirrors HostedCluster status conditions to DPFHCPBridge status
+// SyncStatusFromHostedCluster mirrors HostedCluster status conditions to DPFHCPProvisioner status
 // This function:
-// - Only syncs status when hostedClusterRef is set in DPFHCPBridge status
+// - Only syncs status when hostedClusterRef is set in DPFHCPProvisioner status
 // - Handles missing HostedCluster gracefully (may be creating or deleted)
 //
 // Returns ctrl.Result and error for reconciliation flow
-func (ss *StatusSyncer) SyncStatusFromHostedCluster(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (ss *StatusSyncer) SyncStatusFromHostedCluster(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
 	// Only sync status if hostedClusterRef is set
@@ -96,7 +96,7 @@ func (ss *StatusSyncer) SyncStatusFromHostedCluster(ctx context.Context, cr *pro
 		"hostedCluster", hcKey.String(),
 		"conditions", len(hc.Status.Conditions))
 
-	// Mirror conditions from HostedCluster to DPFHCPBridge
+	// Mirror conditions from HostedCluster to DPFHCPProvisioner
 	ss.mirrorConditions(ctx, cr, hc)
 
 	log.V(1).Info("Status sync completed successfully",
@@ -105,16 +105,16 @@ func (ss *StatusSyncer) SyncStatusFromHostedCluster(ctx context.Context, cr *pro
 	return ctrl.Result{}, nil
 }
 
-// mirrorConditions mirrors the 7 specific HostedCluster conditions to DPFHCPBridge
-// This simply copies the condition status, reason, and message from HostedCluster to DPFHCPBridge
+// mirrorConditions mirrors the 7 specific HostedCluster conditions to DPFHCPProvisioner
+// This simply copies the condition status, reason, and message from HostedCluster to DPFHCPProvisioner
 // No additional logic - just mirroring
-func (ss *StatusSyncer) mirrorConditions(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, hc *hyperv1.HostedCluster) {
+func (ss *StatusSyncer) mirrorConditions(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, hc *hyperv1.HostedCluster) {
 	log := logf.FromContext(ctx)
 
-	// Map of HostedCluster condition types to DPFHCPBridge condition types
+	// Map of HostedCluster condition types to DPFHCPProvisioner condition types
 	// Key: HostedCluster condition type
-	// Value: DPFHCPBridge condition type
-	// Only mirror the 7 conditions specified in the DPFHCPBridge API
+	// Value: DPFHCPProvisioner condition type
+	// Only mirror the 7 conditions specified in the DPFHCPProvisioner API
 	conditionMappings := map[string]string{
 		string(hyperv1.HostedClusterAvailable):         provisioningv1alpha1.HostedClusterAvailable,
 		string(hyperv1.HostedClusterProgressing):       provisioningv1alpha1.HostedClusterProgressing,
@@ -125,7 +125,7 @@ func (ss *StatusSyncer) mirrorConditions(ctx context.Context, cr *provisioningv1
 		string(hyperv1.IgnitionServerValidReleaseInfo): provisioningv1alpha1.IgnitionServerValidReleaseInfo,
 	}
 
-	// Mirror each HostedCluster condition to DPFHCPBridge
+	// Mirror each HostedCluster condition to DPFHCPProvisioner
 	for hcCondType, dpfCondType := range conditionMappings {
 		hcCond := meta.FindStatusCondition(hc.Status.Conditions, hcCondType)
 		if hcCond != nil {

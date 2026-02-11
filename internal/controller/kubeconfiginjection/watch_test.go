@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 var _ = Describe("Watch Functions", func() {
@@ -158,42 +158,42 @@ var _ = Describe("Watch Functions", func() {
 		})
 	})
 
-	Describe("FindBridgeForKubeconfigSecret", func() {
-		It("should return reconcile request when bridge exists", func() {
-			// Given: DPFHCPBridge and its HC kubeconfig secret
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+	Describe("FindProvisionerForKubeconfigSecret", func() {
+		It("should return reconcile request when provisioner exists", func() {
+			// Given: DPFHCPProvisioner and its HC kubeconfig secret
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
 			}
 
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 			}
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge).
+				WithObjects(provisioner).
 				Build()
 
 			// When: Mapping function is called
-			requests := FindBridgeForKubeconfigSecret(ctx, fakeClient, secret)
+			requests := FindProvisionerForKubeconfigSecret(ctx, fakeClient, secret)
 
-			// Then: Should return reconcile request for the bridge
+			// Then: Should return reconcile request for the provisioner
 			Expect(requests).To(HaveLen(1))
-			Expect(requests[0].Name).To(Equal("test-bridge"))
+			Expect(requests[0].Name).To(Equal("test-provisioner"))
 			Expect(requests[0].Namespace).To(Equal("test-ns"))
 		})
 
-		It("should return empty when bridge not found", func() {
-			// Given: HC kubeconfig secret but no corresponding bridge
+		It("should return empty when provisioner not found", func() {
+			// Given: HC kubeconfig secret but no corresponding provisioner
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 			}
@@ -203,43 +203,43 @@ var _ = Describe("Watch Functions", func() {
 				Build()
 
 			// When: Mapping function is called
-			requests := FindBridgeForKubeconfigSecret(ctx, fakeClient, secret)
+			requests := FindProvisionerForKubeconfigSecret(ctx, fakeClient, secret)
 
 			// Then: Should return empty (no reconciliation needed)
 			Expect(requests).To(BeEmpty())
 		})
 
-		It("should return empty when bridge exists but in different namespace", func() {
-			// Given: Bridge in different namespace than secret
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+		It("should return empty when provisioner exists but in different namespace", func() {
+			// Given: Provisioner in different namespace than secret
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "different-ns",
 				},
 			}
 
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 			}
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge).
+				WithObjects(provisioner).
 				Build()
 
 			// When: Mapping function is called
-			requests := FindBridgeForKubeconfigSecret(ctx, fakeClient, secret)
+			requests := FindProvisionerForKubeconfigSecret(ctx, fakeClient, secret)
 
 			// Then: Should return empty (namespace mismatch)
 			Expect(requests).To(BeEmpty())
 		})
 
 		It("should handle name extraction correctly", func() {
-			// Given: Bridge with complex name
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Given: Provisioner with complex name
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster-with-dashes",
 					Namespace: "test-ns",
@@ -255,13 +255,13 @@ var _ = Describe("Watch Functions", func() {
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge).
+				WithObjects(provisioner).
 				Build()
 
 			// When: Mapping function is called
-			requests := FindBridgeForKubeconfigSecret(ctx, fakeClient, secret)
+			requests := FindProvisionerForKubeconfigSecret(ctx, fakeClient, secret)
 
-			// Then: Should correctly extract name and find bridge
+			// Then: Should correctly extract name and find provisioner
 			Expect(requests).To(HaveLen(1))
 			Expect(requests[0].Name).To(Equal("cluster-with-dashes"))
 		})
@@ -280,7 +280,7 @@ var _ = Describe("Watch Functions", func() {
 				Build()
 
 			// When: Mapping function is called
-			requests := FindBridgeForKubeconfigSecret(ctx, fakeClient, configMap)
+			requests := FindProvisionerForKubeconfigSecret(ctx, fakeClient, configMap)
 
 			// Then: Should return empty
 			Expect(requests).To(BeEmpty())
@@ -289,15 +289,15 @@ var _ = Describe("Watch Functions", func() {
 
 	Describe("Watch Integration", func() {
 		It("should trigger reconciliation when HC kubeconfig secret is created", func() {
-			// Given: DPFHCPBridge waiting for kubeconfig
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Given: DPFHCPProvisioner waiting for kubeconfig
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "test-ns",
 					},
 				},
@@ -305,7 +305,7 @@ var _ = Describe("Watch Functions", func() {
 
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 				Data: map[string][]byte{
@@ -315,7 +315,7 @@ var _ = Describe("Watch Functions", func() {
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge).
+				WithObjects(provisioner).
 				Build()
 
 			predicate := IsHostedClusterKubeconfigSecretPredicate()
@@ -327,26 +327,26 @@ var _ = Describe("Watch Functions", func() {
 			Expect(shouldReconcile).To(BeTrue())
 
 			// And: Mapping function should return reconcile request
-			requests := FindBridgeForKubeconfigSecret(ctx, fakeClient, secret)
+			requests := FindProvisionerForKubeconfigSecret(ctx, fakeClient, secret)
 			Expect(requests).To(HaveLen(1))
 			Expect(requests[0].NamespacedName).To(Equal(types.NamespacedName{
-				Name:      "test-bridge",
+				Name:      "test-provisioner",
 				Namespace: "test-ns",
 			}))
 		})
 
 		It("should trigger reconciliation when HC kubeconfig secret is updated (drift)", func() {
-			// Given: Existing secret and bridge
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Given: Existing secret and provisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
 			}
 
 			oldSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 				Data: map[string][]byte{
@@ -356,7 +356,7 @@ var _ = Describe("Watch Functions", func() {
 
 			newSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 				Data: map[string][]byte{
@@ -366,7 +366,7 @@ var _ = Describe("Watch Functions", func() {
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge).
+				WithObjects(provisioner).
 				Build()
 
 			predicate := IsHostedClusterKubeconfigSecretPredicate()
@@ -381,9 +381,9 @@ var _ = Describe("Watch Functions", func() {
 			Expect(shouldReconcile).To(BeTrue())
 
 			// And: Mapping function should return reconcile request
-			requests := FindBridgeForKubeconfigSecret(ctx, fakeClient, newSecret)
+			requests := FindProvisionerForKubeconfigSecret(ctx, fakeClient, newSecret)
 			Expect(requests).To(HaveLen(1))
-			Expect(requests[0].Name).To(Equal("test-bridge"))
+			Expect(requests[0].Name).To(Equal("test-provisioner"))
 		})
 	})
 })

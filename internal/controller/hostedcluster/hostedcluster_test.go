@@ -22,23 +22,23 @@ import (
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 var _ = Describe("HostedCluster Builder", func() {
 	var (
 		hm *HostedClusterManager
-		cr *provisioningv1alpha1.DPFHCPBridge
+		cr *provisioningv1alpha1.DPFHCPProvisioner
 	)
 
 	BeforeEach(func() {
 		hm = &HostedClusterManager{}
-		cr = &provisioningv1alpha1.DPFHCPBridge{
+		cr = &provisioningv1alpha1.DPFHCPProvisioner{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-bridge",
+				Name:      "test-provisioner",
 				Namespace: "default",
 			},
-			Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 				OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
 				BaseDomain:                     "example.com",
 				EtcdStorageClass:               "ceph-rbd",
@@ -52,11 +52,11 @@ var _ = Describe("HostedCluster Builder", func() {
 		It("should set correct metadata", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
-			Expect(hc.Name).To(Equal("test-bridge"))
+			Expect(hc.Name).To(Equal("test-provisioner"))
 			Expect(hc.Namespace).To(Equal("default"))
 		})
 
-		It("should set release image from DPFHCPBridge spec", func() {
+		It("should set release image from DPFHCPProvisioner spec", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
 			Expect(hc.Spec.Release.Image).To(Equal(cr.Spec.OCPReleaseImage))
@@ -65,8 +65,8 @@ var _ = Describe("HostedCluster Builder", func() {
 		It("should reference correct secret names", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
-			Expect(hc.Spec.PullSecret.Name).To(Equal("test-bridge-pull-secret"))
-			Expect(hc.Spec.SSHKey.Name).To(Equal("test-bridge-ssh-key"))
+			Expect(hc.Spec.PullSecret.Name).To(Equal("test-provisioner-pull-secret"))
+			Expect(hc.Spec.SSHKey.Name).To(Equal("test-provisioner-ssh-key"))
 		})
 
 		It("should set DNS base domain", func() {
@@ -92,7 +92,7 @@ var _ = Describe("HostedCluster Builder", func() {
 			Expect(hc.Spec.Etcd.Managed.Storage.PersistentVolume).ToNot(BeNil())
 		})
 
-		It("should use storage class from DPFHCPBridge spec", func() {
+		It("should use storage class from DPFHCPProvisioner spec", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
 			Expect(*hc.Spec.Etcd.Managed.Storage.PersistentVolume.StorageClassName).To(Equal("ceph-rbd"))
@@ -163,7 +163,7 @@ var _ = Describe("HostedCluster Builder", func() {
 		It("should reference ETCD encryption key secret", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
-			Expect(hc.Spec.SecretEncryption.AESCBC.ActiveKey.Name).To(Equal("test-bridge-etcd-encryption-key"))
+			Expect(hc.Spec.SecretEncryption.AESCBC.ActiveKey.Name).To(Equal("test-provisioner-etcd-encryption-key"))
 		})
 	})
 
@@ -217,7 +217,7 @@ var _ = Describe("HostedCluster Builder", func() {
 		It("should generate infraID with cluster name prefix", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
-			Expect(hc.Spec.InfraID).To(HavePrefix("test-bridge-"))
+			Expect(hc.Spec.InfraID).To(HavePrefix("test-provisioner-"))
 		})
 
 		It("should generate infraID with random suffix", func() {
@@ -227,8 +227,8 @@ var _ = Describe("HostedCluster Builder", func() {
 			// InfraID includes random suffix, so they should be different
 			Expect(hc1.Spec.InfraID).ToNot(Equal(hc2.Spec.InfraID))
 			// But both should start with the cluster name
-			Expect(hc1.Spec.InfraID).To(HavePrefix("test-bridge-"))
-			Expect(hc2.Spec.InfraID).To(HavePrefix("test-bridge-"))
+			Expect(hc1.Spec.InfraID).To(HavePrefix("test-provisioner-"))
+			Expect(hc2.Spec.InfraID).To(HavePrefix("test-provisioner-"))
 		})
 	})
 })

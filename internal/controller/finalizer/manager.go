@@ -24,14 +24,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
-// Manager manages the finalizer cleanup process for DPFHCPBridge resources.
+// Manager manages the finalizer cleanup process for DPFHCPProvisioner resources.
 // It maintains a list of cleanup handlers that are executed in order during
 // the finalizer cleanup phase.
 //
-// The Manager uses a single finalizer (dpfhcpbridge.provisioning.dpu.hcp.io/finalizer)
+// The Manager uses a single finalizer (dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer)
 // and executes all registered handlers sequentially. This ensures:
 // - Explicit cleanup ordering (handlers execute in registration order)
 // - Atomicity (all cleanup succeeds or all cleanup is retried)
@@ -63,13 +63,13 @@ func (m *Manager) RegisterHandler(handler CleanupHandler) {
 }
 
 // HandleFinalizerCleanup executes all registered cleanup handlers in order.
-// It is called when a DPFHCPBridge CR is deleted and the finalizer needs to run.
+// It is called when a DPFHCPProvisioner CR is deleted and the finalizer needs to run.
 //
 // Returns:
 // - ctrl.Result{}: Cleanup completed, finalizer can be removed
 // - ctrl.Result{Requeue: true} or ctrl.Result{RequeueAfter: duration}: Cleanup in progress, retry needed
 // - error: Cleanup failed, will be retried with exponential backoff
-func (m *Manager) HandleFinalizerCleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (m *Manager) HandleFinalizerCleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 	log.Info("Starting finalizer cleanup with registered handlers", "handlerCount", len(m.handlers))
 

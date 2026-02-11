@@ -33,7 +33,7 @@ import (
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", func() {
@@ -46,7 +46,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		ctx              context.Context
 		testNamespace    string
 		dpuClusterName   string
-		bridgeName       string
+		provisionerName  string
 		pullSecretName   string
 		sshKeySecretName string
 		ocpReleaseImage  string
@@ -60,7 +60,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		ctx = context.Background()
 		testNamespace = "default"
 		dpuClusterName = "test-dpucluster-foundation"
-		bridgeName = "test-bridge-foundation-" + time.Now().Format("20060102150405")
+		provisionerName = "test-provisioner-foundation-" + time.Now().Format("20060102150405")
 		pullSecretName = "test-pull-secret-foundation"
 		sshKeySecretName = "test-ssh-key-foundation"
 		ocpReleaseImage = "quay.io/openshift-release-dev/ocp-release:4.17.0-x86_64"
@@ -71,15 +71,15 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 		// Note: Using default namespace for tests, no need to create
 
-		// Ensure dpf-hcp-bridge-system namespace exists (for ConfigMap)
+		// Ensure dpf-hcp-provisioner-system namespace exists (for ConfigMap)
 		operatorNs := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "dpf-hcp-bridge-system",
+				Name: "dpf-hcp-provisioner-system",
 			},
 		}
 		err := k8sClient.Create(ctx, operatorNs)
 		if err != nil && !apierrors.IsAlreadyExists(err) {
-			Fail("Failed to create dpf-hcp-bridge-system namespace: " + err.Error())
+			Fail("Failed to create dpf-hcp-provisioner-system namespace: " + err.Error())
 		}
 
 		// Create ocp-bluefield-images ConfigMap for image resolution
@@ -88,7 +88,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ocp-bluefield-images",
-				Namespace: "dpf-hcp-bridge-system",
+				Namespace: "dpf-hcp-provisioner-system",
 			},
 			Data: map[string]string{
 				"4.17.0": blueFieldImage, // Key is extracted version, not full URL
@@ -143,14 +143,14 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 	})
 
 	AfterEach(func() {
-		// Clean up DPFHCPBridge
-		bridge := &provisioningv1alpha1.DPFHCPBridge{
+		// Clean up DPFHCPProvisioner
+		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      bridgeName,
+				Name:      provisionerName,
 				Namespace: testNamespace,
 			},
 		}
-		_ = k8sClient.Delete(ctx, bridge)
+		_ = k8sClient.Delete(ctx, provisioner)
 
 		// Clean up DPUCluster
 		dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
@@ -181,7 +181,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		// Clean up copied secrets
 		pullSecretTarget := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      bridgeName + "-pull-secret",
+				Name:      provisionerName + "-pull-secret",
 				Namespace: testNamespace,
 			},
 		}
@@ -189,7 +189,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 		sshKeyTarget := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      bridgeName + "-ssh-key",
+				Name:      provisionerName + "-ssh-key",
 				Namespace: testNamespace,
 			},
 		}
@@ -197,7 +197,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 		etcdKeyTarget := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      bridgeName + "-etcd-encryption-key",
+				Name:      provisionerName + "-etcd-encryption-key",
 				Namespace: testNamespace,
 			},
 		}
@@ -207,21 +207,21 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ocp-bluefield-images",
-				Namespace: "dpf-hcp-bridge-system",
+				Namespace: "dpf-hcp-provisioner-system",
 			},
 		}
 		_ = k8sClient.Delete(ctx, configMap)
 	})
 
 	Context("Finalizer Management", func() {
-		It("should add finalizer to DPFHCPBridge on creation", func() {
-			// Create DPFHCPBridge
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+		It("should add finalizer to DPFHCPProvisioner on creation", func() {
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bridgeName,
+					Name:      provisionerName,
 					Namespace: testNamespace,
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
@@ -235,28 +235,28 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 					VirtualIP:                      "192.168.1.100",
 				},
 			}
-			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
 			// Verify finalizer is added
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: bridgeName, Namespace: testNamespace}, bridge)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: provisionerName, Namespace: testNamespace}, provisioner)
 				if err != nil {
 					return false
 				}
-				return controllerutil.ContainsFinalizer(bridge, FinalizerName)
+				return controllerutil.ContainsFinalizer(provisioner, FinalizerName)
 			}, timeout, interval).Should(BeTrue())
 		})
 	})
 
 	Context("Secret Copying to Same Namespace", func() {
 		It("should copy pull-secret with correct type and OwnerReference", func() {
-			// Create DPFHCPBridge
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bridgeName,
+					Name:      provisionerName,
 					Namespace: testNamespace,
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
@@ -269,13 +269,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
 				},
 			}
-			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
 			// Verify pull-secret is copied to same namespace
 			pullSecretTarget := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{
-					Name:      bridgeName + "-pull-secret",
+					Name:      provisionerName + "-pull-secret",
 					Namespace: testNamespace,
 				}, pullSecretTarget)
 			}, timeout, interval).Should(Succeed())
@@ -285,8 +285,8 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 			// Verify OwnerReference is set
 			Expect(pullSecretTarget.OwnerReferences).To(HaveLen(1))
-			Expect(pullSecretTarget.OwnerReferences[0].Name).To(Equal(bridgeName))
-			Expect(pullSecretTarget.OwnerReferences[0].Kind).To(Equal("DPFHCPBridge"))
+			Expect(pullSecretTarget.OwnerReferences[0].Name).To(Equal(provisionerName))
+			Expect(pullSecretTarget.OwnerReferences[0].Kind).To(Equal("DPFHCPProvisioner"))
 			Expect(*pullSecretTarget.OwnerReferences[0].Controller).To(BeTrue())
 
 			// Verify data is copied
@@ -294,13 +294,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		})
 
 		It("should copy ssh-key with correct type and OwnerReference", func() {
-			// Create DPFHCPBridge
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bridgeName,
+					Name:      provisionerName,
 					Namespace: testNamespace,
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
@@ -313,13 +313,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
 				},
 			}
-			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
 			// Verify ssh-key is copied to same namespace
 			sshKeyTarget := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{
-					Name:      bridgeName + "-ssh-key",
+					Name:      provisionerName + "-ssh-key",
 					Namespace: testNamespace,
 				}, sshKeyTarget)
 			}, timeout, interval).Should(Succeed())
@@ -329,8 +329,8 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 			// Verify OwnerReference is set
 			Expect(sshKeyTarget.OwnerReferences).To(HaveLen(1))
-			Expect(sshKeyTarget.OwnerReferences[0].Name).To(Equal(bridgeName))
-			Expect(sshKeyTarget.OwnerReferences[0].Kind).To(Equal("DPFHCPBridge"))
+			Expect(sshKeyTarget.OwnerReferences[0].Name).To(Equal(provisionerName))
+			Expect(sshKeyTarget.OwnerReferences[0].Kind).To(Equal("DPFHCPProvisioner"))
 			Expect(*sshKeyTarget.OwnerReferences[0].Controller).To(BeTrue())
 
 			// Verify data is copied
@@ -340,13 +340,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 	Context("ETCD Encryption Key Generation", func() {
 		It("should generate ETCD encryption key with correct format", func() {
-			// Create DPFHCPBridge
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bridgeName,
+					Name:      provisionerName,
 					Namespace: testNamespace,
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
@@ -359,13 +359,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
 				},
 			}
-			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
 			// Verify ETCD key is generated in same namespace
 			etcdKeySecret := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{
-					Name:      bridgeName + "-etcd-encryption-key",
+					Name:      provisionerName + "-etcd-encryption-key",
 					Namespace: testNamespace,
 				}, etcdKeySecret)
 			}, timeout, interval).Should(Succeed())
@@ -375,8 +375,8 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 			// Verify OwnerReference is set
 			Expect(etcdKeySecret.OwnerReferences).To(HaveLen(1))
-			Expect(etcdKeySecret.OwnerReferences[0].Name).To(Equal(bridgeName))
-			Expect(etcdKeySecret.OwnerReferences[0].Kind).To(Equal("DPFHCPBridge"))
+			Expect(etcdKeySecret.OwnerReferences[0].Name).To(Equal(provisionerName))
+			Expect(etcdKeySecret.OwnerReferences[0].Kind).To(Equal("DPFHCPProvisioner"))
 			Expect(*etcdKeySecret.OwnerReferences[0].Controller).To(BeTrue())
 
 			// Verify key length (32 bytes)
@@ -387,13 +387,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 	Context("Idempotency", func() {
 		It("should not create duplicate secrets on multiple reconciliations", func() {
-			// Create DPFHCPBridge
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bridgeName,
+					Name:      provisionerName,
 					Namespace: testNamespace,
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
@@ -406,12 +406,12 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
 				},
 			}
-			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
 			// Wait for initial reconciliation
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name:      bridgeName + "-etcd-encryption-key",
+					Name:      provisionerName + "-etcd-encryption-key",
 					Namespace: testNamespace,
 				}, &corev1.Secret{})
 				return err == nil
@@ -420,15 +420,15 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			// Get initial ETCD key for comparison
 			initialEtcdKey := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{
-				Name:      bridgeName + "-etcd-encryption-key",
+				Name:      provisionerName + "-etcd-encryption-key",
 				Namespace: testNamespace,
 			}, initialEtcdKey)).To(Succeed())
 			initialKeyBytes := initialEtcdKey.Data[hyperv1.AESCBCKeySecretKey]
 
 			// Trigger another reconciliation by updating a label
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: bridgeName, Namespace: testNamespace}, bridge)).To(Succeed())
-			bridge.Labels = map[string]string{"test-trigger": "reconcile"}
-			Expect(k8sClient.Update(ctx, bridge)).To(Succeed())
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: provisionerName, Namespace: testNamespace}, provisioner)).To(Succeed())
+			provisioner.Labels = map[string]string{"test-trigger": "reconcile"}
+			Expect(k8sClient.Update(ctx, provisioner)).To(Succeed())
 
 			// Wait a bit for potential reconciliation
 			time.Sleep(2 * time.Second)
@@ -436,7 +436,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			// Verify ETCD key hasn't changed (idempotency)
 			currentEtcdKey := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{
-				Name:      bridgeName + "-etcd-encryption-key",
+				Name:      provisionerName + "-etcd-encryption-key",
 				Namespace: testNamespace,
 			}, currentEtcdKey)).To(Succeed())
 			Expect(currentEtcdKey.Data[hyperv1.AESCBCKeySecretKey]).To(Equal(initialKeyBytes))
@@ -453,14 +453,14 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 			for _, secret := range secretList.Items {
 				// Check via OwnerReference instead of labels
-				if metav1.IsControlledBy(&secret, bridge) {
-					if secret.Name == bridgeName+"-pull-secret" {
+				if metav1.IsControlledBy(&secret, provisioner) {
+					if secret.Name == provisionerName+"-pull-secret" {
 						pullSecretCount++
 					}
-					if secret.Name == bridgeName+"-ssh-key" {
+					if secret.Name == provisionerName+"-ssh-key" {
 						sshKeyCount++
 					}
-					if secret.Name == bridgeName+"-etcd-encryption-key" {
+					if secret.Name == provisionerName+"-etcd-encryption-key" {
 						etcdKeyCount++
 					}
 				}
@@ -474,13 +474,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 
 	Context("Error Handling", func() {
 		It("should handle missing user secret gracefully", func() {
-			// Create DPFHCPBridge with non-existent pull-secret
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Create DPFHCPProvisioner with non-existent pull-secret
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bridgeName,
+					Name:      provisionerName,
 					Namespace: testNamespace,
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
@@ -493,12 +493,12 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
 				},
 			}
-			Expect(k8sClient.Create(ctx, bridge)).To(Succeed())
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
 			// Verify secret is NOT created due to missing source
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name:      bridgeName + "-pull-secret",
+					Name:      provisionerName + "-pull-secret",
 					Namespace: testNamespace,
 				}, &corev1.Secret{})
 				return apierrors.IsNotFound(err)
@@ -507,7 +507,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			// The reconciliation should fail but not crash
 			// CR should still exist
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: bridgeName, Namespace: testNamespace}, bridge)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: provisionerName, Namespace: testNamespace}, provisioner)
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 		})

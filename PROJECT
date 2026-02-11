@@ -8,8 +8,8 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: dpf-hcp-bridge-operator
-repo: github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator
+projectName: dpf-hcp-provisioner-operator
+repo: github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
 resources:
 - api:
     crdVersion: v1
@@ -17,7 +17,7 @@ resources:
   controller: true
   domain: dpu.hcp.io
   group: provisioning
-  kind: DPFHCPBridge
-  path: github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1
+  kind: DPFHCPProvisioner
+  path: github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

@@ -32,7 +32,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 // SecretManager handles secret copying and ETCD key generation for HostedCluster
@@ -49,9 +49,9 @@ func NewSecretManager(c client.Client, scheme *runtime.Scheme) *SecretManager {
 	}
 }
 
-// CopySecrets copies pull-secret and ssh-key within the same namespace as DPFHCPBridge
+// CopySecrets copies pull-secret and ssh-key within the same namespace as DPFHCPProvisioner
 // Returns ctrl.Result and error for reconciliation flow
-func (sm *SecretManager) CopySecrets(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (sm *SecretManager) CopySecrets(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
 	// Copy pull-secret
@@ -77,10 +77,10 @@ func (sm *SecretManager) CopySecrets(ctx context.Context, cr *provisioningv1alph
 }
 
 // copyPullSecret copies the pull-secret within the same namespace with proper type and labels
-func (sm *SecretManager) copyPullSecret(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, targetName string) error {
+func (sm *SecretManager) copyPullSecret(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, targetName string) error {
 	log := logf.FromContext(ctx)
 
-	// Get source pull-secret from DPFHCPBridge namespace
+	// Get source pull-secret from DPFHCPProvisioner namespace
 	sourceSecret := &corev1.Secret{}
 	sourceKey := types.NamespacedName{
 		Name:      cr.Spec.PullSecretRef.Name,
@@ -101,12 +101,12 @@ func (sm *SecretManager) copyPullSecret(ctx context.Context, cr *provisioningv1a
 	if err == nil {
 		// Secret exists, verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingSecret, cr) {
-			log.V(1).Info("Pull-secret already exists and is owned by this DPFHCPBridge, reusing",
+			log.V(1).Info("Pull-secret already exists and is owned by this DPFHCPProvisioner, reusing",
 				"secret", targetName,
 				"namespace", cr.Namespace)
 			return nil
 		}
-		return fmt.Errorf("pull-secret %s exists in %s but is owned by different DPFHCPBridge", targetName, cr.Namespace)
+		return fmt.Errorf("pull-secret %s exists in %s but is owned by different DPFHCPProvisioner", targetName, cr.Namespace)
 	}
 
 	if !apierrors.IsNotFound(err) {
@@ -140,10 +140,10 @@ func (sm *SecretManager) copyPullSecret(ctx context.Context, cr *provisioningv1a
 }
 
 // copySSHKey copies the ssh-key within the same namespace with proper type and labels
-func (sm *SecretManager) copySSHKey(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, targetName string) error {
+func (sm *SecretManager) copySSHKey(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, targetName string) error {
 	log := logf.FromContext(ctx)
 
-	// Get source ssh-key from DPFHCPBridge namespace
+	// Get source ssh-key from DPFHCPProvisioner namespace
 	sourceSecret := &corev1.Secret{}
 	sourceKey := types.NamespacedName{
 		Name:      cr.Spec.SSHKeySecretRef.Name,
@@ -164,12 +164,12 @@ func (sm *SecretManager) copySSHKey(ctx context.Context, cr *provisioningv1alpha
 	if err == nil {
 		// Secret exists, verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingSecret, cr) {
-			log.V(1).Info("SSH key already exists and is owned by this DPFHCPBridge, reusing",
+			log.V(1).Info("SSH key already exists and is owned by this DPFHCPProvisioner, reusing",
 				"secret", targetName,
 				"namespace", cr.Namespace)
 			return nil
 		}
-		return fmt.Errorf("ssh-key %s exists in %s but is owned by different DPFHCPBridge", targetName, cr.Namespace)
+		return fmt.Errorf("ssh-key %s exists in %s but is owned by different DPFHCPProvisioner", targetName, cr.Namespace)
 	}
 
 	if !apierrors.IsNotFound(err) {
@@ -204,7 +204,7 @@ func (sm *SecretManager) copySSHKey(ctx context.Context, cr *provisioningv1alpha
 
 // GenerateETCDEncryptionKey generates a 32-byte random key for ETCD encryption
 // Returns ctrl.Result and error for reconciliation flow
-func (sm *SecretManager) GenerateETCDEncryptionKey(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (sm *SecretManager) GenerateETCDEncryptionKey(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
 	secretName := fmt.Sprintf("%s-etcd-encryption-key", cr.Name)
@@ -219,12 +219,12 @@ func (sm *SecretManager) GenerateETCDEncryptionKey(ctx context.Context, cr *prov
 	if err == nil {
 		// Secret exists, verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingSecret, cr) {
-			log.V(1).Info("ETCD encryption key already exists and is owned by this DPFHCPBridge, reusing",
+			log.V(1).Info("ETCD encryption key already exists and is owned by this DPFHCPProvisioner, reusing",
 				"secret", secretName,
 				"namespace", cr.Namespace)
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, fmt.Errorf("etcd encryption key %s exists in %s but is owned by different DPFHCPBridge", secretName, cr.Namespace)
+		return ctrl.Result{}, fmt.Errorf("etcd encryption key %s exists in %s but is owned by different DPFHCPProvisioner", secretName, cr.Namespace)
 	}
 
 	if !apierrors.IsNotFound(err) {

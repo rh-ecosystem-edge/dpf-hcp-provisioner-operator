@@ -18,7 +18,7 @@ package common
 
 // Operator-specific constants that may change if CR is renamed
 const (
-	// DPFHCPBridgeName is the resource kind name used in logs, metrics, events, etc.
+	// DPFHCPProvisionerName is the resource kind name used in logs, metrics, events, etc.
 	// If the CR is renamed, update this constant once and it propagates everywhere.
-	DPFHCPBridgeName = "dpfhcpbridge"
+	DPFHCPProvisionerName = "dpfhcpprovisioner"
 )

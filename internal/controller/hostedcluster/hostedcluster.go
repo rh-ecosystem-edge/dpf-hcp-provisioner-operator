@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 // HostedClusterManager manages HostedCluster resources
@@ -60,7 +60,7 @@ func NewHostedClusterManager(c client.Client, scheme *runtime.Scheme) *HostedClu
 // - Creates new HostedCluster if it doesn't exist
 // - Handles name conflicts (HC exists with different owner)
 // - Uses infraid.New() for consistent infraID generation
-func (hm *HostedClusterManager) CreateOrUpdateHostedCluster(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (hm *HostedClusterManager) CreateOrUpdateHostedCluster(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
 	hcName := cr.Name
@@ -74,15 +74,15 @@ func (hm *HostedClusterManager) CreateOrUpdateHostedCluster(ctx context.Context,
 	if err == nil {
 		// HostedCluster exists - verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingHC, cr) {
-			log.V(1).Info("HostedCluster already exists and is owned by this DPFHCPBridge, adopting",
+			log.V(1).Info("HostedCluster already exists and is owned by this DPFHCPProvisioner, adopting",
 				"hostedCluster", hcName,
 				"namespace", hcNamespace)
-			// TODO: If the DPFHCPBridge is updated, check whether the hc spec needs to be updated here
+			// TODO: If the DPFHCPProvisioner is updated, check whether the hc spec needs to be updated here
 			return ctrl.Result{}, nil
 		}
 
-		// Name conflict - HC exists but owned by different DPFHCPBridge
-		return ctrl.Result{}, fmt.Errorf("hostedCluster %s exists in %s but is owned by different DPFHCPBridge", hcName, hcNamespace)
+		// Name conflict - HC exists but owned by different DPFHCPProvisioner
+		return ctrl.Result{}, fmt.Errorf("hostedCluster %s exists in %s but is owned by different DPFHCPProvisioner", hcName, hcNamespace)
 	}
 
 	if !apierrors.IsNotFound(err) {
@@ -132,9 +132,9 @@ func (hm *HostedClusterManager) CreateOrUpdateHostedCluster(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-// buildHostedCluster constructs the HostedCluster spec from DPFHCPBridge fields
+// buildHostedCluster constructs the HostedCluster spec from DPFHCPProvisioner fields
 // nodeAddress is only used when exposeThroughLoadBalancer=false (NodePort mode)
-func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFHCPBridge, nodeAddress string) *hyperv1.HostedCluster {
+func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFHCPProvisioner, nodeAddress string) *hyperv1.HostedCluster {
 	// Build etcd storage spec
 	// Only set StorageClassName if explicitly provided (matches HyperShift CLI behavior)
 	// If not set, Kubernetes will use the default StorageClass
@@ -200,7 +200,7 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 				Type: hyperv1.NonePlatform,
 			},
 
-			// Availability policy from DPFHCPBridge spec
+			// Availability policy from DPFHCPProvisioner spec
 			ControllerAvailabilityPolicy: cr.Spec.ControlPlaneAvailabilityPolicy,
 
 			// InfraID: Generate deterministically from cluster name
@@ -241,8 +241,8 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 	return hc
 }
 
-// getNodeSelector returns the NodeSelector from DPFHCPBridge spec or the default if not specified
-func getNodeSelector(cr *provisioningv1alpha1.DPFHCPBridge) map[string]string {
+// getNodeSelector returns the NodeSelector from DPFHCPProvisioner spec or the default if not specified
+func getNodeSelector(cr *provisioningv1alpha1.DPFHCPProvisioner) map[string]string {
 	if cr.Spec.NodeSelector != nil && len(cr.Spec.NodeSelector) > 0 {
 		return cr.Spec.NodeSelector
 	}

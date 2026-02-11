@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ocp-bluefield-images
+  namespace: {{ include "dpf-hcp-provisioner-operator.namespace" . }}
+  labels:
+    {{- include "dpf-hcp-provisioner-operator.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  {{- if .Values.blueFieldImages }}
+  {{- range $ocpVersion, $blueFieldImage := .Values.blueFieldImages }}
+  {{ $ocpVersion | quote }}: {{ $blueFieldImage | quote }}
+  {{- end }}
+  {{- else }}
+  # No OCP-to-BlueField image mappings configured yet.
+  #
+  # Add mappings to values.yaml under 'blueFieldImages' to populate this ConfigMap.
+  #
+  # Format:
+  #   blueFieldImages:
+  #     "4.19.0-ec.5": "quay.io/edge-infrastructure/bluefield-rhcos:4.19.0-ec.5"
+  #     "4.18.0": "quay.io/edge-infrastructure/bluefield-rhcos:4.18.0"
+  #
+  # The operator uses these mappings to determine which BlueField container image
+  # to use for a given OCP release version specified in DPFHCPProvisioner CRs.
+  {{- end }}

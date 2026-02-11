@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 const (
@@ -42,7 +42,7 @@ const (
 )
 
 // CleanupHandler handles cleanup of HostedCluster, NodePool, and related secrets
-// when a DPFHCPBridge CR is deleted.
+// when a DPFHCPProvisioner CR is deleted.
 //
 // This handler is responsible for:
 // 1. Deleting HostedCluster CR and waiting for full deletion
@@ -68,9 +68,9 @@ func (h *CleanupHandler) Name() string {
 
 // Cleanup performs the cleanup logic for HostedCluster resources.
 // This includes:
-// 1. Deleting HostedCluster CR in the same namespace as DPFHCPBridge
+// 1. Deleting HostedCluster CR in the same namespace as DPFHCPProvisioner
 // 2. Waiting for HostedCluster to be fully deleted
-// 3. Deleting NodePool CR in the same namespace as DPFHCPBridge
+// 3. Deleting NodePool CR in the same namespace as DPFHCPProvisioner
 // 4. Waiting for NodePool to be fully deleted
 // 5. Deleting copied/generated secrets
 //
@@ -80,10 +80,10 @@ func (h *CleanupHandler) Name() string {
 //
 // Note: This handler does NOT enforce timeout. The finalizer manager
 // is responsible for timeout handling if needed.
-func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) error {
+func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx).WithValues(
 		"handler", h.Name(),
-		"dpfhcpbridge", fmt.Sprintf("%s/%s", cr.Namespace, cr.Name),
+		"dpfhcpprovisioner", fmt.Sprintf("%s/%s", cr.Namespace, cr.Name),
 	)
 
 	// Step 1: Delete HostedCluster and wait for it to be fully removed
@@ -132,7 +132,7 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 // Returns true when resource is fully deleted (NotFound), false if still exists
 func (h *CleanupHandler) deleteResource(
 	ctx context.Context,
-	cr *provisioningv1alpha1.DPFHCPBridge,
+	cr *provisioningv1alpha1.DPFHCPProvisioner,
 	obj client.Object,
 	resourceKind string,
 ) (bool, error) {
@@ -195,7 +195,7 @@ func (h *CleanupHandler) deleteResource(
 }
 
 // deleteSecrets deletes all copied/generated secrets
-func (h *CleanupHandler) deleteSecrets(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) error {
+func (h *CleanupHandler) deleteSecrets(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx)
 
 	secretNames := []string{

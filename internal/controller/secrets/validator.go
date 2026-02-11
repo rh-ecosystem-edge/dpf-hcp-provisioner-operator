@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 const (
@@ -63,7 +63,7 @@ func NewValidator(client client.Client, recorder record.EventRecorder) *Validato
 }
 
 // ValidateSecrets validates that both SSH key and pull secret exist and have required keys
-func (v *Validator) ValidateSecrets(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (v *Validator) ValidateSecrets(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	log.V(1).Info("Validating secrets",
@@ -122,7 +122,7 @@ func (v *Validator) ValidateSecrets(ctx context.Context, cr *provisioningv1alpha
 }
 
 // handleSSHKeySecretMissing handles the case when SSH key secret is not found
-func (v *Validator) handleSSHKeySecretMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (v *Validator) handleSSHKeySecretMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	message := fmt.Sprintf("SSH key secret '%s' not found in namespace '%s'",
@@ -157,7 +157,7 @@ func (v *Validator) handleSSHKeySecretMissing(ctx context.Context, cr *provision
 }
 
 // handleSSHKeySecretInvalid handles the case when SSH key secret is missing required key
-func (v *Validator) handleSSHKeySecretInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (v *Validator) handleSSHKeySecretInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	message := fmt.Sprintf("SSH key secret '%s' is missing required key '%s'",
@@ -192,7 +192,7 @@ func (v *Validator) handleSSHKeySecretInvalid(ctx context.Context, cr *provision
 }
 
 // handlePullSecretMissing handles the case when pull secret is not found
-func (v *Validator) handlePullSecretMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (v *Validator) handlePullSecretMissing(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	message := fmt.Sprintf("Pull secret '%s' not found in namespace '%s'",
@@ -227,7 +227,7 @@ func (v *Validator) handlePullSecretMissing(ctx context.Context, cr *provisionin
 }
 
 // handlePullSecretInvalid handles the case when pull secret is missing required key
-func (v *Validator) handlePullSecretInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (v *Validator) handlePullSecretInvalid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	message := fmt.Sprintf("Pull secret '%s' is missing required key '%s'",
@@ -262,7 +262,7 @@ func (v *Validator) handlePullSecretInvalid(ctx context.Context, cr *provisionin
 }
 
 // handleSecretsAccessDenied handles RBAC permission errors
-func (v *Validator) handleSecretsAccessDenied(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, secretType string, err error) (ctrl.Result, error) {
+func (v *Validator) handleSecretsAccessDenied(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, secretType string, err error) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	message := fmt.Sprintf("Operator lacks RBAC permissions to access %s in namespace '%s': %v",
@@ -297,7 +297,7 @@ func (v *Validator) handleSecretsAccessDenied(ctx context.Context, cr *provision
 }
 
 // handleSecretsValid handles the case when both secrets exist and are valid
-func (v *Validator) handleSecretsValid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (v *Validator) handleSecretsValid(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "secrets-validation")
 
 	// Get previous condition to check for recovery

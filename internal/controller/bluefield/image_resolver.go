@@ -31,13 +31,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 const (
 	// ConfigMap name and namespace
 	configMapName      = "ocp-bluefield-images"
-	configMapNamespace = "dpf-hcp-bridge-system"
+	configMapNamespace = "dpf-hcp-provisioner-system"
 
 	// Reason codes
 	reasonImageResolved            = "ImageResolved"
@@ -66,7 +66,7 @@ func NewImageResolver(client client.Client, recorder record.EventRecorder) *Imag
 // ResolveBlueFieldImage is the main reconciliation function for BlueField image mapping
 // It extracts the OCP version from the ocpReleaseImage, looks up the corresponding
 // BlueField image in the ConfigMap, validates it, and updates the CR status
-func (r *ImageResolver) ResolveBlueFieldImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (r *ImageResolver) ResolveBlueFieldImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log = log.WithValues("feature", "bluefield-image-mapping")
 
@@ -233,7 +233,7 @@ func validateBlueFieldImageURL(url string, version string) error {
 }
 
 // updateStatusOnSuccess updates the CR status when image resolution succeeds
-func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, blueFieldImage, version string) (ctrl.Result, error) {
+func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, blueFieldImage, version string) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
 	// Get previous condition to check if we need to emit event
@@ -273,7 +273,7 @@ func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provision
 }
 
 // handleValidationError handles permanent validation errors
-func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, err error) (ctrl.Result, error) {
+func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("Validation error - check CR spec", "error", err.Error())
 
@@ -318,7 +318,7 @@ func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provision
 }
 
 // handlePermanentError handles permanent errors (version not found, access denied, invalid URL)
-func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, err error, version string) (ctrl.Result, error) {
+func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error, version string) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("Permanent error - user action required", "version", version, "error", err.Error())
 
@@ -369,7 +369,7 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 }
 
 // handleTransientError handles transient errors
-func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge, err error, version string) (ctrl.Result, error) {
+func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error, version string) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
 	// Get previous condition

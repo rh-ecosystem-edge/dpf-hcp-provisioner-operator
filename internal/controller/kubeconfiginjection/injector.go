@@ -32,8 +32,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/common"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 )
 
 const (
@@ -47,10 +47,10 @@ const (
 	DestinationKubeconfigSecretKey = "super-admin.conf"
 
 	// LabelOwnedBy is the label key for ownership tracking
-	LabelOwnedBy = "dpf-hcp-bridge-operator/owned-by"
+	LabelOwnedBy = "dpf-hcp-provisioner-operator/owned-by"
 
 	// LabelNamespace is the label key for namespace tracking
-	LabelNamespace = "dpf-hcp-bridge-operator/namespace"
+	LabelNamespace = "dpf-hcp-provisioner-operator/namespace"
 )
 
 // KubeconfigInjector handles kubeconfig injection from HostedCluster to DPUCluster
@@ -75,29 +75,29 @@ func NewKubeconfigInjector(client client.Client, recorder record.EventRecorder) 
 // 3. Detect HC kubeconfig secret availability
 // 4. Create/update secret in DPUCluster namespace
 // 5. Update DPUCluster CR spec.kubeconfig
-// 6. Update DPFHCPBridge status (condition + kubeConfigSecretRef)
-func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+// 6. Update DPFHCPProvisioner status (condition + kubeConfigSecretRef)
+func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues(
 		"feature", "kubeconfig-injection",
-		common.DPFHCPBridgeName, fmt.Sprintf("%s/%s", bridge.Namespace, bridge.Name),
+		common.DPFHCPProvisionerName, fmt.Sprintf("%s/%s", provisioner.Namespace, provisioner.Name),
 	)
 
 	log.Info("Starting kubeconfig injection",
-		"bridge", bridge.Name,
-		"namespace", bridge.Namespace,
-		"targetNamespace", bridge.Spec.DPUClusterRef.Namespace)
+		"provisioner", provisioner.Name,
+		"namespace", provisioner.Namespace,
+		"targetNamespace", provisioner.Spec.DPUClusterRef.Namespace)
 
 	// Step 1: Verify HC and NodePool created
-	if bridge.Status.HostedClusterRef == nil {
+	if provisioner.Status.HostedClusterRef == nil {
 		log.V(1).Info("HostedCluster not created yet, skipping kubeconfig injection")
 		return ctrl.Result{}, nil
 	}
 
 	// Step 2: Check injection state
-	secretExists, dpuClusterUpdated, err := ki.checkInjectionState(ctx, bridge)
+	secretExists, dpuClusterUpdated, err := ki.checkInjectionState(ctx, provisioner)
 	if err != nil {
 		log.Error(err, "Failed to check injection state")
-		if condErr := ki.setCondition(ctx, bridge, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
+		if condErr := ki.setCondition(ctx, provisioner, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
 			fmt.Sprintf("Failed to check injection state: %v", err)); condErr != nil {
 			log.Error(condErr, "Failed to update condition")
 		}
@@ -105,10 +105,10 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 	}
 
 	// Step 3: Detect HC kubeconfig secret availability
-	available, secretName, err := ki.detectHCKubeconfigAvailability(ctx, bridge)
+	available, secretName, err := ki.detectHCKubeconfigAvailability(ctx, provisioner)
 	if err != nil {
 		log.Error(err, "Failed to detect HC kubeconfig availability")
-		if condErr := ki.setCondition(ctx, bridge, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
+		if condErr := ki.setCondition(ctx, provisioner, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
 			fmt.Sprintf("Failed to detect HC kubeconfig availability: %v", err)); condErr != nil {
 			log.Error(condErr, "Failed to update condition")
 		}
@@ -117,10 +117,10 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 
 	if !available {
 		log.Info("HC kubeconfig secret not ready yet, waiting for watch to trigger",
-			"hcName", bridge.Name,
-			"hcNamespace", bridge.Namespace)
-		if err := ki.setCondition(ctx, bridge, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigPending,
-			fmt.Sprintf("Waiting for Hypershift to create kubeconfig secret for HostedCluster %s", bridge.Name)); err != nil {
+			"hcName", provisioner.Name,
+			"hcNamespace", provisioner.Namespace)
+		if err := ki.setCondition(ctx, provisioner, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigPending,
+			fmt.Sprintf("Waiting for Hypershift to create kubeconfig secret for HostedCluster %s", provisioner.Name)); err != nil {
 			log.Error(err, "Failed to update condition")
 			return ctrl.Result{}, err
 		}
@@ -130,13 +130,13 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 
 	log.Info("HC kubeconfig secret detected",
 		"secretName", secretName,
-		"hcNamespace", bridge.Namespace)
+		"hcNamespace", provisioner.Namespace)
 
 	// Step 4: Handle idempotency scenarios
-	needsInjection, err := ki.handleIdempotencyScenarios(ctx, bridge, secretName, secretExists, dpuClusterUpdated)
+	needsInjection, err := ki.handleIdempotencyScenarios(ctx, provisioner, secretName, secretExists, dpuClusterUpdated)
 	if err != nil {
 		log.Error(err, "Failed to handle idempotency scenarios")
-		if condErr := ki.setCondition(ctx, bridge, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
+		if condErr := ki.setCondition(ctx, provisioner, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
 			fmt.Sprintf("Failed to handle idempotency scenarios: %v", err)); condErr != nil {
 			log.Error(condErr, "Failed to update condition")
 		}
@@ -146,8 +146,8 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 	// If idempotency scenario handled everything, we're done
 	if !needsInjection {
 		log.V(1).Info("Idempotency scenario handled, injection complete")
-		if err := ki.setCondition(ctx, bridge, metav1.ConditionTrue, provisioningv1alpha1.ReasonKubeConfigInjected,
-			fmt.Sprintf("Kubeconfig secret successfully created in namespace %s and DPUCluster CR updated", bridge.Spec.DPUClusterRef.Namespace)); err != nil {
+		if err := ki.setCondition(ctx, provisioner, metav1.ConditionTrue, provisioningv1alpha1.ReasonKubeConfigInjected,
+			fmt.Sprintf("Kubeconfig secret successfully created in namespace %s and DPUCluster CR updated", provisioner.Spec.DPUClusterRef.Namespace)); err != nil {
 			log.Error(err, "Failed to update condition")
 			return ctrl.Result{}, err
 		}
@@ -155,10 +155,10 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 	}
 
 	// Step 5: Create/update secret in DPUCluster namespace
-	if err := ki.createOrUpdateKubeconfigSecret(ctx, bridge, secretName); err != nil {
+	if err := ki.createOrUpdateKubeconfigSecret(ctx, provisioner, secretName); err != nil {
 		log.Error(err, "Failed to create/update kubeconfig secret")
-		if condErr := ki.setCondition(ctx, bridge, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
-			fmt.Sprintf("Failed to create kubeconfig secret in namespace %s: %v", bridge.Spec.DPUClusterRef.Namespace, err)); condErr != nil {
+		if condErr := ki.setCondition(ctx, provisioner, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
+			fmt.Sprintf("Failed to create kubeconfig secret in namespace %s: %v", provisioner.Spec.DPUClusterRef.Namespace, err)); condErr != nil {
 			log.Error(condErr, "Failed to update condition")
 		}
 		// Event emitted by setCondition
@@ -167,15 +167,15 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 
 	log.Info("Kubeconfig secret created/updated",
 		"secretName", secretName,
-		"namespace", bridge.Spec.DPUClusterRef.Namespace)
-	ki.Recorder.Event(bridge, corev1.EventTypeNormal, "KubeConfigInjected",
-		fmt.Sprintf("Kubeconfig secret %s created in namespace %s", secretName, bridge.Spec.DPUClusterRef.Namespace))
+		"namespace", provisioner.Spec.DPUClusterRef.Namespace)
+	ki.Recorder.Event(provisioner, corev1.EventTypeNormal, "KubeConfigInjected",
+		fmt.Sprintf("Kubeconfig secret %s created in namespace %s", secretName, provisioner.Spec.DPUClusterRef.Namespace))
 
 	// Step 6: Update DPUCluster CR spec.kubeconfig (only if not already updated)
 	if !dpuClusterUpdated {
-		if err := ki.updateDPUClusterReference(ctx, bridge, secretName); err != nil {
+		if err := ki.updateDPUClusterReference(ctx, provisioner, secretName); err != nil {
 			log.Error(err, "Failed to update DPUCluster reference")
-			if condErr := ki.setCondition(ctx, bridge, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
+			if condErr := ki.setCondition(ctx, provisioner, metav1.ConditionFalse, provisioningv1alpha1.ReasonKubeConfigInjectionFailed,
 				fmt.Sprintf("Failed to update DPUCluster spec.kubeconfig: %v", err)); condErr != nil {
 				log.Error(condErr, "Failed to update condition")
 			}
@@ -184,28 +184,28 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 		}
 
 		log.Info("DPUCluster updated with kubeconfig reference",
-			"dpuCluster", bridge.Spec.DPUClusterRef.Name,
-			"namespace", bridge.Spec.DPUClusterRef.Namespace)
-		ki.Recorder.Event(bridge, corev1.EventTypeNormal, "DPUClusterUpdated",
-			fmt.Sprintf("DPUCluster %s/%s updated with kubeconfig reference", bridge.Spec.DPUClusterRef.Namespace, bridge.Spec.DPUClusterRef.Name))
+			"dpuCluster", provisioner.Spec.DPUClusterRef.Name,
+			"namespace", provisioner.Spec.DPUClusterRef.Namespace)
+		ki.Recorder.Event(provisioner, corev1.EventTypeNormal, "DPUClusterUpdated",
+			fmt.Sprintf("DPUCluster %s/%s updated with kubeconfig reference", provisioner.Spec.DPUClusterRef.Namespace, provisioner.Spec.DPUClusterRef.Name))
 	} else {
 		log.V(1).Info("DPUCluster already updated, skipping update",
-			"dpuCluster", bridge.Spec.DPUClusterRef.Name)
+			"dpuCluster", provisioner.Spec.DPUClusterRef.Name)
 	}
 
-	// Step 7: Update DPFHCPBridge status
-	bridge.Status.KubeConfigSecretRef = &corev1.LocalObjectReference{
+	// Step 7: Update DPFHCPProvisioner status
+	provisioner.Status.KubeConfigSecretRef = &corev1.LocalObjectReference{
 		Name: secretName,
 	}
-	if err := ki.setCondition(ctx, bridge, metav1.ConditionTrue, provisioningv1alpha1.ReasonKubeConfigInjected,
-		fmt.Sprintf("Kubeconfig secret successfully created in namespace %s and DPUCluster CR updated", bridge.Spec.DPUClusterRef.Namespace)); err != nil {
+	if err := ki.setCondition(ctx, provisioner, metav1.ConditionTrue, provisioningv1alpha1.ReasonKubeConfigInjected,
+		fmt.Sprintf("Kubeconfig secret successfully created in namespace %s and DPUCluster CR updated", provisioner.Spec.DPUClusterRef.Namespace)); err != nil {
 		log.Error(err, "Failed to update condition")
 		return ctrl.Result{}, err
 	}
 
 	log.Info("Kubeconfig injection completed successfully",
 		"secretName", secretName,
-		"dpuCluster", bridge.Spec.DPUClusterRef.Name)
+		"dpuCluster", provisioner.Spec.DPUClusterRef.Name)
 
 	return ctrl.Result{}, nil
 }
@@ -213,11 +213,11 @@ func (ki *KubeconfigInjector) InjectKubeconfig(ctx context.Context, bridge *prov
 // checkInjectionState checks the current state of the kubeconfig injection work
 // to determine if it has already been completed (fully or partially) for idempotency.
 // Returns (secretExists, dpuClusterUpdated, error)
-func (ki *KubeconfigInjector) checkInjectionState(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge) (bool, bool, error) {
+func (ki *KubeconfigInjector) checkInjectionState(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner) (bool, bool, error) {
 	log := logf.FromContext(ctx)
 
-	secretName := bridge.Name + KubeconfigSecretSuffix
-	dpuClusterNamespace := bridge.Spec.DPUClusterRef.Namespace
+	secretName := provisioner.Name + KubeconfigSecretSuffix
+	dpuClusterNamespace := provisioner.Spec.DPUClusterRef.Namespace
 
 	// Check if secret exists in DPUCluster namespace
 	secret := &corev1.Secret{}
@@ -235,13 +235,13 @@ func (ki *KubeconfigInjector) checkInjectionState(ctx context.Context, bridge *p
 	// Check if DPUCluster spec.kubeconfig is populated
 	dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{}
 	dpuClusterKey := types.NamespacedName{
-		Name:      bridge.Spec.DPUClusterRef.Name,
+		Name:      provisioner.Spec.DPUClusterRef.Name,
 		Namespace: dpuClusterNamespace,
 	}
 	dpuClusterErr := ki.Client.Get(ctx, dpuClusterKey, dpuCluster)
 	if dpuClusterErr != nil {
 		if apierrors.IsNotFound(dpuClusterErr) {
-			return secretExists, false, fmt.Errorf("DPUCluster %s/%s not found", dpuClusterNamespace, bridge.Spec.DPUClusterRef.Name)
+			return secretExists, false, fmt.Errorf("DPUCluster %s/%s not found", dpuClusterNamespace, provisioner.Spec.DPUClusterRef.Name)
 		}
 		return secretExists, false, fmt.Errorf("failed to get DPUCluster: %w", dpuClusterErr)
 	}
@@ -259,14 +259,14 @@ func (ki *KubeconfigInjector) checkInjectionState(ctx context.Context, bridge *p
 
 // detectHCKubeconfigAvailability checks if the HC admin kubeconfig secret exists
 // Returns (available, secretName, error)
-func (ki *KubeconfigInjector) detectHCKubeconfigAvailability(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge) (bool, string, error) {
+func (ki *KubeconfigInjector) detectHCKubeconfigAvailability(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner) (bool, string, error) {
 	log := logf.FromContext(ctx)
 
-	secretName := bridge.Name + KubeconfigSecretSuffix
+	secretName := provisioner.Name + KubeconfigSecretSuffix
 	secret := &corev1.Secret{}
 	secretKey := types.NamespacedName{
 		Name:      secretName,
-		Namespace: bridge.Namespace,
+		Namespace: provisioner.Namespace,
 	}
 
 	err := ki.Client.Get(ctx, secretKey, secret)
@@ -279,7 +279,7 @@ func (ki *KubeconfigInjector) detectHCKubeconfigAvailability(ctx context.Context
 	if apierrors.IsNotFound(err) {
 		log.V(1).Info("HC kubeconfig secret not ready yet",
 			"secretName", secretName,
-			"namespace", bridge.Namespace)
+			"namespace", provisioner.Namespace)
 		return false, "", nil
 	}
 
@@ -292,21 +292,21 @@ func (ki *KubeconfigInjector) detectHCKubeconfigAvailability(ctx context.Context
 // Scenario C: Secret does NOT exist BUT DPUCluster updated -> recreate secret
 // Scenario D: Neither exists -> proceed with normal injection
 // Returns (needsInjection, error)
-func (ki *KubeconfigInjector) handleIdempotencyScenarios(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge, secretName string, secretExists, dpuClusterUpdated bool) (bool, error) {
+func (ki *KubeconfigInjector) handleIdempotencyScenarios(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner, secretName string, secretExists, dpuClusterUpdated bool) (bool, error) {
 	log := logf.FromContext(ctx)
 
 	if secretExists && dpuClusterUpdated {
 		// Scenario A: Check for drift
 		log.V(1).Info("Scenario A: Secret exists and DPUCluster updated, checking for drift")
-		hasDrift, err := ki.checkDrift(ctx, bridge, secretName)
+		hasDrift, err := ki.checkDrift(ctx, provisioner, secretName)
 		if err != nil {
 			return false, fmt.Errorf("failed to check drift: %w", err)
 		}
 		if hasDrift {
 			log.Info("Kubeconfig drift detected, will update destination secret",
 				"secretName", secretName,
-				"namespace", bridge.Spec.DPUClusterRef.Namespace)
-			ki.Recorder.Event(bridge, corev1.EventTypeNormal, "DriftCorrected",
+				"namespace", provisioner.Spec.DPUClusterRef.Namespace)
+			ki.Recorder.Event(provisioner, corev1.EventTypeNormal, "DriftCorrected",
 				"Kubeconfig secret content drift detected and corrected")
 			// Return true to trigger secret update
 			return true, nil
@@ -319,12 +319,12 @@ func (ki *KubeconfigInjector) handleIdempotencyScenarios(ctx context.Context, br
 		// Scenario B: Update DPUCluster only
 		log.Info("Scenario B: Secret exists but DPUCluster not updated, completing injection",
 			"secretName", secretName,
-			"dpuCluster", bridge.Spec.DPUClusterRef.Name)
-		if err := ki.updateDPUClusterReference(ctx, bridge, secretName); err != nil {
+			"dpuCluster", provisioner.Spec.DPUClusterRef.Name)
+		if err := ki.updateDPUClusterReference(ctx, provisioner, secretName); err != nil {
 			return false, fmt.Errorf("failed to update DPUCluster reference: %w", err)
 		}
 		// Update status
-		bridge.Status.KubeConfigSecretRef = &corev1.LocalObjectReference{
+		provisioner.Status.KubeConfigSecretRef = &corev1.LocalObjectReference{
 			Name: secretName,
 		}
 		return false, nil
@@ -334,7 +334,7 @@ func (ki *KubeconfigInjector) handleIdempotencyScenarios(ctx context.Context, br
 		// Scenario C: Recreate secret
 		log.Info("Scenario C: Secret missing but DPUCluster updated, recreating secret",
 			"secretName", secretName,
-			"namespace", bridge.Spec.DPUClusterRef.Namespace)
+			"namespace", provisioner.Spec.DPUClusterRef.Namespace)
 		// Return true to trigger secret creation
 		return true, nil
 	}
@@ -346,14 +346,14 @@ func (ki *KubeconfigInjector) handleIdempotencyScenarios(ctx context.Context, br
 
 // checkDrift compares source and destination secret content
 // Returns (hasDrift, error)
-func (ki *KubeconfigInjector) checkDrift(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge, secretName string) (bool, error) {
+func (ki *KubeconfigInjector) checkDrift(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner, secretName string) (bool, error) {
 	log := logf.FromContext(ctx)
 
 	// Get source secret from HC namespace
 	sourceSecret := &corev1.Secret{}
 	sourceKey := types.NamespacedName{
 		Name:      secretName,
-		Namespace: bridge.Namespace,
+		Namespace: provisioner.Namespace,
 	}
 	if err := ki.Client.Get(ctx, sourceKey, sourceSecret); err != nil {
 		return false, fmt.Errorf("failed to get source secret: %w", err)
@@ -363,7 +363,7 @@ func (ki *KubeconfigInjector) checkDrift(ctx context.Context, bridge *provisioni
 	destSecret := &corev1.Secret{}
 	destKey := types.NamespacedName{
 		Name:      secretName,
-		Namespace: bridge.Spec.DPUClusterRef.Namespace,
+		Namespace: provisioner.Spec.DPUClusterRef.Namespace,
 	}
 	if err := ki.Client.Get(ctx, destKey, destSecret); err != nil {
 		return false, fmt.Errorf("failed to get destination secret: %w", err)
@@ -392,14 +392,14 @@ func (ki *KubeconfigInjector) checkDrift(ctx context.Context, bridge *provisioni
 }
 
 // createOrUpdateKubeconfigSecret creates or updates the secret in DPUCluster namespace
-func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge, sourceSecretName string) error {
+func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner, sourceSecretName string) error {
 	log := logf.FromContext(ctx)
 
 	// Get source secret from HC namespace
 	sourceSecret := &corev1.Secret{}
 	sourceKey := types.NamespacedName{
 		Name:      sourceSecretName,
-		Namespace: bridge.Namespace,
+		Namespace: provisioner.Namespace,
 	}
 	if err := ki.Client.Get(ctx, sourceKey, sourceSecret); err != nil {
 		return fmt.Errorf("failed to read source kubeconfig secret: %w", err)
@@ -416,10 +416,10 @@ func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context
 	destSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sourceSecretName,
-			Namespace: bridge.Spec.DPUClusterRef.Namespace,
+			Namespace: provisioner.Spec.DPUClusterRef.Namespace,
 			Labels: map[string]string{
-				LabelOwnedBy:   bridge.Name,
-				LabelNamespace: bridge.Namespace,
+				LabelOwnedBy:   provisioner.Name,
+				LabelNamespace: provisioner.Namespace,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -433,7 +433,7 @@ func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context
 	if err == nil {
 		log.Info("Created kubeconfig secret",
 			"secretName", sourceSecretName,
-			"namespace", bridge.Spec.DPUClusterRef.Namespace)
+			"namespace", provisioner.Spec.DPUClusterRef.Namespace)
 		return nil
 	}
 
@@ -442,7 +442,7 @@ func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context
 		existing := &corev1.Secret{}
 		existingKey := types.NamespacedName{
 			Name:      sourceSecretName,
-			Namespace: bridge.Spec.DPUClusterRef.Namespace,
+			Namespace: provisioner.Spec.DPUClusterRef.Namespace,
 		}
 		if err := ki.Client.Get(ctx, existingKey, existing); err != nil {
 			return fmt.Errorf("failed to get existing secret for update: %w", err)
@@ -456,7 +456,7 @@ func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context
 
 		log.Info("Updated existing kubeconfig secret",
 			"secretName", sourceSecretName,
-			"namespace", bridge.Spec.DPUClusterRef.Namespace)
+			"namespace", provisioner.Spec.DPUClusterRef.Namespace)
 		return nil
 	}
 
@@ -464,14 +464,14 @@ func (ki *KubeconfigInjector) createOrUpdateKubeconfigSecret(ctx context.Context
 }
 
 // updateDPUClusterReference updates DPUCluster spec.kubeconfig field
-func (ki *KubeconfigInjector) updateDPUClusterReference(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge, secretName string) error {
+func (ki *KubeconfigInjector) updateDPUClusterReference(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner, secretName string) error {
 	log := logf.FromContext(ctx)
 
 	// Get DPUCluster CR
 	dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{}
 	dpuClusterKey := types.NamespacedName{
-		Name:      bridge.Spec.DPUClusterRef.Name,
-		Namespace: bridge.Spec.DPUClusterRef.Namespace,
+		Name:      provisioner.Spec.DPUClusterRef.Name,
+		Namespace: provisioner.Spec.DPUClusterRef.Namespace,
 	}
 	if err := ki.Client.Get(ctx, dpuClusterKey, dpuCluster); err != nil {
 		return fmt.Errorf("failed to get DPUCluster: %w", err)
@@ -500,7 +500,7 @@ func (ki *KubeconfigInjector) updateDPUClusterReference(ctx context.Context, bri
 // This ensures users can see the condition status even if the injection fails.
 // Emits Kubernetes events only when the condition status or reason changes to avoid spam.
 // Returns error if status update fails (controller-runtime will requeue automatically).
-func (ki *KubeconfigInjector) setCondition(ctx context.Context, bridge *provisioningv1alpha1.DPFHCPBridge, status metav1.ConditionStatus, reason, message string) error {
+func (ki *KubeconfigInjector) setCondition(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner, status metav1.ConditionStatus, reason, message string) error {
 	log := logf.FromContext(ctx)
 
 	// Capture previous condition state to detect changes
@@ -511,20 +511,20 @@ func (ki *KubeconfigInjector) setCondition(ctx context.Context, bridge *provisio
 		Status:             status,
 		Reason:             reason,
 		Message:            message,
-		ObservedGeneration: bridge.Generation,
+		ObservedGeneration: provisioner.Generation,
 	}
 
 	// Emit event only if condition status/reason changed (avoid spam)
-	if changed := meta.SetStatusCondition(&bridge.Status.Conditions, condition); changed {
+	if changed := meta.SetStatusCondition(&provisioner.Status.Conditions, condition); changed {
 		eventType := corev1.EventTypeNormal
 		if status == metav1.ConditionFalse {
 			eventType = corev1.EventTypeWarning
 		}
-		ki.Recorder.Event(bridge, eventType, reason, message)
+		ki.Recorder.Event(provisioner, eventType, reason, message)
 	}
 
 	// Persist status immediately so users can see the condition
-	if err := ki.Client.Status().Update(ctx, bridge); err != nil {
+	if err := ki.Client.Status().Update(ctx, provisioner); err != nil {
 		if apierrors.IsConflict(err) {
 			// ResourceVersion conflict - controller-runtime will requeue automatically
 			log.V(1).Info("Status update conflict, will retry",

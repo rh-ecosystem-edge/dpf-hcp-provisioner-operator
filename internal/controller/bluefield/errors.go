@@ -25,7 +25,7 @@ type ConfigMapNotFoundError struct {
 }
 
 func (e *ConfigMapNotFoundError) Error() string {
-	return fmt.Sprintf("ConfigMap ocp-bluefield-images not found in namespace dpf-hcp-bridge-system: %v", e.Err)
+	return fmt.Sprintf("ConfigMap ocp-bluefield-images not found in namespace dpf-hcp-provisioner-system: %v", e.Err)
 }
 
 func (e *ConfigMapNotFoundError) Unwrap() error {

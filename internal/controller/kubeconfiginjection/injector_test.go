@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 var _ = Describe("Kubeconfig Injection Reconciler", func() {
@@ -58,21 +58,21 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 	Describe("Happy Path - Full Injection Flow", func() {
 		It("should successfully inject kubeconfig when all prerequisites are met", func() {
-			// Given: DPFHCPBridge with HostedCluster created
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Given: DPFHCPProvisioner with HostedCluster created
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-ns",
 					},
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "test-ns",
 					},
 				},
@@ -81,7 +81,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			// HC kubeconfig secret exists (created by Hypershift with "kubeconfig" key)
 			hcSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 				Data: map[string][]byte{
@@ -102,18 +102,18 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			fakeClient = fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge, hcSecret, dpuCluster).
-				WithStatusSubresource(bridge, dpuCluster).
+				WithObjects(provisioner, hcSecret, dpuCluster).
+				WithStatusSubresource(provisioner, dpuCluster).
 				Build()
 
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state - nothing should be set up yet
-			beforeCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(beforeCond).To(BeNil(), "Condition should not be set initially")
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, bridge)
+			result, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
@@ -126,13 +126,13 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			// Secret created in DPUCluster namespace
 			destSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "test-bridge-admin-kubeconfig",
+				Name:      "test-provisioner-admin-kubeconfig",
 				Namespace: "dpu-ns",
 			}, destSecret)
 			Expect(err).NotTo(HaveOccurred())
 			// Destination secret should have "super-admin.conf" key (DPF operator expects this)
 			Expect(destSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("fake-kubeconfig-data")))
-			Expect(destSecret.Labels[LabelOwnedBy]).To(Equal("test-bridge"))
+			Expect(destSecret.Labels[LabelOwnedBy]).To(Equal("test-provisioner"))
 			Expect(destSecret.Labels[LabelNamespace]).To(Equal("test-ns"))
 
 			// DPUCluster updated
@@ -142,14 +142,14 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 				Namespace: "dpu-ns",
 			}, updatedDPU)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedDPU.Spec.Kubeconfig).To(Equal("test-bridge-admin-kubeconfig"))
+			Expect(updatedDPU.Spec.Kubeconfig).To(Equal("test-provisioner-admin-kubeconfig"))
 
 			// Status updated
-			Expect(bridge.Status.KubeConfigSecretRef).NotTo(BeNil())
-			Expect(bridge.Status.KubeConfigSecretRef.Name).To(Equal("test-bridge-admin-kubeconfig"))
+			Expect(provisioner.Status.KubeConfigSecretRef).NotTo(BeNil())
+			Expect(provisioner.Status.KubeConfigSecretRef.Name).To(Equal("test-provisioner-admin-kubeconfig"))
 
 			// Condition set to True
-			afterCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
@@ -159,21 +159,21 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 	Describe("Secret Not Ready Scenario", func() {
 		It("should set condition to pending when HC kubeconfig secret doesn't exist", func() {
-			// Given: DPFHCPBridge but no HC kubeconfig secret yet
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Given: DPFHCPProvisioner but no HC kubeconfig secret yet
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-ns",
 					},
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "test-ns",
 					},
 				},
@@ -188,21 +188,21 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			fakeClient = fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge, dpuCluster).
-				WithStatusSubresource(bridge).
+				WithObjects(provisioner, dpuCluster).
+				WithStatusSubresource(provisioner).
 				Build()
 
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, bridge)
+			result, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Requeue without error
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeFalse())
 
 			// Condition set to pending
-			cond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			cond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigPending))
@@ -212,30 +212,30 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 	Describe("Idempotency - Scenario A: Drift Detection", func() {
 		It("should detect and correct content drift between source and destination secrets", func() {
 			// Given: Both secrets exist but with different content (drift scenario)
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-ns",
 					},
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "test-ns",
 					},
 					KubeConfigSecretRef: &corev1.LocalObjectReference{
-						Name: "test-bridge-admin-kubeconfig",
+						Name: "test-provisioner-admin-kubeconfig",
 					},
 				},
 			}
 
 			// Set initial condition to True (was previously injected)
-			meta.SetStatusCondition(&bridge.Status.Conditions, metav1.Condition{
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
 				Type:    provisioningv1alpha1.KubeConfigInjected,
 				Status:  metav1.ConditionTrue,
 				Reason:  provisioningv1alpha1.ReasonKubeConfigInjected,
@@ -244,7 +244,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			hcSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 				Data: map[string][]byte{
@@ -254,7 +254,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			destSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "dpu-ns",
 				},
 				Data: map[string][]byte{
@@ -268,20 +268,20 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 					Namespace: "dpu-ns",
 				},
 				Spec: dpuprovisioningv1alpha1.DPUClusterSpec{
-					Kubeconfig: "test-bridge-admin-kubeconfig",
+					Kubeconfig: "test-provisioner-admin-kubeconfig",
 				},
 			}
 
 			fakeClient = fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge, hcSecret, destSecret, dpuCluster).
-				WithStatusSubresource(bridge, dpuCluster).
+				WithObjects(provisioner, hcSecret, destSecret, dpuCluster).
+				WithStatusSubresource(provisioner, dpuCluster).
 				Build()
 
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state
-			beforeCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(beforeCond).NotTo(BeNil())
 			Expect(beforeCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(beforeCond.Message).To(Equal("Previously injected"))
@@ -289,14 +289,14 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			// Verify drift exists before reconciliation
 			beforeSecret := &corev1.Secret{}
 			err := fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "test-bridge-admin-kubeconfig",
+				Name:      "test-provisioner-admin-kubeconfig",
 				Namespace: "dpu-ns",
 			}, beforeSecret)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(beforeSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("old-kubeconfig-data")))
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, bridge)
+			result, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
@@ -308,42 +308,42 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			// Destination secret updated to match source
 			updatedSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "test-bridge-admin-kubeconfig",
+				Name:      "test-provisioner-admin-kubeconfig",
 				Namespace: "dpu-ns",
 			}, updatedSecret)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("new-rotated-kubeconfig-data")))
 
 			// Condition remains True (stayed healthy through drift correction)
-			afterCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
 			Expect(afterCond.Message).To(ContainSubstring("successfully"))
 
 			// Verify status was updated
-			Expect(bridge.Status.KubeConfigSecretRef).NotTo(BeNil())
-			Expect(bridge.Status.KubeConfigSecretRef.Name).To(Equal("test-bridge-admin-kubeconfig"))
+			Expect(provisioner.Status.KubeConfigSecretRef).NotTo(BeNil())
+			Expect(provisioner.Status.KubeConfigSecretRef.Name).To(Equal("test-provisioner-admin-kubeconfig"))
 		})
 	})
 
 	Describe("Idempotency - Scenario B: Secret Exists, DPUCluster Not Updated", func() {
 		It("should update DPUCluster without recreating secret", func() {
 			// Given: Secret exists but DPUCluster not updated (partial completion scenario)
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-ns",
 					},
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "test-ns",
 					},
 				},
@@ -353,7 +353,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			hcSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 				Data: map[string][]byte{
@@ -363,7 +363,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			destSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "dpu-ns",
 				},
 				Data: map[string][]byte{
@@ -383,14 +383,14 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			fakeClient = fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge, hcSecret, destSecret, dpuCluster).
-				WithStatusSubresource(bridge, dpuCluster).
+				WithObjects(provisioner, hcSecret, destSecret, dpuCluster).
+				WithStatusSubresource(provisioner, dpuCluster).
 				Build()
 
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state
-			beforeCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(beforeCond).To(BeNil(), "Condition should not be set yet")
 
 			beforeDPU := &dpuprovisioningv1alpha1.DPUCluster{}
@@ -404,14 +404,14 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			// Secret should already exist
 			existingSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "test-bridge-admin-kubeconfig",
+				Name:      "test-provisioner-admin-kubeconfig",
 				Namespace: "dpu-ns",
 			}, existingSecret)
 			Expect(err).NotTo(HaveOccurred(), "Secret should already exist")
 			originalResourceVersion := existingSecret.ResourceVersion
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, bridge)
+			result, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
@@ -420,7 +420,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			// Verify NO secret recreation - secret should not have been recreated
 			afterSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "test-bridge-admin-kubeconfig",
+				Name:      "test-provisioner-admin-kubeconfig",
 				Namespace: "dpu-ns",
 			}, afterSecret)
 			Expect(err).NotTo(HaveOccurred())
@@ -434,47 +434,47 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 				Namespace: "dpu-ns",
 			}, updatedDPU)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedDPU.Spec.Kubeconfig).To(Equal("test-bridge-admin-kubeconfig"))
+			Expect(updatedDPU.Spec.Kubeconfig).To(Equal("test-provisioner-admin-kubeconfig"))
 
 			// Condition set to True (injection completed)
-			afterCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
 
 			// Status updated
-			Expect(bridge.Status.KubeConfigSecretRef).NotTo(BeNil())
-			Expect(bridge.Status.KubeConfigSecretRef.Name).To(Equal("test-bridge-admin-kubeconfig"))
+			Expect(provisioner.Status.KubeConfigSecretRef).NotTo(BeNil())
+			Expect(provisioner.Status.KubeConfigSecretRef.Name).To(Equal("test-provisioner-admin-kubeconfig"))
 		})
 	})
 
 	Describe("Idempotency - Scenario C: Secret Missing, DPUCluster Updated", func() {
 		It("should recreate secret without modifying DPUCluster", func() {
 			// Given: DPUCluster updated but secret missing (secret was deleted scenario)
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-ns",
 					},
 				},
-				Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "test-ns",
 					},
 					KubeConfigSecretRef: &corev1.LocalObjectReference{
-						Name: "test-bridge-admin-kubeconfig",
+						Name: "test-provisioner-admin-kubeconfig",
 					},
 				},
 			}
 
 			// Set initial condition to True (was previously injected but secret got deleted)
-			meta.SetStatusCondition(&bridge.Status.Conditions, metav1.Condition{
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
 				Type:    provisioningv1alpha1.KubeConfigInjected,
 				Status:  metav1.ConditionTrue,
 				Reason:  provisioningv1alpha1.ReasonKubeConfigInjected,
@@ -483,7 +483,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			hcSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge-admin-kubeconfig",
+					Name:      "test-provisioner-admin-kubeconfig",
 					Namespace: "test-ns",
 				},
 				Data: map[string][]byte{
@@ -497,7 +497,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 					Namespace: "dpu-ns",
 				},
 				Spec: dpuprovisioningv1alpha1.DPUClusterSpec{
-					Kubeconfig: "test-bridge-admin-kubeconfig", // Already updated
+					Kubeconfig: "test-provisioner-admin-kubeconfig", // Already updated
 				},
 			}
 
@@ -505,14 +505,14 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			fakeClient = fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge, hcSecret, dpuCluster). // No destSecret
-				WithStatusSubresource(bridge, dpuCluster).
+				WithObjects(provisioner, hcSecret, dpuCluster). // No destSecret
+				WithStatusSubresource(provisioner, dpuCluster).
 				Build()
 
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state
-			beforeCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(beforeCond).NotTo(BeNil())
 			Expect(beforeCond.Status).To(Equal(metav1.ConditionTrue))
 
@@ -522,21 +522,21 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 				Namespace: "dpu-ns",
 			}, beforeDPU)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(beforeDPU.Spec.Kubeconfig).To(Equal("test-bridge-admin-kubeconfig"),
+			Expect(beforeDPU.Spec.Kubeconfig).To(Equal("test-provisioner-admin-kubeconfig"),
 				"DPUCluster should already be updated")
 			originalDPUResourceVersion := beforeDPU.ResourceVersion
 
 			// Verify secret is missing
 			missingSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "test-bridge-admin-kubeconfig",
+				Name:      "test-provisioner-admin-kubeconfig",
 				Namespace: "dpu-ns",
 			}, missingSecret)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Secret should be missing")
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, bridge)
+			result, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
@@ -545,12 +545,12 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			// Secret SHOULD be recreated with "super-admin.conf" key
 			recreatedSecret := &corev1.Secret{}
 			err = fakeClient.Get(ctx, types.NamespacedName{
-				Name:      "test-bridge-admin-kubeconfig",
+				Name:      "test-provisioner-admin-kubeconfig",
 				Namespace: "dpu-ns",
 			}, recreatedSecret)
 			Expect(err).NotTo(HaveOccurred(), "Secret should be recreated")
 			Expect(recreatedSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("kubeconfig-data")))
-			Expect(recreatedSecret.Labels[LabelOwnedBy]).To(Equal("test-bridge"))
+			Expect(recreatedSecret.Labels[LabelOwnedBy]).To(Equal("test-provisioner"))
 			Expect(recreatedSecret.Labels[LabelNamespace]).To(Equal("test-ns"))
 
 			// DPUCluster should NOT be modified (already updated)
@@ -560,31 +560,31 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 				Namespace: "dpu-ns",
 			}, afterDPU)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(afterDPU.Spec.Kubeconfig).To(Equal("test-bridge-admin-kubeconfig"))
+			Expect(afterDPU.Spec.Kubeconfig).To(Equal("test-provisioner-admin-kubeconfig"))
 			Expect(afterDPU.ResourceVersion).To(Equal(originalDPUResourceVersion),
 				"DPUCluster should not have been modified")
 
 			// Condition remains True (stayed healthy through secret recreation)
-			afterCond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
 
 			// Status still references the secret
-			Expect(bridge.Status.KubeConfigSecretRef).NotTo(BeNil())
-			Expect(bridge.Status.KubeConfigSecretRef.Name).To(Equal("test-bridge-admin-kubeconfig"))
+			Expect(provisioner.Status.KubeConfigSecretRef).NotTo(BeNil())
+			Expect(provisioner.Status.KubeConfigSecretRef.Name).To(Equal("test-provisioner-admin-kubeconfig"))
 		})
 	})
 
 	Describe("Skip When HostedCluster Not Created", func() {
 		It("should skip injection when HostedClusterRef is nil", func() {
-			// Given: DPFHCPBridge without HostedCluster created yet
-			bridge := &provisioningv1alpha1.DPFHCPBridge{
+			// Given: DPFHCPProvisioner without HostedCluster created yet
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-bridge",
+					Name:      "test-provisioner",
 					Namespace: "test-ns",
 				},
-				Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-ns",
@@ -595,20 +595,20 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 
 			fakeClient = fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(bridge).
+				WithObjects(provisioner).
 				Build()
 
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, bridge)
+			result, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Skip without error
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeFalse())
 
 			// No condition set
-			cond := findCondition(bridge.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			cond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 			Expect(cond).To(BeNil())
 		})
 	})

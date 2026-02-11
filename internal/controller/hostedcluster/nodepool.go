@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 // NodePoolManager manages NodePool resources
@@ -54,9 +54,9 @@ func NewNodePoolManager(c client.Client, scheme *runtime.Scheme) *NodePoolManage
 // NodePool is created with:
 // - replicas=0 (DPU workers will join manually via CSR approval)
 // - None platform type
-// - Matching release image from DPFHCPBridge
+// - Matching release image from DPFHCPProvisioner
 // - Upgrade type: Replace (as per spec)
-func (nm *NodePoolManager) CreateNodePool(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) (ctrl.Result, error) {
+func (nm *NodePoolManager) CreateNodePool(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
 	npName := cr.Name
@@ -70,14 +70,14 @@ func (nm *NodePoolManager) CreateNodePool(ctx context.Context, cr *provisioningv
 	if err == nil {
 		// NodePool exists - verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingNP, cr) {
-			log.V(1).Info("NodePool already exists and is owned by this DPFHCPBridge",
+			log.V(1).Info("NodePool already exists and is owned by this DPFHCPProvisioner",
 				"nodePool", npName,
 				"namespace", npNamespace)
 			return ctrl.Result{}, nil
 		}
 
-		// Name conflict - NP exists but owned by different DPFHCPBridge
-		return ctrl.Result{}, fmt.Errorf("nodePool %s exists in %s but is owned by different DPFHCPBridge", npName, npNamespace)
+		// Name conflict - NP exists but owned by different DPFHCPProvisioner
+		return ctrl.Result{}, fmt.Errorf("nodePool %s exists in %s but is owned by different DPFHCPProvisioner", npName, npNamespace)
 	}
 
 	if !apierrors.IsNotFound(err) {
@@ -113,7 +113,7 @@ func (nm *NodePoolManager) CreateNodePool(ctx context.Context, cr *provisioningv
 }
 
 // buildNodePool constructs the NodePool spec
-func (nm *NodePoolManager) buildNodePool(cr *provisioningv1alpha1.DPFHCPBridge) *hyperv1.NodePool {
+func (nm *NodePoolManager) buildNodePool(cr *provisioningv1alpha1.DPFHCPProvisioner) *hyperv1.NodePool {
 	np := &hyperv1.NodePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name,

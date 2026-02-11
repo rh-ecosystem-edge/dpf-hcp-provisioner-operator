@@ -26,15 +26,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/common"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 )
 
 // CleanupHandler handles cleanup of kubeconfig secrets created in DPUCluster namespace
-// when a DPFHCPBridge CR is deleted.
+// when a DPFHCPProvisioner CR is deleted.
 //
 // This handler is responsible for:
-// 1. Finding kubeconfig secrets by labels (owned by this DPFHCPBridge)
+// 1. Finding kubeconfig secrets by labels (owned by this DPFHCPProvisioner)
 // 2. Deleting all found kubeconfig secrets
 type CleanupHandler struct {
 	client   client.Client
@@ -55,23 +55,23 @@ func (h *CleanupHandler) Name() string {
 }
 
 // Cleanup deletes the kubeconfig secret created in DPUCluster namespace.
-// This is called during finalizer cleanup when the DPFHCPBridge is deleted.
+// This is called during finalizer cleanup when the DPFHCPProvisioner is deleted.
 //
 // The cleanup process:
-// 1. List all secrets with labels matching this DPFHCPBridge
+// 1. List all secrets with labels matching this DPFHCPProvisioner
 // 2. Delete each found secret
 //
 // Labels used for finding secrets:
-// - dpf-hcp-bridge-operator/owned-by: <bridge-name>
-// - dpf-hcp-bridge-operator/namespace: <bridge-namespace>
+// - dpf-hcp-provisioner-operator/owned-by: <provisioner-name>
+// - dpf-hcp-provisioner-operator/namespace: <provisioner-namespace>
 //
 // Returns:
 // - nil if cleanup succeeded or secrets are already gone
 // - error if cleanup failed and should be retried
-func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPBridge) error {
+func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx).WithValues(
 		"handler", h.Name(),
-		common.DPFHCPBridgeName, fmt.Sprintf("%s/%s", cr.Namespace, cr.Name),
+		common.DPFHCPProvisionerName, fmt.Sprintf("%s/%s", cr.Namespace, cr.Name),
 	)
 
 	log.Info("Cleaning up kubeconfig secrets")

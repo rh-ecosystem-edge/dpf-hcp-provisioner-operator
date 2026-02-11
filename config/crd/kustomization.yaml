@@ -2,7 +2,7 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/provisioning.dpu.hcp.io_dpfhcpbridges.yaml
+- bases/provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 // IsHostedClusterKubeconfigSecretPredicate returns a predicate that filters for HC kubeconfig secrets
@@ -61,10 +61,10 @@ func isHostedClusterKubeconfigSecret(obj client.Object) bool {
 	return strings.HasSuffix(secret.Name, KubeconfigSecretSuffix)
 }
 
-// FindBridgeForKubeconfigSecret maps HC kubeconfig secret to DPFHCPBridge CR
-// Extracts HC name from secret name and finds corresponding DPFHCPBridge
-// Returns reconcile requests for the matching DPFHCPBridge
-func FindBridgeForKubeconfigSecret(ctx context.Context, c client.Client, obj client.Object) []reconcile.Request {
+// FindProvisionerForKubeconfigSecret maps HC kubeconfig secret to DPFHCPProvisioner CR
+// Extracts HC name from secret name and finds corresponding DPFHCPProvisioner
+// Returns reconcile requests for the matching DPFHCPProvisioner
+func FindProvisionerForKubeconfigSecret(ctx context.Context, c client.Client, obj client.Object) []reconcile.Request {
 	log := logf.FromContext(ctx)
 
 	secret, ok := obj.(*corev1.Secret)
@@ -76,16 +76,16 @@ func FindBridgeForKubeconfigSecret(ctx context.Context, c client.Client, obj cli
 	// Extract HC name from secret name (remove "-admin-kubeconfig" suffix)
 	hcName := strings.TrimSuffix(secret.Name, KubeconfigSecretSuffix)
 
-	// Find corresponding DPFHCPBridge
-	bridge := &provisioningv1alpha1.DPFHCPBridge{}
+	// Find corresponding DPFHCPProvisioner
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
 	err := c.Get(ctx, types.NamespacedName{
 		Name:      hcName,
 		Namespace: secret.Namespace,
-	}, bridge)
+	}, provisioner)
 
 	if err != nil {
-		// Bridge not found - this is normal if the secret belongs to a different HC
-		log.V(1).Info("No DPFHCPBridge found for HC kubeconfig secret",
+		// Provisioner not found - this is normal if the secret belongs to a different HC
+		log.V(1).Info("No DPFHCPProvisioner found for HC kubeconfig secret",
 			"secretName", secret.Name,
 			"secretNamespace", secret.Namespace,
 			"extractedHCName", hcName,
@@ -96,15 +96,15 @@ func FindBridgeForKubeconfigSecret(ctx context.Context, c client.Client, obj cli
 	log.Info("HC kubeconfig secret changed, triggering reconciliation",
 		"secretName", secret.Name,
 		"secretNamespace", secret.Namespace,
-		"bridge", bridge.Name,
-		"bridgeNamespace", bridge.Namespace)
+		"provisioner", provisioner.Name,
+		"provisionerNamespace", provisioner.Namespace)
 
-	// Trigger reconciliation for this bridge
+	// Trigger reconciliation for this provisioner
 	return []reconcile.Request{
 		{
 			NamespacedName: types.NamespacedName{
-				Name:      bridge.Name,
-				Namespace: bridge.Namespace,
+				Name:      provisioner.Name,
+				Namespace: provisioner.Namespace,
 			},
 		},
 	}

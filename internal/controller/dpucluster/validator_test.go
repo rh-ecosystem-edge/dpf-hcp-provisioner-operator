@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 func TestDPUClusterValidator(t *testing.T) {
@@ -53,7 +53,7 @@ var _ = Describe("DPUCluster Validator", func() {
 		ctx = context.Background()
 		recorder = record.NewFakeRecorder(100)
 
-		// Create scheme with both DPFHCPBridge and DPUCluster types
+		// Create scheme with both DPFHCPProvisioner and DPUCluster types
 		scheme = runtime.NewScheme()
 		Expect(provisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
 		Expect(dpuprovisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
@@ -70,14 +70,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create DPFHCPBridge referencing the DPUCluster
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create DPFHCPProvisioner referencing the DPUCluster
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -87,24 +87,24 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonDPUClusterFound))
@@ -124,13 +124,13 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -140,35 +140,35 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
 				// First reconciliation - should emit event
-				_, _ = validator.ValidateDPUCluster(ctx, bridge)
+				_, _ = validator.ValidateDPUCluster(ctx, provisioner)
 				Eventually(recorder.Events).Should(Receive(ContainSubstring("DPUClusterFound")))
 
-				// Get updated bridge for second reconciliation
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				// Get updated provisioner for second reconciliation
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Second reconciliation - should NOT emit event (condition unchanged)
-				_, _ = validator.ValidateDPUCluster(ctx, &updatedBridge)
+				_, _ = validator.ValidateDPUCluster(ctx, &updatedProvisioner)
 				Consistently(recorder.Events).ShouldNot(Receive())
 			})
 		})
 
 		Context("when DPUCluster does not exist", func() {
 			It("should set DPUClusterMissing=True and not requeue", func() {
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "missing-dpu",
 							Namespace: "dpu-system",
@@ -178,24 +178,24 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonDPUClusterNotFound))
@@ -207,20 +207,20 @@ var _ = Describe("DPUCluster Validator", func() {
 			})
 
 			It("should use 'Deleted' reason when DPUCluster was previously found", func() {
-				// Create bridge with previous DPUClusterFound condition
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create provisioner with previous DPUClusterFound condition
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "deleted-dpu",
 							Namespace: "dpu-system",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						// Simulate previous successful validation
 						Conditions: []metav1.Condition{
 							{
@@ -235,40 +235,40 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
-				// Fetch updated bridge from client to verify status
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				// Fetch updated provisioner from client to verify status
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify condition uses "Deleted" reason
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonDPUClusterDeleted))
 				Expect(condition.Message).To(ContainSubstring("has been deleted"))
-				Expect(condition.Message).To(ContainSubstring("Please delete this DPFHCPBridge to clean up"))
+				Expect(condition.Message).To(ContainSubstring("Please delete this DPFHCPProvisioner to clean up"))
 			})
 		})
 
 		Context("when RBAC permission is denied", func() {
 			It("should set DPUClusterMissing=True with AccessDenied reason and not requeue", func() {
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "forbidden-dpu",
 							Namespace: "dpu-system",
@@ -280,14 +280,14 @@ var _ = Describe("DPUCluster Validator", func() {
 				fakeClient = &forbiddenClient{
 					Client: fake.NewClientBuilder().
 						WithScheme(scheme).
-						WithObjects(bridge).
-						WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+						WithObjects(provisioner).
+						WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 						Build(),
 				}
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
@@ -306,31 +306,31 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "default",
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						Phase: provisioningv1alpha1.PhasePending,
 					},
 				}
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 			})
@@ -343,48 +343,48 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "default",
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						Phase: provisioningv1alpha1.PhaseReady,
 					},
 				}
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 			})
 
-			It("should detect DPUCluster deletion when bridge is Ready", func() {
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+			It("should detect DPUCluster deletion when provisioner is Ready", func() {
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-bridge",
+						Name:      "test-provisioner",
 						Namespace: "default",
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "deleted-dpu",
 							Namespace: "dpu-system",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						Phase: provisioningv1alpha1.PhaseReady,
 						Conditions: []metav1.Condition{
 							{
@@ -398,21 +398,21 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
-				// Verify DPUClusterMissing=True even though bridge was Ready
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				// Verify DPUClusterMissing=True even though provisioner was Ready
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterMissing)
 				Expect(condition.Reason).To(Equal(ReasonDPUClusterDeleted))
 			})
 		})
@@ -430,14 +430,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create DPFHCPBridge referencing the DPUCluster
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create DPFHCPProvisioner referencing the DPUCluster
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -447,22 +447,22 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify ClusterTypeValid condition is True
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonClusterTypeValid))
@@ -482,14 +482,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create DPFHCPBridge referencing the kamaji DPUCluster
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create DPFHCPProvisioner referencing the kamaji DPUCluster
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -499,22 +499,22 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 
 				// Verify ClusterTypeValid condition is False
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonClusterTypeUnsupported))
@@ -537,20 +537,20 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create DPFHCPBridge with previous Failed condition (was referencing kamaji type)
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create DPFHCPProvisioner with previous Failed condition (was referencing kamaji type)
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						Phase: provisioningv1alpha1.PhaseFailed,
 						Conditions: []metav1.Condition{
 							{
@@ -567,22 +567,22 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify ClusterTypeValid condition is now True (recovered from unsupported type)
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.ClusterTypeValid)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonClusterTypeValid))
@@ -605,14 +605,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create DPFHCPBridge referencing the DPUCluster (first and only bridge)
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create DPFHCPProvisioner referencing the DPUCluster (first and only provisioner)
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -622,22 +622,22 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify DPUClusterInUse condition is False (available)
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonDPUClusterAvailable))
@@ -648,7 +648,7 @@ var _ = Describe("DPUCluster Validator", func() {
 				Eventually(recorder.Events).Should(Receive(ContainSubstring("DPUClusterAvailable")))
 			})
 
-			It("should set DPUClusterInUse=True when DPUCluster is already in use by another bridge", func() {
+			It("should set DPUClusterInUse=True when DPUCluster is already in use by another provisioner", func() {
 				// Create DPUCluster with type "static"
 				dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -660,14 +660,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create FIRST bridge already using the DPUCluster
-				firstBridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create FIRST provisioner already using the DPUCluster
+				firstProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "first-bridge",
+						Name:       "first-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -675,14 +675,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create SECOND bridge trying to use the same DPUCluster
-				secondBridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create SECOND provisioner trying to use the same DPUCluster
+				secondProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "second-bridge",
+						Name:       "second-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -692,35 +692,35 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, firstBridge, secondBridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, firstProvisioner, secondProvisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				// Validate second bridge - should fail because first bridge already uses the DPUCluster
-				result, err := validator.ValidateDPUCluster(ctx, secondBridge)
+				// Validate second provisioner - should fail because first provisioner already uses the DPUCluster
+				result, err := validator.ValidateDPUCluster(ctx, secondProvisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 
 				// Verify DPUClusterInUse condition is True (in use)
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(secondBridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(secondProvisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 				Expect(condition.Reason).To(Equal(ReasonDPUClusterInUse))
 				Expect(condition.Message).To(ContainSubstring("already in use"))
-				Expect(condition.Message).To(ContainSubstring("first-bridge"))
-				Expect(condition.Message).To(ContainSubstring("Each DPUCluster can only be referenced by one DPFHCPBridge"))
+				Expect(condition.Message).To(ContainSubstring("first-provisioner"))
+				Expect(condition.Message).To(ContainSubstring("Each DPUCluster can only be referenced by one DPFHCPProvisioner"))
 
 				// Verify warning event emitted
 				Eventually(recorder.Events).Should(Receive(ContainSubstring("DPUClusterInUse")))
 			})
 
-			It("should allow same bridge to validate multiple times (skip self)", func() {
+			It("should allow same provisioner to validate multiple times (skip self)", func() {
 				// Create DPUCluster with type "static"
 				dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -732,14 +732,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create bridge
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create provisioner
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -749,37 +749,37 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
 				// First validation
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
-				// Get updated bridge
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				// Get updated provisioner
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
 				// Verify first validation succeeded
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 
-				// Second validation of same bridge - should still succeed (skips itself)
-				result, err = validator.ValidateDPUCluster(ctx, &updatedBridge)
+				// Second validation of same provisioner - should still succeed (skips itself)
+				result, err = validator.ValidateDPUCluster(ctx, &updatedProvisioner)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify still available
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
-				condition = meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
+				condition = meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 			})
 
-			It("should recover when conflicting bridge is deleted", func() {
+			It("should recover when conflicting provisioner is deleted", func() {
 				// Create DPUCluster with type "static"
 				dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -791,27 +791,27 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create bridge with previous InUse condition (conflicting bridge was deleted)
-				bridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create provisioner with previous InUse condition (conflicting provisioner was deleted)
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-bridge",
+						Name:       "test-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
 						},
 					},
-					Status: provisioningv1alpha1.DPFHCPBridgeStatus{
+					Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 						Phase: provisioningv1alpha1.PhaseFailed,
 						Conditions: []metav1.Condition{
 							{
 								Type:               provisioningv1alpha1.DPUClusterInUse,
 								Status:             metav1.ConditionTrue, // Was True before
 								Reason:             ReasonDPUClusterInUse,
-								Message:            "DPUCluster in use by another bridge",
+								Message:            "DPUCluster in use by another provisioner",
 								LastTransitionTime: metav1.Now(),
 								ObservedGeneration: 1,
 							},
@@ -819,25 +819,25 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Note: No conflicting bridge in the client - it was deleted
+				// Note: No conflicting provisioner in the client - it was deleted
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, bridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, provisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, bridge)
+				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify DPUClusterInUse condition is now False (recovered)
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(bridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 				Expect(condition.Reason).To(Equal(ReasonDPUClusterAvailable))
@@ -848,7 +848,7 @@ var _ = Describe("DPUCluster Validator", func() {
 				// Event emission verification is covered in other tests
 			})
 
-			It("should handle bridges in different namespaces referencing same DPUCluster", func() {
+			It("should handle provisioners in different namespaces referencing same DPUCluster", func() {
 				// Create DPUCluster with type "static"
 				dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -860,14 +860,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create FIRST bridge in namespace "ns1"
-				firstBridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create FIRST provisioner in namespace "ns1"
+				firstProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "bridge",
+						Name:       "provisioner",
 						Namespace:  "ns1",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -875,14 +875,14 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				// Create SECOND bridge in namespace "ns2" with same name but different namespace
-				secondBridge := &provisioningv1alpha1.DPFHCPBridge{
+				// Create SECOND provisioner in namespace "ns2" with same name but different namespace
+				secondProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "bridge",
+						Name:       "provisioner",
 						Namespace:  "ns2",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -892,26 +892,26 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, firstBridge, secondBridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, firstProvisioner, secondProvisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
-				// Validate second bridge - should fail
-				result, err := validator.ValidateDPUCluster(ctx, secondBridge)
+				// Validate second provisioner - should fail
+				result, err := validator.ValidateDPUCluster(ctx, secondProvisioner)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.Requeue).To(BeFalse())
 
 				// Verify DPUClusterInUse condition is True
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(secondBridge), &updatedBridge)).To(Succeed())
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(secondProvisioner), &updatedProvisioner)).To(Succeed())
 
-				condition := meta.FindStatusCondition(updatedBridge.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
+				condition := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.DPUClusterInUse)
 				Expect(condition).ToNot(BeNil())
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-				Expect(condition.Message).To(ContainSubstring("ns1/bridge"))
+				Expect(condition.Message).To(ContainSubstring("ns1/provisioner"))
 			})
 
 			It("should not emit event on subsequent validations with same result", func() {
@@ -925,13 +925,13 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				firstBridge := &provisioningv1alpha1.DPFHCPBridge{
+				firstProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "first-bridge",
+						Name:       "first-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -939,13 +939,13 @@ var _ = Describe("DPUCluster Validator", func() {
 					},
 				}
 
-				secondBridge := &provisioningv1alpha1.DPFHCPBridge{
+				secondProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "second-bridge",
+						Name:       "second-provisioner",
 						Namespace:  "default",
 						Generation: 1,
 					},
-					Spec: provisioningv1alpha1.DPFHCPBridgeSpec{
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 							Name:      "test-dpu",
 							Namespace: "dpu-system",
@@ -955,14 +955,14 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				fakeClient = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(dpuCluster, firstBridge, secondBridge).
-					WithStatusSubresource(&provisioningv1alpha1.DPFHCPBridge{}).
+					WithObjects(dpuCluster, firstProvisioner, secondProvisioner).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 					Build()
 
 				validator = NewValidator(fakeClient, recorder)
 
 				// First validation - should emit multiple events
-				_, _ = validator.ValidateDPUCluster(ctx, secondBridge)
+				_, _ = validator.ValidateDPUCluster(ctx, secondProvisioner)
 
 				// Drain all events from first validation (DPUClusterFound, ClusterTypeValid, DPUClusterInUse)
 				foundInUseEvent := false
@@ -970,7 +970,7 @@ var _ = Describe("DPUCluster Validator", func() {
 					select {
 					case event := <-recorder.Events:
 						if event != "" && !foundInUseEvent {
-							foundInUseEvent = event == "Warning DPUClusterInUse DPUCluster 'dpu-system/test-dpu' is already in use by DPFHCPBridge 'default/first-bridge'. Each DPUCluster can only be referenced by one DPFHCPBridge"
+							foundInUseEvent = event == "Warning DPUClusterInUse DPUCluster 'dpu-system/test-dpu' is already in use by DPFHCPProvisioner 'default/first-provisioner'. Each DPUCluster can only be referenced by one DPFHCPProvisioner"
 						}
 					default:
 						return foundInUseEvent
@@ -978,12 +978,12 @@ var _ = Describe("DPUCluster Validator", func() {
 					return false
 				}, "2s").Should(BeTrue())
 
-				// Get updated bridge for second validation
-				var updatedBridge provisioningv1alpha1.DPFHCPBridge
-				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(secondBridge), &updatedBridge)).To(Succeed())
+				// Get updated provisioner for second validation
+				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
+				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(secondProvisioner), &updatedProvisioner)).To(Succeed())
 
 				// Second validation - should NOT emit event (condition unchanged)
-				_, _ = validator.ValidateDPUCluster(ctx, &updatedBridge)
+				_, _ = validator.ValidateDPUCluster(ctx, &updatedProvisioner)
 				Consistently(recorder.Events, "500ms").ShouldNot(Receive())
 			})
 		})

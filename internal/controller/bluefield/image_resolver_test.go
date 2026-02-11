@@ -114,7 +114,7 @@ var _ = Describe("BlueField Image Resolver", func() {
 			configMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "ocp-bluefield-images",
-					Namespace: "dpf-hcp-bridge-system",
+					Namespace: "dpf-hcp-provisioner-system",
 				},
 				Data: map[string]string{
 					"4.19.0-ec.5": "quay.io/edge-infrastructure/bluefield-rhcos:4.19.0-ec.5",

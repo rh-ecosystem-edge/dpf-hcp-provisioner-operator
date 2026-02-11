@@ -1,4 +1,4 @@
-module github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator
+module github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
 
 go 1.24.4
 

@@ -39,14 +39,14 @@ import (
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/bluefield"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/dpucluster"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/finalizer"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/hostedcluster"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/kubeconfiginjection"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/secrets"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -213,13 +213,13 @@ func main() {
 	}
 
 	// Initialize BlueField Image Resolver
-	imageResolver := bluefield.NewImageResolver(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+	imageResolver := bluefield.NewImageResolver(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
 
 	// Initialize DPUCluster Validator
-	dpuClusterValidator := dpucluster.NewValidator(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+	dpuClusterValidator := dpucluster.NewValidator(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
 
 	// Initialize Secrets Validator
-	secretsValidator := secrets.NewValidator(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+	secretsValidator := secrets.NewValidator(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
 
 	// Initialize Secret Manager for HostedCluster lifecycle
 	secretManager := hostedcluster.NewSecretManager(mgr.GetClient(), mgr.GetScheme())
@@ -231,25 +231,25 @@ func main() {
 	nodePoolManager := hostedcluster.NewNodePoolManager(mgr.GetClient(), mgr.GetScheme())
 
 	// Initialize Kubeconfig Injector
-	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
 
 	// Initialize Finalizer Manager with pluggable cleanup handlers
 	// Handlers are executed in registration order
-	finalizerManager := finalizer.NewManager(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller"))
+	finalizerManager := finalizer.NewManager(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"))
 
 	// Register cleanup handlers in order (dependent resources first)
 	// 1. Kubeconfig injection cleanup (removes kubeconfig from DPUCluster namespace)
-	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller")))
+	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller")))
 	// 2. HostedCluster cleanup (removes HostedCluster, NodePool, and secrets)
-	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpbridge-controller")))
+	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(mgr.GetClient(), mgr.GetEventRecorderFor("dpfhcpprovisioner-controller")))
 
 	// Initialize Status Syncer for HostedCluster status mirroring
 	statusSyncer := hostedcluster.NewStatusSyncer(mgr.GetClient())
 
-	if err := (&controller.DPFHCPBridgeReconciler{
+	if err := (&controller.DPFHCPProvisionerReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
-		Recorder:             mgr.GetEventRecorderFor("dpfhcpbridge-controller"),
+		Recorder:             mgr.GetEventRecorderFor("dpfhcpprovisioner-controller"),
 		ImageResolver:        imageResolver,
 		DPUClusterValidator:  dpuClusterValidator,
 		SecretsValidator:     secretsValidator,
@@ -260,7 +260,7 @@ func main() {
 		StatusSyncer:         statusSyncer,
 		KubeconfigInjector:   kubeconfigInjector,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DPFHCPBridge")
+		setupLog.Error(err, "unable to create controller", "controller", "DPFHCPProvisioner")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

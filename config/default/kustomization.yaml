@@ -1,12 +1,12 @@
 # Adds namespace to all resources.
-namespace: dpf-hcp-bridge-operator-system
+namespace: dpf-hcp-provisioner-operator-system
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: dpf-hcp-bridge-operator-
+namePrefix: dpf-hcp-provisioner-operator-
 
 # Labels to add to all resources and selectors.
 #labels:

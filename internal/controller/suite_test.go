@@ -37,13 +37,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/api/v1alpha1"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/bluefield"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/dpucluster"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/finalizer"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/hostedcluster"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/kubeconfiginjection"
-	"github.com/rh-ecosystem-edge/dpf-hcp-bridge-operator/internal/controller/secrets"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -120,19 +120,19 @@ var _ = BeforeSuite(func() {
 	err = k8sClient.Create(ctx, clustersNs)
 	Expect(err).NotTo(HaveOccurred())
 
-	By("setting up DPFHCPBridge controller")
-	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller"))
+	By("setting up DPFHCPProvisioner controller")
+	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpprovisioner-controller"))
 
 	// Initialize Finalizer Manager with pluggable cleanup handlers
-	finalizerManager := finalizer.NewManager(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller"))
+	finalizerManager := finalizer.NewManager(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpprovisioner-controller"))
 	// Register cleanup handlers in order (dependent resources first)
-	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller")))
-	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpbridge-controller")))
+	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpprovisioner-controller")))
+	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpfhcpprovisioner-controller")))
 
-	reconciler := &DPFHCPBridgeReconciler{
+	reconciler := &DPFHCPProvisionerReconciler{
 		Client:               k8sManager.GetClient(),
 		Scheme:               k8sManager.GetScheme(),
-		Recorder:             k8sManager.GetEventRecorderFor("dpfhcpbridge-controller"),
+		Recorder:             k8sManager.GetEventRecorderFor("dpfhcpprovisioner-controller"),
 		ImageResolver:        bluefield.NewImageResolver(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-image-resolver")),
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),
 		SecretsValidator:     secrets.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("secrets-validator")),
