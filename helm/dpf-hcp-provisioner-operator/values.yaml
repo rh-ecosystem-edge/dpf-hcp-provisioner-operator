@@ -7,7 +7,7 @@ image:
   # Repository for the operator image
   repository: quay.io/lhadad/dpf-hcp-provisioner-operator
   # Image tag (defaults to Chart appVersion if not specified)
-  tag: v0.1.0
+  tag: v0.1.1
   # Image pull policy
   pullPolicy: Always
 
