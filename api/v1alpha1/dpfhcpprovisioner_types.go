@@ -119,6 +119,17 @@ type DPFHCPProvisionerSpec struct {
 	// +immutable
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// FlannelEnabled indicates whether Flannel should be used as the CNI plugin for the hosted cluster.
+	// When set to true, the HostedCluster will be configured with NetworkType "Other" and
+	// AllocateNodeCIDRs set to "Enabled", which allows kube-controller-manager to manage node CIDR
+	// allocation as required by Flannel.
+	// This field is immutable.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="flannelEnabled is immutable"
+	// +kubebuilder:default=true
+	// +immutable
+	// +optional
+	FlannelEnabled bool `json:"flannelEnabled,omitempty"`
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
