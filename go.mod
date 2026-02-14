@@ -3,7 +3,7 @@ module github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
 go 1.25
 
 require (
-	github.com/nvidia/doca-platform v0.0.0-20251115082520-81369e955c6c
+	github.com/nvidia/doca-platform v0.0.0-20260214072526-4dd54fbd677a
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift/hypershift v0.1.71
