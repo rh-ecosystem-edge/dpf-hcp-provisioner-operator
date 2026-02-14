@@ -111,8 +111,8 @@ github.com/onsi/ginkgo/v2 v2.27.2 h1:LzwLj0b89qtIy6SSASkzlNvX6WktqurSHwkk2ipF/Ns
 github.com/onsi/ginkgo/v2 v2.27.2/go.mod h1:ArE1D/XhNXBXCBkKOLkbsb2c81dQHCRcF5zwn/ykDRo=
 github.com/onsi/gomega v1.38.2 h1:eZCjf2xjZAqe+LeWvKb5weQ+NcPwX84kqJ0cZNxok2A=
 github.com/onsi/gomega v1.38.2/go.mod h1:W2MJcYxRGV63b418Ai34Ud0hEdTVXq9NW9+Sx6uXf3k=
-github.com/openshift/api v0.0.0-20251204193610-68ce3d906ec8 h1:wNa5HdUY4BZcfXMEjMMuUGg+ylaSY/etIc5cvJhlREc=
-github.com/openshift/api v0.0.0-20251204193610-68ce3d906ec8/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
+github.com/openshift/api v0.0.0-20260213204242-d34f11c515b3 h1:SZ8+jxtkMvpb4HDTjSAbaOyhFsw5PiWhjBog+XLY7jc=
+github.com/openshift/api v0.0.0-20260213204242-d34f11c515b3/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
 github.com/openshift/hypershift v0.1.71 h1:s/04m6x0xfvT2JgHXHl58NC5lZx3hMCLcV/iw9Y82wc=
 github.com/openshift/hypershift v0.1.71/go.mod h1:8Ame3SVdwZYD+CP0SRW54yrxkhhNFK4DhpnZdt95ZaE=
 github.com/openshift/hypershift/api v0.0.0-20251229083354-c1d28e31a05d h1:67qlySvqut2Tw1dyx1kccDC2vFWQzY+SB+GZzujLq68=
