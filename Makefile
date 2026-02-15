@@ -191,6 +191,22 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	- $(CONTAINER_TOOL) buildx rm dpf-hcp-provisioner-operator-builder
 	rm Dockerfile.cross
 
+##@ Helm
+
+# Helm chart configuration
+HELM_CHART_DIR ?= helm/dpf-hcp-provisioner-operator
+HELM_CHART_NAME ?= dpf-hcp-provisioner-operator
+HELM_CHART_REGISTRY ?= oci://quay.io/lhadad/charts
+HELM_CHART_VERSION ?= $(shell grep '^version:' $(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
+
+.PHONY: helm-package
+helm-package: manifests ## Package the Helm chart.
+	helm package $(HELM_CHART_DIR)
+
+.PHONY: helm-push
+helm-push: helm-package ## Push the Helm chart to an OCI registry.
+	helm push $(HELM_CHART_NAME)-$(HELM_CHART_VERSION).tgz $(HELM_CHART_REGISTRY)
+
 .PHONY: build-installer
 build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
 	mkdir -p dist
