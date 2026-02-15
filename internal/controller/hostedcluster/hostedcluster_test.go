@@ -131,6 +131,28 @@ var _ = Describe("HostedCluster Builder", func() {
 
 			Expect(hc.Spec.Networking.MachineNetwork).To(BeEmpty())
 		})
+
+		It("should not set AllocateNodeCIDRs when FlannelEnabled is false", func() {
+			cr.Spec.FlannelEnabled = false
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.AllocateNodeCIDRs).To(BeNil())
+		})
+
+		It("should set AllocateNodeCIDRs to Enabled when FlannelEnabled is true", func() {
+			cr.Spec.FlannelEnabled = true
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.AllocateNodeCIDRs).ToNot(BeNil())
+			Expect(*hc.Spec.Networking.AllocateNodeCIDRs).To(Equal(hyperv1.AllocateNodeCIDRsEnabled))
+		})
+
+		It("should keep network type as Other when FlannelEnabled is true", func() {
+			cr.Spec.FlannelEnabled = true
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.NetworkType).To(Equal(hyperv1.Other))
+		})
 	})
 
 	Context("Availability Policies", func() {
