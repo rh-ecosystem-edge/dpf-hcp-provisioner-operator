@@ -122,3 +122,11 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - provisioning.dpu.nvidia.com
+  resources:
+  - dpus
+  verbs:
+  - get
+  - list
+  - watch

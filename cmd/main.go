@@ -43,6 +43,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/csrapproval"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
@@ -217,17 +218,20 @@ func main() {
 	}
 
 	client := mgr.GetClient()
-	recorder := mgr.GetEventRecorderFor(common.ControllerName)
 	scheme := mgr.GetScheme()
 
+	// Create event recorders for each controller/component
+	provisionerRecorder := mgr.GetEventRecorderFor(common.ProvisionerControllerName)
+	csrApprovalRecorder := mgr.GetEventRecorderFor(common.CSRApprovalControllerName)
+
 	// Initialize BlueField Image Resolver
-	imageResolver := bluefield.NewImageResolver(client, recorder)
+	imageResolver := bluefield.NewImageResolver(client, provisionerRecorder)
 
 	// Initialize DPUCluster Validator
-	dpuClusterValidator := dpucluster.NewValidator(client, recorder)
+	dpuClusterValidator := dpucluster.NewValidator(client, provisionerRecorder)
 
 	// Initialize Secrets Validator
-	secretsValidator := secrets.NewValidator(client, recorder)
+	secretsValidator := secrets.NewValidator(client, provisionerRecorder)
 
 	// Initialize Secret Manager for HostedCluster lifecycle
 	secretManager := hostedcluster.NewSecretManager(client, scheme)
@@ -239,32 +243,36 @@ func main() {
 	nodePoolManager := hostedcluster.NewNodePoolManager(client, scheme)
 
 	// Initialize Kubeconfig Injector
-	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(client, recorder)
+	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(client, provisionerRecorder)
 
 	// Initialize MetalLB Manager
-	metalLBManager := metallb.NewMetalLBManager(client, recorder)
+	metalLBManager := metallb.NewMetalLBManager(client, provisionerRecorder)
+
+	// Initialize CSR Approver
+	csrApprover := csrapproval.NewCSRApprover(client, csrApprovalRecorder)
 
 	// Initialize Finalizer Manager with pluggable cleanup handlers
 	// Handlers are executed in registration order
-	finalizerManager := finalizer.NewManager(client, recorder)
+	finalizerManager := finalizer.NewManager(client, provisionerRecorder)
 
 	// Register cleanup handlers in order (dependent resources first, dependencies last)
 	// 1. Kubeconfig injection cleanup (removes kubeconfig from DPUCluster namespace)
-	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(client, recorder))
+	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(client, provisionerRecorder))
 	// 2. HostedCluster cleanup (removes HostedCluster, NodePool, services, and secrets)
 	//    Must run before MetalLB cleanup because LoadBalancer services depend on IPAddressPool
-	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(client, recorder))
+	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(client, provisionerRecorder))
 	// 3. MetalLB cleanup (removes IPAddressPool and L2Advertisement)
 	//    Must run after HostedCluster cleanup to avoid deleting IPs while services still exist
-	finalizerManager.RegisterHandler(metallb.NewCleanupHandler(client, recorder))
+	finalizerManager.RegisterHandler(metallb.NewCleanupHandler(client, provisionerRecorder))
 
 	// Initialize Status Syncer for HostedCluster status mirroring
 	statusSyncer := hostedcluster.NewStatusSyncer(client)
 
+	// Setup main DPFHCPProvisioner controller
 	if err := (&controller.DPFHCPProvisionerReconciler{
 		Client:               client,
 		Scheme:               scheme,
-		Recorder:             recorder,
+		Recorder:             provisionerRecorder,
 		ImageResolver:        imageResolver,
 		DPUClusterValidator:  dpuClusterValidator,
 		SecretsValidator:     secretsValidator,
@@ -277,6 +285,16 @@ func main() {
 		KubeconfigInjector:   kubeconfigInjector,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DPFHCPProvisioner")
+		os.Exit(1)
+	}
+
+	// Setup CSR Approval controller (separate from main controller)
+	if err := (&csrapproval.CSRApprovalReconciler{
+		Client:   client,
+		Scheme:   scheme,
+		Approver: csrApprover,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CSRApproval")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

@@ -22,8 +22,11 @@ const (
 	// If the CR is renamed, update this constant once and it propagates everywhere.
 	DPFHCPProvisionerName = "dpfhcpprovisioner"
 
-	// ControllerName is the name used for event recorders
-	ControllerName = "dpfhcpprovisioner-controller"
+	// ProvisionerControllerName is the name for the main provisioner controller event recorder
+	ProvisionerControllerName = "dpfhcpprovisioner-controller"
+
+	// CSRApprovalControllerName is the name for the CSR approval controller event recorder
+	CSRApprovalControllerName = "csr-approval-controller"
 )
 
 // Label keys for cross-namespace resource ownership tracking

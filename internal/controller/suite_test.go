@@ -122,18 +122,18 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up DPFHCPProvisioner controller")
-	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ControllerName))
+	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName))
 
 	// Initialize Finalizer Manager with pluggable cleanup handlers
-	finalizerManager := finalizer.NewManager(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ControllerName))
+	finalizerManager := finalizer.NewManager(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName))
 	// Register cleanup handlers in order (dependent resources first)
-	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ControllerName)))
-	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ControllerName)))
+	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName)))
+	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName)))
 
 	reconciler := &DPFHCPProvisionerReconciler{
 		Client:               k8sManager.GetClient(),
 		Scheme:               k8sManager.GetScheme(),
-		Recorder:             k8sManager.GetEventRecorderFor(common.ControllerName),
+		Recorder:             k8sManager.GetEventRecorderFor(common.ProvisionerControllerName),
 		ImageResolver:        bluefield.NewImageResolver(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-image-resolver")),
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),
 		SecretsValidator:     secrets.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("secrets-validator")),

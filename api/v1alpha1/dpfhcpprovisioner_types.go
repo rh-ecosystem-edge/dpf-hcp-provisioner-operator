@@ -190,6 +190,9 @@ const (
 	// HostedClusterCleanup indicates the status of HostedCluster deletion during finalizer cleanup.
 	HostedClusterCleanup string = "HostedClusterCleanup"
 
+	// CSRAutoApprovalActive indicates whether CSR auto-approval is active and watching for CSRs
+	CSRAutoApprovalActive string = "CSRAutoApprovalActive"
+
 	// Validation conditions.
 
 	// SecretsValid indicates whether required secrets (pull secret, SSH key) are valid.
@@ -238,6 +241,19 @@ const (
 
 	// ReasonKubeConfigInjectionFailed indicates kubeconfig injection failed.
 	ReasonKubeConfigInjectionFailed string = "InjectionFailed"
+)
+
+// Condition reasons for DPFHCPProvisioner CSRAutoApprovalActive status.
+// These are used as the Reason field in the CSRAutoApprovalActive condition.
+const (
+	// ReasonCSRApprovalActive indicates CSR auto-approval is actively processing CSRs
+	ReasonCSRApprovalActive string = "Active"
+
+	// ReasonKubeconfigNotAvailable indicates the kubeconfig is not available
+	ReasonKubeconfigNotAvailable string = "KubeconfigNotAvailable"
+
+	// ReasonHostedClusterNotReachable indicates the hosted cluster is not reachable
+	ReasonHostedClusterNotReachable string = "HostedClusterNotReachable"
 )
 
 // DPFHCPProvisionerStatus defines the observed state of DPFHCPProvisioner

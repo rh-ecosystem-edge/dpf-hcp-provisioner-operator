@@ -113,6 +113,16 @@ rules:
   - update
   - watch
 
+# DPU permissions (for CSR validation against DPU objects)
+- apiGroups:
+  - provisioning.dpu.nvidia.com
+  resources:
+  - dpus
+  verbs:
+  - get
+  - list
+  - watch
+
 # HyperShift HostedCluster and NodePool permissions
 - apiGroups:
   - hypershift.openshift.io
