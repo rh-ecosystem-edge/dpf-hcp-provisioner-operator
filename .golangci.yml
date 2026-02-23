@@ -1,4 +1,5 @@
 version: "2"
+
 run:
   allow-parallel-runners: true
 linters:
@@ -22,6 +23,8 @@ linters:
     - unparam
     - unused
   settings:
+    gocyclo:
+      min-complexity: 50
     revive:
       rules:
         - name: comment-spacings

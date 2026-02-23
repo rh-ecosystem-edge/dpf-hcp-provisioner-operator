@@ -69,6 +69,10 @@ type DPFHCPProvisionerReconciler struct {
 const (
 	// FinalizerName is the finalizer added to DPFHCPProvisioner resources
 	FinalizerName = "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+	// BlueFieldImagesConfigMapName is the name of the ConfigMap containing BlueField OS images
+	BlueFieldImagesConfigMapName = "ocp-bluefield-images"
+	// OperatorNamespace is the namespace where the operator is deployed
+	OperatorNamespace = "dpf-hcp-provisioner-system"
 )
 
 // +kubebuilder:rbac:groups=provisioning.dpu.hcp.io,resources=dpfhcpprovisioners,verbs=get;list;watch;create;update;patch;delete
@@ -127,7 +131,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Feature: DPUCluster Validation
 	log.V(1).Info("Running DPUCluster validation feature")
-	if result, err := r.DPUClusterValidator.ValidateDPUCluster(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+	if result, err := r.DPUClusterValidator.ValidateDPUCluster(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		if err != nil {
 			log.Error(err, "DPUCluster validation failed")
 		}
@@ -136,7 +140,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Feature: Secrets Validation
 	log.V(1).Info("Running secrets validation feature")
-	if result, err := r.SecretsValidator.ValidateSecrets(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+	if result, err := r.SecretsValidator.ValidateSecrets(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		if err != nil {
 			log.Error(err, "Secrets validation failed")
 		}
@@ -151,7 +155,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if os.Getenv("ENABLE_BLUEFIELD_VALIDATION") == "true" {
 		if cr.Status.Phase == provisioningv1alpha1.PhasePending || cr.Status.Phase == provisioningv1alpha1.PhaseFailed {
 			log.V(1).Info("Running BlueField image resolution feature")
-			if result, err := r.ImageResolver.ResolveBlueFieldImage(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+			if result, err := r.ImageResolver.ResolveBlueFieldImage(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 				return result, err
 			}
 		} else {
@@ -183,7 +187,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Feature: MetalLB Configuration
 	// Configure MetalLB resources (IPAddressPool and L2Advertisement) when LoadBalancer exposure is needed
 	log.V(1).Info("Configuring MetalLB resources")
-	if result, err := r.MetalLBManager.ConfigureMetalLB(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+	if result, err := r.MetalLBManager.ConfigureMetalLB(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		if err != nil {
 			log.Error(err, "MetalLB configuration failed")
 		}
@@ -195,7 +199,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Note: We only check for Pending (not Failed) to prevent secret operations when validations fail
 	if cr.Status.Phase == provisioningv1alpha1.PhasePending {
 		log.V(1).Info("Copying secrets to clusters namespace")
-		if result, err := r.SecretManager.CopySecrets(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if result, err := r.SecretManager.CopySecrets(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 			if err != nil {
 				log.Error(err, "Secret copying failed")
 			}
@@ -204,7 +208,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 		// Generate ETCD encryption key
 		log.V(1).Info("Generating ETCD encryption key")
-		if result, err := r.SecretManager.GenerateETCDEncryptionKey(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if result, err := r.SecretManager.GenerateETCDEncryptionKey(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 			if err != nil {
 				log.Error(err, "ETCD key generation failed")
 			}
@@ -222,7 +226,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		log.V(1).Info("Creating HostedCluster and NodePool")
 
 		// Create or update HostedCluster
-		if result, err := r.HostedClusterManager.CreateOrUpdateHostedCluster(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if result, err := r.HostedClusterManager.CreateOrUpdateHostedCluster(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 			if err != nil {
 				log.Error(err, "HostedCluster creation failed")
 			}
@@ -230,7 +234,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 
 		// Create NodePool
-		if result, err := r.NodePoolManager.CreateNodePool(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if result, err := r.NodePoolManager.CreateNodePool(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 			if err != nil {
 				log.Error(err, "NodePool creation failed")
 			}
@@ -264,7 +268,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// This runs in all phases (Pending, Provisioning, Ready) to keep status up-to-date
 	// Only syncs if hostedClusterRef is set (after HostedCluster creation)
 	log.V(1).Info("Syncing status from HostedCluster")
-	if result, err := r.StatusSyncer.SyncStatusFromHostedCluster(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+	if result, err := r.StatusSyncer.SyncStatusFromHostedCluster(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		if err != nil {
 			log.Error(err, "Status sync failed")
 		}
@@ -276,7 +280,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Only runs after HostedCluster creation (hostedClusterRef is set)
 	if cr.Status.HostedClusterRef != nil {
 		log.V(1).Info("Running kubeconfig injection feature")
-		if result, err := r.KubeconfigInjector.InjectKubeconfig(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
+		if result, err := r.KubeconfigInjector.InjectKubeconfig(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 			if err != nil {
 				log.Error(err, "Kubeconfig injection failed")
 			}
@@ -347,16 +351,16 @@ func (r *DPFHCPProvisionerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func configMapPredicate() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetName() == "ocp-bluefield-images" &&
-				e.Object.GetNamespace() == "dpf-hcp-provisioner-system"
+			return e.Object.GetName() == BlueFieldImagesConfigMapName &&
+				e.Object.GetNamespace() == OperatorNamespace
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.ObjectNew.GetName() == "ocp-bluefield-images" &&
-				e.ObjectNew.GetNamespace() == "dpf-hcp-provisioner-system"
+			return e.ObjectNew.GetName() == BlueFieldImagesConfigMapName &&
+				e.ObjectNew.GetNamespace() == OperatorNamespace
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Object.GetName() == "ocp-bluefield-images" &&
-				e.Object.GetNamespace() == "dpf-hcp-provisioner-system"
+			return e.Object.GetName() == BlueFieldImagesConfigMapName &&
+				e.Object.GetNamespace() == OperatorNamespace
 		},
 	}
 }
@@ -756,9 +760,8 @@ func (r *DPFHCPProvisionerReconciler) handleDeletion(ctx context.Context, cr *pr
 	}
 
 	// If cleanup is still in progress (requeue requested), don't remove finalizer yet
-	if result.Requeue || result.RequeueAfter > 0 {
+	if result.RequeueAfter > 0 {
 		log.Info("Cleanup still in progress, will requeue",
-			"requeue", result.Requeue,
 			"requeueAfter", result.RequeueAfter)
 		return result, nil
 	}

@@ -56,9 +56,9 @@ type ImageResolver struct {
 }
 
 // NewImageResolver creates a new ImageResolver
-func NewImageResolver(client client.Client, recorder record.EventRecorder) *ImageResolver {
+func NewImageResolver(c client.Client, recorder record.EventRecorder) *ImageResolver {
 	return &ImageResolver{
-		Client:   client,
+		Client:   c,
 		Recorder: recorder,
 	}
 }
@@ -67,14 +67,14 @@ func NewImageResolver(client client.Client, recorder record.EventRecorder) *Imag
 // It extracts the OCP version from the ocpReleaseImage, looks up the corresponding
 // BlueField image in the ConfigMap, validates it, and updates the CR status
 func (r *ImageResolver) ResolveBlueFieldImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	log = log.WithValues("feature", "bluefield-image-mapping")
+	logger := log.FromContext(ctx)
+	logger = logger.WithValues("feature", "bluefield-image-mapping")
 
 	// Step 1: Read ocpReleaseImage from spec
 	ocpReleaseImage := cr.Spec.OCPReleaseImage
 	if ocpReleaseImage == "" {
 		err := fmt.Errorf("ocpReleaseImage is required but empty")
-		log.Error(err, "Missing required field")
+		logger.Error(err, "Missing required field")
 		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
 			Message: "ocpReleaseImage is required but empty",
 			URL:     "",
@@ -82,50 +82,50 @@ func (r *ImageResolver) ResolveBlueFieldImage(ctx context.Context, cr *provision
 	}
 
 	// Step 2: Parse OCP version from image URL
-	log.V(1).Info("Extracting OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
+	logger.V(1).Info("Extracting OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
 	version, err := extractOCPVersion(ocpReleaseImage)
 	if err != nil {
-		log.Error(err, "Failed to parse OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
+		logger.Error(err, "Failed to parse OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
 		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
 			Message: err.Error(),
 			URL:     ocpReleaseImage,
 		})
 	}
-	log.V(1).Info("Extracted OCP version", "version", version)
+	logger.V(1).Info("Extracted OCP version", "version", version)
 
 	// Step 3: Fetch ConfigMap
-	log.V(1).Info("Fetching ConfigMap", "name", configMapName, "namespace", configMapNamespace)
+	logger.V(1).Info("Fetching ConfigMap", "name", configMapName, "namespace", configMapNamespace)
 	configMap, err := r.fetchConfigMap(ctx)
 	if err != nil {
 		// Check error type
 		if _, ok := err.(*ConfigMapNotFoundError); ok {
-			return r.handleTransientError(ctx, cr, err, version)
+			return r.handleTransientError(ctx, cr, err)
 		}
 		if _, ok := err.(*ConfigMapAccessDeniedError); ok {
 			return r.handlePermanentError(ctx, cr, err, version)
 		}
 		// Other API errors - treat as transient
-		log.Error(err, "Transient error fetching ConfigMap")
-		return r.handleTransientError(ctx, cr, err, version)
+		logger.Error(err, "Transient error fetching ConfigMap")
+		return r.handleTransientError(ctx, cr, err)
 	}
 
 	// Step 4: Lookup version in ConfigMap
-	log.V(1).Info("Looking up BlueField image in ConfigMap", "version", version)
+	logger.V(1).Info("Looking up BlueField image in ConfigMap", "version", version)
 	blueFieldImage, err := lookupBlueFieldImage(configMap, version)
 	if err != nil {
-		log.V(1).Info("BlueField image lookup failed", "version", version, "error", err.Error())
+		logger.V(1).Info("BlueField image lookup failed", "version", version, "error", err.Error())
 		return r.handlePermanentError(ctx, cr, err, version)
 	}
 
 	// Step 5: Validate BlueField image URL
-	log.V(1).Info("Validating BlueField image URL", "blueFieldImage", blueFieldImage)
+	logger.V(1).Info("Validating BlueField image URL", "blueFieldImage", blueFieldImage)
 	if err := validateBlueFieldImageURL(blueFieldImage, version); err != nil {
-		log.Error(err, "BlueField image URL validation failed", "blueFieldImage", blueFieldImage)
+		logger.Error(err, "BlueField image URL validation failed", "blueFieldImage", blueFieldImage)
 		return r.handlePermanentError(ctx, cr, err, version)
 	}
 
 	// Step 6: Update status on success
-	log.Info("BlueField image resolved successfully",
+	logger.Info("BlueField image resolved successfully",
 		"version", version,
 		"blueFieldImage", blueFieldImage)
 	return r.updateStatusOnSuccess(ctx, cr, blueFieldImage, version)
@@ -185,7 +185,7 @@ func (r *ImageResolver) fetchConfigMap(ctx context.Context) (*corev1.ConfigMap, 
 // lookupBlueFieldImage looks up the BlueField image in the ConfigMap by version
 // Exported for testing.
 func lookupBlueFieldImage(configMap *corev1.ConfigMap, version string) (string, error) {
-	if configMap.Data == nil || len(configMap.Data) == 0 {
+	if len(configMap.Data) == 0 {
 		availableVersions := []string{}
 		return "", &VersionNotFoundError{
 			Version:           version,
@@ -234,7 +234,7 @@ func validateBlueFieldImageURL(url string, version string) error {
 
 // updateStatusOnSuccess updates the CR status when image resolution succeeds
 func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, blueFieldImage, version string) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
 	// Get previous condition to check if we need to emit event
 
@@ -261,21 +261,21 @@ func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provision
 	if err := r.Status().Update(ctx, cr); err != nil {
 		if apierrors.IsConflict(err) {
 			// ResourceVersion conflict - controller-runtime will requeue automatically
-			log.V(1).Info("Status update conflict, will retry")
+			logger.V(1).Info("Status update conflict, will retry")
 			return ctrl.Result{}, err
 		}
-		log.Error(err, "Failed to update status")
+		logger.Error(err, "Failed to update status")
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Status updated successfully")
+	logger.Info("Status updated successfully")
 	return ctrl.Result{}, nil
 }
 
 // handleValidationError handles permanent validation errors
 func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	log.V(1).Info("Validation error - check CR spec", "error", err.Error())
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("Validation error - check CR spec", "error", err.Error())
 
 	// Get previous condition
 
@@ -310,7 +310,7 @@ func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provision
 
 	// Update status
 	if updateErr := r.Status().Update(ctx, cr); updateErr != nil {
-		log.Error(updateErr, "Failed to update status after validation error")
+		logger.Error(updateErr, "Failed to update status after validation error")
 	}
 
 	// Do NOT requeue - permanent error
@@ -319,8 +319,8 @@ func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provision
 
 // handlePermanentError handles permanent errors (version not found, access denied, invalid URL)
 func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error, version string) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	log.V(1).Info("Permanent error - user action required", "version", version, "error", err.Error())
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("Permanent error - user action required", "version", version, "error", err.Error())
 
 	// Get previous condition
 
@@ -361,7 +361,7 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 
 	// Update status
 	if updateErr := r.Status().Update(ctx, cr); updateErr != nil {
-		log.Error(updateErr, "Failed to update status after permanent error")
+		logger.Error(updateErr, "Failed to update status after permanent error")
 	}
 
 	// Do NOT requeue - permanent error
@@ -369,8 +369,8 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 }
 
 // handleTransientError handles transient errors
-func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error, version string) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
 
 	// Get previous condition
 
@@ -402,10 +402,10 @@ func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioni
 
 	// Update status
 	if updateErr := r.Status().Update(ctx, cr); updateErr != nil {
-		log.Error(updateErr, "Failed to update status after transient error")
+		logger.Error(updateErr, "Failed to update status after transient error")
 	}
 
-	log.V(1).Info("Transient error, returning error for native retry with exponential backoff", "error", err)
+	logger.V(1).Info("Transient error, returning error for native retry with exponential backoff", "error", err)
 
 	// Return error to trigger controller-runtime's native exponential backoff
 	return ctrl.Result{}, err

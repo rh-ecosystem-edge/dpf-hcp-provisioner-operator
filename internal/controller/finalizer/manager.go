@@ -44,9 +44,9 @@ type Manager struct {
 
 // NewManager creates a new finalizer Manager with no handlers registered.
 // Handlers must be registered using RegisterHandler before the Manager can perform cleanup.
-func NewManager(client client.Client, recorder record.EventRecorder) *Manager {
+func NewManager(c client.Client, recorder record.EventRecorder) *Manager {
 	return &Manager{
-		client:   client,
+		client:   c,
 		recorder: recorder,
 		handlers: make([]CleanupHandler, 0),
 	}

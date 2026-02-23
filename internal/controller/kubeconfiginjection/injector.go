@@ -54,9 +54,9 @@ type KubeconfigInjector struct {
 }
 
 // NewKubeconfigInjector creates a new KubeconfigInjector
-func NewKubeconfigInjector(client client.Client, recorder record.EventRecorder) *KubeconfigInjector {
+func NewKubeconfigInjector(c client.Client, recorder record.EventRecorder) *KubeconfigInjector {
 	return &KubeconfigInjector{
-		Client:   client,
+		Client:   c,
 		Recorder: recorder,
 	}
 }

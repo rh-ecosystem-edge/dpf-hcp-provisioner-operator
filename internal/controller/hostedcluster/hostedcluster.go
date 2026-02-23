@@ -256,7 +256,7 @@ func buildNetworking(cr *provisioningv1alpha1.DPFHCPProvisioner) hyperv1.Cluster
 
 // getNodeSelector returns the NodeSelector from DPFHCPProvisioner spec or the default if not specified
 func getNodeSelector(cr *provisioningv1alpha1.DPFHCPProvisioner) map[string]string {
-	if cr.Spec.NodeSelector != nil && len(cr.Spec.NodeSelector) > 0 {
+	if len(cr.Spec.NodeSelector) > 0 {
 		return cr.Spec.NodeSelector
 	}
 	// Default: Schedule control plane pods only on control-plane nodes

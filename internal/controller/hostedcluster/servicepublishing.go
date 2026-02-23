@@ -73,7 +73,7 @@ func BuildServicePublishingStrategy(exposeThroughLoadBalancer bool, nodeAddress 
 		hyperv1.Ignition,
 	}
 
-	var result []hyperv1.ServicePublishingStrategyMapping
+	result := make([]hyperv1.ServicePublishingStrategyMapping, 0, len(services))
 	for _, service := range services {
 		result = append(result, hyperv1.ServicePublishingStrategyMapping{
 			Service: service,

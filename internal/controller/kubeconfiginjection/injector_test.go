@@ -110,15 +110,14 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state - nothing should be set up yet
-			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions)
 			Expect(beforeCond).To(BeNil(), "Condition should not be set initially")
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, provisioner)
+			_, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// Verify events were emitted for secret creation and DPUCluster update
 			Eventually(recorder.Events).Should(Receive(ContainSubstring("KubeConfigInjected")))
@@ -150,7 +149,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			Expect(provisioner.Status.KubeConfigSecretRef.Name).To(Equal("test-provisioner-admin-kubeconfig"))
 
 			// Condition set to True
-			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
@@ -196,14 +195,13 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, provisioner)
+			_, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Requeue without error
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// Condition set to pending
-			cond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			cond := findCondition(provisioner.Status.Conditions)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigPending))
@@ -282,7 +280,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state
-			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions)
 			Expect(beforeCond).NotTo(BeNil())
 			Expect(beforeCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(beforeCond.Message).To(Equal("Previously injected"))
@@ -297,11 +295,10 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			Expect(beforeSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("old-kubeconfig-data")))
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, provisioner)
+			_, err = injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// Verify drift was DETECTED - check for DriftCorrected event
 			Eventually(recorder.Events).Should(Receive(ContainSubstring("DriftCorrected")))
@@ -316,7 +313,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			Expect(updatedSecret.Data[DestinationKubeconfigSecretKey]).To(Equal([]byte("new-rotated-kubeconfig-data")))
 
 			// Condition remains True (stayed healthy through drift correction)
-			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
@@ -391,7 +388,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state
-			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions)
 			Expect(beforeCond).To(BeNil(), "Condition should not be set yet")
 
 			beforeDPU := &dpuprovisioningv1alpha1.DPUCluster{}
@@ -412,11 +409,10 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			originalResourceVersion := existingSecret.ResourceVersion
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, provisioner)
+			_, err = injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// Verify NO secret recreation - secret should not have been recreated
 			afterSecret := &corev1.Secret{}
@@ -438,7 +434,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			Expect(updatedDPU.Spec.Kubeconfig).To(Equal("test-provisioner-admin-kubeconfig"))
 
 			// Condition set to True (injection completed)
-			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
@@ -513,7 +509,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// Verify BEFORE state
-			beforeCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			beforeCond := findCondition(provisioner.Status.Conditions)
 			Expect(beforeCond).NotTo(BeNil())
 			Expect(beforeCond.Status).To(Equal(metav1.ConditionTrue))
 
@@ -537,11 +533,10 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Secret should be missing")
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, provisioner)
+			_, err = injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Success
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// Secret SHOULD be recreated with "super-admin.conf" key
 			recreatedSecret := &corev1.Secret{}
@@ -566,7 +561,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 				"DPUCluster should not have been modified")
 
 			// Condition remains True (stayed healthy through secret recreation)
-			afterCond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			afterCond := findCondition(provisioner.Status.Conditions)
 			Expect(afterCond).NotTo(BeNil())
 			Expect(afterCond.Status).To(Equal(metav1.ConditionTrue))
 			Expect(afterCond.Reason).To(Equal(provisioningv1alpha1.ReasonKubeConfigInjected))
@@ -602,23 +597,22 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 			injector = NewKubeconfigInjector(fakeClient, recorder)
 
 			// When: Reconciliation runs
-			result, err := injector.InjectKubeconfig(ctx, provisioner)
+			_, err := injector.InjectKubeconfig(ctx, provisioner)
 
 			// Then: Skip without error
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// No condition set
-			cond := findCondition(provisioner.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+			cond := findCondition(provisioner.Status.Conditions)
 			Expect(cond).To(BeNil())
 		})
 	})
 })
 
-// Helper function to find a condition
-func findCondition(conditions []metav1.Condition, condType string) *metav1.Condition {
+// Helper function to find KubeConfigInjected condition
+func findCondition(conditions []metav1.Condition) *metav1.Condition {
 	for i := range conditions {
-		if conditions[i].Type == condType {
+		if conditions[i].Type == provisioningv1alpha1.KubeConfigInjected {
 			return &conditions[i]
 		}
 	}

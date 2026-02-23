@@ -108,7 +108,6 @@ var _ = Describe("Status Syncer", func() {
 			result, err := syncer.SyncStatusFromHostedCluster(ctx, cr)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 			Expect(result.RequeueAfter).To(BeZero())
 		})
 
@@ -132,11 +131,10 @@ var _ = Describe("Status Syncer", func() {
 			client := fakeClient.WithRuntimeObjects(crNoHC).Build()
 			syncer = NewStatusSyncer(client)
 
-			result, err := syncer.SyncStatusFromHostedCluster(ctx, crNoHC)
+			_, err := syncer.SyncStatusFromHostedCluster(ctx, crNoHC)
 
 			// Should not error, just skip sync
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 		})
 
 		It("should skip sync when HostedCluster status is not populated", func() {
@@ -172,7 +170,6 @@ var _ = Describe("Status Syncer", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			// Should not requeue - the HostedCluster watch will trigger reconciliation when status changes
-			Expect(result.Requeue).To(BeFalse())
 			Expect(result.RequeueAfter).To(BeZero())
 		})
 
@@ -190,10 +187,9 @@ var _ = Describe("Status Syncer", func() {
 			client := fakeClient.Build()
 			syncer = NewStatusSyncer(client)
 
-			result, err := syncer.SyncStatusFromHostedCluster(ctx, cr)
+			_, err := syncer.SyncStatusFromHostedCluster(ctx, cr)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// Verify all 7 conditions were mirrored
 			expectedConditions := []string{
@@ -216,10 +212,9 @@ var _ = Describe("Status Syncer", func() {
 			client := fakeClient.Build()
 			syncer = NewStatusSyncer(client)
 
-			result, err := syncer.SyncStatusFromHostedCluster(ctx, cr)
+			_, err := syncer.SyncStatusFromHostedCluster(ctx, cr)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			// Verify ObservedGeneration is set on mirrored conditions
 			availableCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)

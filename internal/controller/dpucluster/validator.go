@@ -53,9 +53,9 @@ type Validator struct {
 }
 
 // NewValidator creates a new DPUCluster validator
-func NewValidator(client client.Client, recorder record.EventRecorder) *Validator {
+func NewValidator(c client.Client, recorder record.EventRecorder) *Validator {
 	return &Validator{
-		client:   client,
+		client:   c,
 		recorder: recorder,
 	}
 }
@@ -95,12 +95,12 @@ func (v *Validator) ValidateDPUCluster(ctx context.Context, cr *provisioningv1al
 	}
 
 	// DPUCluster exists - validate cluster type is not kamaji
-	if result, err := v.validateClusterType(ctx, cr, &dpuCluster); err != nil || result.Requeue || result.RequeueAfter > 0 {
+	if result, err := v.validateClusterType(ctx, cr, &dpuCluster); err != nil || result.RequeueAfter > 0 {
 		return result, err
 	}
 
 	// DPUCluster exists and type is valid - validate exclusivity (not in use by another DPFHCPProvisioner)
-	if result, err := v.validateDPUClusterExclusivity(ctx, cr, &dpuCluster); err != nil || result.Requeue || result.RequeueAfter > 0 {
+	if result, err := v.validateDPUClusterExclusivity(ctx, cr, &dpuCluster); err != nil || result.RequeueAfter > 0 {
 		return result, err
 	}
 

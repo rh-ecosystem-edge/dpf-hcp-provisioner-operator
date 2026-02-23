@@ -31,6 +31,11 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
+const (
+	// testVirtualIP is the virtual IP used in tests for HighlyAvailable control plane
+	testVirtualIP = "192.168.1.100"
+)
+
 // CRD Schema Validation Tests
 // These tests verify API-level validation (CEL rules, regex patterns, etc.)
 // They run with the controller but test CRD validation which happens at the API server level
@@ -198,7 +203,7 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				}
 				// Add VIP if HighlyAvailable
 				if policy == hyperv1.HighlyAvailable {
-					provisioner.Spec.VirtualIP = "192.168.1.100"
+					provisioner.Spec.VirtualIP = testVirtualIP
 				}
 				err := k8sClient.Create(ctx, provisioner)
 				Expect(err).NotTo(HaveOccurred(), "Policy %q should be valid", policy)
@@ -256,7 +261,7 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 
 			// Try again with VIP for HighlyAvailable default
 			provisioner.Name = "test-defaults-with-vip"
-			provisioner.Spec.VirtualIP = "192.168.1.100"
+			provisioner.Spec.VirtualIP = testVirtualIP
 			err = k8sClient.Create(ctx, provisioner)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -314,7 +319,7 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
 					PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
 					ControlPlaneAvailabilityPolicy: hyperv1.HighlyAvailable,
-					VirtualIP:                      "192.168.1.100",
+					VirtualIP:                      testVirtualIP,
 				},
 			}
 
@@ -364,7 +369,7 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
 					PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
 					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
-					VirtualIP:                      "192.168.1.100",
+					VirtualIP:                      testVirtualIP,
 				},
 			}
 
@@ -487,7 +492,7 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				}
 				updated := fresh.DeepCopy()
 				updated.Spec.ControlPlaneAvailabilityPolicy = hyperv1.HighlyAvailable
-				updated.Spec.VirtualIP = "192.168.1.100" // Required for HighlyAvailable
+				updated.Spec.VirtualIP = testVirtualIP // Required for HighlyAvailable
 				return k8sClient.Update(ctx, updated)
 			}, time.Second*5, time.Millisecond*100).Should(MatchError(ContainSubstring("controlPlaneAvailabilityPolicy is immutable")))
 		})
@@ -500,7 +505,7 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 					return err
 				}
 				updated := fresh.DeepCopy()
-				updated.Spec.VirtualIP = "192.168.1.100"
+				updated.Spec.VirtualIP = testVirtualIP
 				return k8sClient.Update(ctx, updated)
 			}, time.Second*5, time.Millisecond*100).Should(Succeed())
 
