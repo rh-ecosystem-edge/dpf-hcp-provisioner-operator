@@ -109,6 +109,18 @@ spec:
                 x-kubernetes-validations:
                 - message: etcdStorageClass is immutable
                   rule: self == oldSelf
+              flannelEnabled:
+                default: true
+                description: |-
+                  FlannelEnabled indicates whether Flannel should be used as the CNI plugin for the hosted cluster.
+                  When set to true, the HostedCluster will be configured with NetworkType "Other" and
+                  AllocateNodeCIDRs set to "Enabled", which allows kube-controller-manager to manage node CIDR
+                  allocation as required by Flannel.
+                  This field is immutable.
+                type: boolean
+                x-kubernetes-validations:
+                - message: flannelEnabled is immutable
+                  rule: self == oldSelf
               nodeSelector:
                 additionalProperties:
                   type: string

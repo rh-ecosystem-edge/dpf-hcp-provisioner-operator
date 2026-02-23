@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
@@ -130,6 +131,36 @@ var _ = Describe("HostedCluster Builder", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
 			Expect(hc.Spec.Networking.MachineNetwork).To(BeEmpty())
+		})
+
+		It("should not set AllocateNodeCIDRs when FlannelEnabled is false", func() {
+			cr.Spec.FlannelEnabled = ptr.To(false)
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.AllocateNodeCIDRs).To(BeNil())
+		})
+
+		It("should set AllocateNodeCIDRs to Enabled when FlannelEnabled is true", func() {
+			cr.Spec.FlannelEnabled = ptr.To(true)
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.AllocateNodeCIDRs).ToNot(BeNil())
+			Expect(*hc.Spec.Networking.AllocateNodeCIDRs).To(Equal(hyperv1.AllocateNodeCIDRsEnabled))
+		})
+
+		It("should set AllocateNodeCIDRs to Enabled when FlannelEnabled is nil (default true)", func() {
+			cr.Spec.FlannelEnabled = nil
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.AllocateNodeCIDRs).ToNot(BeNil())
+			Expect(*hc.Spec.Networking.AllocateNodeCIDRs).To(Equal(hyperv1.AllocateNodeCIDRsEnabled))
+		})
+
+		It("should keep network type as Other when FlannelEnabled is true", func() {
+			cr.Spec.FlannelEnabled = ptr.To(true)
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.NetworkType).To(Equal(hyperv1.Other))
 		})
 	})
 
