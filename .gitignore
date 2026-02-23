@@ -29,5 +29,3 @@ go.work
 # claude agents, skills and outputs
 .claude
 agents_outputs
-
-vendor

@@ -81,11 +81,10 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				result, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner)
 
 				// Then: No error, no requeue
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// No MetalLB resources should be created
 				poolList := &metallbv1beta1.IPAddressPoolList{}
@@ -118,11 +117,10 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				result, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// IPAddressPool created
 				pool := &metallbv1beta1.IPAddressPool{}
@@ -214,11 +212,10 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				result, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner)
 
 				// Then: Success, no updates
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Condition set to True
 				cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.MetalLBConfigured)
@@ -282,11 +279,10 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				result, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// IPAddressPool corrected
 				pool := &metallbv1beta1.IPAddressPool{}
@@ -355,11 +351,10 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				result, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// L2Advertisement corrected
 				advert := &metallbv1beta1.L2Advertisement{}
@@ -686,11 +681,10 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				result, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner)
 
 				// Then: MetalLB resources created
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				pool := &metallbv1beta1.IPAddressPool{}
 				err = fakeClient.Get(ctx, types.NamespacedName{

@@ -18,6 +18,7 @@ package hostedcluster
 
 import (
 	"context"
+
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -85,7 +86,7 @@ func (ss *StatusSyncer) SyncStatusFromHostedCluster(ctx context.Context, cr *pro
 	}
 
 	// Check if HostedCluster status is populated yet
-	if hc.Status.Conditions == nil || len(hc.Status.Conditions) == 0 {
+	if len(hc.Status.Conditions) == 0 {
 		log.V(1).Info("HostedCluster status not yet populated, skipping sync",
 			"hostedCluster", hcKey.String())
 		// Don't requeue - the HostedCluster watch will trigger reconciliation when status changes.

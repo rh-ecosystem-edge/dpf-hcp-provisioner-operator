@@ -55,9 +55,9 @@ type Validator struct {
 }
 
 // NewValidator creates a new secrets validator
-func NewValidator(client client.Client, recorder record.EventRecorder) *Validator {
+func NewValidator(c client.Client, recorder record.EventRecorder) *Validator {
 	return &Validator{
-		client:   client,
+		client:   c,
 		recorder: recorder,
 	}
 }

@@ -42,9 +42,9 @@ type CleanupHandler struct {
 }
 
 // NewCleanupHandler creates a new kubeconfig cleanup handler
-func NewCleanupHandler(client client.Client, recorder record.EventRecorder) *CleanupHandler {
+func NewCleanupHandler(c client.Client, recorder record.EventRecorder) *CleanupHandler {
 	return &CleanupHandler{
-		client:   client,
+		client:   c,
 		recorder: recorder,
 	}
 }

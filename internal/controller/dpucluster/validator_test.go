@@ -96,7 +96,6 @@ var _ = Describe("DPUCluster Validator", func() {
 				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
@@ -187,8 +186,7 @@ var _ = Describe("DPUCluster Validator", func() {
 				result, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
-				Expect(result.RequeueAfter).To(BeZero())
+				Expect(result.RequeueAfter).To(BeZero()) // Permanent error - don't requeue
 
 				// Verify status updated
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -241,10 +239,9 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Fetch updated provisioner from client to verify status
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -287,10 +284,9 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 
 				// Note: We can't verify status update with fake client that returns errors
 				// This would require a more sophisticated mock
@@ -330,9 +326,8 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 			})
 
 			It("should validate in Ready phase (proves no phase gating)", func() {
@@ -367,9 +362,8 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 			})
 
 			It("should detect DPUCluster deletion when provisioner is Ready", func() {
@@ -404,9 +398,8 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify DPUClusterMissing=True even though provisioner was Ready
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -453,10 +446,9 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify ClusterTypeValid condition is True
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -505,10 +497,9 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 
 				// Verify ClusterTypeValid condition is False
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -573,10 +564,9 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify ClusterTypeValid condition is now True (recovered from unsupported type)
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -628,10 +618,9 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify DPUClusterInUse condition is False (available)
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -699,10 +688,9 @@ var _ = Describe("DPUCluster Validator", func() {
 				validator = NewValidator(fakeClient, recorder)
 
 				// Validate second provisioner - should fail because first provisioner already uses the DPUCluster
-				result, err := validator.ValidateDPUCluster(ctx, secondProvisioner)
+				_, err := validator.ValidateDPUCluster(ctx, secondProvisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 
 				// Verify DPUClusterInUse condition is True (in use)
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -756,9 +744,8 @@ var _ = Describe("DPUCluster Validator", func() {
 				validator = NewValidator(fakeClient, recorder)
 
 				// First validation
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Get updated provisioner
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -769,9 +756,8 @@ var _ = Describe("DPUCluster Validator", func() {
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse))
 
 				// Second validation of same provisioner - should still succeed (skips itself)
-				result, err = validator.ValidateDPUCluster(ctx, &updatedProvisioner)
+				_, err = validator.ValidateDPUCluster(ctx, &updatedProvisioner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify still available
 				Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(provisioner), &updatedProvisioner)).To(Succeed())
@@ -828,10 +814,9 @@ var _ = Describe("DPUCluster Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateDPUCluster(ctx, provisioner)
+				_, err := validator.ValidateDPUCluster(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify DPUClusterInUse condition is now False (recovered)
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -899,10 +884,9 @@ var _ = Describe("DPUCluster Validator", func() {
 				validator = NewValidator(fakeClient, recorder)
 
 				// Validate second provisioner - should fail
-				result, err := validator.ValidateDPUCluster(ctx, secondProvisioner)
+				_, err := validator.ValidateDPUCluster(ctx, secondProvisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify DPUClusterInUse condition is True
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner

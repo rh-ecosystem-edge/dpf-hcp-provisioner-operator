@@ -112,7 +112,6 @@ var _ = Describe("Secrets Validator", func() {
 				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 				Expect(result.RequeueAfter).To(BeZero())
 
 				// Verify status updated
@@ -231,8 +230,7 @@ var _ = Describe("Secrets Validator", func() {
 				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
-				Expect(result.RequeueAfter).To(BeZero())
+				Expect(result.RequeueAfter).To(BeZero()) // Permanent error - don't requeue
 
 				// Verify status updated
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -302,8 +300,7 @@ var _ = Describe("Secrets Validator", func() {
 				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
-				Expect(result.RequeueAfter).To(BeZero())
+				Expect(result.RequeueAfter).To(BeZero()) // Permanent error - don't requeue
 
 				// Verify status updated
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -362,8 +359,7 @@ var _ = Describe("Secrets Validator", func() {
 				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
-				Expect(result.RequeueAfter).To(BeZero())
+				Expect(result.RequeueAfter).To(BeZero()) // Permanent error - don't requeue
 
 				// Verify status updated
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -433,8 +429,7 @@ var _ = Describe("Secrets Validator", func() {
 				result, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
-				Expect(result.RequeueAfter).To(BeZero())
+				Expect(result.RequeueAfter).To(BeZero()) // Permanent error - don't requeue
 
 				// Verify status updated
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -482,10 +477,9 @@ var _ = Describe("Secrets Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, provisioner)
+				_, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse()) // Permanent error - don't requeue
 			})
 		})
 
@@ -548,10 +542,9 @@ var _ = Describe("Secrets Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, provisioner)
+				_, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify condition is now True (recovered)
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner
@@ -621,10 +614,9 @@ var _ = Describe("Secrets Validator", func() {
 
 				validator = NewValidator(fakeClient, recorder)
 
-				result, err := validator.ValidateSecrets(ctx, provisioner)
+				_, err := validator.ValidateSecrets(ctx, provisioner)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeFalse())
 
 				// Verify condition is now True (recovered)
 				var updatedProvisioner provisioningv1alpha1.DPFHCPProvisioner

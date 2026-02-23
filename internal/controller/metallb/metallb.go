@@ -41,9 +41,9 @@ type MetalLBManager struct {
 }
 
 // NewMetalLBManager creates a new MetalLB manager
-func NewMetalLBManager(client client.Client, recorder record.EventRecorder) *MetalLBManager {
+func NewMetalLBManager(c client.Client, recorder record.EventRecorder) *MetalLBManager {
 	return &MetalLBManager{
-		client:   client,
+		client:   c,
 		recorder: recorder,
 	}
 }
