@@ -56,14 +56,17 @@ rules:
   - create
   - patch
 
-# ConfigMap read permissions (for BlueField image mapping)
+# ConfigMap permissions (read image mapping, write ignition output)
 - apiGroups:
   - ""
   resources:
   - configmaps
   verbs:
+  - create
   - get
   - list
+  - patch
+  - update
   - watch
 
 # Secret permissions (read user secrets, create/delete secrets in clusters namespace)
@@ -96,6 +99,16 @@ rules:
   - ""
   resources:
   - nodes
+  verbs:
+  - get
+  - list
+  - watch
+
+# DPUFlavor permissions (for OVS script lookup)
+- apiGroups:
+  - provisioning.dpu.nvidia.com
+  resources:
+  - dpuflavors
   verbs:
   - get
   - list

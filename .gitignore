@@ -30,4 +30,5 @@ go.work
 .claude
 agents_outputs
 
-vendor
+# Ignition content ConfigMaps copied into Helm chart during helm-package
+helm/dpf-hcp-provisioner-operator/templates/dpf-ignition-content-*.yaml

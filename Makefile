@@ -197,11 +197,14 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 HELM_CHART_DIR ?= helm/dpf-hcp-provisioner-operator
 HELM_CHART_NAME ?= dpf-hcp-provisioner-operator
 HELM_CHART_REGISTRY ?= oci://quay.io/lhadad/charts
-HELM_CHART_VERSION ?= $(shell grep '^version:' $(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
+ifeq ($(HELM_CHART_VERSION),)
+HELM_CHART_VERSION := $(shell grep '^version:' $(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
+endif
 
 .PHONY: helm-package
-helm-package: manifests ## Package the Helm chart.
-	helm package $(HELM_CHART_DIR)
+helm-package: manifests ## Package the Helm chart. Override version with HELM_CHART_VERSION=0.2.0
+	cp config/ignition-content/dpf-ignition-content-*.yaml $(HELM_CHART_DIR)/templates/ && \
+	helm package $(HELM_CHART_DIR) --version $(HELM_CHART_VERSION)
 
 .PHONY: helm-push
 helm-push: helm-package ## Push the Helm chart to an OCI registry.

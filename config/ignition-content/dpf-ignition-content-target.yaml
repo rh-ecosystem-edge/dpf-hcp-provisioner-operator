@@ -1,0 +1,263 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dpf-ignition-content-target
+  namespace: dpf-hcp-provisioner-system
+data:
+  _index: |
+    files:
+      - name: devlink-activate.sh
+        path: /usr/local/bin/devlink-activate.sh
+        mode: 0755
+      - name: mlnx-bf.conf
+        path: /etc/mellanox/mlnx-bf.conf
+        mode: 0644
+      - name: mlnx-ovs.conf
+        path: /etc/mellanox/mlnx-ovs.conf
+        mode: 0644
+      - name: pf0vf0.nmconnection
+        path: /etc/NetworkManager/system-connections/pf0vf0.nmconnection
+        mode: 0600
+      - name: br-comm-ch.nmconnection
+        path: /etc/NetworkManager/system-connections/br-comm-ch.nmconnection
+        mode: 0600
+      - name: oob_net0.nmconnection
+        path: /etc/NetworkManager/system-connections/oob_net0.nmconnection
+        mode: 0600
+      - name: 99-ulimits.conf
+        path: /etc/crio/crio.conf.d/99-ulimits.conf
+        mode: 0644
+      - name: 98-dpunet.conf
+        path: /etc/sysctl.d/98-dpunet.conf
+        mode: 0644
+      - name: br_netfilter.conf
+        path: /etc/modules-load.d/br_netfilter.conf
+        mode: 0644
+      - name: openvswitch
+        path: /etc/sysconfig/openvswitch
+        mode: 0600
+      - name: dpf-configure-sfs.sh
+        path: /usr/local/bin/dpf-configure-sfs.sh
+        mode: 0755
+      - name: set-nvconfig-params.sh
+        path: /usr/local/bin/set-nvconfig-params.sh
+        mode: 0755
+    systemd:
+      - bootstrap-dpf.service
+      - devlink-activate.service
+      - firstboot-dpf-ovs.service
+      - set-nvconfig-params.service
+
+  devlink-activate.sh: |
+    #!/bin/bash
+
+    pcie_dev_list=$(lspci -Dd 15b3: | grep ConnectX | awk '{print $1}')
+
+    for dev in ${pcie_dev_list}; do
+      echo "activate devlink on dev ${dev}"
+      devlink dev eswitch set pci/${dev} mode switchdev
+    done
+    echo "Finished activating devlink"
+
+  mlnx-bf.conf: |
+
+    ALLOW_SHARED_RQ="no"
+    IPSEC_FULL_OFFLOAD="no"
+    ENABLE_ESWITCH_MULTIPORT="yes"
+
+  mlnx-ovs.conf: |
+
+    CREATE_OVS_BRIDGES="no"
+    OVS_DOCA="yes"
+
+  pf0vf0.nmconnection: |
+    [connection]
+    id=pf0vf0
+    type=ethernet
+    interface-name=pf0vf0
+    master=br-comm-ch
+    slave-type=bridge
+
+    [ethernet]
+
+    [bridge-port]
+
+  br-comm-ch.nmconnection: |
+    [connection]
+    id=br-comm-ch
+    type=bridge
+    interface-name=br-comm-ch
+    autoconnect-ports=1
+    autoconnect-slaves=1
+
+    [ethernet]
+    cloned-mac-address=stable
+
+    [bridge]
+    stp=false
+
+    [ipv4]
+    dhcp-client-id=mac
+    dhcp-timeout=2147483647
+    method=auto
+
+    [ipv6]
+    addr-gen-mode=eui64
+    dhcp-timeout=2147483647
+    method=disabled
+
+    [proxy]
+
+  oob_net0.nmconnection: |
+    [connection]
+    id=oob_net0
+    type=ethernet
+    interface-name=oob_net0
+    autoconnect=true
+
+    [ethernet]
+
+    [ipv4]
+    method=disabled
+
+    [ipv6]
+    method=disabled
+
+  99-ulimits.conf: |
+    [crio.runtime]
+    default_ulimits = [
+      "nofile=524288:524288"
+    ]
+
+  98-dpunet.conf: |
+
+    net.ipv4.ip_forward=1
+    net.bridge.bridge-nf-call-iptables=1
+    net.bridge.bridge-nf-call-ip6tables=1
+    net.ipv4.conf.all.rp_filter=2
+
+  br_netfilter.conf: |
+    br_netfilter
+
+  openvswitch: |
+    OVS_USER_ID="root:root"
+
+  dpf-configure-sfs.sh: |
+    #!/bin/bash
+    set -ex
+    CMD=$1
+    PF_TOTAL_SF=$2
+    PF_TRUSTED_SF=$3
+
+    case $CMD in
+        setup) ;;
+        *)
+        echo "invalid first argument. ./configure-sfs.sh {setup}"
+        exit 1
+        ;;
+    esac
+
+    set_GUID_for_SF() {
+        json_output=$(mlnx-sf -a show -j)
+
+        # Iterate over each key in the JSON result
+        echo "$json_output" | jq -c 'to_entries[]' | while read -r entry; do
+            key=$(echo "$entry" | jq -r '.key')
+            sf_netdev=$(echo "$entry" | jq -r '.value.sf_netdev')
+            aux_dev=$(echo "$entry" | jq -r '.value.aux_dev')
+
+            # Read the MAC address from the system file
+            mac_address=$(cat /sys/class/net/"$sf_netdev"/address)
+
+            # Update the MAC address using mlxdevm
+            /opt/mellanox/iproute2/sbin/mlxdevm port function set "$key" hw_addr "$mac_address"
+
+            # Unbind and bind the auxiliary device
+            echo "$aux_dev" > /sys/bus/auxiliary/devices/"$aux_dev"/driver/unbind
+            echo "$aux_dev" > /sys/bus/auxiliary/drivers/mlx5_core.sf/bind
+        done
+    }
+
+    if [ "$CMD" = "setup" ]; then
+        # Create SF on P0 for SFC
+        # System SF(index 0) has been removed, so DPF will create SF from index 0
+        for i in $(seq 0 $((PF_TOTAL_SF - 1 - $PF_TRUSTED_SF))); do
+            # Create SFs with random mac, kernel will allocate random MAC for SF netdev
+            /sbin/mlnx-sf --action create --device 0000:03:00.0 --sfnum ${i} || true
+        done
+
+        for i in $(seq 101 $((100 + $PF_TRUSTED_SF))); do
+            /sbin/mlnx-sf --action create --device 0000:03:00.0 --sfnum ${i} -t || true
+        done
+
+        set_GUID_for_SF
+    fi
+
+  set-nvconfig-params.sh: |
+    #!/bin/bash
+    set -e
+    for dev in /dev/mst/*; do
+      echo "set NVConfig on dev ${dev}"
+      mlxconfig -d ${dev} -y set $@
+    done
+    echo "Finished setting nvconfig parameters"
+
+  bootstrap-dpf.service: |
+    [Unit]
+    Description=Create SFs for DPF
+    After=network.target
+    Before=kubelet.service
+    ConditionPathExists=/etc/mlnx-release
+
+    [Service]
+    Type=oneshot
+    EnvironmentFile=/etc/bf.env
+    ExecStart=/bin/bash /usr/local/bin/dpf-configure-sfs.sh setup "$DPF_SF_NUM" "$DPF_TRUSTED_SFS"
+
+    [Install]
+    WantedBy=multi-user.target
+
+  devlink-activate.service: |
+    [Unit]
+    Description=Activate devlink
+    Before=network-pre.target
+    # Don't start if this file exists:
+    ConditionPathExists=!/etc/mlnx-release
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/devlink-activate.sh
+
+    [Install]
+    WantedBy=multi-user.target
+
+  firstboot-dpf-ovs.service: |
+    [Unit]
+    Description=DPF OVS setup for first boot
+    After=network.target
+    ConditionPathExists=/etc/mlnx-release
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/dpf-ovs-script.sh
+    RemainAfterExit=true
+    ConditionFirstBoot=true
+
+    [Install]
+    WantedBy=multi-user.target
+
+  set-nvconfig-params.service: |
+    [Unit]
+    Description=Set firmware properties
+    After=network.target
+    ConditionPathExists=/etc/mlnx-release
+
+    [Service]
+    Type=oneshot
+    EnvironmentFile=/etc/bf.env
+    ExecStart=/usr/local/bin/set-nvconfig-params.sh "$NVCONFIG_PARAMS"
+    RemainAfterExit=yes
+
+    [Install]
+    WantedBy=sysinit.target

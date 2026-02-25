@@ -46,6 +46,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/ignition"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/metallb"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
@@ -244,17 +245,27 @@ func main() {
 	// Initialize MetalLB Manager
 	metalLBManager := metallb.NewMetalLBManager(client, recorder)
 
+	// Initialize Ignition Manager and Reconciler
+	ignitionManager := ignition.NewIgnitionManager(client, recorder)
+	ignitionReconciler := &ignition.IgnitionReconciler{
+		Client:   client,
+		Recorder: recorder,
+		Manager:  ignitionManager,
+	}
+
 	// Initialize Finalizer Manager with pluggable cleanup handlers
 	// Handlers are executed in registration order
 	finalizerManager := finalizer.NewManager(client, recorder)
 
 	// Register cleanup handlers in order (dependent resources first, dependencies last)
-	// 1. Kubeconfig injection cleanup (removes kubeconfig from DPUCluster namespace)
+	// 1. Ignition cleanup (removes custom-bfb.cfg before kubeconfig and HostedCluster cleanup)
+	finalizerManager.RegisterHandler(ignition.NewCleanupHandler(client, recorder))
+	// 2. Kubeconfig injection cleanup (removes kubeconfig from DPUCluster namespace)
 	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(client, recorder))
-	// 2. HostedCluster cleanup (removes HostedCluster, NodePool, services, and secrets)
+	// 3. HostedCluster cleanup (removes HostedCluster, NodePool, services, and secrets)
 	//    Must run before MetalLB cleanup because LoadBalancer services depend on IPAddressPool
 	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(client, recorder))
-	// 3. MetalLB cleanup (removes IPAddressPool and L2Advertisement)
+	// 4. MetalLB cleanup (removes IPAddressPool and L2Advertisement)
 	//    Must run after HostedCluster cleanup to avoid deleting IPs while services still exist
 	finalizerManager.RegisterHandler(metallb.NewCleanupHandler(client, recorder))
 
@@ -275,6 +286,7 @@ func main() {
 		FinalizerManager:     finalizerManager,
 		StatusSyncer:         statusSyncer,
 		KubeconfigInjector:   kubeconfigInjector,
+		IgnitionReconciler:   ignitionReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DPFHCPProvisioner")
 		os.Exit(1)

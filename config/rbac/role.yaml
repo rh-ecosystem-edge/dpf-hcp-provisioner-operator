@@ -8,10 +8,12 @@ rules:
   - ""
   resources:
   - configmaps
-  - nodes
   verbs:
+  - create
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -26,6 +28,14 @@ rules:
   - namespaces
   verbs:
   - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
   - get
   - list
   - watch
@@ -121,4 +131,12 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - provisioning.dpu.nvidia.com
+  resources:
+  - dpuflavors
+  verbs:
+  - get
+  - list
   - watch

@@ -1,0 +1,230 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dpf-ignition-content-live
+  namespace: dpf-hcp-provisioner-system
+data:
+  _index: |
+    files:
+      - name: temp_bfcfg_strings.env
+        path: /etc/temp_bfcfg_strings.env
+        mode: 0644
+      - name: set-nvconfig-params-mst.sh
+        path: /usr/local/bin/set-nvconfig-params-mst.sh
+        mode: 0755
+      - name: install-rhcos-dpf.sh
+        path: /usr/local/bin/install-rhcos-dpf.sh
+        mode: 0755
+      - name: update_ignition.py
+        path: /usr/local/bin/update_ignition.py
+        mode: 0755
+    systemd:
+      - bfenv.service
+      - install-rhcos-dpf.service
+      - set-nvconfig-params-mst.service
+
+  temp_bfcfg_strings.env: |
+    bfb_pre_install bfb_modify_os bfb_post_install
+
+  set-nvconfig-params-mst.sh: |
+    #!/bin/bash
+    set -e
+
+    pcie_dev_list=$(lspci -d 15b3: | grep ConnectX | awk '{print $1}')
+
+    for dev in ${pcie_dev_list}; do
+      echo "set NVConfig on dev ${dev}"
+      mstconfig -d ${dev} -y set $@
+    done
+    echo "Finished setting nvconfig parameters"
+
+  install-rhcos-dpf.sh: |
+    #!/bin/bash
+
+    # TODO: Implement rshim logging
+    log() {
+        msg="[$(date +%H:%M:%S)] $*"
+        echo "$msg"
+        echo "$msg" >/dev/kmsg
+        /usr/local/bin/bflog.sh "$msg"
+    }
+
+    IGNITION_FILE="/var/target.ign"
+    source /etc/bf.env
+
+    default_device=/dev/mmcblk0
+    if [ -b /dev/nvme0n1 ]; then
+        default_device="/dev/$(
+            cd /sys/block
+            /bin/ls -1d nvme* | sort -n | tail -1
+        )"
+    fi
+    device=${device:-"$default_device"}
+
+    validate_ignition() {
+        if [[ -f "$IGNITION_FILE" ]]; then
+            log "INFO: Ignition file found at $IGNITION_FILE"
+            if ! jq -e . "$IGNITION_FILE" >/dev/null 2>&1; then
+                log "ERROR: Ignition file is not a valid JSON."
+                exit 1
+            fi
+        else
+            log "ERROR: Ignition file is missing, skipping installation."
+            exit 1
+        fi
+    }
+
+    update_ignition() {
+        /usr/local/bin/update_ignition.py $IGNITION_FILE
+        if [ $? -ne 0 ]; then
+            log "ERROR: Failed to update ignition file."
+            exit 1
+        fi
+    }
+
+    setup_RHCOS_EFI_record() {
+        # Delete all previous Red Hat CoreOS EFI records
+        while efibootmgr -v | grep -q "Red-Hat CoreOS GRUB"; do
+            BOOTNUM=$(efibootmgr -v | grep "Red-Hat CoreOS GRUB" | awk '{print $1}' | sed 's/Boot\(....\)\*$/\1/' | head -n1)
+            if [[ -n "$BOOTNUM" ]]; then
+                efibootmgr -b "$BOOTNUM" -B
+                log "INFO: Deleted previous RHCOS EFI record Boot$BOOTNUM"
+            else
+                break
+            fi
+        done
+
+        efibootmgr -c -d "$device" -p 2 -l '\EFI\redhat\shimaa64.efi' -L "Red-Hat CoreOS GRUB"
+        log "INFO: Created new RHCOS EFI record."
+    }
+
+    install_rhcos() {
+        log "INFO: Installing Red Hat CoreOS on $device with ignition file $IGNITION_FILE"
+
+        coreos-installer install "$device" \
+            --append-karg "console=hvc0 console=ttyAMA0 earlycon=pl011,0x13010000 ignore_loglevel modprobe.blacklist=mlxbf_pmc $KERNEL_PARAMETERS" \
+            --ignition-file "$IGNITION_FILE" \
+            --offline
+
+        if [ $? -ne 0 ]; then
+            log "ERROR: Failed to install Red Hat CoreOS."
+            exit 1
+        fi
+
+        sync
+    }
+
+    validate_ignition
+    update_ignition
+    install_rhcos
+    setup_RHCOS_EFI_record
+    sync
+
+    log "INFO: Installation complete, waiting for 10 seconds before signaling"
+    sleep 10
+
+    # Hack to skip a reboot after installation
+    for i in {1..3}; do
+        /usr/local/bin/bfupsignal.sh
+        sleep 120
+    done
+
+  update_ignition.py: |
+    #!/usr/bin/python3
+
+    import base64
+    import json
+    import sys
+
+    IGNITION_FILE = sys.argv[1]
+    BF_ENV = "/etc/bf.env"
+
+
+    env = {}
+    with open(BF_ENV) as f:
+        for line in f:
+            line = line.strip()
+            if line and '=' in line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                env[key] = value
+
+    ignition = json.load(open(IGNITION_FILE))
+
+    ignition['storage']['files'].append({
+        'path': '/etc/bf.env',
+        'overwrite': True,
+        'mode': 420,
+        'contents': {
+            'source': 'data:text/plain;charset=utf-8;base64,' + base64.b64encode(open(BF_ENV).read().encode()).decode()
+        }
+    })
+
+    hostname: str = env['HOSTNAME']
+
+    ignition['storage']['files'].append({
+        'path': '/etc/hostname',
+        'overwrite': True,
+        'mode': 420,
+        'contents': {
+            'source': 'data:,' + env['HOSTNAME'].strip('"')
+        }
+    })
+
+    with open(IGNITION_FILE, 'w') as f:
+        json.dump(ignition, f, indent=4)
+
+  bfenv.service: |
+    [Unit]
+    Description=set bf.env
+    DefaultDependencies=no
+    Before=network-pre.target install-rhcos-dpf.service
+
+    [Service]
+    Type=oneshot
+    ExecStart=/bin/bash -c 'printf "HOSTNAME=\\\"%%s\\\"\nKERNEL_PARAMETERS=\\\"%%s\\\"\nNVCONFIG_PARAMS=\\\"%%s\\\"\nDPF_SF_NUM=\\\"%%s\\\"\nDPF_TRUSTED_SFS=\\\"%%s\\\"\n" \
+    "{{.DPUHostName}}" \
+    "{{.KernelParameters}}" \
+    "{{.NVConfigParams}}" \
+    "{{.SFNum}}" \
+    "{{.TrustedSFs}}" \
+    > /etc/bf.env'
+
+    [Install]
+    WantedBy=multi-user.target
+
+  install-rhcos-dpf.service: |
+    [Unit]
+    Description=Install RHCOS
+    After=multi-user.target
+    ConditionKernelCommandLine=initrd=initramfs
+    SuccessExitStatus=0
+    SuccessAction=reboot-force
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/install-rhcos-dpf.sh
+    RemainAfterExit=yes
+    TimeoutSec=0
+    StandardInput=null
+    StandardOutput=journal+console
+    StandardError=journal+console
+    TTYPath=/dev/hvc0
+
+    [Install]
+    WantedBy=multi-user.target
+
+  set-nvconfig-params-mst.service: |
+    [Unit]
+    Description=Set firmware properties
+    After=network.target bfenv.service
+    Before=install-rhcos-dpf.service
+
+    [Service]
+    Type=oneshot
+    EnvironmentFile=/etc/bf.env
+    ExecStart=/usr/local/bin/set-nvconfig-params-mst.sh "$NVCONFIG_PARAMS"
+    RemainAfterExit=yes
+
+    [Install]
+    WantedBy=sysinit.target

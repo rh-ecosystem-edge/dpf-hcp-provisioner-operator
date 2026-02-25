@@ -130,6 +130,19 @@ type DPFHCPProvisionerSpec struct {
 	// +immutable
 	// +optional
 	FlannelEnabled *bool `json:"flannelEnabled,omitempty"`
+
+	// MachineOSURL is the machine OS URL embedded in the target ignition.
+	// +optional
+	MachineOSURL string `json:"machineOSURL,omitempty"`
+
+	// MTU9000 enables MTU 9000 network configuration in the ignition.
+	// +optional
+	MTU9000 bool `json:"mtu9000,omitempty"`
+
+	// Flavor is the name of the DPUFlavor object (in dpf-operator-system namespace) whose OVS
+	// configuration script will be embedded in the target ignition.
+	// +optional
+	Flavor string `json:"flavor,omitempty"`
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
@@ -210,6 +223,10 @@ const (
 	// MetalLBConfigured indicates whether MetalLB resources (IPAddressPool and L2Advertisement)
 	// have been successfully created and are in sync with the DPFHCPProvisioner spec.
 	MetalLBConfigured string = "MetalLBConfigured"
+
+	// IgnitionConfigured indicates whether the two-stage DPU ignition config has been generated
+	// and written to the custom-bfb.cfg ConfigMap.
+	IgnitionConfigured string = "IgnitionConfigured"
 )
 
 // Condition reasons for DPFHCPProvisioner Ready status.

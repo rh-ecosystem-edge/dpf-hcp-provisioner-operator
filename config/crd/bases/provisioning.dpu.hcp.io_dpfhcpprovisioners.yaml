@@ -121,6 +121,19 @@ spec:
                 x-kubernetes-validations:
                 - message: flannelEnabled is immutable
                   rule: self == oldSelf
+              flavor:
+                description: |-
+                  Flavor is the name of the DPUFlavor object (in dpf-operator-system namespace) whose OVS
+                  configuration script will be embedded in the target ignition.
+                type: string
+              machineOSURL:
+                description: MachineOSURL is the machine OS URL embedded in the target
+                  ignition.
+                type: string
+              mtu9000:
+                description: MTU9000 enables MTU 9000 network configuration in the
+                  ignition.
+                type: boolean
               nodeSelector:
                 additionalProperties:
                   type: string

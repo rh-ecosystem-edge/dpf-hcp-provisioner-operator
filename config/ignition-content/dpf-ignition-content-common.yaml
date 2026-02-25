@@ -1,0 +1,77 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dpf-ignition-content-common
+  namespace: dpf-hcp-provisioner-system
+data:
+  _index: |
+    files:
+      - name: 10-tmfifo_net.link
+        path: /etc/systemd/network/10-tmfifo_net.link
+        mode: 0644
+      - name: tmfifo_net0.nmconnection
+        path: /etc/NetworkManager/system-connections/tmfifo_net0.nmconnection
+        mode: 0600
+      - name: bflog.sh
+        path: /usr/local/bin/bflog.sh
+        mode: 0755
+      - name: bfupsignal.sh
+        path: /usr/local/bin/bfupsignal.sh
+        mode: 0755
+    systemd: []
+
+  10-tmfifo_net.link: |
+    [Match]
+    Path=platform-MLNXBF01:00
+    Driver=virtio_net
+
+    [Link]
+    Name=tmfifo_net0
+    NamePolicy=
+
+  tmfifo_net0.nmconnection: |
+    [connection]
+    id=tmfifo_net0
+    type=ethernet
+    interface-name=tmfifo_net0
+    autoconnect=true
+
+    [ethernet]
+
+    [ipv4]
+    method=manual
+    address1=192.168.100.2/24
+    never-default=true
+
+    [ipv6]
+    method=ignore
+
+  bflog.sh: |
+    #!/bin/bash
+    # adapted from mellanox bfscripts
+
+    rshlog_path="/sys/devices/platform/MLNXBF04:00/driver/rsh_log"
+    if [ ! -e "${rshlog_path}" ]; then
+      rshlog_path="/sys/devices/platform/MLNXBF04:00/rsh_log"
+    fi
+
+    [ ! -e "${rshlog_path}" ] && exit
+
+    echo "$*" >"${rshlog_path}"
+
+  bfupsignal.sh: |
+    #!/bin/bash
+    # adapted from mellanox bfscripts
+
+    /usr/local/bin/bflog.sh "Linux up"
+    /usr/local/bin/bflog.sh "DPU is ready"
+
+    os_up_path="/sys/devices/platform/MLNXBF04:00/driver/os_up"
+    if [ ! -e "${os_up_path}" ]; then
+      os_up_path="/sys/devices/platform/MLNXBF04:00/os_up"
+    fi
+
+    [ ! -e "${os_up_path}" ] && exit
+
+    echo 1 >"${os_up_path}"
