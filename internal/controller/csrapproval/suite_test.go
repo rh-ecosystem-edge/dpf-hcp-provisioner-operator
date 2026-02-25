@@ -22,14 +22,19 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	kubefake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var (
-	k8sClient client.Client
-	scheme    *runtime.Scheme
+	k8sClient     client.Client
+	fakeClientset kubernetes.Interface
+	scheme        *runtime.Scheme
 )
 
 func TestCSRApproval(t *testing.T) {
@@ -45,4 +50,19 @@ var _ = BeforeSuite(func() {
 
 	// Create fake client for tests
 	k8sClient = fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	// Create fake Kubernetes clientset for node operations
+	fakeClientset = kubefake.NewSimpleClientset()
 })
+
+// createFakeNode creates a fake Kubernetes Node object for testing
+func createFakeNode(name string) *corev1.Node {
+	return &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Status: corev1.NodeStatus{
+			Phase: corev1.NodeRunning,
+		},
+	}
+}

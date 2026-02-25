@@ -51,32 +51,48 @@ func NewValidator(mgmtClient client.Client, hostedClient kubernetes.Interface, d
 
 // ValidateCSROwner validates CSR ownership by checking:
 // 1. DPU object with matching hostname exists in management cluster (ownership check)
-// 2. For bootstrap CSRs: Allow regardless of Node existence (supports certificate recovery)
-// 3. For serving CSRs: Node MUST exist (already joined via bootstrap)
+// 2. DPU is in the correct phase for CSR approval (security check - time-limited window)
+// 3. For bootstrap CSRs: DPU must be in "DPU Cluster Config" phase (joining cluster)
+// 4. For serving CSRs: DPU must be in "DPU Cluster Config" OR "Ready" phase.
 func (v *Validator) ValidateCSROwner(ctx context.Context, hostname string, isBootstrapCSR bool) (*ValidationResult, error) {
-	// Check if DPU exists in management cluster (ownership validation)
-	dpuExists, err := v.dpuExists(ctx, hostname)
+	// Check if DPU exists and get its phase
+	dpu, err := v.getDPU(ctx, hostname)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check DPU existence: %w", err)
+		return nil, fmt.Errorf("failed to get DPU: %w", err)
 	}
 
-	if !dpuExists {
+	if dpu == nil {
 		return &ValidationResult{
 			Valid:  false,
 			Reason: fmt.Sprintf("no matching DPU found for hostname %s in namespace %s", hostname, v.dpuNamespace),
 		}, nil
 	}
 
+	// Validate DPU phase for CSR approval (security: time-limited approval window)
 	if isBootstrapCSR {
-		// Bootstrap CSR: Allow if DPU exists (regardless of Node state)
-		// This supports both initial join and certificate recovery scenarios
+		// Bootstrap CSR: Only approve during "DPU Cluster Config" phase (node is joining)
+		// CSRs can only be approved when the DPU is actively being provisioned
+		if dpu.Status.Phase != dpuprovisioningv1alpha1.DPUClusterConfig {
+			return &ValidationResult{
+				Valid:  false,
+				Reason: fmt.Sprintf("DPU %s is in phase %s, bootstrap CSRs only approved in phase %s", hostname, dpu.Status.Phase, dpuprovisioningv1alpha1.DPUClusterConfig),
+			}, nil
+		}
 		return &ValidationResult{
 			Valid:  true,
-			Reason: "DPU exists, bootstrap CSR approved",
+			Reason: fmt.Sprintf("DPU in %s phase, bootstrap CSR approved", dpuprovisioningv1alpha1.DPUClusterConfig),
 		}, nil
 	}
 
-	// Serving CSR: Verify Node exists (should have joined via bootstrap CSR)
+	// Serving CSR: Allow in "DPU Cluster Config" or "Ready"
+	if dpu.Status.Phase != dpuprovisioningv1alpha1.DPUClusterConfig && dpu.Status.Phase != dpuprovisioningv1alpha1.DPUReady {
+		return &ValidationResult{
+			Valid:  false,
+			Reason: fmt.Sprintf("DPU %s is in phase %s, serving CSRs only approved in phases %s or %s", hostname, dpu.Status.Phase, dpuprovisioningv1alpha1.DPUClusterConfig, dpuprovisioningv1alpha1.DPUReady),
+		}, nil
+	}
+
+	// For serving CSRs, also verify Node exists (should have joined via bootstrap CSR)
 	nodeExists, err := v.nodeExists(ctx, hostname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check Node existence: %w", err)
@@ -91,24 +107,24 @@ func (v *Validator) ValidateCSROwner(ctx context.Context, hostname string, isBoo
 
 	return &ValidationResult{
 		Valid:  true,
-		Reason: "DPU exists and node already joined",
+		Reason: fmt.Sprintf("DPU in %s phase and node exists, serving CSR approved", dpu.Status.Phase),
 	}, nil
 }
 
-// dpuExists checks if a DPU with the given hostname exists in the management cluster
-func (v *Validator) dpuExists(ctx context.Context, hostname string) (bool, error) {
+// getDPU retrieves a DPU object by hostname from the management cluster
+func (v *Validator) getDPU(ctx context.Context, hostname string) (*dpuprovisioningv1alpha1.DPU, error) {
 	dpuList := &dpuprovisioningv1alpha1.DPUList{}
 	if err := v.mgmtClient.List(ctx, dpuList, client.InNamespace(v.dpuNamespace)); err != nil {
-		return false, err
+		return nil, err
 	}
 
-	for _, dpu := range dpuList.Items {
-		if dpu.Name == hostname {
-			return true, nil
+	for i := range dpuList.Items {
+		if dpuList.Items[i].Name == hostname {
+			return &dpuList.Items[i], nil
 		}
 	}
 
-	return false, nil
+	return nil, nil
 }
 
 // nodeExists checks if a Node with the given hostname exists in the hosted cluster

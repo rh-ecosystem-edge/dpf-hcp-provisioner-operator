@@ -65,9 +65,9 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 				validator := NewValidator(mgmtClient, nil, dpuNamespace)
 
 				// Check if DPU exists
-				exists, err := validator.dpuExists(ctx, testHostname)
+				dpu, err := validator.getDPU(ctx, testHostname)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(exists).To(BeTrue())
+				Expect(dpu).NotTo(BeNil())
 			})
 		})
 
@@ -78,9 +78,9 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 				validator := NewValidator(mgmtClient, nil, dpuNamespace)
 
 				// Check if DPU exists
-				exists, err := validator.dpuExists(ctx, testHostname)
+				dpu, err := validator.getDPU(ctx, testHostname)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(exists).To(BeFalse())
+				Expect(dpu).To(BeNil())
 			})
 
 			It("should not find DPU in different namespace", func() {
@@ -103,9 +103,9 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 				validator := NewValidator(mgmtClient, nil, dpuNamespace)
 
 				// Check if DPU exists in test namespace (should not find it)
-				exists, err := validator.dpuExists(ctx, testHostname)
+				dpu, err := validator.getDPU(ctx, testHostname)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(exists).To(BeFalse())
+				Expect(dpu).To(BeNil())
 			})
 
 			It("should not find DPU with different name", func() {
@@ -128,9 +128,9 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 				validator := NewValidator(mgmtClient, nil, dpuNamespace)
 
 				// Check if DPU exists with test hostname (should not match)
-				exists, err := validator.dpuExists(ctx, testHostname)
+				dpu, err := validator.getDPU(ctx, testHostname)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(exists).To(BeFalse())
+				Expect(dpu).To(BeNil())
 			})
 		})
 
@@ -183,9 +183,229 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 				validator := NewValidator(mgmtClient, nil, dpuNamespace)
 
 				// Check if DPU exists (should find dpu-2 by matching object name)
-				exists, err := validator.dpuExists(ctx, testHostname)
+				dpu, err := validator.getDPU(ctx, testHostname)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(exists).To(BeTrue())
+				Expect(dpu).NotTo(BeNil())
+			})
+		})
+	})
+
+	Describe("Bootstrap CSR Phase Validation", func() {
+		Context("when DPU is in DPU Cluster Config phase", func() {
+			It("should approve bootstrap CSR", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUClusterConfig, // Correct phase
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				// Use nil for hostedClient - bootstrap CSRs don't check node existence
+				validator := NewValidator(mgmtClient, nil, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, true /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeTrue())
+				Expect(result.Reason).To(ContainSubstring("DPU Cluster Config"))
+			})
+		})
+
+		Context("when DPU is in Ready phase", func() {
+			It("should reject bootstrap CSR", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUReady, // Wrong phase for bootstrap
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				validator := NewValidator(mgmtClient, nil, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, true /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeFalse())
+				Expect(result.Reason).To(ContainSubstring("bootstrap CSRs only approved in phase"))
+			})
+		})
+
+		Context("when DPU is in Initializing phase", func() {
+			It("should reject bootstrap CSR", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUInitializing, // Too early
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				validator := NewValidator(mgmtClient, nil, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, true /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("Serving CSR Phase Validation", func() {
+		Context("when DPU is in DPU Cluster Config phase", func() {
+			It("should approve serving CSR for initial node join", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUClusterConfig, // Correct phase for initial join
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				// Create fake node in hosted cluster to pass node existence check
+				fakeNode := createFakeNode(testHostname)
+				_, err := fakeClientset.CoreV1().Nodes().Create(ctx, fakeNode, metav1.CreateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				DeferCleanup(func() {
+					_ = fakeClientset.CoreV1().Nodes().Delete(ctx, testHostname, metav1.DeleteOptions{})
+				})
+
+				// For serving CSRs, we need a hostedClient to check node existence
+				validator := NewValidator(mgmtClient, fakeClientset, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, false /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeTrue())
+				Expect(result.Reason).To(ContainSubstring("node exists"))
+			})
+		})
+
+		Context("when DPU is in Ready phase", func() {
+			It("should approve serving CSR", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUReady,
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				// Create fake node in hosted cluster to pass node existence check
+				fakeNode := createFakeNode(testHostname)
+				_, err := fakeClientset.CoreV1().Nodes().Create(ctx, fakeNode, metav1.CreateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				DeferCleanup(func() {
+					_ = fakeClientset.CoreV1().Nodes().Delete(ctx, testHostname, metav1.DeleteOptions{})
+				})
+
+				// For serving CSRs, we need a hostedClient to check node existence
+				validator := NewValidator(mgmtClient, fakeClientset, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, false /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeTrue())
+				Expect(result.Reason).To(ContainSubstring("node exists"))
+			})
+		})
+
+		Context("when DPU is in Initializing phase", func() {
+			It("should reject serving CSR", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUInitializing, // Wrong phase
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				validator := NewValidator(mgmtClient, nil, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, false /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeFalse())
+				Expect(result.Reason).To(ContainSubstring("serving CSRs only approved in phases"))
+			})
+		})
+
+		Context("when DPU is in Ready phase but node does not exist", func() {
+			It("should reject serving CSR", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUReady,
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				// Don't create node - this simulates node doesn't exist yet
+
+				validator := NewValidator(mgmtClient, fakeClientset, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, false /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeFalse())
+				Expect(result.Reason).To(ContainSubstring("does not exist yet"))
 			})
 		})
 	})
