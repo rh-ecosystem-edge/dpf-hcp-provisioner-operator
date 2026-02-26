@@ -245,7 +245,7 @@ func (m *IgnitionManager) findToken(ctx context.Context, namespace, clusterName 
 }
 
 // fetchIgnition fetches the ignition JSON from the HyperShift ignition endpoint.
-func (m *IgnitionManager) fetchIgnition(ctx context.Context, endpoint, token string) (*Ignition, error) {
+func (m *IgnitionManager) fetchIgnition(ctx context.Context, endpoint, token string) (ign *Ignition, err error) {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // ignition endpoint uses self-signed cert
@@ -264,7 +264,12 @@ func (m *IgnitionManager) fetchIgnition(ctx context.Context, endpoint, token str
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", reqURL, err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("response body close: %w", cerr)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -274,11 +279,10 @@ func (m *IgnitionManager) fetchIgnition(ctx context.Context, endpoint, token str
 		return nil, fmt.Errorf("unexpected status %d from %s: %s", resp.StatusCode, reqURL, string(body))
 	}
 
-	var ign Ignition
 	if err := json.Unmarshal(body, &ign); err != nil {
 		return nil, fmt.Errorf("unmarshaling ignition response: %w", err)
 	}
-	return &ign, nil
+	return ign, nil
 }
 
 // setCondition updates the IgnitionConfigured condition on the DPFHCPProvisioner CR.

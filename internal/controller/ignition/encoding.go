@@ -67,7 +67,7 @@ func EncodeGzipFile(content []byte) FileContents {
 }
 
 // decodeGzipFile decodes a gzip+base64 encoded FileContents back to raw bytes.
-func decodeGzipFile(fc FileContents) ([]byte, error) {
+func decodeGzipFile(fc FileContents) (data []byte, err error) {
 	src := fc.Source
 	const prefix = "data:;base64,"
 	if !strings.HasPrefix(src, prefix) {
@@ -81,12 +81,18 @@ func decodeGzipFile(fc FileContents) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("gzip reader: %w", err)
 	}
-	defer r.Close()
+
+	defer func() {
+		if cerr := r.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("gzip close: %w", cerr)
+		}
+	}()
+
 	return io.ReadAll(r)
 }
 
 // DecodeIgnition decodes a gzip+base64 encoded ignition string back to an Ignition struct.
-func DecodeIgnition(encoded string) (*Ignition, error) {
+func DecodeIgnition(encoded string) (ign *Ignition, err error) {
 	data, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode: %w", err)
@@ -95,12 +101,17 @@ func DecodeIgnition(encoded string) (*Ignition, error) {
 	if err != nil {
 		return nil, fmt.Errorf("gzip reader: %w", err)
 	}
-	defer r.Close()
-	var ign Ignition
+
+	defer func() {
+		if cerr := r.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("gzip close: %w", cerr)
+		}
+	}()
+
 	if err := json.NewDecoder(r).Decode(&ign); err != nil {
 		return nil, fmt.Errorf("json decode: %w", err)
 	}
-	return &ign, nil
+	return ign, nil
 }
 
 // octalToDecimal converts an integer whose digits are in octal notation to a decimal integer.
