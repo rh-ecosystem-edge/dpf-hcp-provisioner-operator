@@ -26,6 +26,8 @@ spec:
     value: quay.io/redhat-user-workloads/dpf-hcp-provisioner-tenant/dpf-hcp-provisioner:{{revision}}
   - name: dockerfile
     value: Dockerfile
+  - name: additional-tags
+    value: [ "latest" ]
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -510,6 +512,9 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_URL)
       - name: IMAGE_DIGEST
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
+      - name: ADDITIONAL_TAGS
+        value:
+          - $(params.additional-tags)
       runAfter:
       - build-image-index
       taskRef:
