@@ -2,6 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# Override the chart name used in app.kubernetes.io/name labels
+nameOverride: dpf-hcp-provisioner-operator
+
 # Operator image configuration
 image:
   # Repository for the operator image
