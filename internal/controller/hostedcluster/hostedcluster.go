@@ -212,16 +212,7 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 
 			// Capabilities: Disable optional cluster capabilities
 			// These capabilities are disabled to reduce resource consumption in DPU environments
-			Capabilities: &hyperv1.Capabilities{
-				Disabled: []hyperv1.OptionalCapability{
-					"ImageRegistry",
-					"Insights",
-					"Console",
-					"openshift-samples",
-					"Ingress",
-					"NodeTuning",
-				},
-			},
+			Capabilities: buildCapabilities(cr),
 
 			// NodeSelector: Schedule control plane pods based on user preference
 			// Default: control-plane nodes
@@ -232,19 +223,63 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 	return hc
 }
 
+var defaultDisabledCapabilities = []hyperv1.OptionalCapability{
+	"ImageRegistry",
+	"Insights",
+	"Console",
+	"openshift-samples",
+	"Ingress",
+	"NodeTuning",
+}
+
+// buildCapabilities constructs the Capabilities spec from DPFHCPProvisioner fields.
+// When DisabledCapabilities is nil, the default list of disabled capabilities is used.
+// When DisabledCapabilities is an empty list, no capabilities are disabled (returns nil).
+func buildCapabilities(cr *provisioningv1alpha1.DPFHCPProvisioner) *hyperv1.Capabilities {
+	disabled := defaultDisabledCapabilities
+	if cr.Spec.DisabledCapabilities != nil {
+		disabled = *cr.Spec.DisabledCapabilities
+	}
+	if len(disabled) == 0 {
+		return nil
+	}
+	return &hyperv1.Capabilities{
+		Disabled: disabled,
+	}
+}
+
 // buildNetworking constructs the ClusterNetworking spec from DPFHCPProvisioner fields.
-// When FlannelEnabled is nil (default) or true, AllocateNodeCIDRs is set to Enabled so that
-// kube-controller-manager manages node CIDR allocation as required by Flannel.
+// User-provided networking values override the defaults. When FlannelEnabled is nil (default)
+// or true, AllocateNodeCIDRs is set to Enabled so that kube-controller-manager manages
+// node CIDR allocation as required by Flannel.
 func buildNetworking(cr *provisioningv1alpha1.DPFHCPProvisioner) hyperv1.ClusterNetworking {
+	// Defaults
+	serviceNetwork := []hyperv1.ServiceNetworkEntry{
+		{CIDR: *ipnet.MustParseCIDR("172.31.0.0/16")},
+	}
+	clusterNetwork := []hyperv1.ClusterNetworkEntry{
+		{CIDR: *ipnet.MustParseCIDR("10.132.0.0/14")},
+	}
+	machineNetwork := []hyperv1.MachineNetworkEntry{}
+
+	// Override with user-provided values
+	if cr.Spec.Networking != nil {
+		if len(cr.Spec.Networking.ServiceNetwork) > 0 {
+			serviceNetwork = cr.Spec.Networking.ServiceNetwork
+		}
+		if len(cr.Spec.Networking.ClusterNetwork) > 0 {
+			clusterNetwork = cr.Spec.Networking.ClusterNetwork
+		}
+		if len(cr.Spec.Networking.MachineNetwork) > 0 {
+			machineNetwork = cr.Spec.Networking.MachineNetwork
+		}
+	}
+
 	networking := hyperv1.ClusterNetworking{
-		NetworkType: hyperv1.Other,
-		ServiceNetwork: []hyperv1.ServiceNetworkEntry{
-			{CIDR: *ipnet.MustParseCIDR("172.31.0.0/16")},
-		},
-		ClusterNetwork: []hyperv1.ClusterNetworkEntry{
-			{CIDR: *ipnet.MustParseCIDR("10.132.0.0/14")},
-		},
-		MachineNetwork: []hyperv1.MachineNetworkEntry{},
+		NetworkType:    hyperv1.Other,
+		ServiceNetwork: serviceNetwork,
+		ClusterNetwork: clusterNetwork,
+		MachineNetwork: machineNetwork,
 	}
 
 	if cr.Spec.FlannelEnabled == nil || *cr.Spec.FlannelEnabled {
