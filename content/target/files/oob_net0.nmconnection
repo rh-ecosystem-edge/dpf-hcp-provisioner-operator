@@ -1,0 +1,13 @@
+[connection]
+id=oob_net0
+type=ethernet
+interface-name=oob_net0
+autoconnect=true
+
+[ethernet]
+
+[ipv4]
+method=disabled
+
+[ipv6]
+method=disabled

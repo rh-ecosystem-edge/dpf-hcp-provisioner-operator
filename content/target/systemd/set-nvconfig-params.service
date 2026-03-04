@@ -1,0 +1,13 @@
+[Unit]
+Description=Set firmware properties
+After=network.target
+ConditionPathExists=/etc/mlnx-release
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/bf.env
+ExecStart=/usr/local/bin/set-nvconfig-params.sh "$NVCONFIG_PARAMS"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

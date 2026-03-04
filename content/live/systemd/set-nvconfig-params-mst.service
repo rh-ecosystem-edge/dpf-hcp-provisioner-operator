@@ -1,0 +1,13 @@
+[Unit]
+Description=Set firmware properties
+After=network.target bfenv.service
+Before=install-rhcos-dpf.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/bf.env
+ExecStart=/usr/local/bin/set-nvconfig-params-mst.sh "$NVCONFIG_PARAMS"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

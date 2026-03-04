@@ -36,6 +36,19 @@ type DPUClusterReference struct {
 	Namespace string `json:"namespace"`
 }
 
+// DPUDeploymentReference defines a cross-namespace reference to a DPUDeployment CR
+type DPUDeploymentReference struct {
+	// Name is the name of the DPUDeployment CR
+	// +kubebuilder:validation:Required
+	// +required
+	Name string `json:"name"`
+
+	// Namespace is the namespace of the DPUDeployment CR
+	// +kubebuilder:validation:Required
+	// +required
+	Namespace string `json:"namespace"`
+}
+
 // DPFHCPProvisionerSpec defines the desired state of DPFHCPProvisioner
 // +kubebuilder:validation:XValidation:rule="self.controlPlaneAvailabilityPolicy != 'HighlyAvailable' || (has(self.virtualIP) && size(self.virtualIP) > 0)",message="virtualIP is required when controlPlaneAvailabilityPolicy is HighlyAvailable"
 type DPFHCPProvisionerSpec struct {
@@ -130,10 +143,26 @@ type DPFHCPProvisionerSpec struct {
 	// +immutable
 	// +optional
 	FlannelEnabled *bool `json:"flannelEnabled,omitempty"`
+
+	// DPUDeploymentRef is a cross-namespace reference to a DPUDeployment CR for ignition generation
+	// This field is used for ignition generation to retrieve DPU flavor information
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="dpuDeploymentRef is immutable"
+	// +optional
+	DPUDeploymentRef *DPUDeploymentReference `json:"dpuDeploymentRef,omitempty"`
+
+	// MachineOSURL is the URL for the DPU machine OS image to be used in the ignition configuration
+	// This URL replaces the default OS image URL in the HyperShift-generated ignition
+	// +optional
+	MachineOSURL string `json:"machineOSURL,omitempty"`
+
+	// MTU9000Enabled indicates whether MTU 9000 based configurations should be generated in the ignition for the DPUs
+	// TODO: NVIDIA-592
+	// +optional
+	MTU9000Enabled *bool `json:"mtu9000Enabled,omitempty"`
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
-// +kubebuilder:validation:Enum=Pending;Provisioning;Ready;Failed;Deleting
+// +kubebuilder:validation:Enum=Pending;Provisioning;IgnitionGenerating;Ready;Failed;Deleting
 type DPFHCPProvisionerPhase string
 
 const (
@@ -142,6 +171,9 @@ const (
 
 	// PhaseProvisioning indicates HostedCluster and related resources are being created
 	PhaseProvisioning DPFHCPProvisionerPhase = "Provisioning"
+
+	// PhaseIgnitionGenerating indicates ignition generation is in progress
+	PhaseIgnitionGenerating DPFHCPProvisionerPhase = "IgnitionGenerating"
 
 	// PhaseReady indicates HostedCluster is operational, kubeconfig injected, CSR auto-approval active
 	PhaseReady DPFHCPProvisionerPhase = "Ready"
@@ -213,6 +245,9 @@ const (
 	// MetalLBConfigured indicates whether MetalLB resources (IPAddressPool and L2Advertisement)
 	// have been successfully created and are in sync with the DPFHCPProvisioner spec.
 	MetalLBConfigured string = "MetalLBConfigured"
+
+	// IgnitionConfigured indicates whether the ignition configuration has been successfully generated and deployed
+	IgnitionConfigured string = "IgnitionConfigured"
 )
 
 // Condition reasons for DPFHCPProvisioner Ready status.
@@ -277,6 +312,16 @@ type DPFHCPProvisionerStatus struct {
 	// BlueFieldContainerImage is the resolved BlueField container image URL
 	// +optional
 	BlueFieldContainerImage string `json:"blueFieldContainerImage,omitempty"`
+
+	// Tracks how many times ignition generation has been retried, with attempts made
+	// every 30 seconds and a maximum retry limit enforced.
+	// +optional
+	IgnitionGenerationRetryCount int `json:"ignitionGenerationRetryCount,omitempty"`
+
+	// LastProcessedGeneration is the generation number that was last successfully processed for ignition
+	// Used to detect when spec changes require regenerating ignition
+	// +optional
+	LastProcessedGeneration int64 `json:"lastProcessedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true

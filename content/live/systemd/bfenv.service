@@ -1,0 +1,17 @@
+[Unit]
+Description=set bf.env
+DefaultDependencies=no
+Before=network-pre.target install-rhcos-dpf.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'printf "HOSTNAME=\\\"%%s\\\"\nKERNEL_PARAMETERS=\\\"%%s\\\"\nNVCONFIG_PARAMS=\\\"%%s\\\"\nDPF_SF_NUM=\\\"%%s\\\"\nDPF_TRUSTED_SFS=\\\"%%s\\\"\n" \
+"{{.DPUHostName}}" \
+"{{.KernelParameters}}" \
+"{{.NVConfigParams}}" \
+"{{.SFNum}}" \
+"{{.TrustedSFs}}" \
+> /etc/bf.env'
+
+[Install]
+WantedBy=multi-user.target
