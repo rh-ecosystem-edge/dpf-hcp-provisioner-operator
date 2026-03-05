@@ -226,6 +226,10 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: testNamespace,
+					},
 					BaseDomain:                     baseDomain,
 					OCPReleaseImage:                ocpReleaseImage,
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
@@ -259,6 +263,10 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
 						Namespace: testNamespace,
 					},
 					BaseDomain:                     baseDomain,
@@ -302,6 +310,10 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 				},
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
 					},
@@ -351,6 +363,10 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
 					BaseDomain:                     baseDomain,
 					OCPReleaseImage:                ocpReleaseImage,
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
@@ -395,6 +411,10 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 				},
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
 					},
@@ -482,6 +502,10 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 				},
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
 					},

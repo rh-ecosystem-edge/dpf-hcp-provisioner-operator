@@ -312,16 +312,6 @@ type DPFHCPProvisionerStatus struct {
 	// BlueFieldContainerImage is the resolved BlueField container image URL
 	// +optional
 	BlueFieldContainerImage string `json:"blueFieldContainerImage,omitempty"`
-
-	// Tracks how many times ignition generation has been retried, with attempts made
-	// every 30 seconds and a maximum retry limit enforced.
-	// +optional
-	IgnitionGenerationRetryCount int `json:"ignitionGenerationRetryCount,omitempty"`
-
-	// LastProcessedGeneration is the generation number that was last successfully processed for ignition
-	// Used to detect when spec changes require regenerating ignition
-	// +optional
-	LastProcessedGeneration int64 `json:"lastProcessedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true

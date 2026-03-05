@@ -341,11 +341,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-              ignitionGenerationRetryCount:
-                description: |-
-                  Tracks how many times ignition generation has been retried, with attempts made
-                  every 30 seconds and a maximum retry limit enforced.
-                type: integer
               kubeConfigSecretRef:
                 description: KubeConfigSecretRef is a reference to the created kubeconfig
                   Secret in the DPUCluster's namespace
@@ -361,12 +356,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-              lastProcessedGeneration:
-                description: |-
-                  LastProcessedGeneration is the generation number that was last successfully processed for ignition
-                  Used to detect when spec changes require regenerating ignition
-                format: int64
-                type: integer
               phase:
                 description: Phase represents the current lifecycle phase
                 enum:

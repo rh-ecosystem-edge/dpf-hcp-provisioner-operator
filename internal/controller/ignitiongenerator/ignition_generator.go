@@ -54,13 +54,13 @@ import (
 )
 
 const (
-	maxRetries          = 10
 	retryInterval       = 30 * time.Second
 	httpClientTimeout   = 30 * time.Second
 	ignitionSecretName  = "ignition-server-ca-cert"
 	ignitionTokenPrefix = "token-"
 	ignitionTokenKey    = "token"
 	configMapKeyName    = "BF_CFG_TEMPLATE"
+	configMapNamePrefix = "bfcfg"
 )
 
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
@@ -102,57 +102,32 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 		return ctrl.Result{}, nil
 	}
 
-	// Check if we need to reset retry counter (generation changed or phase just became Ready)
-	if cr.Status.LastProcessedGeneration != cr.Generation {
-		log.Info("CR generation changed, resetting retry counter",
-			"oldGeneration", cr.Status.LastProcessedGeneration,
-			"newGeneration", cr.Generation)
-		cr.Status.IgnitionGenerationRetryCount = 0
-		cr.Status.LastProcessedGeneration = cr.Generation
-	}
-
-	// Check retry limit
-	if cr.Status.IgnitionGenerationRetryCount >= maxRetries {
-		log.Info("Maximum retries exceeded, skipping reconciliation")
-		return ctrl.Result{}, nil
-	}
-
 	// Execute ignition generation workflow
 	if err := ig.generateIgnition(ctx, cr); err != nil {
-		log.Error(err, "Ignition generation failed",
-			"retryCount", cr.Status.IgnitionGenerationRetryCount+1,
-			"maxRetries", maxRetries)
+		log.Error(err, "Ignition generation failed")
 
-		// Update status and increment retry counter
-		cr.Status.IgnitionGenerationRetryCount++
-		ig.updateStatusOnError(cr, err)
-
-		// Persist retry counter and error condition
+		// Set error condition and persist
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:               provisioningv1alpha1.IgnitionConfigured,
+			Status:             metav1.ConditionFalse,
+			Reason:             "IgnitionGenerationFailed",
+			Message:            fmt.Sprintf("Failed to generate ignition: %v", err),
+			ObservedGeneration: cr.Generation,
+		})
 		if updateErr := ig.Client.Status().Update(ctx, cr); updateErr != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to update status after ignition error: %w", updateErr)
 		}
 
-		// Emit event
-		ig.Recorder.Event(cr, corev1.EventTypeWarning, "IgnitionGenerationFailed",
-			fmt.Sprintf("Attempt %d/%d failed: %v", cr.Status.IgnitionGenerationRetryCount, maxRetries, err))
-
-		// Requeue with retry interval if not at max retries
-		if cr.Status.IgnitionGenerationRetryCount < maxRetries {
-			return ctrl.Result{RequeueAfter: retryInterval}, nil
-		}
-
-		// Max retries reached - don't requeue
-		return ctrl.Result{}, nil
+		ig.Recorder.Event(cr, corev1.EventTypeWarning, "IgnitionGenerationFailed", err.Error())
+		return ctrl.Result{RequeueAfter: retryInterval}, nil
 	}
 
-	// Success - update status
-	cr.Status.IgnitionGenerationRetryCount = 0
-	cr.Status.LastProcessedGeneration = cr.Generation
+	// Success
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionTrue,
 		Reason:             "IgnitionGenerated",
-		Message:            fmt.Sprintf("Ignition ConfigMap custom-bf-%s.cfg created and DPFOperatorConfig updated successfully", cr.Spec.DPUClusterRef.Name),
+		Message:            fmt.Sprintf("Ignition ConfigMap %s-%s.cfg created and DPFOperatorConfig updated successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
 		ObservedGeneration: cr.Generation,
 	})
 
@@ -163,7 +138,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	}
 
 	ig.Recorder.Event(cr, corev1.EventTypeNormal, "IgnitionConfigured",
-		fmt.Sprintf("Ignition ConfigMap custom-bf-%s.cfg configured successfully", cr.Spec.DPUClusterRef.Name))
+		fmt.Sprintf("Ignition ConfigMap %s-%s.cfg configured successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name))
 
 	log.Info("Ignition generation completed successfully")
 	return ctrl.Result{}, nil
@@ -330,11 +305,7 @@ func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provis
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
 
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Error(err, "Failed to close response body")
-		}
-	}()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP request failed with status %d", resp.StatusCode)
@@ -481,8 +452,7 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 		return fmt.Errorf("failed to marshal live ignition: %w", err)
 	}
 
-	// ConfigMap name format: custom-bf_<dpucluster-name>.cfg
-	cmName := fmt.Sprintf("custom-bf-%s.cfg", cr.Spec.DPUClusterRef.Name)
+	cmName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
 	cmNamespace := cr.Spec.DPUClusterRef.Namespace
 
 	cm := &corev1.ConfigMap{
@@ -533,7 +503,7 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 func (ig *IgnitionGenerator) updateDPFOperatorConfig(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx)
 
-	configMapName := fmt.Sprintf("custom-bf-%s.cfg", cr.Spec.DPUClusterRef.Name)
+	configMapName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
 	dpuClusterNamespace := cr.Spec.DPUClusterRef.Namespace
 
 	// List DPFOperatorConfig in DPUCluster namespace (expect one instance)
@@ -570,25 +540,4 @@ func (ig *IgnitionGenerator) updateDPFOperatorConfig(ctx context.Context, cr *pr
 
 	log.Info("Updated DPFOperatorConfig", "configMap", configMapName, "namespace", dpuClusterNamespace)
 	return nil
-}
-
-// updateStatusOnError updates the status condition on error
-func (ig *IgnitionGenerator) updateStatusOnError(cr *provisioningv1alpha1.DPFHCPProvisioner, err error) {
-	var reason, message string
-
-	if cr.Status.IgnitionGenerationRetryCount >= maxRetries {
-		reason = "MaxRetriesExceeded"
-		message = fmt.Sprintf("Maximum retry attempts (%d) exceeded. Last error: %v. Manual intervention required.", maxRetries, err)
-	} else {
-		reason = "IgnitionGenerationFailed"
-		message = fmt.Sprintf("Failed to generate ignition (attempt %d/%d): %v", cr.Status.IgnitionGenerationRetryCount, maxRetries, err)
-	}
-
-	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
-		Type:               provisioningv1alpha1.IgnitionConfigured,
-		Status:             metav1.ConditionFalse,
-		Reason:             reason,
-		Message:            message,
-		ObservedGeneration: cr.Generation,
-	})
 }

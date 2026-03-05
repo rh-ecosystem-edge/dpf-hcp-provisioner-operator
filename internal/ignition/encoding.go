@@ -103,7 +103,8 @@ func DecodeIgnition(encoded string) (*Ignition, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
-	defer func() { _ = gzReader.Close() }()
+
+	defer gzReader.Close()
 
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(gzReader); err != nil {

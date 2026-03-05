@@ -694,19 +694,18 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	if cr.Spec.DPUDeploymentRef != nil {
-		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
-		if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
-			ignConfigured.ObservedGeneration != cr.Generation {
-			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
-				Type:    provisioningv1alpha1.Ready,
-				Status:  metav1.ConditionFalse,
-				Reason:  "IgnitionNotConfigured",
-				Message: "Waiting for ignition configuration to complete",
-			})
-			log.V(1).Info("Not ready: Ignition not configured")
-			return
-		}
+	// Requirement 4: Ignition must be configured
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
+		ignConfigured.ObservedGeneration != cr.Generation {
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:    provisioningv1alpha1.Ready,
+			Status:  metav1.ConditionFalse,
+			Reason:  "IgnitionNotConfigured",
+			Message: "Waiting for ignition configuration to complete",
+		})
+		log.V(1).Info("Not ready: Ignition not configured")
+		return
 	}
 
 	// All requirements met - set Ready to True
@@ -768,17 +767,15 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 	}
 
 	// Phase 4: Check if ignition generation is required
-	if cr.Spec.DPUDeploymentRef != nil {
-		hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
-		kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
-		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
-		if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
-			kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
-			(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
-				ignConfigured.ObservedGeneration != cr.Generation) {
-			cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
-			return
-		}
+	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
+	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
+		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
+		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
+			ignConfigured.ObservedGeneration != cr.Generation) {
+		cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
+		return
 	}
 
 	// Phase 5: Check if HostedCluster provisioning has started
