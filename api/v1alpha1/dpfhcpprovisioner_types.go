@@ -154,11 +154,6 @@ type DPFHCPProvisionerSpec struct {
 	// This URL replaces the default OS image URL in the HyperShift-generated ignition
 	// +optional
 	MachineOSURL string `json:"machineOSURL,omitempty"`
-
-	// MTU9000Enabled indicates whether MTU 9000 based configurations should be generated in the ignition for the DPUs
-	// TODO: NVIDIA-592
-	// +optional
-	MTU9000Enabled *bool `json:"mtu9000Enabled,omitempty"`
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner

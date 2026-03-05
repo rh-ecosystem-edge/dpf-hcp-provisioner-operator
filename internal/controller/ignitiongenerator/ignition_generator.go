@@ -88,9 +88,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	if cr.Spec.MachineOSURL == "" {
 		missing = append(missing, "spec.machineOSURL")
 	}
-	if cr.Spec.MTU9000Enabled == nil {
-		missing = append(missing, "spec.mtu9000Enabled")
-	}
+
 	if len(missing) > 0 {
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:               provisioningv1alpha1.IgnitionConfigured,
@@ -144,6 +142,18 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	return ctrl.Result{}, nil
 }
 
+// getDPFOperatorConfig retrieves the DPFOperatorConfig from the DPUCluster namespace
+func (ig *IgnitionGenerator) getDPFOperatorConfig(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (*operatorv1alpha1.DPFOperatorConfig, error) {
+	configList := &operatorv1alpha1.DPFOperatorConfigList{}
+	if err := ig.Client.List(ctx, configList, client.InNamespace(cr.Spec.DPUClusterRef.Namespace)); err != nil {
+		return nil, fmt.Errorf("failed to list DPFOperatorConfig: %w", err)
+	}
+	if len(configList.Items) == 0 {
+		return nil, fmt.Errorf("no DPFOperatorConfig found in namespace %s", cr.Spec.DPUClusterRef.Namespace)
+	}
+	return &configList.Items[0], nil
+}
+
 // generateIgnition executes the complete ignition generation workflow
 func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx)
@@ -164,8 +174,15 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 
 	// Step 3: Build target ignition (HCP + DPF modifications)
 	log.V(1).Info("Building target ignition")
-	mtu9000Mode := cr.Spec.MTU9000Enabled != nil && *cr.Spec.MTU9000Enabled
-	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, cr.Spec.MachineOSURL, mtu9000Mode)
+
+	dpfOperatorConfig, err := ig.getDPFOperatorConfig(ctx, cr)
+	if err != nil {
+		return fmt.Errorf("failed to get DPFOperatorConfig: %w", err)
+	}
+
+	var mtu = uint16(*dpfOperatorConfig.Spec.Networking.ControlPlaneMTU)
+
+	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, cr.Spec.MachineOSURL, mtu)
 	if err != nil {
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
@@ -352,7 +369,7 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications
-func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu9000Mode bool) (*ignition.Ignition, error) {
+func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16) (*ignition.Ignition, error) {
 	// Parse HCP ignition
 	targetIgnition := &ignition.Ignition{}
 	if err := json.Unmarshal(hcpIgnitionBytes, targetIgnition); err != nil {
@@ -386,9 +403,8 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	// Add flavor OVS script
 	special.AddFlavorOVSScript(targetIgnition, ignFlavor)
 
-	// Enable MTU 9000 mode if requested
-	if mtu9000Mode {
-		special.EnableMTU9000(targetIgnition)
+	if mtu != 1500 {
+		special.EnableMTU(targetIgnition, mtu)
 	}
 
 	return targetIgnition, nil

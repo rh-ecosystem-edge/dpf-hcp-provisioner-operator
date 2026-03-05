@@ -144,10 +144,6 @@ spec:
                   MachineOSURL is the URL for the DPU machine OS image to be used in the ignition configuration
                   This URL replaces the default OS image URL in the HyperShift-generated ignition
                 type: string
-              mtu9000Enabled:
-                description: MTU9000Enabled indicates whether MTU 9000 based configurations
-                  should be generated in the ignition for the DPUs
-                type: boolean
               nodeSelector:
                 additionalProperties:
                   type: string

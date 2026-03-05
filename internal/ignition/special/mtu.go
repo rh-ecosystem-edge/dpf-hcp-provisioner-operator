@@ -30,7 +30,7 @@ func URLEncode(s string) string {
 }
 
 // nmInterface generates a NetworkManager interface configuration with MTU
-func nmInterface(name string, mtu int) string { //nolint:unparam // mtu will be dynamic once NVIDIA-592 is implemented
+func nmInterface(name string, mtu uint16) string { //nolint:unparam // mtu will be dynamic once NVIDIA-592 is implemented
 	config := fmt.Sprintf(`[connection]
 id=%s
 type=ethernet
@@ -43,8 +43,8 @@ mtu=%d
 	return URLEncode(config)
 }
 
-// EnableMTU9000 adds MTU 9000 configuration files to the ignition
-func EnableMTU9000(ign *ignition.Ignition) {
+// EnableMTU adds MTU configuration files to the ignition
+func EnableMTU(ign *ignition.Ignition, mtu uint16) {
 	// Add new network manager connections
 	newFiles := []ignition.FileEntry{
 		{
@@ -52,7 +52,7 @@ func EnableMTU9000(ign *ignition.Ignition) {
 			Overwrite: true,
 			Mode:      0600,
 			Contents: ignition.FileContents{
-				Source: nmInterface("p0", 9216),
+				Source: nmInterface("p0", mtu),
 			},
 		},
 		{
@@ -60,7 +60,7 @@ func EnableMTU9000(ign *ignition.Ignition) {
 			Overwrite: true,
 			Mode:      0600,
 			Contents: ignition.FileContents{
-				Source: nmInterface("p1", 9216),
+				Source: nmInterface("p1", mtu),
 			},
 		},
 		{
@@ -68,7 +68,7 @@ func EnableMTU9000(ign *ignition.Ignition) {
 			Overwrite: true,
 			Mode:      0600,
 			Contents: ignition.FileContents{
-				Source: nmInterface("pf0hpf", 9216),
+				Source: nmInterface("pf0hpf", mtu),
 			},
 		},
 		{
@@ -76,7 +76,7 @@ func EnableMTU9000(ign *ignition.Ignition) {
 			Overwrite: true,
 			Mode:      0600,
 			Contents: ignition.FileContents{
-				Source: nmInterface("pf1hpf", 9216),
+				Source: nmInterface("pf1hpf", mtu),
 			},
 		},
 	}
@@ -91,7 +91,7 @@ func EnableMTU9000(ign *ignition.Ignition) {
 				file.Contents.Source = strings.Replace(
 					file.Contents.Source,
 					"[ethernet]\n",
-					"[ethernet]\nmtu=9216\n",
+					fmt.Sprintf("[ethernet]\nmtu=%d\n", mtu),
 					1,
 				)
 			}
