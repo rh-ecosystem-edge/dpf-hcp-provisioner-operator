@@ -297,7 +297,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Feature: Ignition Generation
-	if result, err := r.reconcileIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+	if result, err := r.generateIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		return result, err
 	}
 
@@ -619,8 +619,8 @@ func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 	return true
 }
 
-// reconcileIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase.
-func (r *DPFHCPProvisionerReconciler) reconcileIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+// generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase.
+func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
 	if cr.Status.HostedClusterRef == nil || cr.Status.Phase != provisioningv1alpha1.PhaseIgnitionGenerating {
@@ -629,7 +629,7 @@ func (r *DPFHCPProvisionerReconciler) reconcileIgnition(ctx context.Context, cr 
 	}
 
 	log.V(1).Info("Running ignition generation feature")
-	result, err := r.IgnitionGenerator.ReconcileIgnition(ctx, cr)
+	result, err := r.IgnitionGenerator.GenerateIgnition(ctx, cr)
 	if err != nil {
 		log.Error(err, "Ignition generation failed")
 	}

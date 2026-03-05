@@ -79,15 +79,9 @@ func NewIgnitionGenerator(c client.Client, s *runtime.Scheme, recorder record.Ev
 	}
 }
 
-// ReconcileIgnition performs the complete ignition generation workflow
-func (ig *IgnitionGenerator) ReconcileIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+// GenerateIgnition performs the complete ignition generation workflow
+func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "ignition-generation")
-
-	// Block if DPUDeploymentRef not provided
-	if cr.Spec.DPUDeploymentRef == nil {
-		log.V(1).Info("Skipping ignition generation - DPUDeploymentRef not configured")
-		return ctrl.Result{}, nil
-	}
 
 	// Block if required ignition fields are missing — set condition so user knows what's missing
 	var missing []string
@@ -335,6 +329,7 @@ func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provis
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
+
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			log.Error(err, "Failed to close response body")

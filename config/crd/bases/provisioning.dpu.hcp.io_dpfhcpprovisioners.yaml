@@ -222,6 +222,7 @@ spec:
             required:
             - baseDomain
             - dpuClusterRef
+            - dpuDeploymentRef
             - ocpReleaseImage
             - pullSecretRef
             - sshKeySecretRef

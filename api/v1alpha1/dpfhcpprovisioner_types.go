@@ -147,7 +147,7 @@ type DPFHCPProvisionerSpec struct {
 	// DPUDeploymentRef is a cross-namespace reference to a DPUDeployment CR for ignition generation
 	// This field is used for ignition generation to retrieve DPU flavor information
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="dpuDeploymentRef is immutable"
-	// +optional
+	// +required
 	DPUDeploymentRef *DPUDeploymentReference `json:"dpuDeploymentRef,omitempty"`
 
 	// MachineOSURL is the URL for the DPU machine OS image to be used in the ignition configuration
