@@ -1,6 +1,6 @@
 # Build the manager binary
 # Use Red Hat UBI instead of Docker Hub to avoid rate limits
-FROM registry.access.redhat.com/ubi9/go-toolset:1.25 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:9.7-1772728670 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
