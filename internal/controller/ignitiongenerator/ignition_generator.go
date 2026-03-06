@@ -55,7 +55,6 @@ import (
 )
 
 const (
-	retryInterval       = 30 * time.Second
 	httpClientTimeout   = 30 * time.Second
 	ignitionSecretName  = "ignition-server-ca-cert"
 	ignitionTokenPrefix = "token-"
@@ -118,7 +117,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 		}
 
 		ig.Recorder.Event(cr, corev1.EventTypeWarning, "IgnitionGenerationFailed", err.Error())
-		return ctrl.Result{RequeueAfter: retryInterval}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// Success
