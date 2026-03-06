@@ -44,6 +44,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/ignitiongenerator"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/metallb"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
@@ -64,6 +65,7 @@ type DPFHCPProvisionerReconciler struct {
 	FinalizerManager     *finalizer.Manager
 	StatusSyncer         *hostedcluster.StatusSyncer
 	KubeconfigInjector   *kubeconfiginjection.KubeconfigInjector
+	IgnitionGenerator    *ignitiongenerator.IgnitionGenerator
 }
 
 const (
@@ -91,6 +93,10 @@ const (
 // +kubebuilder:rbac:groups=hypershift.openshift.io,resources=nodepools/status,verbs=get
 // +kubebuilder:rbac:groups=metallb.io,resources=ipaddresspools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=metallb.io,resources=l2advertisements,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=svc.dpu.nvidia.com,resources=dpudeployments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=provisioning.dpu.nvidia.com,resources=dpuflavors,verbs=get;list;watch
+// +kubebuilder:rbac:groups=operator.dpu.nvidia.com,resources=dpfoperatorconfigs,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=create;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -288,6 +294,11 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 	} else {
 		log.V(1).Info("Skipping kubeconfig injection - HostedCluster not created yet")
+	}
+
+	// Feature: Ignition Generation
+	if result, err := r.generateIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+		return result, err
 	}
 
 	// Compute Ready condition based on all operational requirements
@@ -608,6 +619,23 @@ func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 	return true
 }
 
+// generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase.
+func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	if cr.Status.HostedClusterRef == nil || cr.Status.Phase != provisioningv1alpha1.PhaseIgnitionGenerating {
+		log.V(1).Info("Skipping ignition generation", "phase", cr.Status.Phase)
+		return ctrl.Result{}, nil
+	}
+
+	log.V(1).Info("Running ignition generation feature")
+	result, err := r.IgnitionGenerator.GenerateIgnition(ctx, cr)
+	if err != nil {
+		log.Error(err, "Ignition generation failed")
+	}
+	return result, err
+}
+
 // computeReadyCondition determines if the DPFHCPProvisioner is fully operational and sets the Ready condition.
 //
 // Ready state requires ALL of the following currently implemented features:
@@ -666,7 +694,19 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	// TODO: Add additional requirement checks here for future features
+	// Requirement 4: Ignition must be configured
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
+		ignConfigured.ObservedGeneration != cr.Generation {
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:    provisioningv1alpha1.Ready,
+			Status:  metav1.ConditionFalse,
+			Reason:  "IgnitionNotConfigured",
+			Message: "Waiting for ignition configuration to complete",
+		})
+		log.V(1).Info("Not ready: Ignition not configured")
+		return
+	}
 
 	// All requirements met - set Ready to True
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
@@ -726,13 +766,25 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
-	// Phase 4: Check if HostedCluster provisioning has started
+	// Phase 4: Check if ignition generation is required
+	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
+	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
+		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
+		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
+			ignConfigured.ObservedGeneration != cr.Generation) {
+		cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
+		return
+	}
+
+	// Phase 5: Check if HostedCluster provisioning has started
 	if cr.Status.HostedClusterRef != nil {
 		cr.Status.Phase = provisioningv1alpha1.PhaseProvisioning
 		return
 	}
 
-	// Phase 5: All validations passed, waiting for provisioning to start
+	// Phase 6: All validations passed, waiting for provisioning to start
 	cr.Status.Phase = provisioningv1alpha1.PhasePending
 }
 

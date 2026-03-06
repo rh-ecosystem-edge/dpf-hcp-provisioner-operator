@@ -1,0 +1,19 @@
+[Unit]
+Description=Install RHCOS
+After=multi-user.target
+ConditionKernelCommandLine=initrd=initramfs
+SuccessExitStatus=0
+SuccessAction=reboot-force
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/install-rhcos-dpf.sh
+RemainAfterExit=yes
+TimeoutSec=0
+StandardInput=null
+StandardOutput=journal+console
+StandardError=journal+console
+TTYPath=/dev/hvc0
+
+[Install]
+WantedBy=multi-user.target

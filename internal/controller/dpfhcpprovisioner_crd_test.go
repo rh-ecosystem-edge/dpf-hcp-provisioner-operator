@@ -73,6 +73,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 							Name:      "test-dpu",
 							Namespace: "default",
 						},
+						DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+							Name:      "test-dpu-deployment",
+							Namespace: "default",
+						},
 						BaseDomain:                     domain,
 						OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 						SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -193,6 +197,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 							Name:      "test-dpu",
 							Namespace: "default",
 						},
+						DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+							Name:      "test-dpu-deployment",
+							Namespace: "default",
+						},
 						BaseDomain:                     "test.example.com",
 						OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 						SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -248,6 +256,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 						Name:      "test-dpu",
 						Namespace: "default",
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
+					},
 					BaseDomain:      "test.example.com",
 					OCPReleaseImage: "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 					SSHKeySecretRef: corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -289,6 +301,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 						Name:      "test-dpu",
 						Namespace: "default",
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
+					},
 					BaseDomain:                     "test.example.com",
 					OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -312,6 +328,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
+						Namespace: "default",
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
 						Namespace: "default",
 					},
 					BaseDomain:                     "test.example.com",
@@ -339,6 +359,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 						Name:      "test-dpu",
 						Namespace: "default",
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
+					},
 					BaseDomain:                     "test.example.com",
 					OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -362,6 +386,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
+						Namespace: "default",
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
 						Namespace: "default",
 					},
 					BaseDomain:                     "test.example.com",
@@ -391,6 +419,10 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
+						Namespace: "default",
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
 						Namespace: "default",
 					},
 					BaseDomain:                     "test.example.com",

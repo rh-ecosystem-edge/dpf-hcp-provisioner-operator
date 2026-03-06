@@ -218,6 +218,10 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 						Name:      dpuClusterName,
 						Namespace: testNamespace,
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: testNamespace,
+					},
 					BaseDomain:                     "test-cluster.example.com",
 					OCPReleaseImage:                ocpReleaseImage,
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
@@ -293,6 +297,10 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 						Name:      "non-existent-dpu",
 						Namespace: testNamespace,
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: testNamespace,
+					},
 					BaseDomain:                     "test-cluster.example.com",
 					OCPReleaseImage:                ocpReleaseImage,
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
@@ -334,6 +342,10 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
 						Namespace: testNamespace,
 					},
 					BaseDomain:                     "test-cluster.example.com",
@@ -383,6 +395,10 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
 						Namespace: testNamespace,
 					},
 					BaseDomain:                     "test-cluster.example.com",
@@ -437,6 +453,10 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
 						Namespace: testNamespace,
 					},
 					BaseDomain:                     "test-cluster.example.com",

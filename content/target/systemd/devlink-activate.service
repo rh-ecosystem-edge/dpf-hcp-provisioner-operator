@@ -1,0 +1,12 @@
+[Unit]
+Description=Activate devlink
+Before=network-pre.target
+# Don't start if this file exists:
+ConditionPathExists=!/etc/mlnx-release
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/devlink-activate.sh
+
+[Install]
+WantedBy=multi-user.target

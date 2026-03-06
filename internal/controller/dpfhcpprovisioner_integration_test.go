@@ -71,6 +71,10 @@ var _ = Describe("DPFHCPProvisioner Integration Tests with envtest", func() {
 						Name:      "test-dpu",
 						Namespace: "dpu-system",
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
+					},
 					BaseDomain:       "lifecycle.example.com",
 					OCPReleaseImage:  "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 					SSHKeySecretRef:  corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -143,6 +147,10 @@ var _ = Describe("DPFHCPProvisioner Integration Tests with envtest", func() {
 						Name:      "test-dpu",
 						Namespace: "dpu-system",
 					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
+					},
 					BaseDomain:                     "status.example.com",
 					OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 					SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -194,6 +202,10 @@ var _ = Describe("DPFHCPProvisioner Integration Tests with envtest", func() {
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-system",
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
 					},
 					BaseDomain:                     "full-status.example.com",
 					OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
@@ -271,6 +283,10 @@ var _ = Describe("DPFHCPProvisioner Integration Tests with envtest", func() {
 							Name:      "test-dpu-" + name,
 							Namespace: "dpu-system",
 						},
+						DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+							Name:      "test-dpu-deployment",
+							Namespace: "default",
+						},
 						BaseDomain:                     name + ".example.com",
 						OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
 						SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
@@ -320,6 +336,10 @@ var _ = Describe("DPFHCPProvisioner Integration Tests with envtest", func() {
 					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
 						Name:      "test-dpu",
 						Namespace: "dpu-system",
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
 					},
 					BaseDomain:                     "metadata.example.com",
 					OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",

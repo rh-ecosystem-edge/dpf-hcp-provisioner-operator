@@ -1,0 +1,10 @@
+[connection]
+id=pf0vf0
+type=ethernet
+interface-name=pf0vf0
+master=br-comm-ch
+slave-type=bridge
+
+[ethernet]
+
+[bridge-port]

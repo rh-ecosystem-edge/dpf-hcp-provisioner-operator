@@ -1,0 +1,15 @@
+[connection]
+id=tmfifo_net0
+type=ethernet
+interface-name=tmfifo_net0
+autoconnect=true
+
+[ethernet]
+
+[ipv4]
+method=manual
+address1=192.168.100.2/24
+never-default=true
+
+[ipv6]
+method=ignore
