@@ -18,27 +18,25 @@ package content
 
 import (
 	"fmt"
-	"strings"
 
+	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition"
 )
 
 // AddFiles adds files from a content provider to an ignition config
-func AddFiles(ign *ignition.Ignition, provider ContentProvider) error {
+func AddFiles(ign *igntypes.Config, provider ContentProvider) error {
 	files := provider.GetFiles()
 
 	for _, fileDef := range files {
-		var contents ignition.FileContents
+		var contents igntypes.Resource
 
-		// Check if content source is a data URI (string) or binary data ([]byte)
 		switch source := fileDef.ContentSource.(type) {
 		case string:
-			// Data URI - pass through directly
-			contents = ignition.FileContents{
-				Source: source,
+			s := source
+			contents = igntypes.Resource{
+				Source: &s,
 			}
 		case []byte:
-			// Binary data - gzip and base64 encode
 			var err error
 			contents, err = ignition.EncodeGzipFile(source)
 			if err != nil {
@@ -48,11 +46,16 @@ func AddFiles(ign *ignition.Ignition, provider ContentProvider) error {
 			return fmt.Errorf("invalid content source type for %s", fileDef.Path)
 		}
 
-		entry := ignition.FileEntry{
-			Path:      fileDef.Path,
-			Overwrite: true,
-			Mode:      fileDef.Mode,
-			Contents:  contents,
+		mode := fileDef.Mode
+		entry := igntypes.File{
+			Node: igntypes.Node{
+				Path:      fileDef.Path,
+				Overwrite: ignition.Ptr(true),
+			},
+			FileEmbedded1: igntypes.FileEmbedded1{
+				Contents: contents,
+				Mode:     &mode,
+			},
 		}
 
 		ign.Storage.Files = append(ign.Storage.Files, entry)
@@ -62,17 +65,18 @@ func AddFiles(ign *ignition.Ignition, provider ContentProvider) error {
 }
 
 // AddSystemdUnits adds systemd units from a content provider to an ignition config
-func AddSystemdUnits(ign *ignition.Ignition, provider ContentProvider) error {
+func AddSystemdUnits(ign *igntypes.Config, provider ContentProvider) error {
 	units, err := provider.GetSystemdUnits()
 	if err != nil {
 		return fmt.Errorf("failed to get systemd units: %w", err)
 	}
 
 	for _, unitDef := range units {
-		unit := ignition.SystemdUnit{
+		contents := string(unitDef.Contents)
+		unit := igntypes.Unit{
 			Name:     unitDef.Name,
-			Enabled:  true,
-			Contents: string(unitDef.Contents),
+			Enabled:  ignition.Ptr(true),
+			Contents: &contents,
 		}
 
 		ign.Systemd.Units = append(ign.Systemd.Units, unit)
@@ -82,18 +86,15 @@ func AddSystemdUnits(ign *ignition.Ignition, provider ContentProvider) error {
 }
 
 // AddKernelArgs adds kernel arguments templating to the ignition config
-func AddKernelArgs(ign *ignition.Ignition) {
-	if ign.KernelArguments == nil {
-		ign.KernelArguments = &ignition.KernelArguments{
-			ShouldExist:    []string{},
-			ShouldNotExist: []string{},
-		}
-	}
-	ign.KernelArguments.ShouldExist = append(ign.KernelArguments.ShouldExist, "{{.KernelParameters}}")
+func AddKernelArgs(ign *igntypes.Config) {
+	ign.KernelArguments.ShouldExist = append(
+		ign.KernelArguments.ShouldExist,
+		igntypes.KernelArgument("{{.KernelParameters}}"),
+	)
 }
 
 // AddContent is a convenience function that adds both files and systemd units
-func AddContent(ign *ignition.Ignition, provider ContentProvider) error {
+func AddContent(ign *igntypes.Config, provider ContentProvider) error {
 	if err := AddFiles(ign, provider); err != nil {
 		return err
 	}
@@ -101,9 +102,4 @@ func AddContent(ign *ignition.Ignition, provider ContentProvider) error {
 		return err
 	}
 	return nil
-}
-
-// IsDataURI checks if a string is a data URI
-func IsDataURI(s string) bool {
-	return strings.HasPrefix(s, "data:")
 }

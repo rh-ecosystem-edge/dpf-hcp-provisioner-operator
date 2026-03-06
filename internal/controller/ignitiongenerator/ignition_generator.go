@@ -21,12 +21,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"encoding/json"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
 	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
@@ -50,7 +52,6 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/content/target"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition"
 	igncontent "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/content"
-	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/special"
 )
 
 const (
@@ -185,6 +186,11 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, cr.Spec.MachineOSURL, mtu)
 	if err != nil {
 		return fmt.Errorf("failed to build target ignition: %w", err)
+	}
+
+	// Step 3.5: Gzip-compress all uncompressed files in target ignition
+	if err := ignition.GzipIgnitionFiles(targetIgnition); err != nil {
+		return fmt.Errorf("failed to gzip target ignition files: %w", err)
 	}
 
 	// Step 4: Build live ignition (embed target)
@@ -369,15 +375,15 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications
-func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16) (*ignition.Ignition, error) {
+func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16) (*igntypes.Config, error) {
 	// Parse HCP ignition
-	targetIgnition := &ignition.Ignition{}
+	targetIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, targetIgnition); err != nil {
 		return nil, fmt.Errorf("failed to parse HCP ignition: %w", err)
 	}
 
 	// Replace machine OS URL
-	if err := special.ReplaceMachineOSURL(targetIgnition, machineOSURL); err != nil {
+	if err := ignition.ReplaceMachineOSURL(targetIgnition, machineOSURL); err != nil {
 		return nil, fmt.Errorf("failed to replace machine OS URL: %w", err)
 	}
 
@@ -401,19 +407,19 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	}
 
 	// Add flavor OVS script
-	special.AddFlavorOVSScript(targetIgnition, ignFlavor)
+	ignition.AddFlavorOVSScript(targetIgnition, ignFlavor)
 
 	if mtu != 1500 {
-		special.EnableMTU(targetIgnition, mtu)
+		ignition.EnableMTU(targetIgnition, mtu)
 	}
 
 	return targetIgnition, nil
 }
 
 // buildLiveIgnition builds the live ignition with embedded target ignition
-func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *ignition.Ignition, hcpIgnitionBytes []byte) (*ignition.Ignition, error) {
+func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte) (*igntypes.Config, error) {
 	// Parse HCP to extract passwd
-	hcpIgnition := &ignition.Ignition{}
+	hcpIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, hcpIgnition); err != nil {
 		return nil, fmt.Errorf("failed to parse HCP ignition for passwd: %w", err)
 	}
@@ -422,7 +428,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *ignition.Ignition
 	liveIgnition := ignition.NewEmptyIgnition("3.2.0")
 
 	// Copy passwd from HCP ignition
-	if hcpIgnition.Passwd != nil {
+	if len(hcpIgnition.Passwd.Users) > 0 || len(hcpIgnition.Passwd.Groups) > 0 {
 		liveIgnition.Passwd = hcpIgnition.Passwd
 	}
 
@@ -445,12 +451,17 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *ignition.Ignition
 	}
 
 	// Embed encoded target as file at /var/target.ign
-	targetFile := ignition.FileEntry{
-		Path:      "/var/target.ign",
-		Mode:      0644,
-		Overwrite: true,
-		Contents: ignition.FileContents{
-			Source: fmt.Sprintf("data:;base64,%s", encodedTarget),
+	source := fmt.Sprintf("data:;base64,%s", encodedTarget)
+	targetFile := igntypes.File{
+		Node: igntypes.Node{
+			Path:      "/var/target.ign",
+			Overwrite: ignition.Ptr(true),
+		},
+		FileEmbedded1: igntypes.FileEmbedded1{
+			Mode: ignition.Ptr(0644),
+			Contents: igntypes.Resource{
+				Source: &source,
+			},
 		},
 	}
 	liveIgnition.Storage.Files = append(liveIgnition.Storage.Files, targetFile)
@@ -459,11 +470,11 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *ignition.Ignition
 }
 
 // createOrUpdateConfigMap creates or updates the ignition ConfigMap in DPUCluster namespace
-func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *ignition.Ignition) error {
+func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *igntypes.Config) error {
 	log := logf.FromContext(ctx)
 
 	// Marshal live ignition to JSON
-	ignitionJSON, err := json.Marshal(liveIgnition)
+	ignitionJSON, err := ignition.MarshalJSON(liveIgnition)
 	if err != nil {
 		return fmt.Errorf("failed to marshal live ignition: %w", err)
 	}

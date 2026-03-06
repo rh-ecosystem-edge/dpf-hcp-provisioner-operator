@@ -20,44 +20,72 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+
+	"encoding/json"
+
+	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
 )
 
 // NewEmptyIgnition creates a new empty ignition configuration
-func NewEmptyIgnition(version string) *Ignition {
+func NewEmptyIgnition(version string) *igntypes.Config {
 	if version == "" {
 		version = "3.4.0"
 	}
-	return &Ignition{
-		Ignition: IgnitionConfig{
+	return &igntypes.Config{
+		Ignition: igntypes.Ignition{
 			Version: version,
-			Config:  make(map[string]interface{}),
-		},
-		Storage: StorageFiles{
-			Files: []FileEntry{},
-		},
-		Systemd: SystemdUnits{
-			Units: []SystemdUnit{},
-		},
-		KernelArguments: &KernelArguments{
-			ShouldExist:    []string{},
-			ShouldNotExist: []string{},
 		},
 	}
 }
 
-// EncodeIgnition encodes an ignition config to gzip + base64
-func EncodeIgnition(ign *Ignition) (string, error) {
-	// Marshal to JSON with compact separators (no spaces)
+// MarshalJSON marshals an ignition config to JSON, stripping empty objects
+// that the official types produce due to Go's omitempty not handling zero-value structs.
+func MarshalJSON(ign *igntypes.Config) ([]byte, error) {
 	jsonBytes, err := json.Marshal(ign)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ignition: %w", err)
+	}
+	return stripEmptyObjects(jsonBytes)
+}
+
+// stripEmptyObjects removes empty JSON objects ({}) recursively from JSON bytes.
+func stripEmptyObjects(data []byte) ([]byte, error) {
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+	stripEmpty(m)
+	return json.Marshal(m)
+}
+
+func stripEmpty(m map[string]any) {
+	for k, v := range m {
+		switch val := v.(type) {
+		case map[string]any:
+			stripEmpty(val)
+			if len(val) == 0 {
+				delete(m, k)
+			}
+		case []any:
+			for _, item := range val {
+				if nested, ok := item.(map[string]any); ok {
+					stripEmpty(nested)
+				}
+			}
+		}
+	}
+}
+
+// EncodeIgnition encodes an ignition config to gzip + base64
+func EncodeIgnition(ign *igntypes.Config) (string, error) {
+	jsonBytes, err := MarshalJSON(ign)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal ignition: %w", err)
 	}
 
-	// Gzip compress
 	var buf bytes.Buffer
-	gzWriter := gzip.NewWriter(&buf)
+	gzWriter, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
 	if _, err := gzWriter.Write(jsonBytes); err != nil {
 		return "", fmt.Errorf("failed to gzip ignition: %w", err)
 	}
@@ -65,45 +93,40 @@ func EncodeIgnition(ign *Ignition) (string, error) {
 		return "", fmt.Errorf("failed to close gzip writer: %w", err)
 	}
 
-	// Base64 encode
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 	return encoded, nil
 }
 
 // EncodeGzipFile encodes file content with gzip compression and base64 encoding
-func EncodeGzipFile(content []byte) (FileContents, error) {
-	// Gzip compress
+func EncodeGzipFile(content []byte) (igntypes.Resource, error) {
 	var buf bytes.Buffer
-	gzWriter := gzip.NewWriter(&buf)
+	gzWriter, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
 	if _, err := gzWriter.Write(content); err != nil {
-		return FileContents{}, fmt.Errorf("failed to gzip content: %w", err)
+		return igntypes.Resource{}, fmt.Errorf("failed to gzip content: %w", err)
 	}
 	if err := gzWriter.Close(); err != nil {
-		return FileContents{}, fmt.Errorf("failed to close gzip writer: %w", err)
+		return igntypes.Resource{}, fmt.Errorf("failed to close gzip writer: %w", err)
 	}
 
-	// Base64 encode and create data URI
-	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
-	return FileContents{
-		Compression: "gzip",
-		Source:      fmt.Sprintf("data:;base64,%s", encoded),
+	source := fmt.Sprintf("data:;base64,%s", base64.StdEncoding.EncodeToString(buf.Bytes()))
+	compression := "gzip"
+	return igntypes.Resource{
+		Source:      &source,
+		Compression: &compression,
 	}, nil
 }
 
 // DecodeIgnition decodes a base64 + gzip encoded ignition config
-func DecodeIgnition(encoded string) (*Ignition, error) {
-	// Base64 decode
+func DecodeIgnition(encoded string) (*igntypes.Config, error) {
 	compressed, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("failed to base64 decode: %w", err)
 	}
 
-	// Gunzip
 	gzReader, err := gzip.NewReader(bytes.NewReader(compressed))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
-
 	defer gzReader.Close()
 
 	var buf bytes.Buffer
@@ -111,8 +134,7 @@ func DecodeIgnition(encoded string) (*Ignition, error) {
 		return nil, fmt.Errorf("failed to decompress: %w", err)
 	}
 
-	// Unmarshal JSON
-	var ign Ignition
+	var ign igntypes.Config
 	if err := json.Unmarshal(buf.Bytes(), &ign); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal ignition: %w", err)
 	}

@@ -23,6 +23,11 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: "data:,bfb_pre_install%20bfb_modify_os%20bfb_post_install",
 			},
 			{
+				Path:          "/etc/hostname",
+				Mode:          0644,
+				ContentSource: "data:,{{.DPUHostName}}",
+			},
+			{
 				Path:          "/usr/local/bin/set-nvconfig-params-mst.sh",
 				Mode:          0755,
 				ContentSource: f("set-nvconfig-params-mst.sh"),
