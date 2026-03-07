@@ -32,6 +32,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Last Scan",type="date",JSONPath=".status.lastScanTime"
 // +kubebuilder:printcolumn:name="Found DPUs",type="integer",JSONPath=".status.foundDPUs"
 
@@ -78,6 +79,13 @@ type IPRange struct {
 	// +required
 
 	EndIP string `json:"endIP"`
+
+	// +optional
+	// Port defines the port to on which BMC is listening
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:default=443
+	Port *uint32 `json:"port,omitempty"`
 }
 
 // IPRangeValidationSpec defines the desired state of IPRangeValidation
