@@ -59,6 +59,8 @@ const (
 	ReasonFailure ConditionReason = "Failure"
 	// ReasonSuccess is the success reason.
 	ReasonSuccess ConditionReason = "Success"
+	// ReasonRetrying indicates that the operation is being retried after a failure.
+	ReasonRetrying ConditionReason = "Retrying"
 )
 
 // ConditionMessage is the message type for the conditions.
@@ -175,6 +177,7 @@ func SetSummary(obj GetSet) {
 var reasonSeverity = map[ConditionReason]int{
 	ReasonAwaitingDeletion: 3,
 	ReasonFailure:          2,
+	ReasonRetrying:         1,
 	ReasonPending:          1,
 }
 
@@ -231,7 +234,7 @@ func Get(obj GetSet, conditionType ConditionType) *metav1.Condition {
 
 func IsTrue(obj GetSet, conditionType ConditionType) bool {
 	condition := Get(obj, conditionType)
-	return condition != nil && condition.Status == metav1.ConditionTrue
+	return condition != nil && condition.Status == metav1.ConditionTrue && condition.ObservedGeneration == obj.GetGeneration()
 }
 
 func JoinErrors(err error, indent int) error {
@@ -268,4 +271,31 @@ func JoinErrors(err error, indent int) error {
 		output += fmt.Sprintf("%s* %s", indentStr, err.Error())
 	}
 	return errors.New(output)
+}
+
+// NewCondition creates a new condition with the given parameters.
+// This is a convenience builder to reduce boilerplate when creating conditions.
+func NewCondition(condType, reason, message string, status metav1.ConditionStatus) metav1.Condition {
+	return metav1.Condition{
+		Type:    condType,
+		Status:  status,
+		Reason:  reason,
+		Message: message,
+		// NOTE: LastTransitionTime and ObservedGeneration will be set when this condition is added to an object by calling Set.
+	}
+}
+
+// NewTrueCondition creates a condition with Status=True.
+func NewTrueCondition(condType, reason, message string) metav1.Condition {
+	return NewCondition(condType, reason, message, metav1.ConditionTrue)
+}
+
+// NewFalseCondition creates a condition with Status=False.
+func NewFalseCondition(condType, reason, message string) metav1.Condition {
+	return NewCondition(condType, reason, message, metav1.ConditionFalse)
+}
+
+// NewUnknownCondition creates a condition with Status=Unknown.
+func NewUnknownCondition(condType, reason, message string) metav1.Condition {
+	return NewCondition(condType, reason, message, metav1.ConditionUnknown)
 }
