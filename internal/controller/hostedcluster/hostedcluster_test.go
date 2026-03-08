@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	"github.com/openshift/hypershift/api/util/ipnet"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -235,6 +236,146 @@ var _ = Describe("HostedCluster Builder", func() {
 			ignitionStrategy := findServiceStrategy(hc.Spec.Services, hyperv1.Ignition)
 			Expect(ignitionStrategy).ToNot(BeNil())
 			Expect(ignitionStrategy.Type).To(Equal(hyperv1.Route))
+		})
+	})
+
+	Context("Networking Configuration", func() {
+		It("should use defaults when networking field is nil", func() {
+			cr.Spec.Networking = nil
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.ServiceNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("172.31.0.0/16"))
+			Expect(hc.Spec.Networking.ClusterNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.132.0.0/14"))
+			Expect(hc.Spec.Networking.MachineNetwork).To(BeEmpty())
+		})
+
+		It("should use defaults when networking is an empty struct", func() {
+			cr.Spec.Networking = &provisioningv1alpha1.ClusterNetworkConfig{}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.ServiceNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("172.31.0.0/16"))
+			Expect(hc.Spec.Networking.ClusterNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.132.0.0/14"))
+			Expect(hc.Spec.Networking.MachineNetwork).To(BeEmpty())
+		})
+
+		It("should override only service network when custom service network provided", func() {
+			cr.Spec.Networking = &provisioningv1alpha1.ClusterNetworkConfig{
+				ServiceNetwork: []hyperv1.ServiceNetworkEntry{
+					{CIDR: *ipnet.MustParseCIDR("10.96.0.0/12")},
+				},
+			}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.ServiceNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("10.96.0.0/12"))
+			// Others should remain defaults
+			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.132.0.0/14"))
+			Expect(hc.Spec.Networking.MachineNetwork).To(BeEmpty())
+		})
+
+		It("should override only cluster network when custom cluster network provided", func() {
+			cr.Spec.Networking = &provisioningv1alpha1.ClusterNetworkConfig{
+				ClusterNetwork: []hyperv1.ClusterNetworkEntry{
+					{CIDR: *ipnet.MustParseCIDR("10.244.0.0/16")},
+				},
+			}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.ClusterNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.244.0.0/16"))
+			// Others should remain defaults
+			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("172.31.0.0/16"))
+			Expect(hc.Spec.Networking.MachineNetwork).To(BeEmpty())
+		})
+
+		It("should set machine network when provided", func() {
+			cr.Spec.Networking = &provisioningv1alpha1.ClusterNetworkConfig{
+				MachineNetwork: []hyperv1.MachineNetworkEntry{
+					{CIDR: *ipnet.MustParseCIDR("192.168.0.0/24")},
+				},
+			}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.MachineNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.MachineNetwork[0].CIDR.String()).To(Equal("192.168.0.0/24"))
+			// Others should remain defaults
+			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("172.31.0.0/16"))
+			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.132.0.0/14"))
+		})
+
+		It("should override all networks when all provided", func() {
+			cr.Spec.Networking = &provisioningv1alpha1.ClusterNetworkConfig{
+				ServiceNetwork: []hyperv1.ServiceNetworkEntry{
+					{CIDR: *ipnet.MustParseCIDR("10.96.0.0/12")},
+				},
+				ClusterNetwork: []hyperv1.ClusterNetworkEntry{
+					{CIDR: *ipnet.MustParseCIDR("10.244.0.0/16")},
+				},
+				MachineNetwork: []hyperv1.MachineNetworkEntry{
+					{CIDR: *ipnet.MustParseCIDR("192.168.0.0/24")},
+				},
+			}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.ServiceNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("10.96.0.0/12"))
+			Expect(hc.Spec.Networking.ClusterNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.244.0.0/16"))
+			Expect(hc.Spec.Networking.MachineNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.MachineNetwork[0].CIDR.String()).To(Equal("192.168.0.0/24"))
+		})
+
+		It("should always set network type to Other regardless of networking config", func() {
+			cr.Spec.Networking = &provisioningv1alpha1.ClusterNetworkConfig{
+				ServiceNetwork: []hyperv1.ServiceNetworkEntry{
+					{CIDR: *ipnet.MustParseCIDR("10.96.0.0/12")},
+				},
+			}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.NetworkType).To(Equal(hyperv1.Other))
+		})
+	})
+
+	Context("Capabilities Configuration", func() {
+		It("should disable default capabilities when disabledCapabilities is nil", func() {
+			cr.Spec.DisabledCapabilities = nil
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Capabilities).ToNot(BeNil())
+			Expect(hc.Spec.Capabilities.Disabled).To(ConsistOf(
+				hyperv1.OptionalCapability("ImageRegistry"),
+				hyperv1.OptionalCapability("Insights"),
+				hyperv1.OptionalCapability("Console"),
+				hyperv1.OptionalCapability("openshift-samples"),
+				hyperv1.OptionalCapability("Ingress"),
+				hyperv1.OptionalCapability("NodeTuning"),
+			))
+		})
+
+		It("should disable only specified capabilities when custom list provided", func() {
+			cr.Spec.DisabledCapabilities = &[]hyperv1.OptionalCapability{
+				"ImageRegistry",
+				"Console",
+			}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Capabilities).ToNot(BeNil())
+			Expect(hc.Spec.Capabilities.Disabled).To(ConsistOf(
+				hyperv1.OptionalCapability("ImageRegistry"),
+				hyperv1.OptionalCapability("Console"),
+			))
+		})
+
+		It("should set Capabilities to nil when empty list provided", func() {
+			cr.Spec.DisabledCapabilities = &[]hyperv1.OptionalCapability{}
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Capabilities).To(BeNil())
 		})
 	})
 

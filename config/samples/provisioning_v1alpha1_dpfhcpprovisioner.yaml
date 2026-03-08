@@ -40,3 +40,30 @@ spec:
   # If provided with SingleReplica, services will be exposed via LoadBalancer
   # If not provided with SingleReplica, services will be exposed via NodePort
   virtualIP: 192.168.1.100
+
+  # Networking configuration (optional)
+  # When not specified, defaults are used:
+  #   ServiceNetwork: 172.31.0.0/16, ClusterNetwork: 10.132.0.0/14, MachineNetwork: empty
+  # NetworkType is always "Other" for DPU environments.
+  # This field is immutable.
+  # networking:
+  #   serviceNetwork:
+  #     - cidr: 10.96.0.0/12
+  #   clusterNetwork:
+  #     - cidr: 10.244.0.0/16
+  #   machineNetwork:
+  #     - cidr: 192.168.0.0/24
+
+  # Disabled capabilities (optional)
+  # When not specified, the following are disabled by default:
+  # ImageRegistry, Insights, Console, openshift-samples, Ingress, NodeTuning
+  # Uncomment and customize to override the defaults:
+  # disabledCapabilities:
+  #   - ImageRegistry
+  #   - Insights
+  #   - Console
+  #   - openshift-samples
+  #   - Ingress
+  #   - NodeTuning
+  # Set to an empty list to disable no capabilities:
+  # disabledCapabilities: []

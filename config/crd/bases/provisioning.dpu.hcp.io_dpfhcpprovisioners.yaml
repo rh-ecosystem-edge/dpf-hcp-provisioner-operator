@@ -83,6 +83,36 @@ spec:
                 x-kubernetes-validations:
                 - message: controlPlaneAvailabilityPolicy is immutable
                   rule: self == oldSelf
+              disabledCapabilities:
+                description: |-
+                  DisabledCapabilities is a list of optional cluster capabilities to disable on the hosted cluster.
+                  When not specified, the following capabilities are disabled by default to reduce resource
+                  consumption in DPU environments: ImageRegistry, Insights, Console, openshift-samples, Ingress, NodeTuning.
+                  Set to an empty list to disable no capabilities.
+                  Valid values: ImageRegistry, openshift-samples, Insights, Console, NodeTuning, Ingress.
+                  Note: Ingress can only be disabled if Console is also disabled.
+                  This field is immutable.
+                items:
+                  enum:
+                  - ImageRegistry
+                  - openshift-samples
+                  - Insights
+                  - baremetal
+                  - Console
+                  - NodeTuning
+                  - Ingress
+                  type: string
+                maxItems: 6
+                type: array
+                x-kubernetes-list-type: set
+                x-kubernetes-validations:
+                - message: disabledCapabilities is immutable
+                  rule: self == oldSelf
+                - message: 'disabledCapabilities contains an invalid capability. Valid
+                    values are: ImageRegistry, openshift-samples, Insights, Console,
+                    NodeTuning, Ingress'
+                  rule: self.all(cap, cap in ['ImageRegistry', 'openshift-samples',
+                    'Insights', 'Console', 'NodeTuning', 'Ingress'])
               dpuClusterRef:
                 description: |-
                   DPUClusterRef is a cross-namespace reference to a DPUCluster CR for validation and kubeconfig injection
@@ -120,6 +150,97 @@ spec:
                 type: boolean
                 x-kubernetes-validations:
                 - message: flannelEnabled is immutable
+                  rule: self == oldSelf
+              networking:
+                description: |-
+                  Networking defines the network CIDR configuration for the hosted cluster.
+                  When not specified, defaults are used: ServiceNetwork 172.31.0.0/16,
+                  ClusterNetwork 10.132.0.0/14, MachineNetwork empty.
+                  NetworkType is always set to "Other" for DPU environments.
+                  This field is immutable.
+                properties:
+                  clusterNetwork:
+                    description: |-
+                      ClusterNetwork is the list of IP address pools for pods.
+                      Defaults to a single entry with CIDR 10.132.0.0/14.
+                      Currently only one entry is supported.
+                    items:
+                      description: |-
+                        ClusterNetworkEntry is a single IP address block for pod IP blocks. IP blocks
+                        are allocated with size 2^HostSubnetLength.
+                      properties:
+                        cidr:
+                          description: cidr is the IP block address pool.
+                          maxLength: 43
+                          type: string
+                          x-kubernetes-validations:
+                          - message: cidr must be a valid IPv4 or IPv6 CIDR notation
+                              (e.g., 192.168.1.0/24 or 2001:db8::/64)
+                            rule: self.matches('^((\\d{1,3}\\.){3}\\d{1,3}/\\d{1,2})$')
+                              || self.matches('^([0-9a-fA-F]{0,4}:){2,7}([0-9a-fA-F]{0,4})?/[0-9]{1,3}$')
+                        hostPrefix:
+                          description: |-
+                            hostPrefix is the prefix size to allocate to each node from the CIDR.
+                            For example, 24 would allocate 2^(32-24)=2^8=256 addresses to each node. If this
+                            field is not used by the plugin, it can be left unset.
+                          format: int32
+                          type: integer
+                      required:
+                      - cidr
+                      type: object
+                    maxItems: 1
+                    type: array
+                  machineNetwork:
+                    description: |-
+                      MachineNetwork is the list of IP address pools for machines/nodes.
+                      Defaults to empty (no machine network CIDR).
+                    items:
+                      description: MachineNetworkEntry is a single IP address block
+                        for node IP blocks.
+                      properties:
+                        cidr:
+                          description: cidr is the IP block address pool for machines
+                            within the cluster.
+                          maxLength: 43
+                          type: string
+                          x-kubernetes-validations:
+                          - message: cidr must be a valid IPv4 or IPv6 CIDR notation
+                              (e.g., 192.168.1.0/24 or 2001:db8::/64)
+                            rule: self.matches('^((\\d{1,3}\\.){3}\\d{1,3}/\\d{1,2})$')
+                              || self.matches('^([0-9a-fA-F]{0,4}:){2,7}([0-9a-fA-F]{0,4})?/[0-9]{1,3}$')
+                      required:
+                      - cidr
+                      type: object
+                    maxItems: 1
+                    type: array
+                  serviceNetwork:
+                    description: |-
+                      ServiceNetwork is the list of IP address pools for services.
+                      Defaults to a single entry with CIDR 172.31.0.0/16.
+                      Currently only one entry is supported.
+                    items:
+                      description: ServiceNetworkEntry is a single IP address block
+                        for the service network.
+                      properties:
+                        cidr:
+                          description: cidr is the IP block address pool for services
+                            within the cluster in CIDR format (e.g., 192.168.1.0/24
+                            or 2001:0db8::/64)
+                          maxLength: 43
+                          type: string
+                          x-kubernetes-validations:
+                          - message: cidr must be a valid IPv4 or IPv6 CIDR notation
+                              (e.g., 192.168.1.0/24 or 2001:db8::/64)
+                            rule: self.matches('^((\\d{1,3}\\.){3}\\d{1,3}/\\d{1,2})$')
+                              || self.matches('^([0-9a-fA-F]{0,4}:){2,7}([0-9a-fA-F]{0,4})?/[0-9]{1,3}$')
+                      required:
+                      - cidr
+                      type: object
+                    maxItems: 1
+                    type: array
+                type: object
+                x-kubernetes-validations:
+                - message: networking is immutable
                   rule: self == oldSelf
               nodeSelector:
                 additionalProperties:
