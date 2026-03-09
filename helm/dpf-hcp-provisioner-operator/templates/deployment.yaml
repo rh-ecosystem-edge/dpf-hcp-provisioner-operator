@@ -67,11 +67,6 @@ spec:
         {{- end }}
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
-        {{- if .Values.features.blueFieldValidation.enabled }}
-        env:
-        - name: ENABLE_BLUEFIELD_VALIDATION
-          value: "true"
-        {{- end }}
         ports:
         - containerPort: {{ .Values.healthProbe.port }}
           name: health
