@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"os"
 
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -40,6 +39,7 @@ import (
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
@@ -71,8 +71,6 @@ type DPFHCPProvisionerReconciler struct {
 const (
 	// FinalizerName is the finalizer added to DPFHCPProvisioner resources
 	FinalizerName = "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
-	// BlueFieldImagesConfigMapName is the name of the ConfigMap containing BlueField OS images
-	BlueFieldImagesConfigMapName = "ocp-bluefield-images"
 	// OperatorNamespace is the namespace where the operator is deployed
 	OperatorNamespace = "dpf-hcp-provisioner-system"
 )
@@ -82,7 +80,6 @@ const (
 // +kubebuilder:rbac:groups=provisioning.dpu.hcp.io,resources=dpfhcpprovisioners/finalizers,verbs=update
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups=provisioning.dpu.nvidia.com,resources=dpuclusters,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create
@@ -96,7 +93,8 @@ const (
 // +kubebuilder:rbac:groups=svc.dpu.nvidia.com,resources=dpudeployments,verbs=get;list;watch
 // +kubebuilder:rbac:groups=provisioning.dpu.nvidia.com,resources=dpuflavors,verbs=get;list;watch
 // +kubebuilder:rbac:groups=operator.dpu.nvidia.com,resources=dpfoperatorconfigs,verbs=get;list;watch;patch
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=create;update;patch
+// +kubebuilder:rbac:groups=provisioning.dpu.hcp.io,resources=dpfhcpprovisionerconfigs,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -112,6 +110,18 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if err := r.Get(ctx, req.NamespacedName, &cr); err != nil {
 		// CR not found - likely deleted
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// Load operator configuration from Config CR.
+	// If the Config CR does not exist, the operator does nothing.
+	operatorConfig, err := common.LoadOperatorConfigFromCR(ctx, r.Client)
+	if err != nil {
+		log.Error(err, "Failed to load operator configuration")
+		return ctrl.Result{}, err
+	}
+	if operatorConfig == nil {
+		log.Info("DPFHCPProvisionerConfig CR not found, operator is idle until config CR is created")
+		return ctrl.Result{}, nil
 	}
 
 	// Compute phase from conditions at the start
@@ -154,37 +164,8 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Feature: Resolve BlueField Image
-	// Only validate image during initial creation/retry (Pending/Failed phases)
-	// Once cluster is provisioned (Provisioning/Ready), skip validation to avoid
-	// false failures when old OCP versions are removed from ConfigMap
-	// Feature can be disabled via ENABLE_BLUEFIELD_VALIDATION env var (disabled by default until we implement an alternative way to manage the OCP-to-BlueField list instead of using the ConfigMap)
-	if os.Getenv("ENABLE_BLUEFIELD_VALIDATION") == "true" {
-		if cr.Status.Phase == provisioningv1alpha1.PhasePending || cr.Status.Phase == provisioningv1alpha1.PhaseFailed {
-			log.V(1).Info("Running BlueField image resolution feature")
-			if result, err := r.ImageResolver.ResolveBlueFieldImage(ctx, &cr); err != nil || result.RequeueAfter > 0 {
-				return result, err
-			}
-		} else {
-			log.V(1).Info("Skipping BlueField image resolution - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
-		}
-	} else {
-		log.V(1).Info("Skipping BlueField image resolution - feature disabled via ENABLE_BLUEFIELD_VALIDATION env var")
-		// Set BlueFieldImageResolved condition to True when feature is disabled
-		// This prevents old False conditions from blocking phase progression
-		condition := metav1.Condition{
-			Type:               provisioningv1alpha1.BlueFieldImageResolved,
-			Status:             metav1.ConditionTrue,
-			Reason:             "ValidationDisabled",
-			Message:            "BlueField image validation is disabled (ENABLE_BLUEFIELD_VALIDATION=false)",
-			LastTransitionTime: metav1.Now(),
-			ObservedGeneration: cr.Generation,
-		}
-		if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
-			if err := r.Status().Update(ctx, &cr); err != nil {
-				log.Error(err, "Failed to update BlueFieldImageResolved condition when feature is disabled")
-				return ctrl.Result{}, err
-			}
-		}
+	if result, err := r.resolveBlueFieldImage(ctx, &cr, operatorConfig); err != nil || result.RequeueAfter > 0 {
+		return result, err
 	}
 
 	// Recompute phase after validations to ensure HostedCluster creation only proceeds if all validations pass
@@ -325,11 +306,6 @@ func (r *DPFHCPProvisionerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&provisioningv1alpha1.DPFHCPProvisioner{}).
 		Watches(
-			&corev1.ConfigMap{},
-			handler.EnqueueRequestsFromMapFunc(r.configMapToRequests),
-			builder.WithPredicates(configMapPredicate()),
-		).
-		Watches(
 			&dpuprovisioningv1alpha1.DPUCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.dpuClusterToRequests),
 			builder.WithPredicates(dpuClusterPredicate()),
@@ -354,64 +330,13 @@ func (r *DPFHCPProvisionerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.kubeconfigSecretToRequests),
 			builder.WithPredicates(kubeconfiginjection.IsHostedClusterKubeconfigSecretPredicate()),
 		).
+		Watches(
+			&provisioningv1alpha1.DPFHCPProvisionerConfig{},
+			handler.EnqueueRequestsFromMapFunc(r.configToRequests),
+			builder.WithPredicates(configPredicate()),
+		).
 		Named("dpfhcpprovisioner").
 		Complete(r)
-}
-
-// configMapPredicate filters ConfigMap events to only watch ocp-bluefield-images
-func configMapPredicate() predicate.Predicate {
-	return predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetName() == BlueFieldImagesConfigMapName &&
-				e.Object.GetNamespace() == OperatorNamespace
-		},
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.ObjectNew.GetName() == BlueFieldImagesConfigMapName &&
-				e.ObjectNew.GetNamespace() == OperatorNamespace
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Object.GetName() == BlueFieldImagesConfigMapName &&
-				e.Object.GetNamespace() == OperatorNamespace
-		},
-	}
-}
-
-// configMapToRequests maps ConfigMap events to reconcile requests for DPFHCPProvisioner CRs
-// that need image resolution (Pending/Failed phases only)
-func (r *DPFHCPProvisionerReconciler) configMapToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
-	log := logf.FromContext(ctx)
-
-	// List all DPFHCPProvisioner CRs cluster-wide
-	var provisionerList provisioningv1alpha1.DPFHCPProvisionerList
-	if err := r.List(ctx, &provisionerList); err != nil {
-		log.Error(err, "Failed to list DPFHCPProvisioner CRs for ConfigMap watch")
-		return []reconcile.Request{}
-	}
-
-	// Filter to only CRs that need ConfigMap for image resolution
-	// (Pending: awaiting provisioning, Failed: retry after ConfigMap update)
-	// Skip Ready/Provisioning/Deleting to avoid unnecessary reconciliations
-	requests := make([]reconcile.Request, 0)
-	for _, provisioner := range provisionerList.Items {
-		// Only reconcile if phase needs image resolution
-		if provisioner.Status.Phase == provisioningv1alpha1.PhasePending ||
-			provisioner.Status.Phase == provisioningv1alpha1.PhaseFailed ||
-			provisioner.Status.Phase == "" { // Include empty phase (new CRs)
-			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      provisioner.Name,
-					Namespace: provisioner.Namespace,
-				},
-			})
-		}
-	}
-
-	log.Info("ConfigMap changed, reconciling DPFHCPProvisioner CRs that need image resolution",
-		"configMap", obj.GetName(),
-		"totalCRs", len(provisionerList.Items),
-		"reconcileCount", len(requests))
-
-	return requests
 }
 
 // dpuClusterPredicate filters DPUCluster events to watch for deletion and updates
@@ -591,6 +516,39 @@ func (r *DPFHCPProvisionerReconciler) kubeconfigSecretToRequests(ctx context.Con
 	return kubeconfiginjection.FindProvisionerForKubeconfigSecret(ctx, r.Client, obj)
 }
 
+// configPredicate filters DPFHCPProvisionerConfig events to only react to spec changes
+func configPredicate() predicate.Predicate {
+	return predicate.GenerationChangedPredicate{}
+}
+
+// configToRequests enqueues all DPFHCPProvisioner CRs when the Config CR changes
+func (r *DPFHCPProvisionerReconciler) configToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+
+	var provisionerList provisioningv1alpha1.DPFHCPProvisionerList
+	if err := r.List(ctx, &provisionerList); err != nil {
+		log.Error(err, "Failed to list DPFHCPProvisioner CRs for Config watch")
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, 0, len(provisionerList.Items))
+	for _, provisioner := range provisionerList.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      provisioner.Name,
+				Namespace: provisioner.Namespace,
+			},
+		})
+	}
+
+	if len(requests) > 0 {
+		log.Info("DPFHCPProvisionerConfig changed, reconciling all DPFHCPProvisioner CRs",
+			"affectedCRs", len(requests))
+	}
+
+	return requests
+}
+
 // conditionsEqual compares two condition slices for equality
 func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 	if len(oldConds) != len(newConds) {
@@ -617,6 +575,45 @@ func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 	}
 
 	return true
+}
+
+// resolveBlueFieldImage handles BlueField image resolution based on operator config.
+// Validates image during initial creation/retry and ignition generation phases.
+// Skips during Provisioning/Ready to avoid false failures when old OCP versions are removed from registry.
+func (r *DPFHCPProvisionerReconciler) resolveBlueFieldImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, operatorConfig *common.OperatorConfig) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	if operatorConfig.EnableBlueFieldValidation {
+		r.ImageResolver.Repository = operatorConfig.BlueFieldOCPRepo
+		if cr.Status.Phase == provisioningv1alpha1.PhasePending || cr.Status.Phase == provisioningv1alpha1.PhaseFailed || cr.Status.Phase == provisioningv1alpha1.PhaseIgnitionGenerating {
+			log.V(1).Info("Running BlueField image resolution feature")
+			if result, err := r.ImageResolver.ResolveBlueFieldImage(ctx, cr); err != nil || result.RequeueAfter > 0 {
+				return result, err
+			}
+		} else {
+			log.V(1).Info("Skipping BlueField image resolution - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
+		}
+	} else {
+		log.V(1).Info("Skipping BlueField image resolution - feature disabled via operator config")
+		// Set BlueFieldImageResolved condition to True when feature is disabled
+		// This prevents old False conditions from blocking phase progression
+		condition := metav1.Condition{
+			Type:               provisioningv1alpha1.BlueFieldImageResolved,
+			Status:             metav1.ConditionTrue,
+			Reason:             "ValidationDisabled",
+			Message:            "BlueField image validation is disabled via operator config",
+			LastTransitionTime: metav1.Now(),
+			ObservedGeneration: cr.Generation,
+		}
+		if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
+			if err := r.Status().Update(ctx, cr); err != nil {
+				log.Error(err, "Failed to update BlueFieldImageResolved condition when feature is disabled")
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase.

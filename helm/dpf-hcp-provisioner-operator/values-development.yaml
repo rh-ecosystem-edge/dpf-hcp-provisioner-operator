@@ -30,12 +30,8 @@ resources:
 # Debug logging for development
 logLevel: debug
 
-# Feature flags for operator functionality
-features:
-  # BlueField image validation feature
-  blueFieldValidation:
-    # Disabled by default until we implement an alternative way to manage the OCP-to-BlueField list instead of using the ConfigMap
-    enabled: false
+# DPFHCPProvisionerConfig CR (operator-wide configuration)
+provisionerConfig: {}
 
 # Leader election (can be disabled for single replica dev)
 leaderElection:
@@ -79,13 +75,6 @@ affinity: {}
 # Pod annotations
 podAnnotations:
   kubectl.kubernetes.io/default-container: manager
-
-# Development BlueField image mappings (empty or test images)
-blueFieldImages: {}
-  # Example format (uncomment and replace with real URLs):
-  # "4.19.0-ec.5": "quay.io/your-org/bluefield-rhcos:4.19.0-ec.5"
-  # "4.18.0": "quay.io/your-org/bluefield-rhcos:4.18.0"
-  # "4.17.0": "quay.io/your-org/bluefield-rhcos:4.17.0"
 
 # Namespace labels
 namespaceLabels:

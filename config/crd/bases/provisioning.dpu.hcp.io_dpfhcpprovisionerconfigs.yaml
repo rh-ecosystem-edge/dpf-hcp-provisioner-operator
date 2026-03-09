@@ -1,0 +1,75 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: dpfhcpprovisionerconfigs.provisioning.dpu.hcp.io
+spec:
+  group: provisioning.dpu.hcp.io
+  names:
+    kind: DPFHCPProvisionerConfig
+    listKind: DPFHCPProvisionerConfigList
+    plural: dpfhcpprovisionerconfigs
+    shortNames:
+    - dpfhcpconfig
+    singular: dpfhcpprovisionerconfig
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.blueFieldOCPRepo
+      name: BlueFieldRepo
+      type: string
+    - jsonPath: .spec.enableBlueFieldValidation
+      name: ValidationEnabled
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          DPFHCPProvisionerConfig is the cluster-scoped singleton configuration for the DPF HCP Provisioner operator.
+          Only one instance named "default" is allowed.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DPFHCPProvisionerConfigSpec defines the operator-wide configuration
+            properties:
+              blueFieldOCPRepo:
+                default: quay.io/eelgaev/rhcos-bfb
+                description: |-
+                  BlueFieldOCPRepo is the container registry repository for BlueField RHCOS OCP image layers.
+                  The operator queries this repository to find an image tag matching the OCP version.
+                type: string
+              enableBlueFieldValidation:
+                default: false
+                description: |-
+                  EnableBlueFieldValidation controls whether BlueField image resolution is enabled.
+                  When false, the operator skips registry queries and sets BlueFieldImageResolved=True.
+                type: boolean
+            type: object
+        type: object
+        x-kubernetes-validations:
+        - message: DPFHCPProvisionerConfig must be named 'default'
+          rule: self.metadata.name == 'default'
+    served: true
+    storage: true
+    subresources: {}

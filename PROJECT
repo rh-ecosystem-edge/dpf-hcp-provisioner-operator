@@ -20,4 +20,12 @@ resources:
   kind: DPFHCPProvisioner
   path: github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: false
+  domain: dpu.hcp.io
+  group: provisioning
+  kind: DPFHCPProvisionerConfig
+  path: github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

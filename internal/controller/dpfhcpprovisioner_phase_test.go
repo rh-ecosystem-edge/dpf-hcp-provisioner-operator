@@ -51,7 +51,6 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 		pullSecretName   string
 		sshKeySecretName string
 		ocpReleaseImage  string
-		blueFieldImage   string
 	)
 
 	BeforeEach(func() {
@@ -61,30 +60,6 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 		pullSecretName = "test-pull-secret-phase"
 		sshKeySecretName = "test-ssh-key-phase"
 		ocpReleaseImage = "quay.io/openshift-release-dev/ocp-release:4.17.0-x86_64"
-		blueFieldImage = "quay.io/example/bluefield:4.17.0"
-
-		// Ensure dpf-hcp-provisioner-system namespace exists (for ConfigMap)
-		operatorNs := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "dpf-hcp-provisioner-system",
-			},
-		}
-		err := k8sClient.Create(ctx, operatorNs)
-		if err != nil && !apierrors.IsAlreadyExists(err) {
-			Fail("Failed to create dpf-hcp-provisioner-system namespace: " + err.Error())
-		}
-
-		// Create ocp-bluefield-images ConfigMap for image resolution
-		configMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ocp-bluefield-images",
-				Namespace: "dpf-hcp-provisioner-system",
-			},
-			Data: map[string]string{
-				"4.17.0": blueFieldImage,
-			},
-		}
-		Expect(k8sClient.Create(ctx, configMap)).To(Succeed())
 
 		// Create DPUCluster
 		dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
@@ -173,14 +148,6 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "phase-test-ready-admin-kubeconfig",
 				Namespace: testNamespace,
-			},
-		})
-
-		// Clean up ConfigMap
-		_ = k8sClient.Delete(ctx, &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ocp-bluefield-images",
-				Namespace: "dpf-hcp-provisioner-system",
 			},
 		})
 

@@ -108,6 +108,14 @@ rules:
 - apiGroups:
   - provisioning.dpu.hcp.io
   resources:
+  - dpfhcpprovisionerconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - provisioning.dpu.hcp.io
+  resources:
   - dpfhcpprovisioners
   verbs:
   - create
