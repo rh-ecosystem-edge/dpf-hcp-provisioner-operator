@@ -390,6 +390,10 @@ var _ = Describe("MetalLB Manager", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
 						Namespace: common.OpenshiftOperatorsNamespace,
+						Labels: map[string]string{
+							common.LabelDPFHCPProvisionerName:      "test-provisioner",
+							common.LabelDPFHCPProvisionerNamespace: "test-ns",
+						},
 					},
 					Spec: metallbv1beta1.IPAddressPoolSpec{
 						Addresses: []string{"192.168.1.100/32"},
@@ -400,6 +404,10 @@ var _ = Describe("MetalLB Manager", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
 						Namespace: common.OpenshiftOperatorsNamespace,
+						Labels: map[string]string{
+							common.LabelDPFHCPProvisionerName:      "test-provisioner",
+							common.LabelDPFHCPProvisionerNamespace: "test-ns",
+						},
 					},
 					Spec: metallbv1beta1.L2AdvertisementSpec{
 						IPAddressPools: []string{"test-provisioner"},
@@ -477,6 +485,10 @@ var _ = Describe("MetalLB Manager", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
 						Namespace: common.OpenshiftOperatorsNamespace,
+						Labels: map[string]string{
+							common.LabelDPFHCPProvisionerName:      "test-provisioner",
+							common.LabelDPFHCPProvisionerNamespace: "test-ns",
+						},
 					},
 				}
 
@@ -516,6 +528,10 @@ var _ = Describe("MetalLB Manager", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
 						Namespace: common.OpenshiftOperatorsNamespace,
+						Labels: map[string]string{
+							common.LabelDPFHCPProvisionerName:      "test-provisioner",
+							common.LabelDPFHCPProvisionerNamespace: "test-ns",
+						},
 					},
 				}
 

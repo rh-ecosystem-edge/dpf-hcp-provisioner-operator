@@ -88,23 +88,27 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 			return fmt.Errorf("getting IPAddressPool: %w", err)
 		}
 	} else {
-		// Resource still exists, initiate deletion
-		log.Info("Deleting IPAddressPool",
-			"name", pool.Name,
-			"namespace", pool.Namespace)
+		// Verify ownership via labels before deleting
+		if !common.IsOwnedByProvisioner(pool.Labels, cr.Name, cr.Namespace) {
+			log.Info("Skipping IPAddressPool deletion - not owned by this DPFHCPProvisioner",
+				"name", pool.Name,
+				"namespace", pool.Namespace)
+		} else {
+			// Resource still exists and is owned by us, initiate deletion
+			log.Info("Deleting IPAddressPool",
+				"name", pool.Name,
+				"namespace", pool.Namespace)
 
-		if err := h.client.Delete(ctx, pool); err != nil {
-			if !apierrors.IsNotFound(err) {
-				// Deletion failed with non-NotFound error
-				log.Error(err, "Failed to delete IPAddressPool")
-				return fmt.Errorf("deleting IPAddressPool: %w", err)
+			if err := h.client.Delete(ctx, pool); err != nil {
+				if !apierrors.IsNotFound(err) {
+					log.Error(err, "Failed to delete IPAddressPool")
+					return fmt.Errorf("deleting IPAddressPool: %w", err)
+				}
 			}
-			// Resource was deleted between GET and DELETE (race condition - this is OK)
-		}
 
-		// Resource deletion initiated, wait for it to complete
-		log.V(1).Info("Waiting for IPAddressPool deletion to complete")
-		return fmt.Errorf("waiting for IPAddressPool deletion")
+			log.V(1).Info("Waiting for IPAddressPool deletion to complete")
+			return fmt.Errorf("waiting for IPAddressPool deletion")
+		}
 	}
 
 	// Step 2: Delete L2Advertisement
@@ -115,32 +119,33 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	}, advert)
 
 	if err != nil {
-		// Check if resource was already deleted (NotFound is success)
 		if apierrors.IsNotFound(err) {
 			log.V(1).Info("L2Advertisement already deleted or never existed")
 		} else {
-			// Unexpected error (permission denied, network issue, etc.)
 			log.Error(err, "Failed to get L2Advertisement")
 			return fmt.Errorf("getting L2Advertisement: %w", err)
 		}
 	} else {
-		// Resource still exists, initiate deletion
-		log.Info("Deleting L2Advertisement",
-			"name", advert.Name,
-			"namespace", advert.Namespace)
+		// Verify ownership via labels before deleting
+		if !common.IsOwnedByProvisioner(advert.Labels, cr.Name, cr.Namespace) {
+			log.Info("Skipping L2Advertisement deletion - not owned by this DPFHCPProvisioner",
+				"name", advert.Name,
+				"namespace", advert.Namespace)
+		} else {
+			log.Info("Deleting L2Advertisement",
+				"name", advert.Name,
+				"namespace", advert.Namespace)
 
-		if err := h.client.Delete(ctx, advert); err != nil {
-			if !apierrors.IsNotFound(err) {
-				// Deletion failed with non-NotFound error
-				log.Error(err, "Failed to delete L2Advertisement")
-				return fmt.Errorf("deleting L2Advertisement: %w", err)
+			if err := h.client.Delete(ctx, advert); err != nil {
+				if !apierrors.IsNotFound(err) {
+					log.Error(err, "Failed to delete L2Advertisement")
+					return fmt.Errorf("deleting L2Advertisement: %w", err)
+				}
 			}
-			// Resource was deleted between GET and DELETE (race condition - this is OK)
-		}
 
-		// Resource deletion initiated, wait for it to complete
-		log.V(1).Info("Waiting for L2Advertisement deletion to complete")
-		return fmt.Errorf("waiting for L2Advertisement deletion")
+			log.V(1).Info("Waiting for L2Advertisement deletion to complete")
+			return fmt.Errorf("waiting for L2Advertisement deletion")
+		}
 	}
 
 	// All resources cleaned up successfully

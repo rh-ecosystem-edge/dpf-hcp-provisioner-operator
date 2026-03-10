@@ -93,7 +93,7 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 		return nil
 	}
 
-	// Delete found secrets
+	// Delete found secrets (ownership verified via label selector above)
 	deletedCount := 0
 	for i := range secretList.Items {
 		secret := &secretList.Items[i]

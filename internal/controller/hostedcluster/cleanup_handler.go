@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -163,7 +164,15 @@ func (h *CleanupHandler) deleteResource(
 		return false, fmt.Errorf("failed to get %s: %w", resourceKind, err)
 	}
 
-	// Resource still exists
+	// Verify ownership before deleting
+	if !metav1.IsControlledBy(obj, cr) {
+		log.Info(fmt.Sprintf("Skipping %s deletion - not owned by this DPFHCPProvisioner", resourceKind),
+			resourceKind, key.Name,
+			"namespace", key.Namespace)
+		return true, nil
+	}
+
+	// Resource still exists and is owned by us
 	deletionTimestamp := obj.GetDeletionTimestamp()
 	if deletionTimestamp == nil {
 		// Resource not yet marked for deletion, delete it now
@@ -205,7 +214,7 @@ func (h *CleanupHandler) deleteSecrets(ctx context.Context, cr *provisioningv1al
 	}
 
 	for _, secretName := range secretNames {
-		if err := h.deleteSecret(ctx, cr.Namespace, secretName); err != nil {
+		if err := h.deleteSecret(ctx, cr, secretName); err != nil {
 			log.Error(err, "Failed to delete secret",
 				"secret", secretName,
 				"namespace", cr.Namespace)
@@ -220,14 +229,14 @@ func (h *CleanupHandler) deleteSecrets(ctx context.Context, cr *provisioningv1al
 	return nil
 }
 
-// deleteSecret deletes a single secret
-func (h *CleanupHandler) deleteSecret(ctx context.Context, namespace, secretName string) error {
+// deleteSecret deletes a single secret after verifying ownership
+func (h *CleanupHandler) deleteSecret(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, secretName string) error {
 	log := logf.FromContext(ctx)
 
 	secret := &corev1.Secret{}
 	secretKey := types.NamespacedName{
 		Name:      secretName,
-		Namespace: namespace,
+		Namespace: cr.Namespace,
 	}
 
 	err := h.client.Get(ctx, secretKey, secret)
@@ -236,16 +245,24 @@ func (h *CleanupHandler) deleteSecret(ctx context.Context, namespace, secretName
 			// Secret already deleted
 			log.V(1).Info("Secret already deleted",
 				"secret", secretName,
-				"namespace", namespace)
+				"namespace", cr.Namespace)
 			return nil
 		}
 		return fmt.Errorf("failed to get secret %s: %w", secretName, err)
 	}
 
+	// Verify ownership before deleting
+	if !metav1.IsControlledBy(secret, cr) {
+		log.Info("Skipping secret deletion - not owned by this DPFHCPProvisioner",
+			"secret", secretName,
+			"namespace", cr.Namespace)
+		return nil
+	}
+
 	// Delete secret
 	log.V(1).Info("Deleting secret",
 		"secret", secretName,
-		"namespace", namespace)
+		"namespace", cr.Namespace)
 
 	if err := h.client.Delete(ctx, secret); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -257,7 +274,7 @@ func (h *CleanupHandler) deleteSecret(ctx context.Context, namespace, secretName
 
 	log.Info("Secret deleted successfully",
 		"secret", secretName,
-		"namespace", namespace)
+		"namespace", cr.Namespace)
 
 	return nil
 }

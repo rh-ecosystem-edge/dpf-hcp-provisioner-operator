@@ -151,7 +151,7 @@ func (m *MetalLBManager) ensureIPAddressPool(ctx context.Context, provisioner *p
 
 	op, err := controllerutil.CreateOrUpdate(ctx, m.client, pool, func() error {
 		// Verify ownership if resource already exists (ResourceVersion is set by API server on existing resources)
-		if pool.ResourceVersion != "" && !m.isOwnedByProvisioner(pool, provisioner) {
+		if pool.ResourceVersion != "" && !common.IsOwnedByProvisioner(pool.Labels, provisioner.Name, provisioner.Namespace) {
 			return fmt.Errorf("IPAddressPool %s/%s exists but is not owned by DPFHCPProvisioner %s/%s (missing ownership labels)",
 				pool.Namespace, pool.Name, provisioner.Namespace, provisioner.Name)
 		}
@@ -211,7 +211,7 @@ func (m *MetalLBManager) ensureL2Advertisement(ctx context.Context, provisioner 
 
 	op, err := controllerutil.CreateOrUpdate(ctx, m.client, advert, func() error {
 		// Verify ownership if resource already exists (ResourceVersion is set by API server on existing resources)
-		if advert.ResourceVersion != "" && !m.isOwnedByProvisioner(advert, provisioner) {
+		if advert.ResourceVersion != "" && !common.IsOwnedByProvisioner(advert.Labels, provisioner.Name, provisioner.Namespace) {
 			return fmt.Errorf("L2Advertisement %s/%s exists but is not owned by DPFHCPProvisioner %s/%s (missing ownership labels)",
 				advert.Namespace, advert.Name, provisioner.Namespace, provisioner.Name)
 		}
@@ -248,20 +248,4 @@ func (m *MetalLBManager) ensureL2Advertisement(ctx context.Context, provisioner 
 	}
 
 	return nil
-}
-
-// isOwnedByProvisioner checks if a resource has the correct ownership labels for the given DPFHCPProvisioner.
-// This prevents taking ownership of resources created by other operators or users.
-func (m *MetalLBManager) isOwnedByProvisioner(obj client.Object, provisioner *provisioningv1alpha1.DPFHCPProvisioner) bool {
-	labels := obj.GetLabels()
-	if labels == nil {
-		return false
-	}
-
-	provisionerName, hasProvisionerName := labels[common.LabelDPFHCPProvisionerName]
-	provisionerNamespace, hasProvisionerNamespace := labels[common.LabelDPFHCPProvisionerNamespace]
-
-	return hasProvisionerName && hasProvisionerNamespace &&
-		provisionerName == provisioner.Name &&
-		provisionerNamespace == provisioner.Namespace
 }
