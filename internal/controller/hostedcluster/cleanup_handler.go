@@ -24,7 +24,6 @@ import (
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -150,13 +149,6 @@ func (h *CleanupHandler) deleteResource(
 		if apierrors.IsNotFound(err) {
 			// Resource is fully deleted
 			log.Info(fmt.Sprintf("%s deleted successfully", resourceKind),
-				resourceKind, key.Name,
-				"namespace", key.Namespace)
-			return true, nil
-		}
-		// Handle "no matches for kind" error (CRD not installed) as if resource doesn't exist
-		if meta.IsNoMatchError(err) {
-			log.V(1).Info(fmt.Sprintf("%s CRD not installed, treating as deleted", resourceKind),
 				resourceKind, key.Name,
 				"namespace", key.Namespace)
 			return true, nil
