@@ -72,13 +72,6 @@ func (ss *StatusSyncer) SyncStatusFromHostedCluster(ctx context.Context, cr *pro
 			return ctrl.Result{}, nil
 		}
 
-		// Handle "no matches for kind" error (CRD not installed) gracefully
-		if meta.IsNoMatchError(err) {
-			log.V(1).Info("HostedCluster CRD not installed, skipping status sync",
-				"hostedCluster", hcKey.String())
-			return ctrl.Result{}, nil
-		}
-
 		// Other errors (network, RBAC, API server issues) should be retried
 		log.Error(err, "Failed to get HostedCluster for status sync",
 			"hostedCluster", hcKey.String())
