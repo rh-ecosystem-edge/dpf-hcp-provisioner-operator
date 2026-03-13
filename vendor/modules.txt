@@ -347,7 +347,7 @@ go.uber.org/zap/zapcore
 ## explicit; go 1.25
 go.universe.tf/metallb/api/v1beta1
 go.universe.tf/metallb/api/v1beta2
-# go.yaml.in/yaml/v2 v2.4.2
+# go.yaml.in/yaml/v2 v2.4.4
 ## explicit; go 1.15
 go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
