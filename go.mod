@@ -1,10 +1,10 @@
 module github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/coreos/ignition/v2 v2.26.0
-	github.com/nvidia/doca-platform v0.0.0-20251115082520-81369e955c6c
+	github.com/nvidia/doca-platform v0.0.0-20260314082551-3c05de53d174
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift/hypershift v0.1.71

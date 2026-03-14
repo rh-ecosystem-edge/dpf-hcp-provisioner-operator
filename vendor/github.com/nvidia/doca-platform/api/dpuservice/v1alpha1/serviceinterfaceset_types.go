@@ -1,5 +1,5 @@
 /*
-COPYRIGHT 2024 NVIDIA
+Copyright 2024 NVIDIA
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -105,6 +105,7 @@ type ServiceInterfaceSetStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="IfType",type=string,JSONPath=`.spec.template.spec.interfaceType`
 // +kubebuilder:printcolumn:name="IfName",type=string,JSONPath=`.spec.template.spec.interfaceName`
