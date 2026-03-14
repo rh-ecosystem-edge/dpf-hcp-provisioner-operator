@@ -169,7 +169,7 @@ spec:
           type: string
         steps:
         - name: tag-latest
-          image: quay.io/konflux-ci/tools@sha256:dc63fa5c598ba26ccfb1685c39ad6a3a0b9d95ae25bdc5113a7940630b813fcd
+          image: quay.io/konflux-ci/tools@sha256:7f586ca8dda0dcabec5561936b3c785888d358f520cd1298c7aff338a8f0adc5
           script: |
             #!/bin/bash
             set -ex
