@@ -1,5 +1,5 @@
 /*
-COPYRIGHT 2024 NVIDIA
+Copyright 2024 NVIDIA
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ var (
 )
 
 var _ conditions.GetSet = &DPUServiceInterface{}
+var _ DPUServiceObject = &DPUServiceInterface{}
 
 func (c *DPUServiceInterface) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
@@ -57,11 +58,21 @@ func (c *DPUServiceInterface) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 
+// GetDPUClusterSelector returns the DPUCluster selector of the DPUServiceInterface
+func (c *DPUServiceInterface) GetDPUClusterSelector() *metav1.LabelSelector {
+	return c.Spec.DPUClusterSelector
+}
+
 // DPUServiceInterfaceSpec defines the desired state of DPUServiceInterfaceSpec
 type DPUServiceInterfaceSpec struct {
 	// Select the Clusters with specific labels, ServiceInterfaceSet CRs will be created only for these Clusters
+	//
+	// Deprecated: This field is deprecated and will be removed with v26.7.0. Use DPUClusterSelector instead.
 	// +optional
 	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
+	// DPUClusterSelector determines in which clusters the DPUServiceInterface controller should apply the configuration.
+	// +optional
+	DPUClusterSelector *metav1.LabelSelector `json:"dpuClusterSelector,omitempty"`
 	// Template describes the ServiceInterfaceSet that will be created for each selected Cluster.
 	Template ServiceInterfaceSetSpecTemplate `json:"template"`
 }
@@ -101,6 +112,7 @@ func (c *DPUServiceInterface) GetVirtualNetworkName() string {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="IfType",type=string,JSONPath=`.spec.template.spec.template.spec.interfaceType`
 // +kubebuilder:printcolumn:name="IfName",type=string,JSONPath=`.spec.template.spec.template.spec['service','physical'].interfaceName`

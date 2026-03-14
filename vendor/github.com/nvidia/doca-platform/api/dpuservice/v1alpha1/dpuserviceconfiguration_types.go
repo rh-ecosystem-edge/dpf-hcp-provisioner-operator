@@ -33,6 +33,7 @@ var DPUServiceConfigurationGroupVersionKind = GroupVersion.WithKind(DPUServiceCo
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 
 // DPUServiceConfiguration is the Schema for the dpuserviceconfigurations API. This object is intended to be used in
@@ -50,7 +51,6 @@ type DPUServiceConfiguration struct {
 
 // DPUServiceConfigurationSpec defines the desired state of DPUServiceConfiguration
 // +kubebuilder:validation:XValidation:rule="!has(self.interfaces) || (has(self.interfaces) && (self.serviceConfiguration.deployInCluster == false || !has(self.serviceConfiguration.deployInCluster)))", message="interfaces are not supported when deploying in cluster"
-// +kubebuilder:validation:XValidation:rule="!has(self.serviceConfiguration) || !has(self.serviceConfiguration.deployInCluster) || self.serviceConfiguration.deployInCluster == false || (self.upgradePolicy.applyNodeEffect == false && self.serviceConfiguration.deployInCluster == true)", message="applyNodeEffect is not supported when deploying in cluster"
 type DPUServiceConfigurationSpec struct {
 	// DeploymentServiceName is the name of the DPU service this configuration refers to. It must match
 	// .spec.deploymentServiceName of a DPUServiceTemplate object and one of the keys in .spec.services of a
@@ -80,7 +80,7 @@ type DPUServiceConfigurationSpec struct {
 type ServiceInterfaceTemplate struct {
 	// Name is the name of the interface
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=28
+	// +kubebuilder:validation:MaxLength=15
 	// +required
 	Name string `json:"name"`
 	// Network is the Network Attachment Definition in the form of "namespace/name"

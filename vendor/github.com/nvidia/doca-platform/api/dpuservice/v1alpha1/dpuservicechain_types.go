@@ -1,5 +1,5 @@
 /*
-COPYRIGHT 2024 NVIDIA
+Copyright 2024 NVIDIA
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ var (
 )
 
 var _ conditions.GetSet = &DPUServiceChain{}
+var _ DPUServiceObject = &DPUServiceChain{}
 
 func (c *DPUServiceChain) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
@@ -60,11 +61,21 @@ func (c *DPUServiceChain) SetServiceChainSetLabelSelector(selector *metav1.Label
 	c.Spec.Template.Spec.NodeSelector = selector
 }
 
+// GetDPUClusterSelector returns the DPUCluster selector of the DPUServiceChain
+func (c *DPUServiceChain) GetDPUClusterSelector() *metav1.LabelSelector {
+	return c.Spec.DPUClusterSelector
+}
+
 // DPUServiceChainSpec defines the desired state of DPUServiceChainSpec
 type DPUServiceChainSpec struct {
 	// Select the Clusters with specific labels, ServiceChainSet CRs will be created only for these Clusters
+	//
+	// Deprecated: This field is deprecated and will be removed with v26.7.0. Use DPUClusterSelector instead.
 	// +optional
 	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
+	// DPUClusterSelector determines in which clusters the DPUServiceChain controller should apply the configuration.
+	// +optional
+	DPUClusterSelector *metav1.LabelSelector `json:"dpuClusterSelector,omitempty"`
 	// Template describes the ServiceChainSet that will be created for each selected Cluster.
 	Template ServiceChainSetSpecTemplate `json:"template"`
 }
@@ -85,6 +96,7 @@ type DPUServiceChainStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].status`
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].reason`

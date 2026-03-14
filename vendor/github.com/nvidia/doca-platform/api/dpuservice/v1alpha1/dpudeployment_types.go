@@ -86,6 +86,7 @@ func (c *DPUDeployment) SetConditions(conditions []metav1.Condition) {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].status`
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].reason`
@@ -112,12 +113,14 @@ type DPUDeploymentSpec struct {
 	// configuration. All underlying objects must specify the same deploymentServiceName in order to be able to be consumed by the
 	// DPUDeployment.
 	// +kubebuilder:validation:XValidation:rule="self.all(key, key.size()<=28)", message="service names can't be bigger than 28 chars"
+	// +kubebuilder:validation:MinProperties=1
+	// +kubebuilder:validation:MaxProperties=50
 	// +required
 	Services map[string]DPUDeploymentServiceConfiguration `json:"services"`
 
 	// ServiceChains contains the configuration related to the DPUServiceChains that the DPUDeployment creates.
-	// +required
-	ServiceChains ServiceChains `json:"serviceChains"`
+	// +optional
+	ServiceChains *ServiceChains `json:"serviceChains,omitempty"`
 
 	// The maximum number of revisions that can be retained during upgrades.
 	// Defaults to 10.
@@ -177,10 +180,21 @@ type DPUs struct {
 	DPUSets []DPUSet `json:"dpuSets,omitempty"`
 
 	// NodeEffect is the effect the DPU has on Nodes during provisioning.
-	NodeEffect *provisioningv1.NodeEffect `json:"nodeEffect,omitempty"`
+	// +optional
+	NodeEffect *provisioningv1.Action `json:"nodeEffect,omitempty"`
+
+	// DPUSetStrategy is the strategy to use for the DPUSets created by the DPUDeployment.
+	// +optional
+	DPUSetStrategy *provisioningv1.DPUSetStrategy `json:"dpuSetStrategy,omitempty"`
+
+	// SecureBoot specifies whether UEFI Secure Boot should be enabled.
+	// +optional
+	SecureBoot *bool `json:"secureBoot,omitempty"`
 }
 
-// +kubebuilder:validation:XValidation:rule="!(has(self.dpuAnnotations) && (self.dpuAnnotations.exists(key, key.contains('dpu.nvidia.com/') || key.endsWith('dpu.nvidia.com')))) ", message="should not contain dpu.nvidia.com/ and should not end with dpu.nvidia.com"
+// +kubebuilder:validation:XValidation:rule="!(has(self.dpuAnnotations) && (self.dpuAnnotations.exists(key, (key.contains('dpu.nvidia.com/') || key.endsWith('dpu.nvidia.com')) && !key.startsWith('noderesources.dpu.nvidia.com'))))", message="should not contain dpu.nvidia.com/ and should not end with dpu.nvidia.com"
+// +kubebuilder:validation:XValidation:rule="!(has(self.nodeSelector) && has(self.dpuNodeSelector))", message="only one of nodeSelector or dpuNodeSelector can be specified"
+// +kubebuilder:validation:XValidation:rule="!(has(self.dpuSelector) && has(self.dpuDeviceSelector))", message="only one of dpuSelector or dpuDeviceSelector can be specified"
 
 // DPUSet contains configuration for the DPUSet to be created by the DPUDeployment
 type DPUSet struct {
@@ -191,12 +205,32 @@ type DPUSet struct {
 	NameSuffix string `json:"nameSuffix,omitempty"`
 
 	// NodeSelector defines the nodes that the DPUSet should target
+	//
+	// Deprecated: This field is deprecated and will be removed with v26.7.0. Use DPUNodeSelector instead.
 	// +optional
 	NodeSelector *metav1.LabelSelector `json:"nodeSelector,omitempty"`
 
 	// DPUSelector defines the DPUs that the DPUSet should target
+	//
+	// Deprecated: This field is deprecated and will be removed with v26.7.0. Use DPUDeviceSelector instead.
 	// +optional
 	DPUSelector map[string]string `json:"dpuSelector,omitempty"`
+
+	// DPUNodeSelector defines the selector for DPUNodes that the DPUSet should target and should create a DPU for.
+	// +optional
+	DPUNodeSelector *metav1.LabelSelector `json:"dpuNodeSelector,omitempty"`
+
+	// DPUDeviceSelector defines the selector for DPUDevices that the DPUSet should target and should create a DPU for.
+	// +optional
+	DPUDeviceSelector *metav1.LabelSelector `json:"dpuDeviceSelector,omitempty"`
+
+	// DPUClusterSelector defines the selector for DPUClusters that the DPUs created by the DPUSets created by the
+	// DPUDeployment should join
+	// TODO(4797319): The current implementation has some flaws. Consider using a metav1.LabelSelector instead, this will
+	// require multiple DPUServices, DPUServiceInterfaces, and DPUServiceChains to be created so that we can mathematically
+	// cover the union of all the selectors across all the DPUSets.
+	// +optional
+	DPUClusterSelector map[string]string `json:"dpuClusterSelector,omitempty"`
 
 	// DPUAnnotations is the annotations to be added to the DPU object created by the DPUSet.
 	// +optional
@@ -238,7 +272,7 @@ type DPUDeploymentSwitch struct {
 
 	// ServiceMTU of the switch
 	// The default is 1500.
-	// +kubebuilder:validation:Minimum=1000
+	// +kubebuilder:validation:Minimum=1280
 	// +kubebuilder:validation:Maximum=9216
 	// +kubebuilder:default=1500
 	// +optional
@@ -265,9 +299,9 @@ type DPUDeploymentService struct {
 	// +kubebuilder:validation:MaxLength=28
 	// +required
 	Name string `json:"name"`
-	// Interface name is the name of the interface as defined in the DPUServiceTemplate
+	// Interface name is the name of the interface as defined in the DPUServiceConfiguration
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=28
+	// +kubebuilder:validation:MaxLength=15
 	// +required
 	InterfaceName string `json:"interface"`
 	// IPAM defines the IPAM configuration that is configured in the Service Function Chain

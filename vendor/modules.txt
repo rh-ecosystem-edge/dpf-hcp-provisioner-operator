@@ -165,8 +165,8 @@ github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
-# github.com/nvidia/doca-platform v0.0.0-20251115082520-81369e955c6c
-## explicit; go 1.24.0
+# github.com/nvidia/doca-platform v0.0.0-20260314082551-3c05de53d174
+## explicit; go 1.25.0
 github.com/nvidia/doca-platform/api/dpuservice/v1alpha1
 github.com/nvidia/doca-platform/api/operator/v1alpha1
 github.com/nvidia/doca-platform/api/provisioning/v1alpha1
