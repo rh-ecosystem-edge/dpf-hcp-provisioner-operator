@@ -24,26 +24,13 @@ NEXT STEPS:
 
    kubectl get crd dpfhcpprovisioners.provisioning.dpu.hcp.io
 
-{{- if not .Values.blueFieldImages }}
+4. Review operator configuration:
 
-4. IMPORTANT: Add BlueField image mappings to the ConfigMap
+   The operator is configured via the DPFHCPProvisionerConfig CR:
 
-   The operator needs OCP-to-BlueField image mappings to function properly.
+   kubectl get dpfhcpconfig default -o yaml
 
-   Edit the ConfigMap directly:
-
-   kubectl edit configmap ocp-bluefield-images -n {{ include "dpf-hcp-provisioner-operator.namespace" . }}
-
-   Or update your values.yaml and upgrade the release:
-
-   blueFieldImages:
-     "4.19.0-ec.5": "<bluefield-container-image-url>"
-     "4.18.0": "<bluefield-container-image-url>"
-
-   Then upgrade:
-
-   helm upgrade {{ .Release.Name }} ./helm/dpf-hcp-provisioner-operator
-{{- end }}
+   Fields not set in the CR use CRD defaults (see kubectl explain dpfhcpconfig.spec).
 
 5. Create your first DPFHCPProvisioner custom resource:
 
@@ -91,7 +78,7 @@ TROUBLESHOOTING:
   kubectl describe dpfhcpprovisioner <name> -n <namespace>
 
 - Common issues:
-  * Missing BlueField image mapping: Add to ocp-bluefield-images ConfigMap
+  * BlueField image not found: Ensure the image is in the registry with the correct OCP version tag
   * DPUCluster not found: Ensure DPUCluster CR exists and is referenced correctly
   * Pull secret missing: Create secret with '.dockerconfigjson' key in CR namespace
   * SSH key missing: Create secret with 'id_rsa.pub' key in CR namespace

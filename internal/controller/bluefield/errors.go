@@ -18,43 +18,45 @@ package bluefield
 
 import "fmt"
 
-// ConfigMapNotFoundError indicates the ocp-bluefield-images ConfigMap was not found
-// This is a transient error - the ConfigMap might be deployed soon
-type ConfigMapNotFoundError struct {
-	Err error
+// RegistryAccessError indicates the operator failed to access the container registry
+// This is a transient error - the registry might be temporarily unavailable
+type RegistryAccessError struct {
+	Repository string
+	Err        error
 }
 
-func (e *ConfigMapNotFoundError) Error() string {
-	return fmt.Sprintf("ConfigMap ocp-bluefield-images not found in namespace dpf-hcp-provisioner-system: %v", e.Err)
+func (e *RegistryAccessError) Error() string {
+	return fmt.Sprintf("failed to access registry repository %s: %v", e.Repository, e.Err)
 }
 
-func (e *ConfigMapNotFoundError) Unwrap() error {
+func (e *RegistryAccessError) Unwrap() error {
 	return e.Err
 }
 
-// ConfigMapAccessDeniedError indicates the operator lacks RBAC permissions to read the ConfigMap
-// This is a permanent error - admin must grant permissions
-type ConfigMapAccessDeniedError struct {
-	Err error
+// RegistryAuthError indicates the operator lacks credentials to access the registry
+// This is a permanent error - user must provide valid credentials
+type RegistryAuthError struct {
+	Repository string
+	Err        error
 }
 
-func (e *ConfigMapAccessDeniedError) Error() string {
-	return fmt.Sprintf("Operator lacks RBAC permissions to read ConfigMap ocp-bluefield-images: %v", e.Err)
+func (e *RegistryAuthError) Error() string {
+	return fmt.Sprintf("authentication failed for registry repository %s: %v", e.Repository, e.Err)
 }
 
-func (e *ConfigMapAccessDeniedError) Unwrap() error {
+func (e *RegistryAuthError) Unwrap() error {
 	return e.Err
 }
 
-// VersionNotFoundError indicates the OCP version was not found in the ConfigMap
-// This is a permanent error - admin must add version mapping to ConfigMap
+// VersionNotFoundError indicates the OCP version tag was not found in the registry
+// This is a permanent error - the image for this version hasn't been pushed yet
 type VersionNotFoundError struct {
-	Version           string
-	AvailableVersions []string
+	Version    string
+	Repository string
 }
 
 func (e *VersionNotFoundError) Error() string {
-	return fmt.Sprintf("BlueField image not found for OCP version %s (available versions: %v)", e.Version, e.AvailableVersions)
+	return fmt.Sprintf("BlueField image not found for OCP version %s in repository %s", e.Version, e.Repository)
 }
 
 // InvalidImageFormatError indicates the ocpReleaseImage URL is malformed
@@ -68,8 +70,8 @@ func (e *InvalidImageFormatError) Error() string {
 	return fmt.Sprintf("Invalid ocpReleaseImage format: %s (URL: %s)", e.Message, e.URL)
 }
 
-// InvalidBlueFieldImageURLError indicates the BlueField image URL in ConfigMap is malformed or empty
-// This is a permanent error - admin must fix ConfigMap
+// InvalidBlueFieldImageURLError indicates the constructed BlueField image reference is invalid
+// This is a permanent error
 type InvalidBlueFieldImageURLError struct {
 	Version string
 	URL     string
