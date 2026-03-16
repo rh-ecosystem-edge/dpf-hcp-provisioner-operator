@@ -63,7 +63,7 @@ spec:
     results:
     - description: ""
       name: IMAGE_URL
-      value: $(tasks.build-helm-chart.results.IMAGE_URL)
+      value: $(tasks.apply-semver-tag.results.IMAGE_URL)
     - description: ""
       name: IMAGE_DIGEST
       value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
@@ -158,25 +158,32 @@ spec:
         - name: kind
           value: task
         resolver: bundles
-    - name: apply-latest-tag
+    - name: apply-semver-tag
       params:
       - name: IMAGE_URL
         value: $(tasks.build-helm-chart.results.IMAGE_URL)
       taskSpec:
         params:
         - name: IMAGE_URL
-          description: The image URL to tag as latest
+          description: The image URL to re-tag with a valid SemVer version
           type: string
+        results:
+        - name: IMAGE_URL
+          description: The image URL with a valid SemVer tag
         steps:
-        - name: tag-latest
+        - name: retag
           image: quay.io/konflux-ci/tools@sha256:dc63fa5c598ba26ccfb1685c39ad6a3a0b9d95ae25bdc5113a7940630b813fcd
           script: |
             #!/bin/bash
             set -ex
             SOURCE="docker://$(params.IMAGE_URL)"
-            # Extract repository (everything before the last colon)
+            # Extract repository and tag
             REPO="${SOURCE%:*}"
-            DEST="${REPO}:latest"
+            TAG="${SOURCE##*:}"
+            # Convert _ to - in the tag to produce a valid SemVer version
+            FIXED_TAG="${TAG//_/-}"
+            DEST="${REPO}:${FIXED_TAG}"
+            printf '%s' "${DEST#docker://}" > "$(results.IMAGE_URL.path)"
             echo "Tagging $SOURCE as $DEST"
             skopeo copy --src-tls-verify=false --dest-tls-verify=false "$SOURCE" "$DEST"
           securityContext:
