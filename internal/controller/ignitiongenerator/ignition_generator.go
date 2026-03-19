@@ -62,6 +62,25 @@ const (
 	configMapKeyName    = "BF_CFG_TEMPLATE"
 	configMapNamePrefix = "bfcfg"
 	ignitionVersion     = "3.4.0"
+
+	// DPF provisioning label and annotation constants.
+	// Copied from github.com/nvidia/doca-platform/internal/provisioning/controllers/util
+	// (cannot be imported because it is internal)
+	dpuProvisioningPrefix = "provisioning.dpu.nvidia.com/"
+	// bfcfgTemplateLabel is the label on a bf.cfg template ConfigMap.
+	bfcfgTemplateLabel = dpuProvisioningPrefix + "bfcfg-template"
+	// bfcfgTemplateBFBNameAnnotation is the annotation specifying the target BFB name.
+	bfcfgTemplateBFBNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-name"
+	// bfcfgTemplateBFBNamespaceAnnotation is the annotation specifying the target BFB namespace.
+	bfcfgTemplateBFBNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-namespace"
+	// bfcfgTemplateClusterNameAnnotation is the annotation specifying the target DPUCluster name.
+	bfcfgTemplateClusterNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-cluster-name"
+	// bfcfgTemplateClusterNamespaceAnnotation is the annotation specifying the target DPUCluster namespace.
+	bfcfgTemplateClusterNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-cluster-namespace"
+	// bfcfgTemplateDPUFlavorNameAnnotation is the annotation specifying the target DPUFlavor name.
+	bfcfgTemplateDPUFlavorNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-name"
+	// bfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
+	bfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
 )
 
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
@@ -207,13 +226,6 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
-	// Step 6: Update DPFOperatorConfig, Relevant for DPF 25.7 and DPF 25.10.
-	// DPF 26.04 will not update this field in DPFOperatorConfig.
-	log.V(1).Info("Updating DPFOperatorConfig")
-	if err := ig.updateDPFOperatorConfig(ctx, cr); err != nil {
-		return fmt.Errorf("failed to update DPFOperatorConfig: %w", err)
-	}
-
 	return nil
 }
 
@@ -345,9 +357,8 @@ func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provis
 	return ignitionData, nil
 }
 
-// retrieveDPUFlavor retrieves the DPU Flavor configuration from DPUDeployment
-func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (*dpuprovisioningv1alpha1.DPUFlavor, error) {
-	// Get DPUDeployment
+// getDPUDeployment fetches the DPUDeployment CR referenced by the provisioner
+func (ig *IgnitionGenerator) getDPUDeployment(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (*dpuservicev1alpha1.DPUDeployment, error) {
 	dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
 	deploymentKey := types.NamespacedName{
 		Name:      cr.Spec.DPUDeploymentRef.Name,
@@ -355,6 +366,15 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 	}
 	if err := ig.Client.Get(ctx, deploymentKey, dpuDeployment); err != nil {
 		return nil, fmt.Errorf("failed to get DPUDeployment: %w", err)
+	}
+	return dpuDeployment, nil
+}
+
+// retrieveDPUFlavor retrieves the DPU Flavor configuration from DPUDeployment
+func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (*dpuprovisioningv1alpha1.DPUFlavor, error) {
+	dpuDeployment, err := ig.getDPUDeployment(ctx, cr)
+	if err != nil {
+		return nil, err
 	}
 
 	// Extract flavor name
@@ -486,10 +506,31 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 	cmName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
 	cmNamespace := cr.Spec.DPUClusterRef.Namespace
 
+	// Build labels and annotations required by the DPF provisioning controller
+	labels := map[string]string{
+		bfcfgTemplateLabel: "true",
+	}
+	annotations := map[string]string{
+		bfcfgTemplateClusterNameAnnotation:      cr.Spec.DPUClusterRef.Name,
+		bfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
+	}
+	if cr.Spec.DPUDeploymentRef != nil {
+		dpuDeployment, err := ig.getDPUDeployment(ctx, cr)
+		if err != nil {
+			return fmt.Errorf("failed to get DPUDeployment for BFB name: %w", err)
+		}
+		annotations[bfcfgTemplateBFBNameAnnotation] = dpuDeployment.Spec.DPUs.BFB
+		annotations[bfcfgTemplateBFBNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
+		annotations[bfcfgTemplateDPUFlavorNameAnnotation] = dpuDeployment.Spec.DPUs.Flavor
+		annotations[bfcfgTemplateDPUFlavorNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
+	}
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cmName,
-			Namespace: cmNamespace,
+			Name:        cmName,
+			Namespace:   cmNamespace,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 		Data: map[string]string{
 			configMapKeyName: string(ignitionJSON) + "\n",
@@ -521,54 +562,13 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 	}
 
 	// Update existing ConfigMap
+	existingCM.Labels = cm.Labels
+	existingCM.Annotations = cm.Annotations
 	existingCM.Data = cm.Data
 	if err := ig.Client.Update(ctx, existingCM); err != nil {
 		return fmt.Errorf("failed to update ConfigMap: %w", err)
 	}
 
 	log.Info("Updated ignition ConfigMap", "name", cmName, "namespace", cmNamespace)
-	return nil
-}
-
-// updateDPFOperatorConfig updates the DPFOperatorConfig to reference the ignition ConfigMap
-func (ig *IgnitionGenerator) updateDPFOperatorConfig(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
-	log := logf.FromContext(ctx)
-
-	configMapName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
-	dpuClusterNamespace := cr.Spec.DPUClusterRef.Namespace
-
-	// List DPFOperatorConfig in DPUCluster namespace (expect one instance)
-	configList := &operatorv1alpha1.DPFOperatorConfigList{}
-	if err := ig.Client.List(ctx, configList, client.InNamespace(dpuClusterNamespace)); err != nil {
-		return fmt.Errorf("failed to list DPFOperatorConfig: %w", err)
-	}
-
-	if len(configList.Items) == 0 {
-		return fmt.Errorf("no DPFOperatorConfig found in namespace %s", dpuClusterNamespace)
-	}
-
-	if len(configList.Items) > 1 {
-		log.Info("WARNING: Multiple DPFOperatorConfig instances found, using first",
-			"count", len(configList.Items), "namespace", dpuClusterNamespace)
-	}
-
-	dpfConfig := &configList.Items[0]
-
-	// Check if already set to avoid unnecessary patch
-	if dpfConfig.Spec.ProvisioningController.BFCFGTemplateConfigMap != nil &&
-		*dpfConfig.Spec.ProvisioningController.BFCFGTemplateConfigMap == configMapName {
-		log.V(1).Info("DPFOperatorConfig already points to correct ConfigMap, skipping patch")
-		return nil
-	}
-
-	// Patch the field
-	patch := client.MergeFrom(dpfConfig.DeepCopy())
-	dpfConfig.Spec.ProvisioningController.BFCFGTemplateConfigMap = &configMapName
-
-	if err := ig.Client.Patch(ctx, dpfConfig, patch); err != nil {
-		return fmt.Errorf("failed to patch DPFOperatorConfig: %w", err)
-	}
-
-	log.Info("Updated DPFOperatorConfig", "configMap", configMapName, "namespace", dpuClusterNamespace)
 	return nil
 }

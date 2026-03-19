@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
@@ -68,6 +67,22 @@ func newTestProvisioner() *provisioningv1alpha1.DPFHCPProvisioner {
 			HostedClusterRef: &corev1.ObjectReference{
 				Name:      "doca",
 				Namespace: "clusters",
+			},
+		},
+	}
+}
+
+// Helper to build a DPUDeployment matching the test provisioner's DPUDeploymentRef
+func newTestDPUDeployment(cr *provisioningv1alpha1.DPFHCPProvisioner) *dpuservicev1alpha1.DPUDeployment {
+	return &dpuservicev1alpha1.DPUDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Spec.DPUDeploymentRef.Name,
+			Namespace: cr.Spec.DPUDeploymentRef.Namespace,
+		},
+		Spec: dpuservicev1alpha1.DPUDeploymentSpec{
+			DPUs: dpuservicev1alpha1.DPUs{
+				BFB:    "test-bfb",
+				Flavor: "test-flavor",
 			},
 		},
 	}
@@ -624,7 +639,8 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 	})
 
 	It("should create a new ConfigMap when it does not exist", func() {
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+		deployment := newTestDPUDeployment(cr)
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build()
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
@@ -638,6 +654,17 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
 		Expect(cm.Data).To(HaveKey(configMapKeyName))
+
+		// Verify labels
+		Expect(cm.Labels).To(HaveKeyWithValue(bfcfgTemplateLabel, "true"))
+
+		// Verify annotations
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 	})
 
 	It("should update an existing ConfigMap", func() {
@@ -651,7 +678,8 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 				configMapKeyName: "old-data",
 			},
 		}
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingCM).Build()
+		deployment := newTestDPUDeployment(cr)
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingCM, deployment).Build()
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
@@ -662,6 +690,15 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		cmKey := types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
 		Expect(cm.Data[configMapKeyName]).NotTo(Equal("old-data"))
+
+		// Verify labels and annotations are set on update
+		Expect(cm.Labels).To(HaveKeyWithValue(bfcfgTemplateLabel, "true"))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 	})
 
 	It("should set owner reference when CR and ConfigMap are in the same namespace", func() {
@@ -669,7 +706,8 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		cr.Namespace = cr.Spec.DPUClusterRef.Namespace
 		cr.UID = "test-uid-123"
 
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+		deployment := newTestDPUDeployment(cr)
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build()
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
@@ -686,7 +724,8 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 
 	It("should not set owner reference for cross-namespace ConfigMap", func() {
 		// CR namespace differs from DPUCluster namespace (default in test CR)
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+		deployment := newTestDPUDeployment(cr)
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build()
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
@@ -700,68 +739,34 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
 		Expect(cm.OwnerReferences).To(BeEmpty())
 	})
-})
 
-var _ = Describe("updateDPFOperatorConfig", func() {
-	var (
-		ctx    context.Context
-		scheme *runtime.Scheme
-		cr     *provisioningv1alpha1.DPFHCPProvisioner
-	)
-
-	BeforeEach(func() {
-		ctx = context.TODO()
-		scheme = newTestScheme()
-		cr = newTestProvisioner()
-	})
-
-	It("should patch the bfCFGTemplateConfigMap field", func() {
-		config := &operatorv1alpha1.DPFOperatorConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dpf-config",
-				Namespace: "dpf-operator-system",
-			},
-		}
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(config).Build()
-		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
-
-		Expect(ig.updateDPFOperatorConfig(ctx, cr)).To(Succeed())
-
-		// Verify patch
-		updated := &operatorv1alpha1.DPFOperatorConfig{}
-		Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(config), updated)).To(Succeed())
-		expectedName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
-		Expect(updated.Spec.ProvisioningController.BFCFGTemplateConfigMap).NotTo(BeNil())
-		Expect(*updated.Spec.ProvisioningController.BFCFGTemplateConfigMap).To(Equal(expectedName))
-	})
-
-	It("should skip patch when already pointing to correct ConfigMap", func() {
-		expectedName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
-		config := &operatorv1alpha1.DPFOperatorConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dpf-config",
-				Namespace: "dpf-operator-system",
-			},
-			Spec: operatorv1alpha1.DPFOperatorConfigSpec{
-				ProvisioningController: operatorv1alpha1.ProvisioningControllerConfiguration{
-					BFCFGTemplateConfigMap: &expectedName,
-				},
-			},
-		}
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(config).Build()
-		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
-
-		// Should succeed without error (skip patch)
-		Expect(ig.updateDPFOperatorConfig(ctx, cr)).To(Succeed())
-	})
-
-	It("should return error when no DPFOperatorConfig exists", func() {
+	It("should not include bfb annotations when DPUDeploymentRef is nil", func() {
+		cr.Spec.DPUDeploymentRef = nil
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
-		err := ig.updateDPFOperatorConfig(ctx, cr)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("no DPFOperatorConfig found"))
+		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition)).To(Succeed())
+
+		cm := &corev1.ConfigMap{}
+		cmKey := types.NamespacedName{
+			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Namespace: cr.Spec.DPUClusterRef.Namespace,
+		}
+		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
+
+		// Label should still be present
+		Expect(cm.Labels).To(HaveKeyWithValue(bfcfgTemplateLabel, "true"))
+
+		// Cluster annotations should be present
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
+
+		// BFB and DPUFlavor annotations should NOT be present
+		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateBFBNameAnnotation))
+		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateBFBNamespaceAnnotation))
+		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateDPUFlavorNameAnnotation))
+		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateDPUFlavorNamespaceAnnotation))
 	})
 })
 
