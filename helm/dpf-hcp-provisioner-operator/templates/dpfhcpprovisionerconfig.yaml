@@ -1,0 +1,13 @@
+apiVersion: provisioning.dpu.hcp.io/v1alpha1
+kind: DPFHCPProvisionerConfig
+metadata:
+  name: default
+  labels:
+    {{- include "dpf-hcp-provisioner-operator.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  enableBlueFieldValidation: {{ .Values.provisionerConfig.enableBlueFieldValidation | default true }}
+  blueFieldOCPRepo: {{ .Values.provisionerConfig.blueFieldOCPRepo | default "quay.io/eelgaev/rhcos-bfb" | quote }}

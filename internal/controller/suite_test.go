@@ -22,6 +22,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
@@ -59,6 +61,14 @@ var (
 	k8sClient  client.Client
 	k8sManager ctrl.Manager
 )
+
+// fakeImageChecker implements bluefield.ImageChecker for testing
+// to avoid hitting real container registries in unit/integration tests.
+type fakeImageChecker struct{}
+
+func (f *fakeImageChecker) CheckTag(_ context.Context, _ name.Reference, _ authn.Keychain) error {
+	return nil
+}
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -121,6 +131,18 @@ var _ = BeforeSuite(func() {
 	err = k8sClient.Create(ctx, clustersNs)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("creating DPFHCPProvisionerConfig CR")
+	configCR := &provisioningv1alpha1.DPFHCPProvisionerConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: provisioningv1alpha1.DefaultConfigName,
+		},
+		Spec: provisioningv1alpha1.DPFHCPProvisionerConfigSpec{
+			EnableBlueFieldValidation: true,
+		},
+	}
+	err = k8sClient.Create(ctx, configCR)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("setting up DPFHCPProvisioner controller")
 	kubeconfigInjector := kubeconfiginjection.NewKubeconfigInjector(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName))
 
@@ -131,10 +153,14 @@ var _ = BeforeSuite(func() {
 	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName)))
 
 	reconciler := &DPFHCPProvisionerReconciler{
-		Client:               k8sManager.GetClient(),
-		Scheme:               k8sManager.GetScheme(),
-		Recorder:             k8sManager.GetEventRecorderFor(common.ProvisionerControllerName),
-		ImageResolver:        bluefield.NewImageResolver(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-image-resolver")),
+		Client:   k8sManager.GetClient(),
+		Scheme:   k8sManager.GetScheme(),
+		Recorder: k8sManager.GetEventRecorderFor(common.ProvisionerControllerName),
+		ImageResolver: func() *bluefield.ImageResolver {
+			resolver := bluefield.NewImageResolver(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-image-resolver"))
+			resolver.ImageChecker = &fakeImageChecker{}
+			return resolver
+		}(),
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),
 		SecretsValidator:     secrets.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("secrets-validator")),
 		SecretManager:        hostedcluster.NewSecretManager(k8sManager.GetClient(), k8sManager.GetScheme()),

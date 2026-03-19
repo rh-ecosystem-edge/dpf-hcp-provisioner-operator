@@ -17,11 +17,25 @@ limitations under the License.
 package bluefield
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// fakeImageChecker implements ImageChecker for testing
+type fakeImageChecker struct {
+	err error
+}
+
+func (f *fakeImageChecker) CheckTag(ctx context.Context, ref name.Reference, keychain authn.Keychain) error {
+	return f.err
+}
+
+const testRepository = "quay.io/test-org/bluefield-os"
 
 var _ = Describe("BlueField Image Resolver", func() {
 	Describe("OCP Version Extraction", func() {
@@ -107,56 +121,67 @@ var _ = Describe("BlueField Image Resolver", func() {
 		})
 	})
 
-	Describe("ConfigMap Lookup", func() {
-		var configMap *corev1.ConfigMap
+	Describe("Registry Tag Lookup", func() {
+		var resolver *ImageResolver
 
 		BeforeEach(func() {
-			configMap = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "ocp-bluefield-images",
-					Namespace: "dpf-hcp-provisioner-system",
-				},
-				Data: map[string]string{
-					"4.19.0-ec.5": "quay.io/edge-infrastructure/bluefield-rhcos:4.19.0-ec.5",
-					"4.18.0":      "quay.io/edge-infrastructure/bluefield-rhcos:4.18.0",
-				},
-			}
+			resolver = &ImageResolver{}
 		})
 
-		Context("When version exists in ConfigMap", func() {
-			It("should return the BlueField image URL", func() {
-				blueFieldImage, err := lookupBlueFieldImage(configMap, "4.19.0-ec.5")
+		Context("When version tag exists in registry", func() {
+			It("should return the full image reference", func() {
+				resolver.ImageChecker = &fakeImageChecker{err: nil}
+				image, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(blueFieldImage).To(Equal("quay.io/edge-infrastructure/bluefield-rhcos:4.19.0-ec.5"))
+				Expect(image).To(Equal(testRepository + ":4.19.0-ec.5"))
 			})
 		})
 
-		Context("When version does not exist in ConfigMap", func() {
+		Context("When version tag does not exist in registry", func() {
 			It("should return VersionNotFoundError", func() {
-				_, err := lookupBlueFieldImage(configMap, "4.20.0-ec.1")
+				resolver.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.20.0-ec.1", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var versionNotFoundErr *VersionNotFoundError
 				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
 			})
 		})
 
-		Context("When ConfigMap has nil Data", func() {
+		Context("When registry returns a 404 not found error", func() {
 			It("should return VersionNotFoundError", func() {
-				configMap.Data = nil
-				_, err := lookupBlueFieldImage(configMap, "4.19.0-ec.5")
+				resolver.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("unexpected status code 404 not found"),
+				}
+				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var versionNotFoundErr *VersionNotFoundError
 				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
 			})
 		})
 
-		Context("When ConfigMap has empty Data map", func() {
-			It("should return VersionNotFoundError", func() {
-				configMap.Data = map[string]string{}
-				_, err := lookupBlueFieldImage(configMap, "4.19.0-ec.5")
+		Context("When registry returns an auth error", func() {
+			It("should return RegistryAuthError", func() {
+				resolver.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("UNAUTHORIZED: authentication required"),
+				}
+				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
-				var versionNotFoundErr *VersionNotFoundError
-				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
+				var authErr *RegistryAuthError
+				Expect(err).To(BeAssignableToTypeOf(authErr))
+			})
+		})
+
+		Context("When registry returns a transient error", func() {
+			It("should return RegistryAccessError", func() {
+				resolver.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("connection refused"),
+				}
+				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				Expect(err).To(HaveOccurred())
+				var accessErr *RegistryAccessError
+				Expect(err).To(BeAssignableToTypeOf(accessErr))
 			})
 		})
 	})
@@ -199,28 +224,36 @@ var _ = Describe("BlueField Image Resolver", func() {
 	})
 
 	Describe("Error Types", func() {
-		Context("ConfigMapNotFoundError", func() {
+		Context("RegistryAccessError", func() {
 			It("should have a descriptive error message", func() {
-				err := &ConfigMapNotFoundError{Err: nil}
-				Expect(err.Error()).To(ContainSubstring("ConfigMap ocp-bluefield-images not found"))
+				err := &RegistryAccessError{
+					Repository: testRepository,
+					Err:        fmt.Errorf("connection refused"),
+				}
+				Expect(err.Error()).To(ContainSubstring("failed to access registry"))
+				Expect(err.Error()).To(ContainSubstring(testRepository))
 			})
 		})
 
-		Context("ConfigMapAccessDeniedError", func() {
+		Context("RegistryAuthError", func() {
 			It("should have a descriptive error message", func() {
-				err := &ConfigMapAccessDeniedError{Err: nil}
-				Expect(err.Error()).To(ContainSubstring("RBAC permissions"))
+				err := &RegistryAuthError{
+					Repository: testRepository,
+					Err:        fmt.Errorf("UNAUTHORIZED"),
+				}
+				Expect(err.Error()).To(ContainSubstring("authentication failed"))
+				Expect(err.Error()).To(ContainSubstring(testRepository))
 			})
 		})
 
 		Context("VersionNotFoundError", func() {
-			It("should include version and available versions in error message", func() {
+			It("should include version and repository in error message", func() {
 				err := &VersionNotFoundError{
-					Version:           "4.19.0-ec.5",
-					AvailableVersions: []string{"4.18.0", "4.17.0"},
+					Version:    "4.19.0-ec.5",
+					Repository: testRepository,
 				}
 				Expect(err.Error()).To(ContainSubstring("4.19.0-ec.5"))
-				Expect(err.Error()).To(ContainSubstring("available versions"))
+				Expect(err.Error()).To(ContainSubstring(testRepository))
 			})
 		})
 
@@ -245,6 +278,42 @@ var _ = Describe("BlueField Image Resolver", func() {
 				Expect(err.Error()).To(ContainSubstring("4.19.0-ec.5"))
 				Expect(err.Error()).To(ContainSubstring("empty"))
 			})
+		})
+	})
+
+	Describe("isAuthError", func() {
+		It("should detect UNAUTHORIZED errors", func() {
+			Expect(isAuthError(fmt.Errorf("UNAUTHORIZED: authentication required"))).To(BeTrue())
+		})
+
+		It("should detect denied errors", func() {
+			Expect(isAuthError(fmt.Errorf("denied: access forbidden"))).To(BeTrue())
+		})
+
+		It("should detect 403 errors", func() {
+			Expect(isAuthError(fmt.Errorf("unexpected status code 403"))).To(BeTrue())
+		})
+
+		It("should not match non-auth errors", func() {
+			Expect(isAuthError(fmt.Errorf("connection refused"))).To(BeFalse())
+		})
+	})
+
+	Describe("isNotFoundError", func() {
+		It("should detect MANIFEST_UNKNOWN errors", func() {
+			Expect(isNotFoundError(fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"))).To(BeTrue())
+		})
+
+		It("should detect NOT_FOUND errors", func() {
+			Expect(isNotFoundError(fmt.Errorf("NOT_FOUND: resource not found"))).To(BeTrue())
+		})
+
+		It("should detect 404 errors", func() {
+			Expect(isNotFoundError(fmt.Errorf("unexpected status code 404"))).To(BeTrue())
+		})
+
+		It("should not match non-not-found errors", func() {
+			Expect(isNotFoundError(fmt.Errorf("connection refused"))).To(BeFalse())
 		})
 	})
 })

@@ -50,7 +50,6 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		pullSecretName   string
 		sshKeySecretName string
 		ocpReleaseImage  string
-		blueFieldImage   string
 		baseDomain       string
 		etcdStorageClass string
 		clusterType      string
@@ -64,37 +63,11 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		pullSecretName = "test-pull-secret-foundation"
 		sshKeySecretName = "test-ssh-key-foundation"
 		ocpReleaseImage = "quay.io/openshift-release-dev/ocp-release:4.17.0-x86_64"
-		blueFieldImage = "quay.io/example/bluefield:4.17.0"
 		baseDomain = "test-cluster.example.com"
 		etcdStorageClass = "standard"
 		clusterType = "static"
 
 		// Note: Using default namespace for tests, no need to create
-
-		// Ensure dpf-hcp-provisioner-system namespace exists (for ConfigMap)
-		operatorNs := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "dpf-hcp-provisioner-system",
-			},
-		}
-		err := k8sClient.Create(ctx, operatorNs)
-		if err != nil && !apierrors.IsAlreadyExists(err) {
-			Fail("Failed to create dpf-hcp-provisioner-system namespace: " + err.Error())
-		}
-
-		// Create ocp-bluefield-images ConfigMap for image resolution
-		// Note: The key must be the OCP version (extracted from the release image),
-		// not the full image URL (ConfigMap keys cannot contain colons or slashes)
-		configMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ocp-bluefield-images",
-				Namespace: "dpf-hcp-provisioner-system",
-			},
-			Data: map[string]string{
-				"4.17.0": blueFieldImage, // Key is extracted version, not full URL
-			},
-		}
-		Expect(k8sClient.Create(ctx, configMap)).To(Succeed())
 
 		// Create DPUCluster
 		dpuCluster := &dpuprovisioningv1alpha1.DPUCluster{
@@ -203,14 +176,6 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		}
 		_ = k8sClient.Delete(ctx, etcdKeyTarget)
 
-		// Clean up ConfigMap
-		configMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ocp-bluefield-images",
-				Namespace: "dpf-hcp-provisioner-system",
-			},
-		}
-		_ = k8sClient.Delete(ctx, configMap)
 	})
 
 	Context("Finalizer Management", func() {

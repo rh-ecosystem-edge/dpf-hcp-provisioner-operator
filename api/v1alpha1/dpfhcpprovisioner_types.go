@@ -73,7 +73,8 @@ type DPFHCPProvisionerSpec struct {
 	BaseDomain string `json:"baseDomain"`
 
 	// OCPReleaseImage is the full pull-spec URL for the OCP release image
-	// The operator uses this to look up the corresponding BlueField container image from the central ConfigMap
+	// The operator extracts the OCP version from this image and queries the BlueField image
+	// registry to find the corresponding BlueField container image by matching the tag.
 	// +kubebuilder:validation:Required
 	// +required
 	OCPReleaseImage string `json:"ocpReleaseImage"`
