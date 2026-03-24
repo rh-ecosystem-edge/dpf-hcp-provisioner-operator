@@ -9,5 +9,5 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  enableBlueFieldValidation: {{ .Values.provisionerConfig.enableBlueFieldValidation | default true }}
+  enableBlueFieldValidation: {{ if hasKey .Values.provisionerConfig "enableBlueFieldValidation" }}{{ .Values.provisionerConfig.enableBlueFieldValidation }}{{ else }}true{{ end }}
   blueFieldOCPRepo: {{ .Values.provisionerConfig.blueFieldOCPRepo | default "quay.io/eelgaev/rhcos-bfb" | quote }}
