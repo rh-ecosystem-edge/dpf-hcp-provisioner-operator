@@ -25,25 +25,18 @@ const (
 
 // DPFHCPProvisionerConfigSpec defines the operator-wide configuration
 type DPFHCPProvisionerConfigSpec struct {
-	// BlueFieldOCPRepo is the container registry repository for BlueField RHCOS OCP image layers.
+	// BlueFieldOCPLayerRepo is the container registry repository for BlueField OCP layer images.
 	// The operator queries this repository to find an image tag matching the OCP version.
 	// TODO: Replace with the official registry once we have one
 	// +kubebuilder:default="quay.io/eelgaev/rhcos-bfb"
 	// +optional
-	BlueFieldOCPRepo string `json:"blueFieldOCPRepo,omitempty"`
-
-	// EnableBlueFieldValidation controls whether BlueField image resolution is enabled.
-	// When false, the operator skips registry queries and sets BlueFieldImageResolved=True.
-	// +kubebuilder:default=false
-	// +optional
-	EnableBlueFieldValidation bool `json:"enableBlueFieldValidation,omitempty"`
+	BlueFieldOCPLayerRepo string `json:"blueFieldOCPLayerRepo,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=dpfhcpconfig
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'default'",message="DPFHCPProvisionerConfig must be named 'default'"
-// +kubebuilder:printcolumn:name="BlueFieldRepo",type=string,JSONPath=`.spec.blueFieldOCPRepo`
-// +kubebuilder:printcolumn:name="ValidationEnabled",type=boolean,JSONPath=`.spec.enableBlueFieldValidation`
+// +kubebuilder:printcolumn:name="BlueFieldOCPLayerRepo",type=string,JSONPath=`.spec.blueFieldOCPLayerRepo`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // DPFHCPProvisionerConfig is the cluster-scoped singleton configuration for the DPF HCP Provisioner operator.

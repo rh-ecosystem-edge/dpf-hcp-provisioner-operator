@@ -805,9 +805,9 @@ var _ = Describe("GenerateIgnition", func() {
 		Expect(event).To(ContainSubstring("IgnitionGenerationFailed"))
 	})
 
-	It("should use status.blueFieldContainerImage as fallback when spec.machineOSURL is empty", func() {
+	It("should use status.blueFieldOCPLayerImage as fallback when spec.machineOSURL is empty", func() {
 		cr.Spec.MachineOSURL = ""
-		cr.Status.BlueFieldContainerImage = "https://fallback-image.example.com"
+		cr.Status.BlueFieldOCPLayerImage = "https://fallback-image.example.com"
 
 		// Even though the download will fail (no HCP secrets), the machineOSURL
 		// resolution happens later in generateIgnition, so we verify the error
@@ -829,7 +829,7 @@ var _ = Describe("GenerateIgnition", func() {
 
 	It("should set MachineOSURLMissing when both spec and status URLs are empty", func() {
 		cr.Spec.MachineOSURL = ""
-		cr.Status.BlueFieldContainerImage = ""
+		cr.Status.BlueFieldOCPLayerImage = ""
 
 		// We need the download to succeed first, so we need HCP resources.
 		// But actually the URL check happens after download + flavor retrieval + DPFOperatorConfig.

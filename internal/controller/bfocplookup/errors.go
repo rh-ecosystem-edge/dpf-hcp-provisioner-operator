@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bluefield
+package bfocplookup
 
 import "fmt"
 
@@ -49,14 +49,14 @@ func (e *RegistryAuthError) Unwrap() error {
 }
 
 // VersionNotFoundError indicates the OCP version tag was not found in the registry
-// This is a permanent error - the image for this version hasn't been pushed yet
+// This is a permanent error - the BlueField OCP layer image for this version hasn't been pushed yet
 type VersionNotFoundError struct {
 	Version    string
 	Repository string
 }
 
 func (e *VersionNotFoundError) Error() string {
-	return fmt.Sprintf("BlueField image not found for OCP version %s in repository %s", e.Version, e.Repository)
+	return fmt.Sprintf("BlueField OCP layer image not found for OCP version %s in repository %s", e.Version, e.Repository)
 }
 
 // InvalidImageFormatError indicates the ocpReleaseImage URL is malformed
@@ -70,14 +70,14 @@ func (e *InvalidImageFormatError) Error() string {
 	return fmt.Sprintf("Invalid ocpReleaseImage format: %s (URL: %s)", e.Message, e.URL)
 }
 
-// InvalidBlueFieldImageURLError indicates the constructed BlueField image reference is invalid
+// InvalidBlueFieldOCPLayerImageURLError indicates the constructed BlueField OCP layer image reference is invalid
 // This is a permanent error
-type InvalidBlueFieldImageURLError struct {
+type InvalidBlueFieldOCPLayerImageURLError struct {
 	Version string
 	URL     string
 	Message string
 }
 
-func (e *InvalidBlueFieldImageURLError) Error() string {
-	return fmt.Sprintf("BlueField image URL is invalid for OCP version %s: %s (URL: %s)", e.Version, e.Message, e.URL)
+func (e *InvalidBlueFieldOCPLayerImageURLError) Error() string {
+	return fmt.Sprintf("BlueField OCP layer image URL is invalid for OCP version %s: %s (URL: %s)", e.Version, e.Message, e.URL)
 }

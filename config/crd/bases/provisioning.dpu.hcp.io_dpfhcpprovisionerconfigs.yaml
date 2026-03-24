@@ -17,12 +17,9 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.blueFieldOCPRepo
-      name: BlueFieldRepo
+    - jsonPath: .spec.blueFieldOCPLayerRepo
+      name: BlueFieldOCPLayerRepo
       type: string
-    - jsonPath: .spec.enableBlueFieldValidation
-      name: ValidationEnabled
-      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -53,18 +50,12 @@ spec:
           spec:
             description: DPFHCPProvisionerConfigSpec defines the operator-wide configuration
             properties:
-              blueFieldOCPRepo:
+              blueFieldOCPLayerRepo:
                 default: quay.io/eelgaev/rhcos-bfb
                 description: |-
-                  BlueFieldOCPRepo is the container registry repository for BlueField RHCOS OCP image layers.
+                  BlueFieldOCPLayerRepo is the container registry repository for BlueField OCP layer images.
                   The operator queries this repository to find an image tag matching the OCP version.
                 type: string
-              enableBlueFieldValidation:
-                default: false
-                description: |-
-                  EnableBlueFieldValidation controls whether BlueField image resolution is enabled.
-                  When false, the operator skips registry queries and sets BlueFieldImageResolved=True.
-                type: boolean
             type: object
         type: object
         x-kubernetes-validations:

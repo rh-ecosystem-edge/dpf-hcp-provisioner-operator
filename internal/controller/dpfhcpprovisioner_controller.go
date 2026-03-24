@@ -40,7 +40,7 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
-	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bfocplookup"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
@@ -55,7 +55,7 @@ type DPFHCPProvisionerReconciler struct {
 	client.Client
 	Scheme               *runtime.Scheme
 	Recorder             record.EventRecorder
-	ImageResolver        *bluefield.ImageResolver
+	ImageLookup          *bfocplookup.ImageLookup
 	DPUClusterValidator  *dpucluster.Validator
 	SecretsValidator     *secrets.Validator
 	SecretManager        *hostedcluster.SecretManager
@@ -163,8 +163,8 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return result, err
 	}
 
-	// Feature: Resolve BlueField Image
-	if result, err := r.resolveBlueFieldImage(ctx, &cr, operatorConfig); err != nil || result.RequeueAfter > 0 {
+	// Feature: BlueField OCP Layer Image Lookup
+	if result, err := r.lookupBlueFieldOCPLayerImage(ctx, &cr, operatorConfig); err != nil || result.RequeueAfter > 0 {
 		return result, err
 	}
 
@@ -577,40 +577,41 @@ func conditionsEqual(oldConds, newConds []metav1.Condition) bool {
 	return true
 }
 
-// resolveBlueFieldImage handles BlueField image resolution based on operator config.
-// Validates image during initial creation/retry and ignition generation phases.
+// lookupBlueFieldOCPLayerImage handles BlueField OCP layer image lookup.
+// Skips lookup if machineOSURL is provided in the CR spec.
+// Runs lookup during initial creation/retry and ignition generation phases.
 // Skips during Provisioning/Ready to avoid false failures when old OCP versions are removed from registry.
-func (r *DPFHCPProvisionerReconciler) resolveBlueFieldImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, operatorConfig *common.OperatorConfig) (ctrl.Result, error) {
+func (r *DPFHCPProvisionerReconciler) lookupBlueFieldOCPLayerImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, operatorConfig *common.OperatorConfig) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	if operatorConfig.EnableBlueFieldValidation {
-		r.ImageResolver.Repository = operatorConfig.BlueFieldOCPRepo
-		if cr.Status.Phase == provisioningv1alpha1.PhasePending || cr.Status.Phase == provisioningv1alpha1.PhaseFailed || cr.Status.Phase == provisioningv1alpha1.PhaseIgnitionGenerating {
-			log.V(1).Info("Running BlueField image resolution feature")
-			if result, err := r.ImageResolver.ResolveBlueFieldImage(ctx, cr); err != nil || result.RequeueAfter > 0 {
-				return result, err
-			}
-		} else {
-			log.V(1).Info("Skipping BlueField image resolution - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
-		}
-	} else {
-		log.V(1).Info("Skipping BlueField image resolution - feature disabled via operator config")
-		// Set BlueFieldImageResolved condition to True when feature is disabled
-		// This prevents old False conditions from blocking phase progression
+	// Skip lookup if machineOSURL is provided directly
+	if cr.Spec.MachineOSURL != "" {
+		log.V(1).Info("Skipping BlueField OCP layer lookup - machineOSURL provided in spec")
 		condition := metav1.Condition{
-			Type:               provisioningv1alpha1.BlueFieldImageResolved,
+			Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
 			Status:             metav1.ConditionTrue,
-			Reason:             "ValidationDisabled",
-			Message:            "BlueField image validation is disabled via operator config",
-			LastTransitionTime: metav1.Now(),
+			Reason:             "LookupSkipped",
+			Message:            "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
 			ObservedGeneration: cr.Generation,
 		}
 		if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 			if err := r.Status().Update(ctx, cr); err != nil {
-				log.Error(err, "Failed to update BlueFieldImageResolved condition when feature is disabled")
+				log.Error(err, "Failed to update BlueFieldOCPLayerImageFound condition")
 				return ctrl.Result{}, err
 			}
 		}
+		return ctrl.Result{}, nil
+	}
+
+	// Run lookup (phase-gated)
+	r.ImageLookup.Repository = operatorConfig.BlueFieldOCPLayerRepo
+	if cr.Status.Phase == provisioningv1alpha1.PhasePending || cr.Status.Phase == provisioningv1alpha1.PhaseFailed || cr.Status.Phase == provisioningv1alpha1.PhaseIgnitionGenerating {
+		log.V(1).Info("Running BlueField OCP layer image lookup")
+		if result, err := r.ImageLookup.LookupBlueFieldOCPLayerImage(ctx, cr); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+	} else {
+		log.V(1).Info("Skipping BlueField OCP layer lookup - not in applicable phase", "phase", cr.Status.Phase)
 	}
 
 	return ctrl.Result{}, nil
@@ -729,11 +730,11 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		condType string
 		negative bool // true if ConditionTrue = bad, false if ConditionFalse = bad
 	}{
-		{"DPUClusterMissing", true},       // True = cluster missing = bad
-		{"ClusterTypeValid", false},       // False = type invalid = bad
-		{"DPUClusterInUse", true},         // True = cluster already in use = bad
-		{"SecretsValid", false},           // False = secrets invalid = bad
-		{"BlueFieldImageResolved", false}, // False = image not resolved = bad
+		{"DPUClusterMissing", true},            // True = cluster missing = bad
+		{"ClusterTypeValid", false},            // False = type invalid = bad
+		{"DPUClusterInUse", true},              // True = cluster already in use = bad
+		{"SecretsValid", false},                // False = secrets invalid = bad
+		{"BlueFieldOCPLayerImageFound", false}, // False = OCP layer image not found = bad
 	}
 
 	// Check all validation conditions

@@ -73,8 +73,8 @@ type DPFHCPProvisionerSpec struct {
 	BaseDomain string `json:"baseDomain"`
 
 	// OCPReleaseImage is the full pull-spec URL for the OCP release image
-	// The operator extracts the OCP version from this image and queries the BlueField image
-	// registry to find the corresponding BlueField container image by matching the tag.
+	// The operator extracts the OCP version from this image and queries the BlueField OCP layer
+	// registry to find the corresponding BlueField OCP layer image by matching the tag.
 	// +kubebuilder:validation:Required
 	// +required
 	OCPReleaseImage string `json:"ocpReleaseImage"`
@@ -226,8 +226,8 @@ const (
 	// SecretsValid indicates whether required secrets (pull secret, SSH key) are valid.
 	SecretsValid string = "SecretsValid"
 
-	// BlueFieldImageResolved indicates whether the BlueField container image was successfully resolved.
-	BlueFieldImageResolved string = "BlueFieldImageResolved"
+	// BlueFieldOCPLayerImageFound indicates whether the BlueField OCP layer image was successfully found.
+	BlueFieldOCPLayerImageFound string = "BlueFieldOCPLayerImageFound"
 
 	// DPUClusterMissing indicates whether the referenced DPUCluster exists.
 	DPUClusterMissing string = "DPUClusterMissing"
@@ -305,9 +305,9 @@ type DPFHCPProvisionerStatus struct {
 	// +optional
 	KubeConfigSecretRef *corev1.LocalObjectReference `json:"kubeConfigSecretRef,omitempty"`
 
-	// BlueFieldContainerImage is the resolved BlueField container image URL
+	// BlueFieldOCPLayerImage is the BlueField OCP layer image URL found via registry lookup
 	// +optional
-	BlueFieldContainerImage string `json:"blueFieldContainerImage,omitempty"`
+	BlueFieldOCPLayerImage string `json:"blueFieldOCPLayerImage,omitempty"`
 }
 
 // +kubebuilder:object:root=true

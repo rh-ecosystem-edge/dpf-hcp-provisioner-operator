@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bluefield_test
+package bfocplookup_test
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestBlueField(t *testing.T) {
+func TestBFOCPLookup(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "BlueField Image Resolver Suite")
+	RunSpecs(t, "BlueField OCP Layer Lookup Suite")
 }

@@ -44,7 +44,7 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller"
-	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bfocplookup"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/csrapproval"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
@@ -229,8 +229,8 @@ func main() {
 	provisionerRecorder := mgr.GetEventRecorderFor(common.ProvisionerControllerName)
 	csrApprovalRecorder := mgr.GetEventRecorderFor(common.CSRApprovalControllerName)
 
-	// Initialize BlueField Image Resolver
-	imageResolver := bluefield.NewImageResolver(client, provisionerRecorder)
+	// Initialize BlueField OCP Layer Image Lookup
+	imageLookup := bfocplookup.NewImageLookup(client, provisionerRecorder)
 
 	// Initialize DPUCluster Validator
 	dpuClusterValidator := dpucluster.NewValidator(client, provisionerRecorder)
@@ -281,7 +281,7 @@ func main() {
 		Client:               client,
 		Scheme:               scheme,
 		Recorder:             provisionerRecorder,
-		ImageResolver:        imageResolver,
+		ImageLookup:          imageLookup,
 		DPUClusterValidator:  dpuClusterValidator,
 		SecretsValidator:     secretsValidator,
 		SecretManager:        secretManager,

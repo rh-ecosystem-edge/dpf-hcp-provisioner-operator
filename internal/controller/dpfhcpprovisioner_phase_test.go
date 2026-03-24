@@ -242,8 +242,8 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					return false
 				}
 
-				// 5. BlueField image should be resolved (BlueFieldImageResolved should be True)
-				imageCond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.BlueFieldImageResolved)
+				// 5. BlueField OCP layer image should be found (BlueFieldOCPLayerImageFound should be True)
+				imageCond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound)
 				if imageCond == nil || imageCond.Status != metav1.ConditionTrue {
 					return false
 				}

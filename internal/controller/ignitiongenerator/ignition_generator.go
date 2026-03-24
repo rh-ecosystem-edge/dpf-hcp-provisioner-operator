@@ -168,20 +168,20 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 
 	var mtu = uint16(*dpfOperatorConfig.Spec.Networking.ControlPlaneMTU)
 
-	// Use spec.machineOSURL if set, otherwise fall back to status.blueFieldContainerImage
+	// Use spec.machineOSURL if set, otherwise fall back to status.blueFieldOCPLayerImage (from OCP layer lookup)
 	machineOSURL := cr.Spec.MachineOSURL
 	if machineOSURL == "" {
-		machineOSURL = cr.Status.BlueFieldContainerImage
+		machineOSURL = cr.Status.BlueFieldOCPLayerImage
 	}
 	if machineOSURL == "" {
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:               provisioningv1alpha1.IgnitionConfigured,
 			Status:             metav1.ConditionFalse,
 			Reason:             "MachineOSURLMissing",
-			Message:            "No machine OS URL available: spec.machineOSURL is empty and status.blueFieldContainerImage is not resolved",
+			Message:            "No machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set",
 			ObservedGeneration: cr.Generation,
 		})
-		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldContainerImage is not resolved")
+		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
 	}
 
 	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu)

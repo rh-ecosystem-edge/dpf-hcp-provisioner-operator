@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bluefield
+package bfocplookup
 
 import (
 	"context"
@@ -37,7 +37,7 @@ func (f *fakeImageChecker) CheckTag(ctx context.Context, ref name.Reference, key
 
 const testRepository = "quay.io/test-org/bluefield-os"
 
-var _ = Describe("BlueField Image Resolver", func() {
+var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 	Describe("OCP Version Extraction", func() {
 		Context("When extracting version with -multi suffix", func() {
 			It("should strip the -multi suffix", func() {
@@ -122,16 +122,16 @@ var _ = Describe("BlueField Image Resolver", func() {
 	})
 
 	Describe("Registry Tag Lookup", func() {
-		var resolver *ImageResolver
+		var lookup *ImageLookup
 
 		BeforeEach(func() {
-			resolver = &ImageResolver{}
+			lookup = &ImageLookup{}
 		})
 
 		Context("When version tag exists in registry", func() {
 			It("should return the full image reference", func() {
-				resolver.ImageChecker = &fakeImageChecker{err: nil}
-				image, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				lookup.ImageChecker = &fakeImageChecker{err: nil}
+				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(image).To(Equal(testRepository + ":4.19.0-ec.5"))
 			})
@@ -139,10 +139,10 @@ var _ = Describe("BlueField Image Resolver", func() {
 
 		Context("When version tag does not exist in registry", func() {
 			It("should return VersionNotFoundError", func() {
-				resolver.ImageChecker = &fakeImageChecker{
+				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
 				}
-				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.20.0-ec.1", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.20.0-ec.1", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var versionNotFoundErr *VersionNotFoundError
 				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
@@ -151,10 +151,10 @@ var _ = Describe("BlueField Image Resolver", func() {
 
 		Context("When registry returns a 404 not found error", func() {
 			It("should return VersionNotFoundError", func() {
-				resolver.ImageChecker = &fakeImageChecker{
+				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("unexpected status code 404 not found"),
 				}
-				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var versionNotFoundErr *VersionNotFoundError
 				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
@@ -163,10 +163,10 @@ var _ = Describe("BlueField Image Resolver", func() {
 
 		Context("When registry returns an auth error", func() {
 			It("should return RegistryAuthError", func() {
-				resolver.ImageChecker = &fakeImageChecker{
+				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("UNAUTHORIZED: authentication required"),
 				}
-				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var authErr *RegistryAuthError
 				Expect(err).To(BeAssignableToTypeOf(authErr))
@@ -175,10 +175,10 @@ var _ = Describe("BlueField Image Resolver", func() {
 
 		Context("When registry returns a transient error", func() {
 			It("should return RegistryAccessError", func() {
-				resolver.ImageChecker = &fakeImageChecker{
+				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("connection refused"),
 				}
-				_, err := resolver.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var accessErr *RegistryAccessError
 				Expect(err).To(BeAssignableToTypeOf(accessErr))
@@ -186,11 +186,11 @@ var _ = Describe("BlueField Image Resolver", func() {
 		})
 	})
 
-	Describe("BlueField Image URL Validation", func() {
+	Describe("BlueField OCP Layer Image URL Validation", func() {
 		Context("When URL is valid", func() {
 			It("should not return an error", func() {
 				url := "quay.io/edge-infrastructure/bluefield-rhcos:4.19.0-ec.5"
-				err := validateBlueFieldImageURL(url, "4.19.0-ec.5")
+				err := validateBlueFieldOCPLayerImageURL(url, "4.19.0-ec.5")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -198,26 +198,26 @@ var _ = Describe("BlueField Image Resolver", func() {
 		Context("When URL is valid with port", func() {
 			It("should not return an error", func() {
 				url := "registry.example.com:5000/bluefield-rhcos:4.19.0-ec.5"
-				err := validateBlueFieldImageURL(url, "4.19.0-ec.5")
+				err := validateBlueFieldOCPLayerImageURL(url, "4.19.0-ec.5")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
 		Context("When URL is empty", func() {
-			It("should return InvalidBlueFieldImageURLError", func() {
-				err := validateBlueFieldImageURL("", "4.19.0-ec.5")
+			It("should return InvalidBlueFieldOCPLayerImageURLError", func() {
+				err := validateBlueFieldOCPLayerImageURL("", "4.19.0-ec.5")
 				Expect(err).To(HaveOccurred())
-				var invalidURLErr *InvalidBlueFieldImageURLError
+				var invalidURLErr *InvalidBlueFieldOCPLayerImageURLError
 				Expect(err).To(BeAssignableToTypeOf(invalidURLErr))
 			})
 		})
 
 		Context("When URL is missing colon separator", func() {
-			It("should return InvalidBlueFieldImageURLError", func() {
+			It("should return InvalidBlueFieldOCPLayerImageURLError", func() {
 				url := "quay.io/edge-infrastructure/bluefield-rhcos"
-				err := validateBlueFieldImageURL(url, "4.19.0-ec.5")
+				err := validateBlueFieldOCPLayerImageURL(url, "4.19.0-ec.5")
 				Expect(err).To(HaveOccurred())
-				var invalidURLErr *InvalidBlueFieldImageURLError
+				var invalidURLErr *InvalidBlueFieldOCPLayerImageURLError
 				Expect(err).To(BeAssignableToTypeOf(invalidURLErr))
 			})
 		})
@@ -268,12 +268,12 @@ var _ = Describe("BlueField Image Resolver", func() {
 			})
 		})
 
-		Context("InvalidBlueFieldImageURLError", func() {
+		Context("InvalidBlueFieldOCPLayerImageURLError", func() {
 			It("should include version and message in error message", func() {
-				err := &InvalidBlueFieldImageURLError{
+				err := &InvalidBlueFieldOCPLayerImageURLError{
 					Version: "4.19.0-ec.5",
 					URL:     "",
-					Message: "BlueField image URL is empty",
+					Message: "BlueField OCP layer image URL is empty",
 				}
 				Expect(err.Error()).To(ContainSubstring("4.19.0-ec.5"))
 				Expect(err.Error()).To(ContainSubstring("empty"))

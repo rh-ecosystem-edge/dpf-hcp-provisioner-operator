@@ -161,8 +161,8 @@ spec:
               ocpReleaseImage:
                 description: |-
                   OCPReleaseImage is the full pull-spec URL for the OCP release image
-                  The operator extracts the OCP version from this image and queries the BlueField image
-                  registry to find the corresponding BlueField container image by matching the tag.
+                  The operator extracts the OCP version from this image and queries the BlueField OCP layer
+                  registry to find the corresponding BlueField OCP layer image by matching the tag.
                 type: string
               pullSecretRef:
                 description: |-
@@ -232,9 +232,9 @@ spec:
           status:
             description: DPFHCPProvisionerStatus defines the observed state of DPFHCPProvisioner
             properties:
-              blueFieldContainerImage:
-                description: BlueFieldContainerImage is the resolved BlueField container
-                  image URL
+              blueFieldOCPLayerImage:
+                description: BlueFieldOCPLayerImage is the BlueField OCP layer image
+                  URL found via registry lookup
                 type: string
               conditions:
                 description: Conditions represent the latest available observations

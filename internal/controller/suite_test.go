@@ -41,7 +41,7 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
-	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bluefield"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bfocplookup"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
@@ -62,7 +62,7 @@ var (
 	k8sManager ctrl.Manager
 )
 
-// fakeImageChecker implements bluefield.ImageChecker for testing
+// fakeImageChecker implements bfocplookup.ImageChecker for testing
 // to avoid hitting real container registries in unit/integration tests.
 type fakeImageChecker struct{}
 
@@ -136,9 +136,7 @@ var _ = BeforeSuite(func() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: provisioningv1alpha1.DefaultConfigName,
 		},
-		Spec: provisioningv1alpha1.DPFHCPProvisionerConfigSpec{
-			EnableBlueFieldValidation: true,
-		},
+		Spec: provisioningv1alpha1.DPFHCPProvisionerConfigSpec{},
 	}
 	err = k8sClient.Create(ctx, configCR)
 	Expect(err).NotTo(HaveOccurred())
@@ -156,10 +154,10 @@ var _ = BeforeSuite(func() {
 		Client:   k8sManager.GetClient(),
 		Scheme:   k8sManager.GetScheme(),
 		Recorder: k8sManager.GetEventRecorderFor(common.ProvisionerControllerName),
-		ImageResolver: func() *bluefield.ImageResolver {
-			resolver := bluefield.NewImageResolver(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-image-resolver"))
-			resolver.ImageChecker = &fakeImageChecker{}
-			return resolver
+		ImageLookup: func() *bfocplookup.ImageLookup {
+			lookup := bfocplookup.NewImageLookup(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-ocp-layer-lookup"))
+			lookup.ImageChecker = &fakeImageChecker{}
+			return lookup
 		}(),
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),
 		SecretsValidator:     secrets.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("secrets-validator")),

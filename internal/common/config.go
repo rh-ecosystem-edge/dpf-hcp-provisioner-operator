@@ -28,8 +28,7 @@ import (
 
 // OperatorConfig holds operator-wide configuration.
 type OperatorConfig struct {
-	BlueFieldOCPRepo          string
-	EnableBlueFieldValidation bool
+	BlueFieldOCPLayerRepo string
 }
 
 // LoadOperatorConfigFromCR fetches the DPFHCPProvisionerConfig singleton CR.
@@ -48,12 +47,10 @@ func LoadOperatorConfigFromCR(ctx context.Context, c client.Client) (*OperatorCo
 	}
 
 	cfg := &OperatorConfig{
-		BlueFieldOCPRepo:          configCR.Spec.BlueFieldOCPRepo,
-		EnableBlueFieldValidation: configCR.Spec.EnableBlueFieldValidation,
+		BlueFieldOCPLayerRepo: configCR.Spec.BlueFieldOCPLayerRepo,
 	}
 
 	logger.V(1).Info("Operator config loaded from CR",
-		"blueFieldOCPRepo", cfg.BlueFieldOCPRepo,
-		"enableBlueFieldValidation", cfg.EnableBlueFieldValidation)
+		"blueFieldOCPLayerRepo", cfg.BlueFieldOCPLayerRepo)
 	return cfg, nil
 }

@@ -13,7 +13,7 @@ This Helm chart deploys the DPF-HCP provisioner Operator, which manages DPU (Dat
   - [Install in a Custom Namespace](#install-in-a-custom-namespace)
 - [Configuration](#configuration)
   - [Configuration Parameters](#configuration-parameters)
-  - [BlueField Image Mappings](#bluefield-image-mappings)
+  - [BlueField OCP Layer Image Lookup](#bluefield-ocp-layer-image-lookup)
   - [Resource Requirements](#resource-requirements)
   - [High Availability](#high-availability)
   - [Node Placement](#node-placement)
@@ -30,7 +30,7 @@ This Helm chart deploys the DPF-HCP provisioner Operator, which manages DPU (Dat
 
 ## Description
 
-The DPF-HCP provisioner Operator addresses this challenge by completely abstracting Hypershift objects and their management from DPU users. It treats the hosted cluster as a "black box," providing a simplified interface through the DPFHCPProvisioner custom resource that maintains a 1:1:1 relationship with DPUCluster and HostedCluster resources. By automating the full lifecycle management, BlueField container image mapping and validation, CSR approvals, and status translation, the operator minimizes manual user actions and eliminates the need to understand Hypershift internals.
+The DPF-HCP provisioner Operator addresses this challenge by completely abstracting Hypershift objects and their management from DPU users. It treats the hosted cluster as a "black box," providing a simplified interface through the DPFHCPProvisioner custom resource that maintains a 1:1:1 relationship with DPUCluster and HostedCluster resources. By automating the full lifecycle management, BlueField OCP layer image lookup, CSR approvals, and status translation, the operator minimizes manual user actions and eliminates the need to understand Hypershift internals.
 
 ## Quick Start
 
@@ -103,12 +103,6 @@ resources:
 # Set log level
 logLevel: debug
 
-# Add BlueField image mappings
-blueFieldImages:
-  "4.19.0-ec.5": "<bluefield-container-image-url>"
-  "4.18.0": "<bluefield-container-image-url>"
-  "4.17.0": "<bluefield-container-image-url>"
-
 # Node placement for operator pod
 placement:
   target: master
@@ -162,45 +156,14 @@ helm install dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-pr
 | `nodeSelector` | Node selector for pod placement (used when placement.target=custom) | `{}` |
 | `tolerations` | Tolerations for pod placement (used when placement.target=custom) | `[]` |
 | `affinity` | Affinity rules for pod placement | `{}` |
-| `blueFieldImages` | OCP-to-BlueField image mappings | `{}` |
 | `commonLabels` | Additional labels for all resources | `{}` |
 | `commonAnnotations` | Additional annotations for all resources | `{}` |
 
-### BlueField Image Mappings
+### BlueField OCP Layer Image Lookup
 
-The operator requires a mapping between OCP release images and BlueField-compatible container images. This mapping is stored in a ConfigMap named `ocp-bluefield-images`.
+The operator automatically looks up BlueField OCP layer images from a container registry by matching the OCP version extracted from the `ocpReleaseImage`. The registry repository is configured via the `DPFHCPProvisionerConfig` CR (`blueFieldOCPLayerRepo` field).
 
-#### Adding Mappings via values.yaml
-
-```yaml
-blueFieldImages:
-  "4.19.0-ec.5": "<bluefield-container-image-url>"
-  "4.18.0": "<bluefield-container-image-url>"
-  "4.17.0": "<bluefield-container-image-url>"
-```
-
-Then upgrade the release:
-
-```bash
-helm upgrade dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.1.0 \
-  --values values.yaml \
-  --namespace dpf-hcp-provisioner-system --create-namespace
-```
-
-#### Adding Mappings Directly to ConfigMap
-
-```bash
-kubectl edit configmap ocp-bluefield-images -n dpf-hcp-provisioner-system
-```
-
-Add mappings in the `data` section:
-
-```yaml
-data:
-  "4.19.0-ec.5": "<bluefield-container-image-url>"
-  "4.18.0": "<bluefield-container-image-url>"
-```
+If you provide `machineOSURL` directly in the DPFHCPProvisioner CR spec, the lookup is skipped entirely.
 
 ### Resource Requirements
 
@@ -374,7 +337,7 @@ Key status fields:
     - `HostedClusterCleanup`: Status of HostedCluster deletion during finalizer cleanup
   - **Validation conditions:**
     - `SecretsValid`: Required secrets (pull secret, SSH key) are valid
-    - `BlueFieldImageResolved`: BlueField container image successfully resolved
+    - `BlueFieldOCPLayerImageFound`: BlueField OCP layer image successfully found
     - `DPUClusterMissing`: Referenced DPUCluster exists
     - `ClusterTypeValid`: DPUCluster type is supported
     - `DPUClusterInUse`: DPUCluster is not already in use by another DPFHCPProvisioner
@@ -388,7 +351,7 @@ Key status fields:
     - `IgnitionServerValidReleaseInfo`: Release has local ignition provider images
 - `hostedClusterRef`: Reference to created HostedCluster
 - `kubeConfigSecretRef`: Reference to kubeconfig secret in DPUCluster namespace
-- `blueFieldContainerImage`: Resolved BlueField container image URL
+- `blueFieldOCPLayerImage`: BlueField OCP layer image URL
 
 ## Upgrading
 
@@ -494,24 +457,14 @@ kubectl describe dpfhcpprovisioner <name> -n <namespace>
 ```
 
 Common causes:
-- **Missing BlueField image mapping**: Check ConfigMap `ocp-bluefield-images`
+- **BlueField OCP layer image not found**: Ensure the image exists in the configured registry with the correct OCP version tag
 - **Referenced DPUCluster not found**: Verify DPUCluster exists
 - **Pull secret or SSH key secret missing**: Verify secrets exist in same namespace
 - **Invalid spec fields**: Check validation errors in conditions
 
-### BlueField Image Not Found
+### BlueField OCP Layer Image Not Found
 
-Verify the ConfigMap contains the mapping:
-
-```bash
-kubectl get configmap ocp-bluefield-images -n dpf-hcp-provisioner-system -o yaml
-```
-
-Add the required mapping if missing:
-
-```bash
-kubectl edit configmap ocp-bluefield-images -n dpf-hcp-provisioner-system
-```
+Verify the image exists in the configured registry with the correct OCP version tag. You can also provide `machineOSURL` directly in the DPFHCPProvisioner CR spec to skip the lookup entirely.
 
 ### HostedCluster Creation Failed
 

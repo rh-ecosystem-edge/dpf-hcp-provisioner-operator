@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bluefield
+package bfocplookup
 
 import (
 	"context"
@@ -39,12 +39,12 @@ import (
 
 const (
 	// Reason codes
-	reasonImageResolved       = "ImageResolved"
-	reasonRegistryAccessError = "RegistryAccessError"
-	reasonRegistryAuthError   = "RegistryAuthError"
-	reasonInvalidImageFormat  = "InvalidImageFormat"
-	reasonVersionNotFound     = "VersionNotFound"
-	reasonInvalidBlueFieldURL = "InvalidBlueFieldImageURL"
+	reasonImageFound                  = "ImageFound"
+	reasonRegistryAccessError         = "RegistryAccessError"
+	reasonRegistryAuthError           = "RegistryAuthError"
+	reasonInvalidImageFormat          = "InvalidImageFormat"
+	reasonVersionNotFound             = "VersionNotFound"
+	reasonInvalidBlueFieldOCPLayerURL = "InvalidBlueFieldOCPLayerImageURL"
 )
 
 // ImageChecker abstracts checking whether a specific image tag exists in a registry
@@ -62,29 +62,29 @@ func (r *RemoteImageChecker) CheckTag(ctx context.Context, ref name.Reference, k
 	return err
 }
 
-// ImageResolver handles BlueField container image resolution by querying a container registry
-type ImageResolver struct {
+// ImageLookup handles BlueField OCP layer image lookup by querying a container registry
+type ImageLookup struct {
 	client.Client
 	Recorder     record.EventRecorder
 	ImageChecker ImageChecker
 	Repository   string
 }
 
-// NewImageResolver creates a new ImageResolver
-func NewImageResolver(c client.Client, recorder record.EventRecorder) *ImageResolver {
-	return &ImageResolver{
+// NewImageLookup creates a new ImageLookup
+func NewImageLookup(c client.Client, recorder record.EventRecorder) *ImageLookup {
+	return &ImageLookup{
 		Client:       c,
 		Recorder:     recorder,
 		ImageChecker: &RemoteImageChecker{},
 	}
 }
 
-// ResolveBlueFieldImage is the main function for BlueField image mapping.
+// LookupBlueFieldOCPLayerImage is the main function for BlueField OCP layer image lookup.
 // It extracts the OCP version from the ocpReleaseImage, queries the container registry
-// to find a matching tag, and updates the CR status with the resolved image reference.
-func (r *ImageResolver) ResolveBlueFieldImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+// to find a matching tag, and updates the CR status with the found image reference.
+func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger = logger.WithValues("feature", "bluefield-image-mapping")
+	logger = logger.WithValues("feature", "bluefield-ocp-layer-lookup")
 
 	// Step 1: Read ocpReleaseImage from spec
 	ocpReleaseImage := cr.Spec.OCPReleaseImage
@@ -123,8 +123,8 @@ func (r *ImageResolver) ResolveBlueFieldImage(ctx context.Context, cr *provision
 	}
 
 	// Step 5: Query registry for matching tag
-	logger.V(1).Info("Querying registry for BlueField image", "repository", repository, "version", version)
-	blueFieldImage, err := r.validateTagExists(ctx, repository, version, keychain)
+	logger.V(1).Info("Querying registry for BlueField OCP layer image", "repository", repository, "version", version)
+	blueFieldOCPLayerImage, err := r.validateTagExists(ctx, repository, version, keychain)
 	if err != nil {
 		switch err.(type) {
 		case *VersionNotFoundError:
@@ -137,18 +137,18 @@ func (r *ImageResolver) ResolveBlueFieldImage(ctx context.Context, cr *provision
 		}
 	}
 
-	// Step 6: Validate the resolved image URL
-	logger.V(1).Info("Validating BlueField image URL", "blueFieldImage", blueFieldImage)
-	if err := validateBlueFieldImageURL(blueFieldImage, version); err != nil {
-		logger.Error(err, "BlueField image URL validation failed", "blueFieldImage", blueFieldImage)
+	// Step 6: Validate the found image URL
+	logger.V(1).Info("Validating BlueField OCP layer image URL", "blueFieldOCPLayerImage", blueFieldOCPLayerImage)
+	if err := validateBlueFieldOCPLayerImageURL(blueFieldOCPLayerImage, version); err != nil {
+		logger.Error(err, "BlueField OCP layer image URL validation failed", "blueFieldOCPLayerImage", blueFieldOCPLayerImage)
 		return r.handlePermanentError(ctx, cr, err, version)
 	}
 
 	// Step 7: Update status on success
-	logger.Info("BlueField image resolved successfully",
+	logger.Info("BlueField OCP layer image found successfully",
 		"version", version,
-		"blueFieldImage", blueFieldImage)
-	return r.updateStatusOnSuccess(ctx, cr, blueFieldImage, version)
+		"blueFieldOCPLayerImage", blueFieldOCPLayerImage)
+	return r.updateStatusOnSuccess(ctx, cr, blueFieldOCPLayerImage, version)
 }
 
 // extractOCPVersion extracts the OCP version from the ocpReleaseImage URL.
@@ -182,7 +182,7 @@ func extractOCPVersion(ocpReleaseImage string) (string, error) {
 
 // getKeychain returns an authn.Keychain for authenticating to the container registry.
 // It reuses the CR's pullSecretRef which typically contains credentials for multiple registries.
-func (r *ImageResolver) getKeychain(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (authn.Keychain, error) {
+func (r *ImageLookup) getKeychain(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (authn.Keychain, error) {
 	secret := &corev1.Secret{}
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      cr.Spec.PullSecretRef.Name,
@@ -217,7 +217,7 @@ func buildImageReference(repository, version string) (string, name.Reference, er
 
 // validateTagExists checks if a specific tag exists in the container registry via a HEAD request.
 // Returns the full image reference (repository:tag) if found.
-func (r *ImageResolver) validateTagExists(ctx context.Context, repository, version string, keychain authn.Keychain) (string, error) {
+func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version string, keychain authn.Keychain) (string, error) {
 	imageRef, ref, err := buildImageReference(repository, version)
 	if err != nil {
 		return "", &RegistryAccessError{
@@ -269,50 +269,50 @@ func isNotFoundError(err error) bool {
 		strings.Contains(errStr, "404")
 }
 
-// validateBlueFieldImageURL validates the BlueField image URL format.
+// validateBlueFieldOCPLayerImageURL validates the BlueField OCP layer image URL format.
 // Exported for testing.
-func validateBlueFieldImageURL(url string, version string) error {
+func validateBlueFieldOCPLayerImageURL(url string, version string) error {
 	if url == "" {
-		return &InvalidBlueFieldImageURLError{
+		return &InvalidBlueFieldOCPLayerImageURLError{
 			Version: version,
 			URL:     url,
-			Message: "BlueField image URL is empty",
+			Message: "BlueField OCP layer image URL is empty",
 		}
 	}
 
 	// Basic validation: should contain a colon (registry/repo:tag format)
 	if !strings.Contains(url, ":") {
-		return &InvalidBlueFieldImageURLError{
+		return &InvalidBlueFieldOCPLayerImageURLError{
 			Version: version,
 			URL:     url,
-			Message: "BlueField image URL is malformed (missing tag separator ':')",
+			Message: "BlueField OCP layer image URL is malformed (missing tag separator ':')",
 		}
 	}
 
 	return nil
 }
 
-// updateStatusOnSuccess updates the CR status when image resolution succeeds
-func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, blueFieldImage, version string) (ctrl.Result, error) {
+// updateStatusOnSuccess updates the CR status when BlueField OCP layer image lookup succeeds
+func (r *ImageLookup) updateStatusOnSuccess(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, blueFieldOCPLayerImage, version string) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	// Update status field
-	cr.Status.BlueFieldContainerImage = blueFieldImage
+	cr.Status.BlueFieldOCPLayerImage = blueFieldOCPLayerImage
 
 	// Update condition
 	condition := metav1.Condition{
-		Type:               provisioningv1alpha1.BlueFieldImageResolved,
+		Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
 		Status:             metav1.ConditionTrue,
-		Reason:             reasonImageResolved,
-		Message:            fmt.Sprintf("BlueField container image resolved: %s", blueFieldImage),
+		Reason:             reasonImageFound,
+		Message:            fmt.Sprintf("BlueField OCP layer image found: %s", blueFieldOCPLayerImage),
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
 
 	// Emit event only if condition status/reason changed
 	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
-		r.Recorder.Event(cr, corev1.EventTypeNormal, reasonImageResolved,
-			fmt.Sprintf("BlueField container image resolved for OCP version %s: %s", version, blueFieldImage))
+		r.Recorder.Event(cr, corev1.EventTypeNormal, reasonImageFound,
+			fmt.Sprintf("BlueField OCP layer image found for OCP version %s: %s", version, blueFieldOCPLayerImage))
 	}
 
 	// Persist status
@@ -330,12 +330,12 @@ func (r *ImageResolver) updateStatusOnSuccess(ctx context.Context, cr *provision
 }
 
 // handleValidationError handles permanent validation errors
-func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
+func (r *ImageLookup) handleValidationError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Validation error - check CR spec", "error", err.Error())
 
 	// Clear status field
-	cr.Status.BlueFieldContainerImage = ""
+	cr.Status.BlueFieldOCPLayerImage = ""
 
 	var reason, message string
 	switch e := err.(type) {
@@ -348,7 +348,7 @@ func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provision
 	}
 
 	condition := metav1.Condition{
-		Type:               provisioningv1alpha1.BlueFieldImageResolved,
+		Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
 		Status:             metav1.ConditionFalse,
 		Reason:             reason,
 		Message:            message,
@@ -369,12 +369,12 @@ func (r *ImageResolver) handleValidationError(ctx context.Context, cr *provision
 }
 
 // handlePermanentError handles permanent errors (version not found, auth denied, invalid URL)
-func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error, version string) (ctrl.Result, error) {
+func (r *ImageLookup) handlePermanentError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error, version string) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("Permanent error - user action required", "version", version, "error", err.Error())
 
 	// Clear status field
-	cr.Status.BlueFieldContainerImage = ""
+	cr.Status.BlueFieldOCPLayerImage = ""
 
 	var reason, message string
 	switch err.(type) {
@@ -384,8 +384,8 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 	case *RegistryAuthError:
 		reason = reasonRegistryAuthError
 		message = err.Error()
-	case *InvalidBlueFieldImageURLError:
-		reason = reasonInvalidBlueFieldURL
+	case *InvalidBlueFieldOCPLayerImageURLError:
+		reason = reasonInvalidBlueFieldOCPLayerURL
 		message = err.Error()
 	default:
 		reason = reasonVersionNotFound
@@ -393,7 +393,7 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 	}
 
 	condition := metav1.Condition{
-		Type:               provisioningv1alpha1.BlueFieldImageResolved,
+		Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
 		Status:             metav1.ConditionFalse,
 		Reason:             reason,
 		Message:            message,
@@ -414,7 +414,7 @@ func (r *ImageResolver) handlePermanentError(ctx context.Context, cr *provisioni
 }
 
 // handleTransientError handles transient errors
-func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
+func (r *ImageLookup) handleTransientError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var reason, message string
@@ -428,7 +428,7 @@ func (r *ImageResolver) handleTransientError(ctx context.Context, cr *provisioni
 	}
 
 	condition := metav1.Condition{
-		Type:               provisioningv1alpha1.BlueFieldImageResolved,
+		Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
 		Status:             metav1.ConditionFalse,
 		Reason:             reason,
 		Message:            message,

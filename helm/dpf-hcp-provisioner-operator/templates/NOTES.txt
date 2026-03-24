@@ -31,8 +31,8 @@ NEXT STEPS:
 
    kubectl get dpfhcpconfig default -o yaml
 
-   To customize, patch the CR (e.g. disable BlueField validation):
-   kubectl patch dpfhcpconfig default --type=merge -p '{"spec":{"enableBlueFieldValidation":false}}'
+   To customize, patch the CR (e.g. change the BlueField OCP layer repo):
+   kubectl patch dpfhcpconfig default --type=merge -p '{"spec":{"blueFieldOCPLayerRepo":"your-registry/repo"}}'
 
 5. Create your first DPFHCPProvisioner custom resource:
 
@@ -80,7 +80,7 @@ TROUBLESHOOTING:
   kubectl describe dpfhcpprovisioner <name> -n <namespace>
 
 - Common issues:
-  * BlueField image not found: Ensure the image is in the registry with the correct OCP version tag
+  * BlueField OCP layer image not found: Ensure the image is in the registry with the correct OCP version tag
   * DPUCluster not found: Ensure DPUCluster CR exists and is referenced correctly
   * Pull secret missing: Create secret with '.dockerconfigjson' key in CR namespace
   * SSH key missing: Create secret with 'id_rsa.pub' key in CR namespace
