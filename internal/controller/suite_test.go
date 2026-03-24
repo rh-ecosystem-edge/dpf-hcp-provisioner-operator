@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +47,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/metallb"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
 	// +kubebuilder:scaffold:imports
 )
@@ -91,6 +93,9 @@ var _ = BeforeSuite(func() {
 	err = hyperv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = metallbv1beta1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:scheme
 
 	By("bootstrapping test environment")
@@ -131,6 +136,15 @@ var _ = BeforeSuite(func() {
 	err = k8sClient.Create(ctx, clustersNs)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("creating openshift-operators namespace")
+	openshiftOperatorsNs := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "openshift-operators",
+		},
+	}
+	err = k8sClient.Create(ctx, openshiftOperatorsNs)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("creating DPFHCPProvisionerConfig CR")
 	configCR := &provisioningv1alpha1.DPFHCPProvisionerConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -150,6 +164,7 @@ var _ = BeforeSuite(func() {
 	finalizerManager := finalizer.NewManager(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName))
 	// Register cleanup handlers in order (dependent resources first)
 	finalizerManager.RegisterHandler(kubeconfiginjection.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName)))
+	finalizerManager.RegisterHandler(metallb.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName)))
 	finalizerManager.RegisterHandler(hostedcluster.NewCleanupHandler(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName)))
 
 	reconciler := &DPFHCPProvisionerReconciler{
@@ -164,6 +179,7 @@ var _ = BeforeSuite(func() {
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),
 		SecretsValidator:     secrets.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("secrets-validator")),
 		SecretManager:        hostedcluster.NewSecretManager(k8sManager.GetClient(), k8sManager.GetScheme()),
+		MetalLBManager:       metallb.NewMetalLBManager(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("metallb-manager")),
 		NodePoolManager:      hostedcluster.NewNodePoolManager(k8sManager.GetClient(), k8sManager.GetScheme()),
 		HostedClusterManager: hostedcluster.NewHostedClusterManager(k8sManager.GetClient(), k8sManager.GetScheme()),
 		FinalizerManager:     finalizerManager,
