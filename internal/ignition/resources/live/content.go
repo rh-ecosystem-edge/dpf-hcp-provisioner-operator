@@ -44,11 +44,6 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("dpuagent-client.py"),
 			},
 			{
-				Path:          "/usr/local/bin/set-nvconfig-params-mst.sh",
-				Mode:          0755,
-				ContentSource: f("set-nvconfig-params-mst.sh"),
-			},
-			{
 				Path:          "/usr/local/bin/install-rhcos-dpf.sh",
 				Mode:          0755,
 				ContentSource: f("install-rhcos-dpf.sh"),
