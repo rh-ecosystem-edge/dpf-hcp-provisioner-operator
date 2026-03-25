@@ -10,6 +10,7 @@ HOSTAGENT_IPV6 = "fe80::1"
 HOSTAGENT_PORT = 11029
 HOSTAGENT_IFACE = "tmfifo_net0"
 HOSTAGENT_URL = f"http://[{HOSTAGENT_IPV6}%25{HOSTAGENT_IFACE}]:{HOSTAGENT_PORT}"
+REQUEST_TIMEOUT = 60
 
 
 DPU_NAME = os.getenv("DPUName")
@@ -25,7 +26,7 @@ def base_request(method, path, payload):
         headers={"Content-Type": "application/json"},
         method=method,
     )
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
         return resp.read()
 
 
@@ -41,7 +42,7 @@ def update_host_reboot():
         "dpuName": DPU_NAME,
         "dpuNamespace": DPU_NAMESPACE,
         "dpuUID": DPU_UID,
-        "AgentStatus": {
+        "agentStatus": {
             "rebootMethod": "SystemLevelReset"
         },
     })
