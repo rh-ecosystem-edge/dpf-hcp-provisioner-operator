@@ -196,6 +196,8 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 
 	// Step 4: Build live ignition (embed target)
 	log.V(1).Info("Building live ignition")
+	// We are adding DPU Flavor in JSON format for early setup tasks, such as nvconfig parameters setup.
+	// JSON is easier to parse with the tooling we have in Live RHCOS install media.
 	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor)
 	if err != nil {
 		return fmt.Errorf("failed to build live ignition: %w", err)
