@@ -110,34 +110,39 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet setup-envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
-# TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
-# The default setup assumes Kind is pre-installed and builds/loads the Manager container image locally.
-# CertManager is installed by default; skip with:
-# - CERT_MANAGER_INSTALL_SKIP=true
-KIND_CLUSTER ?= dpf-hcp-provisioner-operator-test-e2e
+##@ E2E Testing
+# See test/e2e/README.md for full documentation on setup, requirements, and usage.
 
-.PHONY: setup-test-e2e
-setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
-	@command -v $(KIND) >/dev/null 2>&1 || { \
-		echo "Kind is not installed. Please install Kind manually."; \
-		exit 1; \
-	}
-	@case "$$($(KIND) get clusters)" in \
-		*"$(KIND_CLUSTER)"*) \
-			echo "Kind cluster '$(KIND_CLUSTER)' already exists. Skipping creation." ;; \
-		*) \
-			echo "Creating Kind cluster '$(KIND_CLUSTER)'..."; \
-			$(KIND) create cluster --name $(KIND_CLUSTER) ;; \
-	esac
+E2E_TEST_TIMEOUT ?= 90m
 
+# Run e2e tests on an existing OCP cluster.
+# Required env vars:
+#   MACHINE_OS_URL  - DPU machine OS image URL
+#   BASE_DOMAIN     - cluster base domain for HostedCluster DNS
+# In CI, IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI is injected automatically.
+# For local testing, also set:
+#   export KUBECONFIG=/path/to/kubeconfig
+#   export IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI=quay.io/your-org/your-image:tag
 .PHONY: test-e2e
-test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	KIND_CLUSTER=$(KIND_CLUSTER) go test ./test/e2e/ -v -ginkgo.v
-	$(MAKE) cleanup-test-e2e
+test-e2e: ## Run e2e tests on an existing OCP cluster.
+	go test ./test/e2e/ -v -ginkgo.v \
+		-ginkgo.timeout=$(E2E_TEST_TIMEOUT) \
+		-timeout $(E2E_TEST_TIMEOUT)
 
-.PHONY: cleanup-test-e2e
-cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
-	@$(KIND) delete cluster --name $(KIND_CLUSTER)
+.PHONY: e2e-deploy-hypershift
+e2e-deploy-hypershift: ## [E2E] Deploy HyperShift operator on the OCP management cluster.
+	./test/e2e/scripts/deploy-hypershift.sh
+
+.PHONY: e2e-generate-dpf-crds
+e2e-generate-dpf-crds: controller-gen ## [E2E] Generate DPF CRDs from vendored nvidia/doca-platform types.
+	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/provisioning/v1alpha1" output:crd:dir=test/e2e/testdata/crds
+	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/dpuservice/v1alpha1" output:crd:dir=test/e2e/testdata/crds
+	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/operator/v1alpha1" output:crd:dir=test/e2e/testdata/crds
+
+.PHONY: e2e-install-dpf-crds
+e2e-install-dpf-crds: e2e-generate-dpf-crds ## [E2E] Generate and install external DPF CRDs on the cluster.
+	$(KUBECTL) apply -f test/e2e/testdata/crds/
+	$(KUBECTL) wait --for=condition=Established -f test/e2e/testdata/crds/ --timeout=60s
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
