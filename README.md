@@ -10,6 +10,7 @@ The operator maintains a **1:1:1 relationship**: each `DPFHCPProvisioner` CR map
 - **Automatic CSR approval** -- approves Certificate Signing Requests from DPU worker nodes joining the hosted cluster
 - **BlueField OCP layer image lookup** -- matches OCP release images to corresponding BlueField container images via container registry tag lookup (skipped when `machineOSURL` is provided)
 - **Kubeconfig injection** -- extracts the HostedCluster kubeconfig and injects it into the DPUCluster CR
+- **DPUServiceTemplate management** -- creates OVN, DTS, and HBN DPUServiceTemplate resources in every namespace that has a `DPFHCPProvisioner`, with chart versions selected based on the DPF operator version. Must be enabled through `manageDPUServiceTemplates` in `DPFHCPProvisionerConfig`
 - **MetalLB configuration** -- deploys IPAddressPool and L2Advertisement resources for LoadBalancer service exposure
 - **Ignition generation** -- generates BlueField-specific ignition configurations from HyperShift ignition for DPU node provisioning
 - **Status translation** -- mirrors HostedCluster conditions to DPFHCPProvisioner status without exposing HyperShift internals
@@ -33,6 +34,7 @@ The operator maintains a **1:1:1 relationship**: each `DPFHCPProvisioner` CR map
 
 - **DPFHCPProvisionerReconciler** -- main controller that orchestrates the full provisioning lifecycle through modular feature handlers
 - **CSRApprovalReconciler** -- secondary controller that watches for and auto-approves CSRs from DPU worker nodes in hosted clusters
+- **DPUServiceTemplateReconciler** -- manages DPUServiceTemplate resources (OVN, DTS, HBN) per DPUCluster namespace (based on active DPFHCPProvisioner presence)
 
 ## Prerequisites
 
@@ -117,6 +119,7 @@ A cluster-scoped singleton (must be named `default`) that provides operator-wide
 | Field | Type | Default | Description                                                      |
 |-------|------|---------|------------------------------------------------------------------|
 | `blueFieldOCPLayerRepo` | `string` | `quay.io/eelgaev/rhcos-bfb` | Container registry for BlueField OCP layer images |
+| `manageDPUServiceTemplates` | `bool` | `false` | Whether the operator manages DPUServiceTemplate resources. **Deprecated:** will default to `true` in a future release. |
 
 ```yaml
 apiVersion: provisioning.dpu.hcp.io/v1alpha1
@@ -125,6 +128,7 @@ metadata:
   name: default
 spec:
   blueFieldOCPLayerRepo: quay.io/eelgaev/rhcos-bfb
+  manageDPUServiceTemplates: false
 ```
 
 ## Deployment

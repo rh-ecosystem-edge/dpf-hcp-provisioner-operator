@@ -47,7 +47,10 @@ logLevel: info
 # DPFHCPProvisionerConfig CR (operator-wide configuration)
 # The config CR is deployed by the chart with defaults (validation enabled, default registry).
 # Users can patch the CR to customize, or delete it to make the operator idle.
-provisionerConfig: {}
+provisionerConfig:
+  # Whether the operator manages DPUServiceTemplate resources (OVN, DTS, HBN).
+  # Deprecated: will default to true in a future release.
+  manageDPUServiceTemplates: false
 
 # Leader election configuration
 leaderElection:
