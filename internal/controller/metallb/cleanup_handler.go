@@ -22,6 +22,7 @@ import (
 
 	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -79,11 +80,11 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	}, pool)
 
 	if err != nil {
-		// Check if resource was already deleted (NotFound is success)
 		if apierrors.IsNotFound(err) {
 			log.V(1).Info("IPAddressPool already deleted or never existed")
+		} else if meta.IsNoMatchError(err) {
+			log.V(1).Info("IPAddressPool CRD not installed, treating as deleted")
 		} else {
-			// Unexpected error (permission denied, network issue, etc.)
 			log.Error(err, "Failed to get IPAddressPool")
 			return fmt.Errorf("getting IPAddressPool: %w", err)
 		}
@@ -121,6 +122,8 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.V(1).Info("L2Advertisement already deleted or never existed")
+		} else if meta.IsNoMatchError(err) {
+			log.V(1).Info("L2Advertisement CRD not installed, treating as deleted")
 		} else {
 			log.Error(err, "Failed to get L2Advertisement")
 			return fmt.Errorf("getting L2Advertisement: %w", err)
