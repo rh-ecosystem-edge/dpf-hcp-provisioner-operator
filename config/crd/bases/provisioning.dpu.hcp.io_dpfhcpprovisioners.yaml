@@ -66,6 +66,17 @@ spec:
                 x-kubernetes-validations:
                 - message: baseDomain is immutable
                   rule: self == oldSelf
+              clusterCIDR:
+                description: |-
+                  ClusterCIDR is the CIDR block used for pod IP allocation in the hosted cluster.
+                  If not specified, defaults to "10.132.0.0/14".
+                  This field is immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: clusterCIDR is immutable
+                  rule: self == oldSelf
+                - message: clusterCIDR must be a valid CIDR block
+                  rule: isCIDR(self)
               controlPlaneAvailabilityPolicy:
                 allOf:
                 - enum:
@@ -184,6 +195,17 @@ spec:
                 x-kubernetes-validations:
                 - message: pullSecretRef is immutable
                   rule: self == oldSelf
+              serviceCIDR:
+                description: |-
+                  ServiceCIDR is the CIDR block used for Kubernetes Service ClusterIP allocation in the hosted cluster.
+                  If not specified, defaults to "172.31.0.0/16".
+                  This field is immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: serviceCIDR is immutable
+                  rule: self == oldSelf
+                - message: serviceCIDR must be a valid CIDR block
+                  rule: isCIDR(self)
               sshKeySecretRef:
                 description: |-
                   SSHKeySecretRef is a reference to a Secret containing the SSH public key for cluster node access

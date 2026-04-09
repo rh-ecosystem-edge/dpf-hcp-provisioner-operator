@@ -120,11 +120,27 @@ var _ = Describe("HostedCluster Builder", func() {
 			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("172.31.0.0/16"))
 		})
 
+		It("should use custom service network CIDR when specified", func() {
+			cr.Spec.ServiceCIDR = "10.96.0.0/12"
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.ServiceNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ServiceNetwork[0].CIDR.String()).To(Equal("10.96.0.0/12"))
+		})
+
 		It("should set default cluster network CIDR", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
 			Expect(hc.Spec.Networking.ClusterNetwork).To(HaveLen(1))
 			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.132.0.0/14"))
+		})
+
+		It("should use custom cluster network CIDR when specified", func() {
+			cr.Spec.ClusterCIDR = "10.128.0.0/14"
+			hc := hm.buildHostedCluster(cr, "")
+
+			Expect(hc.Spec.Networking.ClusterNetwork).To(HaveLen(1))
+			Expect(hc.Spec.Networking.ClusterNetwork[0].CIDR.String()).To(Equal("10.128.0.0/14"))
 		})
 
 		It("should have empty machine network", func() {
