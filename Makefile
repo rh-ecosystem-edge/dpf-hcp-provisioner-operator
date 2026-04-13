@@ -24,7 +24,7 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-# IMAGE_TAG_BASE defines the docker.io namespace and part of the image name for remote images.
+# IMAGE_TAG_BASE defines the registry namespace and part of the image name for remote images.
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
@@ -60,10 +60,8 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 # CONTAINER_TOOL defines the container tool to be used for building images.
-# Be aware that the target commands are only tested with Docker which is
-# scaffolded by default. However, you might want to replace it to use other
-# tools. (i.e. podman)
-CONTAINER_TOOL ?= docker
+CONTAINER_TOOL ?= podman
+CONTAINER_FILE ?= Containerfile
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -113,7 +111,7 @@ test: manifests generate fmt vet setup-envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
 # TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
-# The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
+# The default setup assumes Kind is pre-installed and builds/loads the Manager container image locally.
 # CertManager is installed by default; skip with:
 # - CERT_MANAGER_INSTALL_SKIP=true
 KIND_CLUSTER ?= dpf-hcp-provisioner-operator-test-e2e
@@ -163,33 +161,19 @@ build: manifests generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
 
-# If you wish to build the manager image targeting other platforms you can use the --platform flag.
-# (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
-# More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-.PHONY: docker-build
-docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+.PHONY: container-build
+container-build: ## Build container image with the manager.
+	$(CONTAINER_TOOL) build -f $(CONTAINER_FILE) -t ${IMG} .
 
-.PHONY: docker-push
-docker-push: ## Push docker image with the manager.
+.PHONY: container-push
+container-push: ## Push container image with the manager.
 	$(CONTAINER_TOOL) push ${IMG}
 
-# PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
-# architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
-# - be able to use docker buildx. More info: https://docs.docker.com/build/buildx/
-# - have enabled BuildKit. More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-# - be able to push the image to your registry (i.e. if you do not set a valid value via IMG=<myregistry/image:<tag>> then the export will fail)
-# To adequately provide solutions that are compatible with multiple platforms, you should consider using this option.
-PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
-.PHONY: docker-buildx
-docker-buildx: ## Build and push docker image for the manager for cross-platform support
-	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	- $(CONTAINER_TOOL) buildx create --name dpf-hcp-provisioner-operator-builder
-	$(CONTAINER_TOOL) buildx use dpf-hcp-provisioner-operator-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
-	- $(CONTAINER_TOOL) buildx rm dpf-hcp-provisioner-operator-builder
-	rm Dockerfile.cross
+.PHONY: docker-build
+docker-build: container-build ## Alias for container-build.
+
+.PHONY: docker-push
+docker-push: container-push ## Alias for container-push.
 
 ##@ Helm
 
@@ -197,11 +181,18 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 HELM_CHART_DIR ?= helm/dpf-hcp-provisioner-operator
 HELM_CHART_NAME ?= dpf-hcp-provisioner-operator
 HELM_CHART_REGISTRY ?= oci://quay.io/lhadad/charts
+
+ifeq ($(origin HELM_CHART_VERSION), command line)
+  # HELM_CHART_VERSION was set on the CLI, do not override
+else
+  HELM_CHART_VERSION ?= $(shell grep '^version:' $(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
+endif
+
 HELM_CHART_VERSION ?= $(shell grep '^version:' $(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
 
 .PHONY: helm-package
 helm-package: manifests ## Package the Helm chart.
-	helm package $(HELM_CHART_DIR)
+	helm package $(HELM_CHART_DIR) --version $(HELM_CHART_VERSION)
 
 .PHONY: helm-push
 helm-push: helm-package ## Push the Helm chart to an OCI registry.
@@ -330,11 +321,11 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	$(CONTAINER_TOOL) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	$(CONTAINER_TOOL) build -f bundle.Containerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	$(MAKE) container-push IMG=$(BUNDLE_IMG)
 
 .PHONY: opm
 OPM = $(LOCALBIN)/opm
@@ -375,4 +366,4 @@ catalog-build: opm ## Build a catalog image.
 # Push the catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+	$(MAKE) container-push IMG=$(CATALOG_IMG)

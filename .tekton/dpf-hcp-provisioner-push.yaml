@@ -25,7 +25,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/dpf-hcp-provisioner-tenant/dpf-hcp-provisioner:{{revision}}
   - name: dockerfile
-    value: Dockerfile
+    value: Containerfile
   - name: additional-tags
     value: [ "latest" ]
   pipelineSpec:
@@ -50,8 +50,8 @@ spec:
         to build image.
       name: path-context
       type: string
-    - default: Dockerfile
-      description: Path to the Dockerfile inside the context specified by parameter
+    - default: Containerfile
+      description: Path to the Containerfile inside the context specified by parameter
         path-context
       name: dockerfile
       type: string
