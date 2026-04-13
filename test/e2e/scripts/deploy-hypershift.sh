@@ -25,17 +25,26 @@ CONTAINER_COMMAND=${CONTAINER_COMMAND:-podman}
 
 # Extract hypershift binary to a local directory (no sudo required)
 HYPERSHIFT_BIN_DIR=$(mktemp -d)
+HYPERSHIFT_CONTAINER_ID=""
+
+cleanup() {
+    if [[ -n "${HYPERSHIFT_CONTAINER_ID}" ]]; then
+        "${CONTAINER_COMMAND}" rm -f "${HYPERSHIFT_CONTAINER_ID}" >/dev/null 2>&1 || true
+    fi
+    rm -rf "${HYPERSHIFT_BIN_DIR}"
+}
+trap cleanup EXIT
+
 echo "Extracting hypershift binary from ${HYPERSHIFT_IMAGE}..."
-${CONTAINER_COMMAND} cp $(${CONTAINER_COMMAND} create --name hypershift --rm --pull always ${HYPERSHIFT_IMAGE}):/usr/bin/hypershift "${HYPERSHIFT_BIN_DIR}/hypershift"
-${CONTAINER_COMMAND} rm -f hypershift
+HYPERSHIFT_CONTAINER_ID=$("${CONTAINER_COMMAND}" create --pull always "${HYPERSHIFT_IMAGE}")
+"${CONTAINER_COMMAND}" cp "${HYPERSHIFT_CONTAINER_ID}:/usr/bin/hypershift" "${HYPERSHIFT_BIN_DIR}/hypershift"
+"${CONTAINER_COMMAND}" rm -f "${HYPERSHIFT_CONTAINER_ID}"
+HYPERSHIFT_CONTAINER_ID=""  # Clear ID after successful removal
 chmod 0755 "${HYPERSHIFT_BIN_DIR}/hypershift"
 
 # Install the HyperShift operator
 echo "Installing HyperShift operator..."
-"${HYPERSHIFT_BIN_DIR}/hypershift" install --hypershift-image ${HYPERSHIFT_IMAGE}
-
-# Clean up binary
-rm -rf "${HYPERSHIFT_BIN_DIR}"
+"${HYPERSHIFT_BIN_DIR}/hypershift" install --hypershift-image "${HYPERSHIFT_IMAGE}"
 
 # Wait for operator to be ready
 echo "Waiting for HyperShift operator deployment..."

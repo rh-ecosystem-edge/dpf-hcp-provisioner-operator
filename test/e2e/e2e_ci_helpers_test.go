@@ -17,16 +17,33 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
+	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
+	operatorv1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
+	dpuprovisioningv1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	certificatesv1 "k8s.io/api/certificates/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/test/utils"
 )
 
@@ -53,11 +70,20 @@ func detectOCPReleaseImage() string {
 	if image != "" {
 		return image
 	}
-	cmd := exec.Command("oc", "get", "clusterversion", "version",
-		"-o", "jsonpath={.status.desired.image}")
-	output, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to detect OCP release image")
-	return strings.TrimSpace(output)
+	ctx := context.Background()
+	clusterVersion := &unstructured.Unstructured{}
+	clusterVersion.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "config.openshift.io",
+		Version: "v1",
+		Kind:    "ClusterVersion",
+	})
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: "version"}, clusterVersion)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get ClusterVersion")
+
+	releaseImage, found, err := unstructured.NestedString(clusterVersion.Object, "status", "desired", "image")
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to extract release image")
+	ExpectWithOffset(1, found).To(BeTrue(), "Release image not found in ClusterVersion status")
+	return releaseImage
 }
 
 // getBaseDomain returns the base domain for the HostedCluster.
@@ -96,12 +122,21 @@ func getEtcdStorageClass() string {
 		return sc
 	}
 	// Try to detect default storage class
-	jsonpath := "{.items[?(@.metadata.annotations.storageclass\\.kubernetes\\.io/" +
-		"is-default-class==\"true\")].metadata.name}"
-	cmd := exec.Command("kubectl", "get", "storageclass", "-o", "jsonpath="+jsonpath)
-	output, err := utils.Run(cmd)
-	if err == nil && strings.TrimSpace(output) != "" {
-		return strings.TrimSpace(strings.Split(output, " ")[0])
+	ctx := context.Background()
+	scList := &unstructured.UnstructuredList{}
+	scList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "storage.k8s.io",
+		Version: "v1",
+		Kind:    "StorageClassList",
+	})
+	err := k8sClient.List(ctx, scList)
+	if err == nil {
+		for _, item := range scList.Items {
+			annotations := item.GetAnnotations()
+			if annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
+				return item.GetName()
+			}
+		}
 	}
 	Fail("No default StorageClass found and ETCD_STORAGE_CLASS not set. " +
 		"A StorageClass is required for HostedCluster etcd PVCs. " +
@@ -112,39 +147,43 @@ func getEtcdStorageClass() string {
 
 // createNamespace creates a Kubernetes namespace, waiting for it to be fully deleted first if terminating.
 func createNamespace(ns string) {
+	ctx := context.Background()
 	// Wait for namespace to be fully gone if it's terminating from a previous run
 	Eventually(func(g Gomega) {
-		cmd := exec.Command("kubectl", "get", "ns", ns, "-o", "jsonpath={.status.phase}")
-		output, err := utils.Run(cmd)
-		if err != nil {
+		namespace := &corev1.Namespace{}
+		err := k8sClient.Get(ctx, types.NamespacedName{Name: ns}, namespace)
+		if apierrors.IsNotFound(err) {
 			return // Namespace doesn't exist, good
 		}
-		g.Expect(strings.TrimSpace(output)).NotTo(Equal("Terminating"),
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(namespace.Status.Phase).NotTo(Equal(corev1.NamespaceTerminating),
 			"Namespace %s is still terminating", ns)
 	}, 2*time.Minute, 5*time.Second).Should(Succeed())
 
-	cmd := exec.Command("kubectl", "create", "ns", ns, "--dry-run=client", "-o", "yaml")
-	yaml, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	cmd = exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err = utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create namespace %s", ns)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+	err := k8sClient.Create(ctx, namespace)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create namespace %s", ns)
+	}
 }
 
 // createDPUClusterStub creates a minimal DPUCluster CR for testing.
 func createDPUClusterStub(ns, name string) {
-	yaml := fmt.Sprintf(`apiVersion: provisioning.dpu.nvidia.com/v1alpha1
-kind: DPUCluster
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  type: static
-`, name, ns)
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err := utils.Run(cmd)
+	ctx := context.Background()
+	dpuCluster := &dpuprovisioningv1.DPUCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: dpuprovisioningv1.DPUClusterSpec{
+			Type: string(dpuprovisioningv1.StaticCluster),
+		},
+	}
+	err := k8sClient.Create(ctx, dpuCluster)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUCluster stub")
 }
 
@@ -156,112 +195,138 @@ func generateSSHKeySecret(ns, name string) {
 	_, err := utils.Run(cmd)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to generate SSH key")
 	defer func() {
-		os.Remove(keyFile)
-		os.Remove(keyFile + ".pub")
+		_ = os.Remove(keyFile)
+		_ = os.Remove(keyFile + ".pub")
 	}()
 
-	cmd = exec.Command("kubectl", "create", "secret", "generic", name,
-		"--from-file=id_rsa.pub="+keyFile+".pub",
-		"-n", ns, "--dry-run=client", "-o", "yaml")
-	yaml, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	cmd = exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err = utils.Run(cmd)
+	pubKeyData, err := os.ReadFile(keyFile + ".pub")
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to read public key")
+
+	ctx := context.Background()
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Data: map[string][]byte{
+			"id_rsa.pub": pubKeyData,
+		},
+	}
+	err = k8sClient.Create(ctx, secret)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create SSH key secret")
 }
 
 // copyPullSecret copies the cluster pull secret to the target namespace.
 func copyPullSecret(ns, name string) {
 	By("copying pull secret from openshift-config")
-	cmd := exec.Command("oc", "get", "secret", "pull-secret", "-n", "openshift-config",
-		"-o", "jsonpath={.data.\\.dockerconfigjson}")
-	b64Data, err := utils.Run(cmd)
+	ctx := context.Background()
+
+	sourceSecret := &corev1.Secret{}
+	err := k8sClient.Get(ctx, types.NamespacedName{
+		Namespace: "openshift-config",
+		Name:      "pull-secret",
+	}, sourceSecret)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get cluster pull secret")
 
-	yaml := fmt.Sprintf(`apiVersion: v1
-kind: Secret
-metadata:
-  name: %s
-  namespace: %s
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: %s
-`, name, ns, strings.TrimSpace(b64Data))
-	cmd = exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err = utils.Run(cmd)
+	dockerConfigJSON := sourceSecret.Data[".dockerconfigjson"]
+	ExpectWithOffset(1, dockerConfigJSON).NotTo(BeNil(), "Pull secret missing .dockerconfigjson")
+
+	targetSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{
+			".dockerconfigjson": dockerConfigJSON,
+		},
+	}
+	err = k8sClient.Create(ctx, targetSecret)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create pull secret")
 }
 
 // createDPUDeploymentStub creates a minimal DPUDeployment CR that references a DPUFlavor.
 func createDPUDeploymentStub(ns, name, flavorName string) {
-	yaml := fmt.Sprintf(`apiVersion: svc.dpu.nvidia.com/v1alpha1
-kind: DPUDeployment
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  dpus:
-    bfb: e2e-bfb
-    flavor: %s
-  services: {}
-  serviceChains:
-    upgradePolicy: {}
-    switches:
-      - ports:
-          - serviceInterface:
-              matchLabels:
-                e2e-test: "true"
-`, name, ns, flavorName)
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err := utils.Run(cmd)
+	ctx := context.Background()
+	dpuDeployment := &dpuservicev1.DPUDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: dpuservicev1.DPUDeploymentSpec{
+			DPUs: dpuservicev1.DPUs{
+				BFB:    "e2e-bfb",
+				Flavor: flavorName,
+			},
+			Services: map[string]dpuservicev1.DPUDeploymentServiceConfiguration{},
+			ServiceChains: dpuservicev1.ServiceChains{
+				UpgradePolicy: dpuservicev1.UpgradePolicy{},
+				Switches: []dpuservicev1.DPUDeploymentSwitch{
+					{
+						Ports: []dpuservicev1.DPUDeploymentPort{
+							{
+								ServiceInterface: &dpuservicev1.ServiceIfc{
+									MatchLabels: map[string]string{
+										"e2e-test": "true",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	err := k8sClient.Create(ctx, dpuDeployment)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUDeployment stub")
 }
 
 // createDPUFlavorStub creates a minimal DPUFlavor CR.
 func createDPUFlavorStub(ns, name string) {
-	yaml := fmt.Sprintf(`apiVersion: provisioning.dpu.nvidia.com/v1alpha1
-kind: DPUFlavor
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  ovs:
-    rawConfigScript: |
-      #!/bin/bash
-      echo "e2e test OVS config"
-`, name, ns)
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err := utils.Run(cmd)
+	ctx := context.Background()
+	dpuFlavor := &dpuprovisioningv1.DPUFlavor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: dpuprovisioningv1.DPUFlavorSpec{
+			OVS: dpuprovisioningv1.DPUFlavorOVS{
+				RawConfigScript: "#!/bin/bash\necho \"e2e test OVS config\"\n",
+			},
+		},
+	}
+	err := k8sClient.Create(ctx, dpuFlavor)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUFlavor stub")
 }
 
 // createDPFOperatorConfig creates a DPFOperatorConfig in the DPUCluster namespace
 // (needed by the ignition generator for controlPlaneMTU and BFCFGTemplateConfigMap).
 func createDPFOperatorConfig(ns string) {
-	yaml := fmt.Sprintf(`apiVersion: operator.dpu.nvidia.com/v1alpha1
-kind: DPFOperatorConfig
-metadata:
-  name: dpfoperatorconfig
-  namespace: %s
-spec:
-  provisioningController:
-    bfbPVCName: e2e-bfb-pvc
-    disable: true
-  networking:
-    controlPlaneMTU: 1500
-`, ns)
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err := utils.Run(cmd)
+	ctx := context.Background()
+	mtu := 1500
+	disable := true
+	dpfOperatorConfig := &operatorv1.DPFOperatorConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dpfoperatorconfig",
+			Namespace: ns,
+		},
+		Spec: operatorv1.DPFOperatorConfigSpec{
+			ProvisioningController: operatorv1.ProvisioningControllerConfiguration{
+				BFBPersistentVolumeClaimName: "e2e-bfb-pvc",
+				Disable:                      &disable,
+			},
+			Networking: &operatorv1.Networking{
+				ControlPlaneMTU: &mtu,
+			},
+		},
+	}
+	err := k8sClient.Create(ctx, dpfOperatorConfig)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPFOperatorConfig")
 }
 
 // createDPFHCPProvisioner creates a DPFHCPProvisioner CR.
 func createDPFHCPProvisioner(ns, name string) {
+	ctx := context.Background()
 	releaseImage := detectOCPReleaseImage()
 	baseDomain := getBaseDomain()
 	availability := getControlPlaneAvailability()
@@ -275,91 +340,74 @@ func createDPFHCPProvisioner(ns, name string) {
 			"  etcdStorageClass=%s\n",
 		releaseImage, baseDomain, availability, machineOSURL, etcdSC)
 
-	optionalFields := ""
+	availabilityPolicy := hyperv1.AvailabilityPolicy(availability)
+
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+			DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+				Name:      dpuClusterName,
+				Namespace: dpuClusterNS,
+			},
+			BaseDomain:      baseDomain,
+			OCPReleaseImage: releaseImage,
+			SSHKeySecretRef: corev1.LocalObjectReference{
+				Name: sshKeySecretName,
+			},
+			PullSecretRef: corev1.LocalObjectReference{
+				Name: pullSecretName,
+			},
+			ControlPlaneAvailabilityPolicy: availabilityPolicy,
+			DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+				Name:      dpuDeploymentName,
+				Namespace: dpuClusterNS,
+			},
+		},
+	}
+
 	if machineOSURL != "" {
-		optionalFields += fmt.Sprintf("  machineOSURL: %q\n", machineOSURL)
+		provisioner.Spec.MachineOSURL = machineOSURL
 	}
 	if etcdSC != "" {
-		optionalFields += fmt.Sprintf("  etcdStorageClass: %q\n", etcdSC)
+		provisioner.Spec.EtcdStorageClass = etcdSC
 	}
 
-	yaml := fmt.Sprintf(`apiVersion: provisioning.dpu.hcp.io/v1alpha1
-kind: DPFHCPProvisioner
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  dpuClusterRef:
-    name: %s
-    namespace: %s
-  baseDomain: %s
-  ocpReleaseImage: %s
-  sshKeySecretRef:
-    name: %s
-  pullSecretRef:
-    name: %s
-  controlPlaneAvailabilityPolicy: %s
-  dpuDeploymentRef:
-    name: %s
-    namespace: %s
-%s`, name, ns, dpuClusterName, dpuClusterNS, baseDomain, releaseImage,
-		sshKeySecretName, pullSecretName, availability,
-		dpuDeploymentName, dpuClusterNS, optionalFields)
-
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err := utils.Run(cmd)
+	err := k8sClient.Create(ctx, provisioner)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPFHCPProvisioner")
 }
 
 // waitForCRPhase waits for a DPFHCPProvisioner to reach a specific phase.
 func waitForCRPhase(name, phase string, timeout time.Duration) {
 	EventuallyWithOffset(1, func(g Gomega) {
-		cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", name,
-			"-n", ciNamespace, "-o", "jsonpath={.status.phase}")
-		output, err := utils.Run(cmd)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(strings.TrimSpace(output)).To(Equal(phase),
-			"CR phase is %s, expected %s", strings.TrimSpace(output), phase)
+		currentPhase := getCRPhase(ciNamespace, name)
+		g.Expect(currentPhase).To(Equal(phase),
+			"CR phase is %s, expected %s", currentPhase, phase)
 	}, timeout, pollingInterval).Should(Succeed(), "Timed out waiting for phase %s", phase)
 }
 
 // getCRPhase gets the current phase of a DPFHCPProvisioner.
 func getCRPhase(ns, name string) string {
-	cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", name,
-		"-n", ns, "-o", "jsonpath={.status.phase}")
-	output, err := utils.Run(cmd)
+	ctx := context.Background()
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(output)
-}
-
-// conditionStatus represents a parsed condition from the CR status.
-type conditionStatus struct {
-	Type    string `json:"type"`
-	Status  string `json:"status"`
-	Reason  string `json:"reason"`
-	Message string `json:"message"`
+	return string(provisioner.Status.Phase)
 }
 
 // getCRConditions retrieves all conditions from the CR status.
-func getCRConditions(ns, name string) []conditionStatus {
-	cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", name,
-		"-n", ns, "-o", "jsonpath={.status.conditions}")
-	output, err := utils.Run(cmd)
+func getCRConditions(ns, name string) []metav1.Condition {
+	ctx := context.Background()
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
 	if err != nil {
 		return nil
 	}
-	trimmed := strings.TrimSpace(output)
-	if trimmed == "" {
-		return nil
-	}
-	var conditions []conditionStatus
-	if err := json.Unmarshal([]byte(trimmed), &conditions); err != nil {
-		return nil
-	}
-	return conditions
+	return provisioner.Status.Conditions
 }
 
 // getConditionStatus returns the status of a specific condition type.
@@ -367,7 +415,7 @@ func getConditionStatus(ns, name, conditionType string) string {
 	conditions := getCRConditions(ns, name)
 	for _, c := range conditions {
 		if c.Type == conditionType {
-			return c.Status
+			return string(c.Status)
 		}
 	}
 	return ""
@@ -375,78 +423,128 @@ func getConditionStatus(ns, name, conditionType string) string {
 
 // createDPUStub creates a minimal DPU CR for CSR auto-approval testing.
 func createDPUStub(ns, name, phase string) {
-	yaml := fmt.Sprintf(`apiVersion: provisioning.dpu.nvidia.com/v1alpha1
-kind: DPU
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  dpuNodeName: %s
-  dpuDeviceName: bf3-device
-  bfb: e2e-bfb
-  serialNumber: "E2E0000000001"
-status:
-  phase: "%s"
-`, name, ns, name, phase)
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err := utils.Run(cmd)
+	ctx := context.Background()
+	dpu := &dpuprovisioningv1.DPU{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: dpuprovisioningv1.DPUSpec{
+			DPUNodeName:   name,
+			DPUDeviceName: "bf3-device",
+			BFB:           "e2e-bfb",
+			SerialNumber:  "E2E0000000001",
+		},
+	}
+	err := k8sClient.Create(ctx, dpu)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPU stub")
 
+	// Re-fetch to get the latest state before updating status
+	err = k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, dpu)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get DPU after creation")
+
 	// Update status subresource
-	statusPatch := fmt.Sprintf(`{"status":{"phase":"%s"}}`, phase)
-	cmd = exec.Command("kubectl", "patch", "dpu", name, "-n", ns,
-		"--type=merge", "--subresource=status", "-p", statusPatch)
-	_, err = utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to patch DPU status")
+	dpu.Status.Phase = dpuprovisioningv1.DPUPhase(phase)
+	err = k8sClient.Status().Update(ctx, dpu)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to update DPU status")
 }
 
 // deleteDPUStub deletes a DPU CR.
 func deleteDPUStub(ns, name string) {
-	cmd := exec.Command("kubectl", "delete", "dpu", name, "-n", ns, "--ignore-not-found=true")
-	_, _ = utils.Run(cmd)
+	ctx := context.Background()
+	dpu := &dpuprovisioningv1.DPU{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+	}
+	// Equivalent to kubectl delete --ignore-not-found=true
+	_ = client.IgnoreNotFound(k8sClient.Delete(ctx, dpu))
 }
 
 // getHostedClusterKubeconfig retrieves the kubeconfig for the HostedCluster.
 func getHostedClusterKubeconfig(provisionerNS, provisionerName string) string {
-	cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", provisionerName,
-		"-n", provisionerNS, "-o", "jsonpath={.status.kubeConfigSecretRef.name}")
-	secretName, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get kubeconfig secret name")
-	secretName = strings.TrimSpace(secretName)
+	ctx := context.Background()
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: provisionerNS, Name: provisionerName}, provisioner)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get DPFHCPProvisioner")
+
+	secretName := provisioner.Status.KubeConfigSecretRef.Name
 	ExpectWithOffset(1, secretName).NotTo(BeEmpty(), "Kubeconfig secret name is empty")
 
-	// The kubeconfig secret is in the clusters namespace (same namespace as HostedCluster)
-	cmd = exec.Command("kubectl", "get", "secret", secretName,
-		"-n", dpuClusterNS, "-o", "jsonpath={.data.super-admin\\.conf}")
-	b64Kubeconfig, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get kubeconfig data")
-	return strings.TrimSpace(b64Kubeconfig)
+	// The kubeconfig secret is in the DPUCluster namespace (injected by controller)
+	secret := &corev1.Secret{}
+	err = k8sClient.Get(ctx, types.NamespacedName{
+		Namespace: dpuClusterNS,
+		Name:      secretName,
+	}, secret)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get kubeconfig secret")
+
+	b64Kubeconfig := secret.Data["super-admin.conf"]
+	ExpectWithOffset(1, b64Kubeconfig).NotTo(BeNil(), "super-admin.conf not found in secret")
+	return base64.StdEncoding.EncodeToString(b64Kubeconfig)
 }
 
 // writeKubeconfigToFile writes base64-encoded kubeconfig to a temp file and returns the path.
+// The file is cleaned up in AfterAll when the entire test suite completes.
 func writeKubeconfigToFile(b64Kubeconfig string) string {
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("echo '%s' | base64 -d", b64Kubeconfig))
-	kubeconfig, err := utils.Run(cmd)
+	kubeconfig, err := base64.StdEncoding.DecodeString(b64Kubeconfig)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to decode kubeconfig")
 
-	kubeconfigFile := fmt.Sprintf("/tmp/e2e-hc-kubeconfig-%d", time.Now().UnixNano())
-	err = os.WriteFile(kubeconfigFile, []byte(kubeconfig), 0600)
+	f, err := os.CreateTemp("", "e2e-hc-kubeconfig-*")
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create temp kubeconfig file")
+
+	_, err = f.Write(kubeconfig)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to write kubeconfig file")
-	return kubeconfigFile
+	err = f.Close()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to close kubeconfig file")
+	return f.Name()
+}
+
+// getHCClient creates a Kubernetes client from a kubeconfig file path.
+func getHCClient(kubeconfigFile string) (client.Client, *kubernetes.Clientset) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
+	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to build config from kubeconfig file")
+
+	hcClient, err := client.New(config, client.Options{Scheme: runtimeScheme})
+	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to create HC client")
+
+	hcClientset, err := kubernetes.NewForConfig(config)
+	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to create HC clientset")
+
+	return hcClient, hcClientset
+}
+
+// getHCClientWithImpersonation creates a client for the HostedCluster with user impersonation.
+// This allows creating resources (like CSRs) that appear to come from a specific user/group.
+func getHCClientWithImpersonation(kubeconfigFile, username string, groups []string) client.Client {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
+	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to build config from kubeconfig file")
+
+	// Set impersonation to mimic the desired user identity
+	config.Impersonate = rest.ImpersonationConfig{
+		UserName: username,
+		Groups:   groups,
+	}
+
+	hcClient, err := client.New(config, client.Options{Scheme: runtimeScheme})
+	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to create HC client with impersonation")
+
+	return hcClient
 }
 
 // createBootstrapCSRInHostedCluster creates a bootstrap CSR in the HostedCluster.
 // Bootstrap CSRs come from the node-bootstrapper service account, not from the node itself.
 func createBootstrapCSRInHostedCluster(kubeconfigFile, hostname string) string {
+	ctx := context.Background()
 	csrName := fmt.Sprintf("e2e-bootstrap-csr-%s-%d", hostname, time.Now().UnixNano())
 
 	// Generate key and CSR PEM with CN=system:node:<hostname>, O=system:nodes, no SANs
 	keyFile := fmt.Sprintf("/tmp/e2e-csr-key-%d", time.Now().UnixNano())
 	csrFile := fmt.Sprintf("/tmp/e2e-csr-%d.pem", time.Now().UnixNano())
 	defer func() {
-		os.Remove(keyFile)
-		os.Remove(csrFile)
+		_ = os.Remove(keyFile)
+		_ = os.Remove(csrFile)
 	}()
 
 	cmd := exec.Command("openssl", "req", "-new", "-newkey", "rsa:2048", "-nodes",
@@ -456,29 +554,35 @@ func createBootstrapCSRInHostedCluster(kubeconfigFile, hostname string) string {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to generate bootstrap CSR")
 
 	b64CSR := base64EncodeFile(csrFile)
+	csrBytes, err := base64.StdEncoding.DecodeString(b64CSR)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to decode CSR")
 
-	yaml := fmt.Sprintf(`apiVersion: certificates.k8s.io/v1
-kind: CertificateSigningRequest
-metadata:
-  name: %s
-spec:
-  request: %s
-  signerName: kubernetes.io/kube-apiserver-client-kubelet
-  usages:
-    - digital signature
-    - client auth
-`, csrName, b64CSR)
+	// Create client with impersonation to mimic node-bootstrapper service account
+	hcClient := getHCClientWithImpersonation(kubeconfigFile,
+		"system:serviceaccount:openshift-machine-config-operator:node-bootstrapper",
+		[]string{
+			"system:serviceaccounts",
+			"system:serviceaccounts:openshift-machine-config-operator",
+			"system:authenticated",
+		})
 
-	// Use --as to impersonate the node-bootstrapper identity so the API server
-	// sets the correct username and groups on the CSR.
-	cmd = exec.Command("kubectl", "--kubeconfig", kubeconfigFile,
-		"--as", "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper",
-		"--as-group", "system:serviceaccounts",
-		"--as-group", "system:serviceaccounts:openshift-machine-config-operator",
-		"--as-group", "system:authenticated",
-		"apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err = utils.Run(cmd)
+	csr := &certificatesv1.CertificateSigningRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: csrName,
+		},
+		Spec: certificatesv1.CertificateSigningRequestSpec{
+			Request:    csrBytes,
+			SignerName: "kubernetes.io/kube-apiserver-client-kubelet",
+			Usages: []certificatesv1.KeyUsage{
+				certificatesv1.UsageDigitalSignature,
+				certificatesv1.UsageClientAuth,
+			},
+			// Note: Username and Groups are server-populated based on the authenticated user.
+			// We use impersonation above to set the identity.
+		},
+	}
+
+	err = hcClient.Create(ctx, csr)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create bootstrap CSR in hosted cluster")
 
 	return csrName
@@ -487,6 +591,7 @@ spec:
 // createServingCSRInHostedCluster creates a serving CSR in the HostedCluster.
 // Serving CSRs come from the node itself (system:node:<hostname>).
 func createServingCSRInHostedCluster(kubeconfigFile, hostname string) string {
+	ctx := context.Background()
 	csrName := fmt.Sprintf("e2e-serving-csr-%s-%d", hostname, time.Now().UnixNano())
 
 	// Generate key and CSR PEM with CN=system:node:<hostname>, O=system:nodes, DNS SAN=hostname
@@ -494,9 +599,9 @@ func createServingCSRInHostedCluster(kubeconfigFile, hostname string) string {
 	csrFile := fmt.Sprintf("/tmp/e2e-csr-%d.pem", time.Now().UnixNano())
 	confFile := fmt.Sprintf("/tmp/e2e-csr-%d.cnf", time.Now().UnixNano())
 	defer func() {
-		os.Remove(keyFile)
-		os.Remove(csrFile)
-		os.Remove(confFile)
+		_ = os.Remove(keyFile)
+		_ = os.Remove(csrFile)
+		_ = os.Remove(confFile)
 	}()
 
 	// OpenSSL config to add DNS SAN
@@ -522,28 +627,34 @@ subjectAltName = DNS:%s
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to generate serving CSR")
 
 	b64CSR := base64EncodeFile(csrFile)
+	csrBytes, err := base64.StdEncoding.DecodeString(b64CSR)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to decode CSR")
 
-	yaml := fmt.Sprintf(`apiVersion: certificates.k8s.io/v1
-kind: CertificateSigningRequest
-metadata:
-  name: %s
-spec:
-  request: %s
-  signerName: kubernetes.io/kubelet-serving
-  usages:
-    - digital signature
-    - server auth
-`, csrName, b64CSR)
+	// Create client with impersonation to mimic the node itself
+	hcClient := getHCClientWithImpersonation(kubeconfigFile,
+		fmt.Sprintf("system:node:%s", hostname),
+		[]string{
+			"system:nodes",
+			"system:authenticated",
+		})
 
-	// Use --as to impersonate the node identity so the API server
-	// sets the correct username and groups on the CSR.
-	cmd = exec.Command("kubectl", "--kubeconfig", kubeconfigFile,
-		"--as", fmt.Sprintf("system:node:%s", hostname),
-		"--as-group", "system:nodes",
-		"--as-group", "system:authenticated",
-		"apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err = utils.Run(cmd)
+	csr := &certificatesv1.CertificateSigningRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: csrName,
+		},
+		Spec: certificatesv1.CertificateSigningRequestSpec{
+			Request:    csrBytes,
+			SignerName: "kubernetes.io/kubelet-serving",
+			Usages: []certificatesv1.KeyUsage{
+				certificatesv1.UsageDigitalSignature,
+				certificatesv1.UsageServerAuth,
+			},
+			// Note: Username and Groups are server-populated based on the authenticated user.
+			// We use impersonation above to set the identity.
+		},
+	}
+
+	err = hcClient.Create(ctx, csr)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create serving CSR in hosted cluster")
 
 	return csrName
@@ -553,119 +664,174 @@ spec:
 func base64EncodeFile(path string) string {
 	data, err := os.ReadFile(path)
 	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to read file %s", path)
-	cmd := exec.Command("base64", "-w0")
-	cmd.Stdin = strings.NewReader(string(data))
-	output, err := cmd.CombinedOutput()
-	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to base64 encode")
-	return strings.TrimSpace(string(output))
+	return base64.StdEncoding.EncodeToString(data)
 }
 
 // waitForCSRApproval waits for a CSR to be approved in the HostedCluster.
 func waitForCSRApproval(kubeconfigFile, csrName string, timeout time.Duration) {
+	ctx := context.Background()
+	hcClient, _ := getHCClient(kubeconfigFile)
+
 	EventuallyWithOffset(1, func(g Gomega) {
-		cmd := exec.Command("kubectl", "--kubeconfig", kubeconfigFile,
-			"get", "csr", csrName,
-			"-o", "jsonpath={.status.conditions[?(@.type==\"Approved\")].status}")
-		output, err := utils.Run(cmd)
+		csr := &certificatesv1.CertificateSigningRequest{}
+		err := hcClient.Get(ctx, types.NamespacedName{Name: csrName}, csr)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(strings.TrimSpace(output)).To(Equal("True"), "CSR not yet approved")
+
+		approved := false
+		for _, condition := range csr.Status.Conditions {
+			if condition.Type == certificatesv1.CertificateApproved {
+				approved = true
+				break
+			}
+		}
+		g.Expect(approved).To(BeTrue(), "CSR not yet approved")
 	}, timeout, 5*time.Second).Should(Succeed(), "Timed out waiting for CSR %s approval", csrName)
 }
 
 // verifyCSRNotApproved verifies a CSR stays pending (not approved) for a duration.
 func verifyCSRNotApproved(kubeconfigFile, csrName string, duration time.Duration) {
+	ctx := context.Background()
+	hcClient, _ := getHCClient(kubeconfigFile)
+
 	ConsistentlyWithOffset(1, func(g Gomega) {
-		cmd := exec.Command("kubectl", "--kubeconfig", kubeconfigFile,
-			"get", "csr", csrName,
-			"-o", "jsonpath={.status.conditions[?(@.type==\"Approved\")].status}")
-		output, err := utils.Run(cmd)
+		csr := &certificatesv1.CertificateSigningRequest{}
+		err := hcClient.Get(ctx, types.NamespacedName{Name: csrName}, csr)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(strings.TrimSpace(output)).To(BeEmpty(), "CSR should not be approved")
+
+		for _, condition := range csr.Status.Conditions {
+			if condition.Type == certificatesv1.CertificateApproved {
+				g.Expect(false).To(BeTrue(), "CSR should not be approved")
+			}
+		}
 	}, duration, 5*time.Second).Should(Succeed())
 }
 
 // createNodeInHostedCluster creates a Node object in the HostedCluster.
 func createNodeInHostedCluster(kubeconfigFile, hostname string) {
-	yaml := fmt.Sprintf(`apiVersion: v1
-kind: Node
-metadata:
-  name: %s
-`, hostname)
-	cmd := exec.Command("kubectl", "--kubeconfig", kubeconfigFile, "apply", "-f", "-")
-	cmd.Stdin = strings.NewReader(yaml)
-	_, err := utils.Run(cmd)
+	ctx := context.Background()
+	hcClient, _ := getHCClient(kubeconfigFile)
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: hostname,
+		},
+	}
+	err := hcClient.Create(ctx, node)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create Node in hosted cluster")
 }
 
 // deleteNodeInHostedCluster deletes a Node object from the HostedCluster.
 func deleteNodeInHostedCluster(kubeconfigFile, hostname string) {
-	cmd := exec.Command("kubectl", "--kubeconfig", kubeconfigFile,
-		"delete", "node", hostname, "--ignore-not-found=true")
-	_, _ = utils.Run(cmd)
+	ctx := context.Background()
+	hcClient, _ := getHCClient(kubeconfigFile)
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: hostname,
+		},
+	}
+	_ = client.IgnoreNotFound(hcClient.Delete(ctx, node))
 }
 
 // deleteCSRInHostedCluster deletes a CSR from the HostedCluster.
 func deleteCSRInHostedCluster(kubeconfigFile, csrName string) {
-	cmd := exec.Command("kubectl", "--kubeconfig", kubeconfigFile,
-		"delete", "csr", csrName, "--ignore-not-found=true")
-	_, _ = utils.Run(cmd)
+	ctx := context.Background()
+	hcClient, _ := getHCClient(kubeconfigFile)
+
+	csr := &certificatesv1.CertificateSigningRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: csrName,
+		},
+	}
+	_ = client.IgnoreNotFound(hcClient.Delete(ctx, csr))
 }
 
 // forceDeleteProvisioner deletes a DPFHCPProvisioner CR, removing finalizers if stuck.
 func forceDeleteProvisioner(ns, name string) {
+	ctx := context.Background()
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+
 	// Check if CR exists
-	cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", name,
-		"-n", ns, "-o", "jsonpath={.metadata.name}")
-	output, err := utils.Run(cmd)
-	if err != nil || strings.TrimSpace(output) == "" {
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
+	if apierrors.IsNotFound(err) {
 		return // Doesn't exist
 	}
 
-	// Request deletion
-	cmd = exec.Command("kubectl", "delete", "dpfhcpprovisioner", name,
-		"-n", ns, "--timeout=5m")
-	_, _ = utils.Run(cmd)
+	// Request deletion with 5m timeout context
+	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	_ = client.IgnoreNotFound(k8sClient.Delete(deleteCtx, provisioner))
 
 	// Check if it's gone
-	cmd = exec.Command("kubectl", "get", "dpfhcpprovisioner", name, "-n", ns)
-	_, err = utils.Run(cmd)
-	if err != nil {
+	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
+	if apierrors.IsNotFound(err) {
 		return // Gone
 	}
 
 	// Still exists - remove finalizers
 	_, _ = fmt.Fprintf(GinkgoWriter, "CR stuck in Deleting, removing finalizers...\n")
-	cmd = exec.Command("kubectl", "patch", "dpfhcpprovisioner", name,
-		"-n", ns, "--type=merge", "-p", `{"metadata":{"finalizers":[]}}`)
-	_, _ = utils.Run(cmd)
+	provisioner.SetFinalizers([]string{})
+	_ = k8sClient.Update(ctx, provisioner)
 
 	// Wait for it to be gone
 	Eventually(func(g Gomega) {
-		cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", name, "-n", ns)
-		_, err := utils.Run(cmd)
-		g.Expect(err).To(HaveOccurred())
+		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	}, 1*time.Minute, 5*time.Second).Should(Succeed())
 
 	// Clean up orphaned resources
-	cmd = exec.Command("kubectl", "delete", "hostedcluster", "--all",
-		"-n", ns, "--ignore-not-found=true", "--timeout=2m")
-	_, _ = utils.Run(cmd)
-	cmd = exec.Command("kubectl", "delete", "nodepool", "--all",
-		"-n", ns, "--ignore-not-found=true", "--timeout=2m")
-	_, _ = utils.Run(cmd)
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.HostedCluster{}, client.InNamespace(ns)))
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.NodePool{}, client.InNamespace(ns)))
 }
 
 // cleanupStaleResources removes leftover resources from previous failed test runs.
+// cleanupStaleResources removes leftover resources from previous failed test runs.
 func cleanupStaleResources() {
+	ctx := context.Background()
+
+	// Delete the provisioner first (this should cascade delete HostedCluster and NodePools)
 	forceDeleteProvisioner(ciNamespace, provisionerName)
+
+	// Clean up any orphaned HostedClusters and NodePools
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.HostedCluster{},
+		client.InNamespace(ciNamespace)))
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.NodePool{},
+		client.InNamespace(ciNamespace)))
+
+	// Clean up DPU resources in DPUCluster namespace
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{},
+		client.InNamespace(dpuClusterNS)))
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
+		client.InNamespace(dpuClusterNS)))
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
+		client.InNamespace(dpuClusterNS)))
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
+		client.InNamespace(dpuClusterNS)))
+	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
+		client.InNamespace(dpuClusterNS)))
+
+	// Clean up secrets in operator namespace
+	secret := &corev1.Secret{}
+	secret.SetName(sshKeySecretName)
+	secret.SetNamespace(ciNamespace)
+	_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
+
+	secret = &corev1.Secret{}
+	secret.SetName(pullSecretName)
+	secret.SetNamespace(ciNamespace)
+	_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
+
+	// Give resources time to clean up
+	time.Sleep(2 * time.Second)
 }
 
 // dumpProvisionerStatus logs the current CR status for debugging.
 func dumpProvisionerStatus(ns, name string) {
-	cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", name,
-		"-n", ns, "-o", "yaml")
-	output, err := utils.Run(cmd)
+	ctx := context.Background()
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
 	if err == nil {
-		_, _ = fmt.Fprintf(GinkgoWriter, "DPFHCPProvisioner status:\n%s\n", output)
+		output, _ := json.MarshalIndent(provisioner, "", "  ")
+		_, _ = fmt.Fprintf(GinkgoWriter, "DPFHCPProvisioner status:\n%s\n", string(output))
 	}
 }

@@ -17,17 +17,25 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
 
+	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
+	operatorv1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
+	dpuprovisioningv1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/test/utils"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
@@ -60,37 +68,47 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 	})
 
 	AfterAll(func() {
+		ctx := context.Background()
+
 		By("deleting DPFHCPProvisioner CR")
-		cmd := exec.Command("kubectl", "delete", "dpfhcpprovisioner", provisionerName,
-			"-n", ciNamespace, "--ignore-not-found=true", "--timeout=20m")
-		_, _ = utils.Run(cmd)
+		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      provisionerName,
+				Namespace: ciNamespace,
+			},
+		}
+		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, provisioner))
 
 		By("cleaning up resources in DPUCluster namespace")
-		dpfResources := []string{
-			"dpucluster", "dpudeployment", "dpuflavor",
-			"dpfoperatorconfig", "dpu", "configmap",
-		}
-		for _, resource := range dpfResources {
-			cmd = exec.Command("kubectl", "delete", resource, "--all",
-				"-n", dpuClusterNS, "--ignore-not-found=true", "--timeout=1m")
-			_, _ = utils.Run(cmd)
-		}
+		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
+			client.InNamespace(dpuClusterNS)))
+		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
+			client.InNamespace(dpuClusterNS)))
+		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
+			client.InNamespace(dpuClusterNS)))
+		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
+			client.InNamespace(dpuClusterNS)))
+		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{}, client.InNamespace(dpuClusterNS)))
+		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &corev1.ConfigMap{}, client.InNamespace(dpuClusterNS)))
 
 		By("cleaning up secrets in operator namespace")
-		cmd = exec.Command("kubectl", "delete", "secret", sshKeySecretName,
-			"-n", ciNamespace, "--ignore-not-found=true")
-		_, _ = utils.Run(cmd)
-		cmd = exec.Command("kubectl", "delete", "secret", pullSecretName,
-			"-n", ciNamespace, "--ignore-not-found=true")
-		_, _ = utils.Run(cmd)
+		secret := &corev1.Secret{}
+		secret.SetName(sshKeySecretName)
+		secret.SetNamespace(ciNamespace)
+		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
+
+		secret = &corev1.Secret{}
+		secret.SetName(pullSecretName)
+		secret.SetNamespace(ciNamespace)
+		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
 
 		By("deleting DPUCluster namespace")
-		cmd = exec.Command("kubectl", "delete", "ns", dpuClusterNS,
-			"--ignore-not-found=true", "--timeout=2m")
-		_, _ = utils.Run(cmd)
+		ns := &corev1.Namespace{}
+		ns.SetName(dpuClusterNS)
+		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, ns))
 
 		if kubeconfigFile != "" {
-			os.Remove(kubeconfigFile)
+			_ = os.Remove(kubeconfigFile)
 		}
 	})
 
@@ -111,67 +129,78 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			By("verifying HostedCluster was created")
 			var hcName string
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get",
-					"dpfhcpprovisioner", provisionerName,
-					"-n", ciNamespace,
-					"-o", "jsonpath={.status.hostedClusterRef.name}")
-				output, err := utils.Run(cmd)
+				ctx := context.Background()
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: ciNamespace,
+					Name:      provisionerName,
+				}, provisioner)
 				g.Expect(err).NotTo(HaveOccurred())
-				hcName = strings.TrimSpace(output)
+				hcName = provisioner.Status.HostedClusterRef.Name
 				g.Expect(hcName).NotTo(BeEmpty(),
 					"HostedCluster not yet created")
 			}, 2*time.Minute, pollingInterval).Should(Succeed())
 
 			By("waiting for HostedCluster to become available")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get",
-					"hostedcluster", hcName,
-					"-n", ciNamespace,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Available\")].status}")
-				output, err := utils.Run(cmd)
+				ctx := context.Background()
+				hc := &hyperv1.HostedCluster{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: ciNamespace,
+					Name:      hcName,
+				}, hc)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(strings.TrimSpace(output)).To(Equal("True"),
-					"HostedCluster not yet available")
+
+				available := false
+				for _, cond := range hc.Status.Conditions {
+					if cond.Type == string(hyperv1.HostedClusterAvailable) && cond.Status == metav1.ConditionTrue {
+						available = true
+						break
+					}
+				}
+				g.Expect(available).To(BeTrue(), "HostedCluster not yet available")
 			}, hostedClusterReadyTimeout, pollingInterval).Should(Succeed())
 
 			By("waiting for CR to reach Ready state")
 			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)
 
 			By("verifying status fields are populated")
-			cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", provisionerName,
-				"-n", ciNamespace, "-o", "jsonpath={.status.hostedClusterRef.name}")
-			output, err := utils.Run(cmd)
+			ctx := context.Background()
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: ciNamespace,
+				Name:      provisionerName,
+			}, provisioner)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(strings.TrimSpace(output)).NotTo(BeEmpty(), "hostedClusterRef should be set")
 
-			cmd = exec.Command("kubectl", "get", "dpfhcpprovisioner", provisionerName,
-				"-n", ciNamespace, "-o", "jsonpath={.status.kubeConfigSecretRef.name}")
-			output, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(strings.TrimSpace(output)).NotTo(BeEmpty(), "kubeConfigSecretRef should be set")
+			Expect(provisioner.Status.HostedClusterRef.Name).NotTo(BeEmpty(), "hostedClusterRef should be set")
+			Expect(provisioner.Status.KubeConfigSecretRef.Name).NotTo(BeEmpty(), "kubeConfigSecretRef should be set")
 		})
 
 		It("should have generated valid ignition", func() {
+			ctx := context.Background()
 			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
 
 			By("checking ignition ConfigMap exists in DPUCluster namespace")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "configmap", ignitionCMName,
-					"-n", dpuClusterNS,
-					"-o", "jsonpath={.metadata.name}")
-				output, err := utils.Run(cmd)
+				cm := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: dpuClusterNS,
+					Name:      ignitionCMName,
+				}, cm)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(strings.TrimSpace(output)).To(Equal(ignitionCMName),
+				g.Expect(cm.Name).To(Equal(ignitionCMName),
 					"Ignition ConfigMap not found")
 			}, 2*time.Minute, pollingInterval).Should(Succeed())
 
 			By("verifying ignition content is valid JSON")
-			cmd := exec.Command("kubectl", "get", "configmap", ignitionCMName,
-				"-n", dpuClusterNS,
-				"-o", "jsonpath={.data.BF_CFG_TEMPLATE}")
-			output, err := utils.Run(cmd)
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      ignitionCMName,
+			}, cm)
 			Expect(err).NotTo(HaveOccurred())
-			ignitionData := strings.TrimSpace(output)
+			ignitionData := cm.Data["BF_CFG_TEMPLATE"]
 			Expect(ignitionData).NotTo(BeEmpty(),
 				"Ignition ConfigMap data is empty")
 			// Verify it's valid JSON (ignition format)
@@ -184,23 +213,28 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 		})
 
 		It("should have injected kubeconfig into DPUCluster namespace", func() {
+			ctx := context.Background()
 			kubeconfigSecretName := fmt.Sprintf("%s-admin-kubeconfig", provisionerName)
 
 			By("verifying kubeconfig secret exists in DPUCluster namespace")
-			cmd := exec.Command("kubectl", "get", "secret", kubeconfigSecretName,
-				"-n", dpuClusterNS,
-				"-o", "jsonpath={.metadata.name}")
-			output, err := utils.Run(cmd)
+			secret := &corev1.Secret{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      kubeconfigSecretName,
+			}, secret)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(strings.TrimSpace(output)).NotTo(BeEmpty(),
+			Expect(secret.Name).NotTo(BeEmpty(),
 				"Kubeconfig secret not found in DPUCluster namespace")
 
 			By("verifying DPUCluster spec.kubeconfig is updated")
-			cmd = exec.Command("kubectl", "get", "dpucluster", dpuClusterName,
-				"-n", dpuClusterNS, "-o", "jsonpath={.spec.kubeconfig}")
-			output, err = utils.Run(cmd)
+			dpuCluster := &dpuprovisioningv1.DPUCluster{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      dpuClusterName,
+			}, dpuCluster)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(strings.TrimSpace(output)).NotTo(BeEmpty(),
+
+			Expect(dpuCluster.Spec.Kubeconfig).NotTo(BeEmpty(),
 				"DPUCluster spec.kubeconfig should be set")
 		})
 
@@ -208,22 +242,22 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			conditions := getCRConditions(ciNamespace, provisionerName)
 			Expect(conditions).NotTo(BeEmpty(), "No conditions found")
 
-			condMap := make(map[string]string)
+			condMap := make(map[string]metav1.ConditionStatus)
 			for _, c := range conditions {
 				condMap[c.Type] = c.Status
 			}
 
-			Expect(condMap["HostedClusterAvailable"]).To(Equal("True"),
+			Expect(condMap["HostedClusterAvailable"]).To(Equal(metav1.ConditionTrue),
 				"HostedClusterAvailable should be True")
-			Expect(condMap["KubeConfigInjected"]).To(Equal("True"),
+			Expect(condMap["KubeConfigInjected"]).To(Equal(metav1.ConditionTrue),
 				"KubeConfigInjected should be True")
-			Expect(condMap["SecretsValid"]).To(Equal("True"),
+			Expect(condMap["SecretsValid"]).To(Equal(metav1.ConditionTrue),
 				"SecretsValid should be True")
-			Expect(condMap["ClusterTypeValid"]).To(Equal("True"),
+			Expect(condMap["ClusterTypeValid"]).To(Equal(metav1.ConditionTrue),
 				"ClusterTypeValid should be True")
-			Expect(condMap["Ready"]).To(Equal("True"),
+			Expect(condMap["Ready"]).To(Equal(metav1.ConditionTrue),
 				"Ready should be True")
-			Expect(condMap["DPUClusterMissing"]).To(Equal("False"),
+			Expect(condMap["DPUClusterMissing"]).To(Equal(metav1.ConditionFalse),
 				"DPUClusterMissing should be False")
 		})
 	})
@@ -302,30 +336,35 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				Skip("Skipping cleanup test - CR does not exist")
 			}
 
+			ctx := context.Background()
+
 			By("deleting the DPFHCPProvisioner CR")
-			cmd := exec.Command("kubectl", "delete", "dpfhcpprovisioner", provisionerName,
-				"-n", ciNamespace, "--timeout=5m")
-			_, err := utils.Run(cmd)
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: ciNamespace,
+				Name:      provisionerName,
+			}, provisioner)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = k8sClient.Delete(ctx, provisioner)
 			Expect(err).NotTo(HaveOccurred(), "Failed to delete DPFHCPProvisioner")
 
 			By("verifying CR is fully deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "dpfhcpprovisioner", provisionerName,
-					"-n", ciNamespace)
-				_, err := utils.Run(cmd)
-				g.Expect(err).To(HaveOccurred(), "CR should be deleted")
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: ciNamespace,
+					Name:      provisionerName,
+				}, provisioner)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "CR should be deleted")
 			}, cleanupTimeout, pollingInterval).Should(Succeed())
 
 			By("verifying HostedCluster is deleted")
 			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "hostedcluster",
-					"-n", ciNamespace)
-				output, err := utils.Run(cmd)
-				// Either the namespace doesn't exist or no hostedclusters found
-				if err == nil {
-					g.Expect(output).To(ContainSubstring("No resources found"),
-						"HostedCluster should be deleted")
-				}
+				hcList := &hyperv1.HostedClusterList{}
+				err := k8sClient.List(ctx, hcList, client.InNamespace(ciNamespace))
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(hcList.Items).To(BeEmpty(),
+					"HostedCluster should be deleted")
 			}, cleanupTimeout, pollingInterval).Should(Succeed())
 		})
 	})
@@ -334,38 +373,42 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 		const errorTestName = "e2e-error-test"
 
 		AfterEach(func() {
-			cmd := exec.Command("kubectl", "delete", "dpfhcpprovisioner", errorTestName,
-				"-n", ciNamespace, "--ignore-not-found=true", "--timeout=2m")
-			_, _ = utils.Run(cmd)
+			// Use forceDeleteProvisioner to ensure it's fully deleted before next test
+			forceDeleteProvisioner(ciNamespace, errorTestName)
 		})
 
 		It("should fail with missing DPUCluster", func() {
 			By("creating CR referencing non-existent DPUCluster")
+			ctx := context.Background()
 			releaseImage := detectOCPReleaseImage()
-			yaml := fmt.Sprintf(`apiVersion: provisioning.dpu.hcp.io/v1alpha1
-kind: DPFHCPProvisioner
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  dpuClusterRef:
-    name: non-existent-cluster
-    namespace: non-existent-ns
-  baseDomain: test.example.com
-  ocpReleaseImage: %s
-  sshKeySecretRef:
-    name: %s
-  pullSecretRef:
-    name: %s
-  controlPlaneAvailabilityPolicy: SingleReplica
-  dpuDeploymentRef:
-    name: non-existent-deployment
-    namespace: non-existent-ns
-`, errorTestName, ciNamespace, releaseImage, sshKeySecretName, pullSecretName)
 
-			cmd := exec.Command("kubectl", "apply", "-f", "-")
-			cmd.Stdin = strings.NewReader(yaml)
-			_, err := utils.Run(cmd)
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      errorTestName,
+					Namespace: ciNamespace,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "non-existent-cluster",
+						Namespace: "non-existent-ns",
+					},
+					BaseDomain:      "test.example.com",
+					OCPReleaseImage: releaseImage,
+					SSHKeySecretRef: corev1.LocalObjectReference{
+						Name: sshKeySecretName,
+					},
+					PullSecretRef: corev1.LocalObjectReference{
+						Name: pullSecretName,
+					},
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "non-existent-deployment",
+						Namespace: "non-existent-ns",
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, provisioner)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying CR reaches Failed phase")
@@ -374,38 +417,42 @@ spec:
 			By("verifying DPUClusterMissing condition")
 			Eventually(func(g Gomega) {
 				status := getConditionStatus(ciNamespace, errorTestName, "DPUClusterMissing")
-				g.Expect(status).To(Equal("True"), "DPUClusterMissing should be True")
+				g.Expect(status).To(Equal(string(metav1.ConditionTrue)), "DPUClusterMissing should be True")
 			}, 30*time.Second, 5*time.Second).Should(Succeed())
 		})
 
 		It("should fail with invalid secrets", func() {
 			By("creating CR with non-existent secret references")
+			ctx := context.Background()
 			releaseImage := detectOCPReleaseImage()
-			yaml := fmt.Sprintf(`apiVersion: provisioning.dpu.hcp.io/v1alpha1
-kind: DPFHCPProvisioner
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  dpuClusterRef:
-    name: %s
-    namespace: %s
-  baseDomain: test.example.com
-  ocpReleaseImage: %s
-  sshKeySecretRef:
-    name: non-existent-ssh-key
-  pullSecretRef:
-    name: non-existent-pull-secret
-  controlPlaneAvailabilityPolicy: SingleReplica
-  dpuDeploymentRef:
-    name: %s
-    namespace: %s
-`, errorTestName, ciNamespace, dpuClusterName, dpuClusterNS, releaseImage,
-				dpuDeploymentName, dpuClusterNS)
 
-			cmd := exec.Command("kubectl", "apply", "-f", "-")
-			cmd.Stdin = strings.NewReader(yaml)
-			_, err := utils.Run(cmd)
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      errorTestName,
+					Namespace: ciNamespace,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: dpuClusterNS,
+					},
+					BaseDomain:      "test.example.com",
+					OCPReleaseImage: releaseImage,
+					SSHKeySecretRef: corev1.LocalObjectReference{
+						Name: "non-existent-ssh-key",
+					},
+					PullSecretRef: corev1.LocalObjectReference{
+						Name: "non-existent-pull-secret",
+					},
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      dpuDeploymentName,
+						Namespace: dpuClusterNS,
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, provisioner)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying CR reaches Failed phase")
@@ -414,7 +461,7 @@ spec:
 			By("verifying SecretsValid condition is False")
 			Eventually(func(g Gomega) {
 				status := getConditionStatus(ciNamespace, errorTestName, "SecretsValid")
-				g.Expect(status).To(Equal("False"), "SecretsValid should be False")
+				g.Expect(status).To(Equal(string(metav1.ConditionFalse)), "SecretsValid should be False")
 			}, 30*time.Second, 5*time.Second).Should(Succeed())
 		})
 	})

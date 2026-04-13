@@ -23,15 +23,38 @@ import (
 	"strings"
 	"testing"
 
+	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
+	operatorv1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
+	dpuprovisioningv1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/test/utils"
+)
+
+var (
+	k8sClient     client.Client
+	k8sConfig     *rest.Config
+	runtimeScheme *runtime.Scheme
 )
 
 // imageRepository extracts the repository from a full image reference.
 // e.g. "quay.io/org/image:tag" -> "quay.io/org/image"
+// Rejects digest-based images (e.g., "image@sha256:...") with a clear error.
 func imageRepository(image string) string {
+	// Reject digest-based images - the helm chart doesn't support them
+	if strings.Contains(image, "@sha256:") {
+		panic(fmt.Sprintf("IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI must use tag format "+
+			"(image:tag), not digest. Got: %s", image))
+	}
+
 	if i := strings.LastIndex(image, ":"); i > 0 {
 		afterColon := image[i+1:]
 		if !strings.Contains(afterColon, "/") {
@@ -45,6 +68,12 @@ func imageRepository(image string) string {
 // e.g. "quay.io/org/image:tag" -> "tag"
 // Returns "latest" if no tag is specified.
 func imageTag(image string) string {
+	// Reject digest-based images - the helm chart doesn't support them
+	if strings.Contains(image, "@sha256:") {
+		panic(fmt.Sprintf("IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI must use tag format "+
+			"(image:tag), not digest. Got: %s", image))
+	}
+
 	if i := strings.LastIndex(image, ":"); i > 0 {
 		afterColon := image[i+1:]
 		if !strings.Contains(afterColon, "/") {
@@ -61,9 +90,32 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	By("initializing Kubernetes client")
+	var err error
+	k8sConfig, err = config.GetConfig()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get kubeconfig")
+
+	// Initialize scheme with all required types
+	runtimeScheme = runtime.NewScheme()
+	err = scheme.AddToScheme(runtimeScheme)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add core types to scheme")
+	err = provisioningv1alpha1.AddToScheme(runtimeScheme)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add DPFHCPProvisioner types to scheme")
+	err = hyperv1.AddToScheme(runtimeScheme)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add HyperShift types to scheme")
+	err = dpuprovisioningv1.AddToScheme(runtimeScheme)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add NVIDIA DPU provisioning types to scheme")
+	err = dpuservicev1.AddToScheme(runtimeScheme)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add NVIDIA DPU service types to scheme")
+	err = operatorv1.AddToScheme(runtimeScheme)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add NVIDIA DPF operator types to scheme")
+
+	k8sClient, err = client.New(k8sConfig, client.Options{Scheme: runtimeScheme})
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create controller-runtime client")
+
 	By("deploying HyperShift operator on management cluster")
 	cmd := exec.Command("make", "e2e-deploy-hypershift")
-	_, err := utils.Run(cmd)
+	_, err = utils.Run(cmd)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to deploy HyperShift operator")
 
 	By("installing external DPF CRDs")
