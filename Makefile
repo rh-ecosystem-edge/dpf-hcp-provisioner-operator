@@ -61,6 +61,7 @@ endif
 
 # CONTAINER_TOOL defines the container tool to be used for building images.
 CONTAINER_TOOL ?= podman
+CONTAINER_FILE ?= Containerfile
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -162,7 +163,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: container-build
 container-build: ## Build container image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build -f $(CONTAINER_FILE) -t ${IMG} .
 
 .PHONY: container-push
 container-push: ## Push container image with the manager.
