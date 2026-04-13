@@ -1,0 +1,8 @@
+[Match]
+Path=platform-MLNXBF17:00
+Driver=mlxbf_gige
+
+[Link]
+Name=oob_net0
+NamePolicy=
+
