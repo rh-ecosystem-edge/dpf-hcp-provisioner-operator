@@ -58,11 +58,6 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("br-comm-ch.nmconnection"),
 			},
 			{
-				Path:          "/etc/NetworkManager/system-connections/oob_net0.nmconnection",
-				Mode:          0600,
-				ContentSource: f("oob_net0.nmconnection"),
-			},
-			{
 				Path:          "/etc/crio/crio.conf.d/99-ulimits.conf",
 				Mode:          0644,
 				ContentSource: f("99-ulimits.conf"),

@@ -20,9 +20,19 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("10-tmfifo_net.link"),
 			},
 			{
+				Path:          "/etc/systemd/network/10-oob_net.link",
+				Mode:          0644,
+				ContentSource: f("10-oob_net.link"),
+			},
+			{
 				Path:          "/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection",
 				Mode:          0600,
 				ContentSource: f("tmfifo_net0.nmconnection"),
+			},
+			{
+				Path:          "/etc/NetworkManager/system-connections/oob_net0.nmconnection",
+				Mode:          0600,
+				ContentSource: f("oob_net0.nmconnection"),
 			},
 			{
 				Path:          "/usr/local/bin/bflog.sh",
