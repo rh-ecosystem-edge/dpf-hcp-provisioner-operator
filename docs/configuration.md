@@ -94,14 +94,14 @@ The `DPFHCPProvisionerConfig` is a cluster-scoped singleton CR that controls ope
 The Helm chart automatically creates this CR with default values. You can customize it post-deployment:
 
 ```bash
-kubectl patch dpfhcpconfig default --type merge -p '{"spec":{"blueFieldOCPLayerRepo":"quay.io/eelgaev/rhcos-bfb"}}'
+kubectl patch dpfhcpconfig default --type merge -p '{"spec":{"blueFieldOCPLayerRepo":"quay.io/edge-infrastructure/bluefield-ocp"}}'
 ```
 
 ### Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `spec.blueFieldOCPLayerRepo` | `string` | `quay.io/eelgaev/rhcos-bfb` | Container registry repository for BlueField RHCOS OCP image layers. The operator queries this repo to find an image tag matching the OCP version. The lookup is skipped when `machineOSURL` is provided in the DPFHCPProvisioner spec. |
+| `spec.blueFieldOCPLayerRepo` | `string` | `quay.io/edge-infrastructure/bluefield-ocp` | Container registry repository for BlueField RHCOS OCP image layers. The operator queries this repo to find an image tag matching the OCP version. The lookup is skipped when `machineOSURL` is provided in the DPFHCPProvisioner spec. |
 
 ### Behavior
 

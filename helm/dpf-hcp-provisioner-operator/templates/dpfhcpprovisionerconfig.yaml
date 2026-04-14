@@ -9,4 +9,4 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  blueFieldOCPLayerRepo: {{ .Values.provisionerConfig.blueFieldOCPLayerRepo | default "quay.io/eelgaev/rhcos-bfb" | quote }}
+  blueFieldOCPLayerRepo: {{ .Values.provisionerConfig.blueFieldOCPLayerRepo | default "quay.io/edge-infrastructure/bluefield-ocp" | quote }}

@@ -116,7 +116,7 @@ A cluster-scoped singleton (must be named `default`) that provides operator-wide
 
 | Field | Type | Default | Description                                                      |
 |-------|------|---------|------------------------------------------------------------------|
-| `blueFieldOCPLayerRepo` | `string` | `quay.io/eelgaev/rhcos-bfb` | Container registry for BlueField OCP layer images |
+| `blueFieldOCPLayerRepo` | `string` | `quay.io/edge-infrastructure/bluefield-ocp` | Container registry for BlueField OCP layer images |
 
 ```yaml
 apiVersion: provisioning.dpu.hcp.io/v1alpha1
@@ -124,7 +124,7 @@ kind: DPFHCPProvisionerConfig
 metadata:
   name: default
 spec:
-  blueFieldOCPLayerRepo: quay.io/eelgaev/rhcos-bfb
+  blueFieldOCPLayerRepo: quay.io/edge-infrastructure/bluefield-ocp
 ```
 
 ## Deployment
