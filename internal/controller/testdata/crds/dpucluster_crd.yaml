@@ -29,6 +29,12 @@ spec:
               type:
                 description: Cluster type (e.g., bf3, static)
                 type: string
+              maxNodes:
+                description: Maximum number of nodes in the cluster
+                type: integer
+              kubeconfig:
+                description: Secret name containing admin kubeconfig
+                type: string
             type: object
           status:
             description: DPUCluster status
