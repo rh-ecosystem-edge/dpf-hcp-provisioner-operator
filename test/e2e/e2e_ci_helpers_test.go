@@ -459,7 +459,9 @@ func deleteDPUStub(ns, name string) {
 		},
 	}
 	// Equivalent to kubectl delete --ignore-not-found=true
-	_ = client.IgnoreNotFound(k8sClient.Delete(ctx, dpu))
+	if err := client.IgnoreNotFound(k8sClient.Delete(ctx, dpu)); err != nil {
+		warnError("failed to delete DPU %s/%s: %v", ns, name, err)
+	}
 }
 
 // getHostedClusterKubeconfig retrieves the kubeconfig for the HostedCluster.
@@ -501,11 +503,22 @@ func writeKubeconfigToFile(b64Kubeconfig string) string {
 	return f.Name()
 }
 
-// getHCClient creates a Kubernetes client from a kubeconfig file path.
-func getHCClient(kubeconfigFile string) (client.Client, *kubernetes.Clientset) {
+// warnError logs a warning message for cleanup errors that are non-critical.
+// These warnings appear in test output but don't fail the test.
+func warnError(format string, args ...interface{}) {
+	_, _ = fmt.Fprintf(GinkgoWriter, "Warning: "+format+"\n", args...)
+}
+
+// loadHCConfig loads the rest.Config from a kubeconfig file path.
+// This should be called once and the config reused.
+func loadHCConfig(kubeconfigFile string) *rest.Config {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
 	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to build config from kubeconfig file")
+	return config
+}
 
+// getHCClient creates a Kubernetes client from a rest.Config.
+func getHCClient(config *rest.Config) (client.Client, *kubernetes.Clientset) {
 	hcClient, err := client.New(config, client.Options{Scheme: runtimeScheme})
 	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to create HC client")
 
@@ -517,9 +530,9 @@ func getHCClient(kubeconfigFile string) (client.Client, *kubernetes.Clientset) {
 
 // getHCClientWithImpersonation creates a client for the HostedCluster with user impersonation.
 // This allows creating resources (like CSRs) that appear to come from a specific user/group.
-func getHCClientWithImpersonation(kubeconfigFile, username string, groups []string) client.Client {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
-	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to build config from kubeconfig file")
+func getHCClientWithImpersonation(baseConfig *rest.Config, username string, groups []string) client.Client {
+	// Clone the config to avoid mutating the shared instance
+	config := rest.CopyConfig(baseConfig)
 
 	// Set impersonation to mimic the desired user identity
 	config.Impersonate = rest.ImpersonationConfig{
@@ -535,7 +548,7 @@ func getHCClientWithImpersonation(kubeconfigFile, username string, groups []stri
 
 // createBootstrapCSRInHostedCluster creates a bootstrap CSR in the HostedCluster.
 // Bootstrap CSRs come from the node-bootstrapper service account, not from the node itself.
-func createBootstrapCSRInHostedCluster(kubeconfigFile, hostname string) string {
+func createBootstrapCSRInHostedCluster(hcConfig *rest.Config, hostname string) string {
 	ctx := context.Background()
 	csrName := fmt.Sprintf("e2e-bootstrap-csr-%s-%d", hostname, time.Now().UnixNano())
 
@@ -558,7 +571,7 @@ func createBootstrapCSRInHostedCluster(kubeconfigFile, hostname string) string {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to decode CSR")
 
 	// Create client with impersonation to mimic node-bootstrapper service account
-	hcClient := getHCClientWithImpersonation(kubeconfigFile,
+	hcClient := getHCClientWithImpersonation(hcConfig,
 		"system:serviceaccount:openshift-machine-config-operator:node-bootstrapper",
 		[]string{
 			"system:serviceaccounts",
@@ -590,7 +603,7 @@ func createBootstrapCSRInHostedCluster(kubeconfigFile, hostname string) string {
 
 // createServingCSRInHostedCluster creates a serving CSR in the HostedCluster.
 // Serving CSRs come from the node itself (system:node:<hostname>).
-func createServingCSRInHostedCluster(kubeconfigFile, hostname string) string {
+func createServingCSRInHostedCluster(hcConfig *rest.Config, hostname string) string {
 	ctx := context.Background()
 	csrName := fmt.Sprintf("e2e-serving-csr-%s-%d", hostname, time.Now().UnixNano())
 
@@ -631,7 +644,7 @@ subjectAltName = DNS:%s
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to decode CSR")
 
 	// Create client with impersonation to mimic the node itself
-	hcClient := getHCClientWithImpersonation(kubeconfigFile,
+	hcClient := getHCClientWithImpersonation(hcConfig,
 		fmt.Sprintf("system:node:%s", hostname),
 		[]string{
 			"system:nodes",
@@ -668,9 +681,9 @@ func base64EncodeFile(path string) string {
 }
 
 // waitForCSRApproval waits for a CSR to be approved in the HostedCluster.
-func waitForCSRApproval(kubeconfigFile, csrName string, timeout time.Duration) {
+func waitForCSRApproval(hcConfig *rest.Config, csrName string, timeout time.Duration) {
 	ctx := context.Background()
-	hcClient, _ := getHCClient(kubeconfigFile)
+	hcClient, _ := getHCClient(hcConfig)
 
 	EventuallyWithOffset(1, func(g Gomega) {
 		csr := &certificatesv1.CertificateSigningRequest{}
@@ -689,9 +702,9 @@ func waitForCSRApproval(kubeconfigFile, csrName string, timeout time.Duration) {
 }
 
 // verifyCSRNotApproved verifies a CSR stays pending (not approved) for a duration.
-func verifyCSRNotApproved(kubeconfigFile, csrName string, duration time.Duration) {
+func verifyCSRNotApproved(hcConfig *rest.Config, csrName string, duration time.Duration) {
 	ctx := context.Background()
-	hcClient, _ := getHCClient(kubeconfigFile)
+	hcClient, _ := getHCClient(hcConfig)
 
 	ConsistentlyWithOffset(1, func(g Gomega) {
 		csr := &certificatesv1.CertificateSigningRequest{}
@@ -707,9 +720,9 @@ func verifyCSRNotApproved(kubeconfigFile, csrName string, duration time.Duration
 }
 
 // createNodeInHostedCluster creates a Node object in the HostedCluster.
-func createNodeInHostedCluster(kubeconfigFile, hostname string) {
+func createNodeInHostedCluster(hcConfig *rest.Config, hostname string) {
 	ctx := context.Background()
-	hcClient, _ := getHCClient(kubeconfigFile)
+	hcClient, _ := getHCClient(hcConfig)
 
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -721,29 +734,33 @@ func createNodeInHostedCluster(kubeconfigFile, hostname string) {
 }
 
 // deleteNodeInHostedCluster deletes a Node object from the HostedCluster.
-func deleteNodeInHostedCluster(kubeconfigFile, hostname string) {
+func deleteNodeInHostedCluster(hcConfig *rest.Config, hostname string) {
 	ctx := context.Background()
-	hcClient, _ := getHCClient(kubeconfigFile)
+	hcClient, _ := getHCClient(hcConfig)
 
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: hostname,
 		},
 	}
-	_ = client.IgnoreNotFound(hcClient.Delete(ctx, node))
+	if err := client.IgnoreNotFound(hcClient.Delete(ctx, node)); err != nil {
+		warnError("failed to delete Node %s: %v", hostname, err)
+	}
 }
 
 // deleteCSRInHostedCluster deletes a CSR from the HostedCluster.
-func deleteCSRInHostedCluster(kubeconfigFile, csrName string) {
+func deleteCSRInHostedCluster(hcConfig *rest.Config, csrName string) {
 	ctx := context.Background()
-	hcClient, _ := getHCClient(kubeconfigFile)
+	hcClient, _ := getHCClient(hcConfig)
 
 	csr := &certificatesv1.CertificateSigningRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: csrName,
 		},
 	}
-	_ = client.IgnoreNotFound(hcClient.Delete(ctx, csr))
+	if err := client.IgnoreNotFound(hcClient.Delete(ctx, csr)); err != nil {
+		warnError("failed to delete CSR %s: %v", csrName, err)
+	}
 }
 
 // forceDeleteProvisioner deletes a DPFHCPProvisioner CR, removing finalizers if stuck.
@@ -760,7 +777,9 @@ func forceDeleteProvisioner(ns, name string) {
 	// Request deletion with 5m timeout context
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	_ = client.IgnoreNotFound(k8sClient.Delete(deleteCtx, provisioner))
+	if err := client.IgnoreNotFound(k8sClient.Delete(deleteCtx, provisioner)); err != nil {
+		warnError("failed to delete provisioner %s/%s: %v", ns, name, err)
+	}
 
 	// Check if it's gone
 	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
@@ -771,7 +790,9 @@ func forceDeleteProvisioner(ns, name string) {
 	// Still exists - remove finalizers
 	_, _ = fmt.Fprintf(GinkgoWriter, "CR stuck in Deleting, removing finalizers...\n")
 	provisioner.SetFinalizers([]string{})
-	_ = k8sClient.Update(ctx, provisioner)
+	if err := k8sClient.Update(ctx, provisioner); err != nil {
+		warnError("failed to remove finalizers: %v", err)
+	}
 
 	// Wait for it to be gone
 	Eventually(func(g Gomega) {
@@ -780,11 +801,16 @@ func forceDeleteProvisioner(ns, name string) {
 	}, 1*time.Minute, 5*time.Second).Should(Succeed())
 
 	// Clean up orphaned resources
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.HostedCluster{}, client.InNamespace(ns)))
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.NodePool{}, client.InNamespace(ns)))
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.HostedCluster{},
+		client.InNamespace(ns))); err != nil {
+		warnError("failed to delete orphaned HostedClusters: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.NodePool{},
+		client.InNamespace(ns))); err != nil {
+		warnError("failed to delete orphaned NodePools: %v", err)
+	}
 }
 
-// cleanupStaleResources removes leftover resources from previous failed test runs.
 // cleanupStaleResources removes leftover resources from previous failed test runs.
 func cleanupStaleResources() {
 	ctx := context.Background()
@@ -792,34 +818,52 @@ func cleanupStaleResources() {
 	// Delete the provisioner first (this should cascade delete HostedCluster and NodePools)
 	forceDeleteProvisioner(ciNamespace, provisionerName)
 
-	// Clean up any orphaned HostedClusters and NodePools
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.HostedCluster{},
-		client.InNamespace(ciNamespace)))
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.NodePool{},
-		client.InNamespace(ciNamespace)))
+	// Clean up any orphaned HostedClusters and NodePools (best effort)
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.HostedCluster{},
+		client.InNamespace(ciNamespace))); err != nil {
+		warnError("failed to cleanup orphaned HostedClusters: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.NodePool{},
+		client.InNamespace(ciNamespace))); err != nil {
+		warnError("failed to cleanup orphaned NodePools: %v", err)
+	}
 
-	// Clean up DPU resources in DPUCluster namespace
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{},
-		client.InNamespace(dpuClusterNS)))
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
-		client.InNamespace(dpuClusterNS)))
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
-		client.InNamespace(dpuClusterNS)))
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
-		client.InNamespace(dpuClusterNS)))
-	_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
-		client.InNamespace(dpuClusterNS)))
+	// Clean up DPU resources in DPUCluster namespace (best effort)
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{},
+		client.InNamespace(dpuClusterNS))); err != nil {
+		warnError("failed to cleanup DPUs: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
+		client.InNamespace(dpuClusterNS))); err != nil {
+		warnError("failed to cleanup DPUClusters: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
+		client.InNamespace(dpuClusterNS))); err != nil {
+		warnError("failed to cleanup DPUFlavors: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
+		client.InNamespace(dpuClusterNS))); err != nil {
+		warnError("failed to cleanup DPUDeployments: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
+		client.InNamespace(dpuClusterNS))); err != nil {
+		warnError("failed to cleanup DPFOperatorConfigs: %v", err)
+	}
 
-	// Clean up secrets in operator namespace
+	// Clean up secrets in operator namespace (best effort)
 	secret := &corev1.Secret{}
 	secret.SetName(sshKeySecretName)
 	secret.SetNamespace(ciNamespace)
-	_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
+	if err := client.IgnoreNotFound(k8sClient.Delete(ctx, secret)); err != nil {
+		warnError("failed to cleanup SSH key secret: %v", err)
+	}
 
 	secret = &corev1.Secret{}
 	secret.SetName(pullSecretName)
 	secret.SetNamespace(ciNamespace)
-	_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
+	if err := client.IgnoreNotFound(k8sClient.Delete(ctx, secret)); err != nil {
+		warnError("failed to cleanup pull secret: %v", err)
+	}
 
 	// Give resources time to clean up
 	time.Sleep(2 * time.Second)

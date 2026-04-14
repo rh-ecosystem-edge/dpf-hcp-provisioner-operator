@@ -33,13 +33,17 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
-	var kubeconfigFile string
+	var (
+		kubeconfigFile string
+		hcConfig       *rest.Config
+	)
 
 	BeforeAll(func() {
 		By("cleaning up any stale resources from previous runs")
@@ -77,35 +81,57 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				Namespace: ciNamespace,
 			},
 		}
-		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, provisioner))
+		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, provisioner)); err != nil {
+			warnError("failed to delete DPFHCPProvisioner in AfterAll: %v", err)
+		}
 
 		By("cleaning up resources in DPUCluster namespace")
-		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
-			client.InNamespace(dpuClusterNS)))
-		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
-			client.InNamespace(dpuClusterNS)))
-		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
-			client.InNamespace(dpuClusterNS)))
-		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
-			client.InNamespace(dpuClusterNS)))
-		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{}, client.InNamespace(dpuClusterNS)))
-		_ = client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &corev1.ConfigMap{}, client.InNamespace(dpuClusterNS)))
+		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
+			client.InNamespace(dpuClusterNS))); err != nil {
+			warnError("failed to cleanup DPUClusters in AfterAll: %v", err)
+		}
+		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
+			client.InNamespace(dpuClusterNS))); err != nil {
+			warnError("failed to cleanup DPUDeployments in AfterAll: %v", err)
+		}
+		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
+			client.InNamespace(dpuClusterNS))); err != nil {
+			warnError("failed to cleanup DPUFlavors in AfterAll: %v", err)
+		}
+		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
+			client.InNamespace(dpuClusterNS))); err != nil {
+			warnError("failed to cleanup DPFOperatorConfigs in AfterAll: %v", err)
+		}
+		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{},
+			client.InNamespace(dpuClusterNS))); err != nil {
+			warnError("failed to cleanup DPUs in AfterAll: %v", err)
+		}
+		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &corev1.ConfigMap{},
+			client.InNamespace(dpuClusterNS))); err != nil {
+			warnError("failed to cleanup ConfigMaps in AfterAll: %v", err)
+		}
 
 		By("cleaning up secrets in operator namespace")
 		secret := &corev1.Secret{}
 		secret.SetName(sshKeySecretName)
 		secret.SetNamespace(ciNamespace)
-		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
+		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, secret)); err != nil {
+			warnError("failed to cleanup SSH key secret in AfterAll: %v", err)
+		}
 
 		secret = &corev1.Secret{}
 		secret.SetName(pullSecretName)
 		secret.SetNamespace(ciNamespace)
-		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, secret))
+		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, secret)); err != nil {
+			warnError("failed to cleanup pull secret in AfterAll: %v", err)
+		}
 
 		By("deleting DPUCluster namespace")
 		ns := &corev1.Namespace{}
 		ns.SetName(dpuClusterNS)
-		_ = client.IgnoreNotFound(k8sClient.Delete(ctx, ns))
+		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, ns)); err != nil {
+			warnError("failed to delete DPUCluster namespace in AfterAll: %v", err)
+		}
 
 		if kubeconfigFile != "" {
 			_ = os.Remove(kubeconfigFile)
@@ -273,14 +299,15 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				By("getting HostedCluster kubeconfig")
 				b64Kubeconfig := getHostedClusterKubeconfig(ciNamespace, provisionerName)
 				kubeconfigFile = writeKubeconfigToFile(b64Kubeconfig)
+				hcConfig = loadHCConfig(kubeconfigFile)
 			}
 		})
 
 		AfterEach(func() {
 			// Clean up DPU stubs and CSRs after each test
 			deleteDPUStub(dpuClusterNS, testDPUHostname)
-			if kubeconfigFile != "" {
-				deleteNodeInHostedCluster(kubeconfigFile, testDPUHostname)
+			if hcConfig != nil {
+				deleteNodeInHostedCluster(hcConfig, testDPUHostname)
 			}
 		})
 
@@ -289,13 +316,13 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			createDPUStub(dpuClusterNS, testDPUHostname, "DPU Cluster Config")
 
 			By("creating bootstrap CSR in HostedCluster")
-			csrName := createBootstrapCSRInHostedCluster(kubeconfigFile, testDPUHostname)
+			csrName := createBootstrapCSRInHostedCluster(hcConfig, testDPUHostname)
 
 			By("waiting for CSR to be approved")
-			waitForCSRApproval(kubeconfigFile, csrName, csrApprovalTimeout)
+			waitForCSRApproval(hcConfig, csrName, csrApprovalTimeout)
 
 			By("cleaning up CSR")
-			deleteCSRInHostedCluster(kubeconfigFile, csrName)
+			deleteCSRInHostedCluster(hcConfig, csrName)
 		})
 
 		It("should approve serving CSRs for valid DPU nodes", func() {
@@ -303,30 +330,30 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			createDPUStub(dpuClusterNS, testDPUHostname, "Ready")
 
 			By("creating Node in HostedCluster matching DPU hostname")
-			createNodeInHostedCluster(kubeconfigFile, testDPUHostname)
+			createNodeInHostedCluster(hcConfig, testDPUHostname)
 
 			By("creating serving CSR in HostedCluster")
-			csrName := createServingCSRInHostedCluster(kubeconfigFile, testDPUHostname)
+			csrName := createServingCSRInHostedCluster(hcConfig, testDPUHostname)
 
 			By("waiting for CSR to be approved")
-			waitForCSRApproval(kubeconfigFile, csrName, csrApprovalTimeout)
+			waitForCSRApproval(hcConfig, csrName, csrApprovalTimeout)
 
 			By("cleaning up")
-			deleteCSRInHostedCluster(kubeconfigFile, csrName)
-			deleteNodeInHostedCluster(kubeconfigFile, testDPUHostname)
+			deleteCSRInHostedCluster(hcConfig, csrName)
+			deleteNodeInHostedCluster(hcConfig, testDPUHostname)
 		})
 
 		It("should not approve CSRs for unknown hostnames", func() {
 			unknownHostname := "unknown-dpu-node"
 
 			By("creating bootstrap CSR with unknown hostname")
-			csrName := createBootstrapCSRInHostedCluster(kubeconfigFile, unknownHostname)
+			csrName := createBootstrapCSRInHostedCluster(hcConfig, unknownHostname)
 
 			By("verifying CSR stays pending for 60 seconds")
-			verifyCSRNotApproved(kubeconfigFile, csrName, 60*time.Second)
+			verifyCSRNotApproved(hcConfig, csrName, 60*time.Second)
 
 			By("cleaning up CSR")
-			deleteCSRInHostedCluster(kubeconfigFile, csrName)
+			deleteCSRInHostedCluster(hcConfig, csrName)
 		})
 	})
 
