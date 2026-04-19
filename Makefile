@@ -135,9 +135,9 @@ e2e-deploy-hypershift: ## [E2E] Deploy HyperShift operator on the OCP management
 
 .PHONY: e2e-generate-dpf-crds
 e2e-generate-dpf-crds: controller-gen ## [E2E] Generate DPF CRDs from vendored nvidia/doca-platform types.
-	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/provisioning/v1alpha1" output:crd:dir=test/e2e/testdata/crds
-	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/dpuservice/v1alpha1" output:crd:dir=test/e2e/testdata/crds
-	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/operator/v1alpha1" output:crd:dir=test/e2e/testdata/crds
+	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
+	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
+	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/operator/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
 
 .PHONY: e2e-install-dpf-crds
 e2e-install-dpf-crds: e2e-generate-dpf-crds ## [E2E] Generate and install external DPF CRDs on the cluster.
