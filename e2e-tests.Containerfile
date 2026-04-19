@@ -46,8 +46,10 @@ COPY --chown=1001:0 test/ ./test/
 COPY --chown=1001:0 helm/ ./helm/
 
 # Create directory for generated CRDs (controller-gen writes here during test setup)
-# Set proper permissions for non-root user to write CRDs
-RUN mkdir -p test/e2e/testdata/crds && chown -R 1001:0 test/e2e/testdata
+# Set group 0 ownership and make group permissions match owner (OpenShift runs with arbitrary UID, group 0)
+RUN mkdir -p test/e2e/testdata/crds && \
+    chgrp -R 0 test/e2e/testdata && \
+    chmod -R g=u test/e2e/testdata
 
 # Set user to non-root for running tests
 USER 1001
