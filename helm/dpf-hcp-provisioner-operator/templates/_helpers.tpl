@@ -68,6 +68,10 @@ Namespace
 Image
 */}}
 {{- define "dpf-hcp-provisioner-operator.image" -}}
+{{- if .Values.image.digest }}
+{{- printf "%s@%s" .Values.image.repository .Values.image.digest }}
+{{- else }}
 {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
 {{- printf "%s:%s" .Values.image.repository $tag }}
+{{- end }}
 {{- end }}
