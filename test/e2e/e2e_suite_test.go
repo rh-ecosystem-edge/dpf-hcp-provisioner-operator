@@ -46,15 +46,16 @@ var (
 )
 
 // imageRepository extracts the repository from a full image reference.
+// Supports both tag format ("quay.io/org/image:tag") and digest format ("quay.io/org/image@sha256:...")
 // e.g. "quay.io/org/image:tag" -> "quay.io/org/image"
-// Rejects digest-based images (e.g., "image@sha256:...") with a clear error.
+// e.g. "quay.io/org/image@sha256:abc" -> "quay.io/org/image"
 func imageRepository(image string) string {
-	// Reject digest-based images - the helm chart doesn't support them
-	if strings.Contains(image, "@sha256:") {
-		panic(fmt.Sprintf("IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI must use tag format "+
-			"(image:tag), not digest. Got: %s", image))
+	// Handle digest format: registry.io/repo/image@<algo>:<hash> -> registry.io/repo/image
+	if idx := strings.Index(image, "@"); idx > 0 {
+		return image[:idx]
 	}
 
+	// Handle tag format: registry.io/repo/image:tag -> registry.io/repo/image
 	if i := strings.LastIndex(image, ":"); i > 0 {
 		afterColon := image[i+1:]
 		if !strings.Contains(afterColon, "/") {
@@ -66,14 +67,14 @@ func imageRepository(image string) string {
 
 // imageTag extracts the tag from a full image reference.
 // e.g. "quay.io/org/image:tag" -> "tag"
-// Returns "latest" if no tag is specified.
+// Returns empty string for digest-based images.
 func imageTag(image string) string {
-	// Reject digest-based images - the helm chart doesn't support them
-	if strings.Contains(image, "@sha256:") {
-		panic(fmt.Sprintf("IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI must use tag format "+
-			"(image:tag), not digest. Got: %s", image))
+	// Digest format: return empty (digest will be used instead)
+	if strings.Contains(image, "@") {
+		return ""
 	}
 
+	// Tag format: extract tag
 	if i := strings.LastIndex(image, ":"); i > 0 {
 		afterColon := image[i+1:]
 		if !strings.Contains(afterColon, "/") {
@@ -81,6 +82,17 @@ func imageTag(image string) string {
 		}
 	}
 	return "latest"
+}
+
+// imageDigest extracts the digest from a full image reference.
+// e.g. "quay.io/org/image@sha256:abc123..." -> "sha256:abc123..."
+// Returns empty string for tag-based images.
+func imageDigest(image string) string {
+	// Extract digest: registry.io/repo/image@sha256:abc -> sha256:abc
+	if idx := strings.Index(image, "@"); idx > 0 {
+		return image[idx+1:]
+	}
+	return ""
 }
 
 func TestE2E(t *testing.T) {
@@ -141,15 +153,26 @@ var _ = BeforeSuite(func() {
 	_, _ = fmt.Fprintf(GinkgoWriter, "Using helm chart: %s\n", operatorChart)
 
 	By("deploying the operator via helm chart")
-	cmd = exec.Command("helm", "upgrade", "--install",
+	helmArgs := []string{"upgrade", "--install",
 		"dpf-hcp-provisioner-operator", operatorChart,
 		"--create-namespace",
 		"--namespace", "dpf-hcp-provisioner-system",
 		"--set", fmt.Sprintf("image.repository=%s", imageRepository(operatorImage)),
-		"--set", fmt.Sprintf("image.tag=%s", imageTag(operatorImage)),
+	}
+
+	// Use digest if available (CI), otherwise use tag (local dev)
+	if digest := imageDigest(operatorImage); digest != "" {
+		helmArgs = append(helmArgs, "--set", fmt.Sprintf("image.digest=%s", digest))
+	} else {
+		helmArgs = append(helmArgs, "--set", fmt.Sprintf("image.tag=%s", imageTag(operatorImage)))
+	}
+
+	helmArgs = append(helmArgs,
 		"--set", "logLevel=debug",
 		"--wait", "--timeout", "5m",
 	)
+
+	cmd = exec.Command("helm", helmArgs...)
 	_, err = utils.Run(cmd)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to deploy operator via helm")
 })
