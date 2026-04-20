@@ -33,6 +33,9 @@ COPY --chown=1001:0 vendor/ ./vendor/
 # Copy API definitions (tests import api/v1alpha1 types)
 COPY --chown=1001:0 api/ ./api/
 
+# Copy config directory (contains CRD manifests that helm chart symlinks reference)
+COPY --chown=1001:0 config/ ./config/
+
 # Copy Makefile (used to run e2e targets like e2e-deploy-hypershift, e2e-install-dpf-crds)
 COPY --chown=1001:0 Makefile ./
 
