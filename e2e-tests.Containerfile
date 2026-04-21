@@ -49,10 +49,12 @@ COPY --chown=1001:0 test/ ./test/
 COPY --chown=1001:0 helm/ ./helm/
 
 # Create directory for generated CRDs (controller-gen writes here during test setup)
-# Set group 0 ownership and make group permissions match owner (OpenShift runs with arbitrary UID, group 0)
-RUN mkdir -p test/e2e/testdata/crds && \
-    chgrp -R 0 test/e2e/testdata && \
-    chmod -R g=u test/e2e/testdata
+RUN mkdir -p test/e2e/testdata/crds
+
+# Set OpenShift-compatible permissions on entire workspace (arbitrary UID, group 0)
+# This allows the container to run with any UID in OpenShift (always group 0)
+RUN chgrp -R 0 /workspace && \
+    chmod -R g=u /workspace
 
 # Set user to non-root for running tests
 USER 1001
