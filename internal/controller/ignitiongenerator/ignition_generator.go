@@ -180,7 +180,22 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("retrieved DPU Flavor is nil")
 	}
 
+	// Step 2.5: Detect DPU mode from DPU Flavor
+	dpuMode, err := DetectDPUMode(dpuFlavor)
+	if err != nil {
+		log.Error(err, "Failed to detect DPU mode")
+		return fmt.Errorf("failed to detect DPU mode: %w", err)
+	}
+	log.Info("DPU mode detected",
+		"mode", dpuMode,
+		"description", GetModeDescription(dpuMode),
+		"dpuFlavor", dpuFlavor.Name,
+		"isZeroTrust", IsZeroTrustMode(dpuMode))
+
 	// Step 3: Build target ignition (HCP + DPF modifications)
+	// NOTE: For now, we just detect and log the mode. In the future, we'll pass
+	// the mode to buildTargetIgnition() and buildLiveIgnition() to generate
+	// mode-specific content.
 	log.V(1).Info("Building target ignition")
 
 	dpfOperatorConfig, err := ig.getDPFOperatorConfig(ctx, cr)
