@@ -325,7 +325,14 @@ func createDPFOperatorConfig(ns string) {
 }
 
 // createDPFHCPProvisioner creates a DPFHCPProvisioner CR.
+// Uses the default DPUCluster from constants.
 func createDPFHCPProvisioner(ns, name string) {
+	createDPFHCPProvisionerWithCluster(ns, name, dpuClusterName, dpuClusterNS, dpuDeploymentName)
+}
+
+// createDPFHCPProvisionerWithCluster creates a DPFHCPProvisioner CR
+// with a custom DPUCluster reference.
+func createDPFHCPProvisionerWithCluster(ns, name, clusterName, clusterNS, deploymentName string) {
 	ctx := context.Background()
 	releaseImage := detectOCPReleaseImage()
 	baseDomain := getBaseDomain()
@@ -337,8 +344,9 @@ func createDPFHCPProvisioner(ns, name string) {
 		"Creating DPFHCPProvisioner with:\n"+
 			"  releaseImage=%s\n  baseDomain=%s\n"+
 			"  availability=%s\n  machineOSURL=%s\n"+
-			"  etcdStorageClass=%s\n",
-		releaseImage, baseDomain, availability, machineOSURL, etcdSC)
+			"  etcdStorageClass=%s\n"+
+			"  dpuCluster=%s/%s\n",
+		releaseImage, baseDomain, availability, machineOSURL, etcdSC, clusterNS, clusterName)
 
 	availabilityPolicy := hyperv1.AvailabilityPolicy(availability)
 
@@ -349,8 +357,8 @@ func createDPFHCPProvisioner(ns, name string) {
 		},
 		Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 			DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
-				Name:      dpuClusterName,
-				Namespace: dpuClusterNS,
+				Name:      clusterName,
+				Namespace: clusterNS,
 			},
 			BaseDomain:      baseDomain,
 			OCPReleaseImage: releaseImage,
@@ -362,8 +370,8 @@ func createDPFHCPProvisioner(ns, name string) {
 			},
 			ControlPlaneAvailabilityPolicy: availabilityPolicy,
 			DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
-				Name:      dpuDeploymentName,
-				Namespace: dpuClusterNS,
+				Name:      deploymentName,
+				Namespace: clusterNS,
 			},
 		},
 	}
@@ -763,6 +771,25 @@ func deleteCSRInHostedCluster(hcConfig *rest.Config, csrName string) {
 	}
 }
 
+// waitForDeletion polls for a resource to be deleted, returning true if deleted before context expires
+func waitForDeletion(ctx context.Context, namespacedName types.NamespacedName, pollInterval time.Duration) bool {
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return false // Timeout
+		case <-ticker.C:
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			err := k8sClient.Get(ctx, namespacedName, provisioner)
+			if apierrors.IsNotFound(err) {
+				return true // Deleted
+			}
+		}
+	}
+}
+
 // forceDeleteProvisioner deletes a DPFHCPProvisioner CR, removing finalizers if stuck.
 func forceDeleteProvisioner(ns, name string) {
 	ctx := context.Background()
@@ -774,27 +801,40 @@ func forceDeleteProvisioner(ns, name string) {
 		return // Doesn't exist
 	}
 
-	// Request deletion with 5m timeout context
-	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-	if err := client.IgnoreNotFound(k8sClient.Delete(deleteCtx, provisioner)); err != nil {
+	// Request deletion
+	if err := client.IgnoreNotFound(k8sClient.Delete(ctx, provisioner)); err != nil {
 		warnError("failed to delete provisioner %s/%s: %v", ns, name, err)
+		return
 	}
 
-	// Check if it's gone
-	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
-	if apierrors.IsNotFound(err) {
-		return // Gone
+	// Wait for operator to naturally remove finalizer and delete the CR (up to 2 minutes)
+	// Use a non-asserting check so we can fall back to force-removal if needed
+	ctx2Min, cancel2Min := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel2Min()
+
+	deleted := waitForDeletion(ctx2Min, types.NamespacedName{Namespace: ns, Name: name}, 10*time.Second)
+	if deleted {
+		return // Successfully deleted by operator
 	}
 
-	// Still exists - remove finalizers
-	_, _ = fmt.Fprintf(GinkgoWriter, "CR stuck in Deleting, removing finalizers...\n")
-	provisioner.SetFinalizers([]string{})
-	if err := k8sClient.Update(ctx, provisioner); err != nil {
+	// Operator didn't remove finalizer within 2 minutes - force-remove as last resort
+	_, _ = fmt.Fprintf(GinkgoWriter, "CR still exists after 2m, force-removing finalizers...\n")
+	freshProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, freshProvisioner); err != nil {
+		if apierrors.IsNotFound(err) {
+			return // Already gone
+		}
+		warnError("failed to re-fetch provisioner for finalizer removal: %v", err)
+		return
+	}
+
+	freshProvisioner.SetFinalizers([]string{})
+	if err := k8sClient.Update(ctx, freshProvisioner); err != nil {
 		warnError("failed to remove finalizers: %v", err)
+		return
 	}
 
-	// Wait for it to be gone
+	// Wait for it to be gone after force-removing finalizers
 	Eventually(func(g Gomega) {
 		err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
