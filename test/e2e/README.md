@@ -102,6 +102,7 @@ export KUBECONFIG=/path/to/kubeconfig
 export IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI=quay.io/redhat-user-workloads/dpf-hcp-provisioner-tenant/dpf-hcp-provisioner:latest
 export MACHINE_OS_URL=quay.io/eelgaev/rhcos-bfb:4.22.0-ec.2
 export BASE_DOMAIN=your-cluster.example.com
+export ETCD_STORAGE_CLASS=lvms-vg1
 make test-e2e
 ```
 
