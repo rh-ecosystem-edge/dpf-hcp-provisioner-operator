@@ -60,6 +60,10 @@ spec:
     - default: "false"
       description: Enable cache proxy configuration
       name: enable-cache-proxy
+    - name: enable-package-registry-proxy
+      default: 'true'
+      description: Use the package registry proxy when prefetching dependencies
+      type: string
     results:
     - description: ""
       name: IMAGE_URL
@@ -83,7 +87,7 @@ spec:
         - name: name
           value: init
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-init:0.4@sha256:c32f8945266f371474e383a8844972e0ad489149e7581e0418523c0f76d2324a
+          value: quay.io/konflux-ci/tekton-catalog/task-init:0.4@sha256:b797dd453ddad669365de6de4649e3a9e37e77aa26eb9862ca079a36cbfe64a4
         - name: kind
           value: task
         resolver: bundles
@@ -104,7 +108,7 @@ spec:
         - name: name
           value: git-clone-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-git-clone-oci-ta:0.1@sha256:306b69e6db435ad4a7cf258b6219d9b998eb37da44f5e9ac882ac86a08109154
+          value: quay.io/konflux-ci/tekton-catalog/task-git-clone-oci-ta:0.1@sha256:13d49df7dc9ae301627e45f95a236011422996152f1bea46cd60217b0f057407
         - name: kind
           value: task
         resolver: bundles
@@ -121,6 +125,8 @@ spec:
         value: $(params.output-image).prefetch
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
+      - name: enable-package-registry-proxy
+        value: $(params.enable-package-registry-proxy)
       runAfter:
       - clone-repository
       taskRef:
@@ -128,7 +134,7 @@ spec:
         - name: name
           value: prefetch-dependencies-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.2@sha256:9a8b6e28cfc95282e9afe4acaf7b360be4ac69ac143fb74224e43cb536b62257
+          value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.3@sha256:1b209c0d93e52e418f3e6cd4b4fd915a84e4bd7f68e1cfd0d6446133540d7f43
         - name: kind
           value: task
         resolver: bundles
@@ -154,7 +160,7 @@ spec:
         - name: name
           value: build-helm-chart-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:23de031fcad1479aa718ddfa764ca0532452a2d75dd2f1c23161bd6142c7251a
+          value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:15f35a2f627ef801a759da278742a1786e091fd95d657078739a634fbb9cc1e0
         - name: kind
           value: task
         resolver: bundles
