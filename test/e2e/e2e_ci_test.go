@@ -23,8 +23,6 @@ import (
 	"os"
 	"time"
 
-	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
-	operatorv1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,7 +32,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
@@ -72,66 +69,10 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		ctx := context.Background()
-
-		By("deleting DPFHCPProvisioner CR")
-		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      provisionerName,
-				Namespace: ciNamespace,
-			},
-		}
-		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, provisioner)); err != nil {
-			warnError("failed to delete DPFHCPProvisioner in AfterAll: %v", err)
-		}
-
-		By("cleaning up resources in DPUCluster namespace")
-		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
-			client.InNamespace(dpuClusterNS))); err != nil {
-			warnError("failed to cleanup DPUClusters in AfterAll: %v", err)
-		}
-		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
-			client.InNamespace(dpuClusterNS))); err != nil {
-			warnError("failed to cleanup DPUDeployments in AfterAll: %v", err)
-		}
-		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
-			client.InNamespace(dpuClusterNS))); err != nil {
-			warnError("failed to cleanup DPUFlavors in AfterAll: %v", err)
-		}
-		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
-			client.InNamespace(dpuClusterNS))); err != nil {
-			warnError("failed to cleanup DPFOperatorConfigs in AfterAll: %v", err)
-		}
-		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{},
-			client.InNamespace(dpuClusterNS))); err != nil {
-			warnError("failed to cleanup DPUs in AfterAll: %v", err)
-		}
-		if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &corev1.ConfigMap{},
-			client.InNamespace(dpuClusterNS))); err != nil {
-			warnError("failed to cleanup ConfigMaps in AfterAll: %v", err)
-		}
-
-		By("cleaning up secrets in operator namespace")
-		secret := &corev1.Secret{}
-		secret.SetName(sshKeySecretName)
-		secret.SetNamespace(ciNamespace)
-		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, secret)); err != nil {
-			warnError("failed to cleanup SSH key secret in AfterAll: %v", err)
-		}
-
-		secret = &corev1.Secret{}
-		secret.SetName(pullSecretName)
-		secret.SetNamespace(ciNamespace)
-		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, secret)); err != nil {
-			warnError("failed to cleanup pull secret in AfterAll: %v", err)
-		}
-
-		By("deleting DPUCluster namespace")
-		ns := &corev1.Namespace{}
-		ns.SetName(dpuClusterNS)
-		if err := client.IgnoreNotFound(k8sClient.Delete(ctx, ns)); err != nil {
-			warnError("failed to delete DPUCluster namespace in AfterAll: %v", err)
-		}
+		// Skip cleanup to preserve resources for must-gather collection.
+		// The AWS cluster will be deprovisioned anyway, cleaning up all resources.
+		// Only clean up temporary files from the local filesystem.
+		By("skipping resource cleanup to preserve state for must-gather")
 
 		if kubeconfigFile != "" {
 			_ = os.Remove(kubeconfigFile)
@@ -358,39 +299,85 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 	})
 
 	Context("Cleanup Verification", func() {
-		It("should clean up all resources on CR deletion", func() {
-			if getCRPhase(ciNamespace, provisionerName) == "" {
-				Skip("Skipping cleanup test - CR does not exist")
-			}
+		const (
+			cleanupTestName       = "e2e-cleanup-test"
+			cleanupDPUClusterNS   = "dpf-e2e-cleanup-dpucluster"
+			cleanupDPUClusterName = "cleanup-dpucluster" // Max 20 chars for NVIDIA validation
+			cleanupDPUFlavorName  = "cleanup-dpuflavor"  // Max 20 chars for NVIDIA validation
+			cleanupDPUDeployName  = "cleanup-dpudeploy"  // Max 20 chars for NVIDIA validation
+		)
 
+		AfterEach(func() {
+			// Force delete the cleanup test CR if it still exists
+			forceDeleteProvisioner(ciNamespace, cleanupTestName)
+
+			// Clean up the cleanup test's DPUCluster namespace and all resources
+			ctx := context.Background()
+			ns := &corev1.Namespace{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: cleanupDPUClusterNS}, ns)
+			if err == nil {
+				_ = k8sClient.Delete(ctx, ns)
+			}
+		})
+
+		It("should clean up all resources on CR deletion", func() {
 			ctx := context.Background()
 
-			By("deleting the DPFHCPProvisioner CR")
+			By("creating cleanup test DPUCluster namespace")
+			createNamespace(cleanupDPUClusterNS)
+
+			By("creating cleanup test DPUCluster stub")
+			createDPUClusterStub(cleanupDPUClusterNS, cleanupDPUClusterName)
+
+			By("creating DPFOperatorConfig in cleanup test DPUCluster namespace")
+			createDPFOperatorConfig(cleanupDPUClusterNS)
+
+			By("creating cleanup test DPUFlavor stub")
+			createDPUFlavorStub(cleanupDPUClusterNS, cleanupDPUFlavorName)
+
+			By("creating cleanup test DPUDeployment stub")
+			createDPUDeploymentStub(cleanupDPUClusterNS, cleanupDPUDeployName, cleanupDPUFlavorName)
+
+			By("creating a DPFHCPProvisioner CR for cleanup testing")
+			createDPFHCPProvisionerWithCluster(
+				ciNamespace, cleanupTestName,
+				cleanupDPUClusterName, cleanupDPUClusterNS,
+				cleanupDPUDeployName,
+			)
+
+			By("waiting for cleanup test CR to reach Ready state")
+			waitForCRPhase(cleanupTestName, "Ready", crReadyTimeout)
+
+			By("getting the HostedCluster name for cleanup test CR")
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
 			err := k8sClient.Get(ctx, types.NamespacedName{
 				Namespace: ciNamespace,
-				Name:      provisionerName,
+				Name:      cleanupTestName,
 			}, provisioner)
 			Expect(err).NotTo(HaveOccurred())
+			cleanupHCName := provisioner.Status.HostedClusterRef.Name
 
+			By("deleting the cleanup test DPFHCPProvisioner CR")
 			err = k8sClient.Delete(ctx, provisioner)
 			Expect(err).NotTo(HaveOccurred(), "Failed to delete DPFHCPProvisioner")
 
-			By("verifying CR is fully deleted")
+			By("verifying cleanup test CR is fully deleted")
 			Eventually(func(g Gomega) {
 				err := k8sClient.Get(ctx, types.NamespacedName{
 					Namespace: ciNamespace,
-					Name:      provisionerName,
+					Name:      cleanupTestName,
 				}, provisioner)
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "CR should be deleted")
 			}, cleanupTimeout, pollingInterval).Should(Succeed())
 
-			By("verifying HostedCluster is deleted")
+			By("verifying cleanup test HostedCluster is deleted")
 			Eventually(func(g Gomega) {
-				hcList := &hyperv1.HostedClusterList{}
-				err := k8sClient.List(ctx, hcList, client.InNamespace(ciNamespace))
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(hcList.Items).To(BeEmpty(),
+				hc := &hyperv1.HostedCluster{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: ciNamespace,
+					Name:      cleanupHCName,
+				}, hc)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(),
 					"HostedCluster should be deleted")
 			}, cleanupTimeout, pollingInterval).Should(Succeed())
 		})

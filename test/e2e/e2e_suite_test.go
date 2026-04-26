@@ -178,8 +178,8 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	By("undeploying the operator via helm")
-	cmd := exec.Command("helm", "uninstall", "dpf-hcp-provisioner-operator",
-		"--namespace", "dpf-hcp-provisioner-system")
-	_, _ = utils.Run(cmd)
+	// Don't undeploy the operator - leave resources for must-gather collection.
+	// The AWS cluster will be deprovisioned anyway, so cleanup is not needed.
+	// Resources are cleaned up between individual tests in AfterEach/AfterAll hooks.
+	By("skipping operator cleanup to preserve resources for must-gather")
 })
