@@ -38,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -523,6 +524,115 @@ func loadHCConfig(kubeconfigFile string) *rest.Config {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
 	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to build config from kubeconfig file")
 	return config
+}
+
+// dumpControlPlanePods logs the status of control plane pods in the management cluster.
+// This helps debug why the HostedCluster API server might not be reachable.
+func dumpControlPlanePods(hcNamespace, hcName string) {
+	ctx := context.Background()
+	cpNamespace := hcNamespace + "-" + hcName
+
+	_, _ = fmt.Fprintf(GinkgoWriter, "\n=== Control Plane Namespace: %s ===\n", cpNamespace)
+
+	// Check if namespace exists
+	ns := &corev1.Namespace{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: cpNamespace}, ns)
+	if err != nil {
+		_, _ = fmt.Fprintf(GinkgoWriter, "❌ Control plane namespace does not exist: %v\n", err)
+		return
+	}
+	_, _ = fmt.Fprintf(GinkgoWriter, "✓ Control plane namespace exists (phase: %s)\n", ns.Status.Phase)
+
+	// List all pods in control plane namespace
+	podList := &corev1.PodList{}
+	err = k8sClient.List(ctx, podList, client.InNamespace(cpNamespace))
+	if err != nil {
+		_, _ = fmt.Fprintf(GinkgoWriter, "❌ Failed to list pods: %v\n", err)
+		return
+	}
+
+	if len(podList.Items) == 0 {
+		_, _ = fmt.Fprintf(GinkgoWriter, "⚠️  No pods found in control plane namespace\n")
+		return
+	}
+
+	_, _ = fmt.Fprintf(GinkgoWriter, "Found %d pods:\n", len(podList.Items))
+	for _, pod := range podList.Items {
+		_, _ = fmt.Fprintf(GinkgoWriter, "  - %s: %s (ready: %d/%d)\n",
+			pod.Name, pod.Status.Phase, countReadyContainers(&pod), len(pod.Spec.Containers))
+
+		// Show container statuses for non-running pods
+		if pod.Status.Phase != corev1.PodRunning {
+			for _, cs := range pod.Status.ContainerStatuses {
+				if cs.State.Waiting != nil {
+					_, _ = fmt.Fprintf(GinkgoWriter, "    └─ %s: Waiting (%s: %s)\n",
+						cs.Name, cs.State.Waiting.Reason, cs.State.Waiting.Message)
+				} else if cs.State.Terminated != nil {
+					_, _ = fmt.Fprintf(GinkgoWriter, "    └─ %s: Terminated (%s: %s)\n",
+						cs.Name, cs.State.Terminated.Reason, cs.State.Terminated.Message)
+				}
+			}
+		}
+	}
+	_, _ = fmt.Fprintf(GinkgoWriter, "=== End Control Plane Status ===\n\n")
+}
+
+// countReadyContainers counts how many containers in a pod are ready.
+func countReadyContainers(pod *corev1.Pod) int {
+	ready := 0
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Ready {
+			ready++
+		}
+	}
+	return ready
+}
+
+// waitForHostedClusterAPIReachable waits for the HostedCluster API server to be reachable.
+// The DPFHCPProvisioner CR may report "Ready" before the kube-apiserver is fully accessible.
+func waitForHostedClusterAPIReachable(config *rest.Config, hcNamespace, hcName string) {
+	startTime := time.Now()
+	lastLogTime := time.Time{} // Track when we last logged pod status
+	attemptCount := 0
+
+	Eventually(func(g Gomega) {
+		attemptCount++
+		elapsed := time.Since(startTime)
+
+		// Log pod status every 30 seconds or on first attempt
+		if attemptCount == 1 || time.Since(lastLogTime) >= 30*time.Second {
+			_, _ = fmt.Fprintf(GinkgoWriter, "\n[%s] Checking HostedCluster API reachability (attempt %d)...\n",
+				elapsed.Round(time.Second), attemptCount)
+			dumpControlPlanePods(hcNamespace, hcName)
+			lastLogTime = time.Now()
+		}
+
+		// Try to create a discovery client - this will fail if API server is not reachable
+		discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+		if err != nil {
+			g.Expect(err).NotTo(HaveOccurred(), "Failed to create discovery client")
+			return
+		}
+
+		// Try to list server groups - this makes an actual API call
+		_, err = discoveryClient.ServerGroups()
+		if err != nil {
+			// Log the error but don't dump pods every retry (we do it every 30s above)
+			if time.Since(lastLogTime) < 10*time.Second {
+				_, _ = fmt.Fprintf(GinkgoWriter, "  API check failed: %v\n", err)
+			}
+			g.Expect(err).NotTo(HaveOccurred(), "HostedCluster API server not reachable")
+			return
+		}
+
+		_, _ = fmt.Fprintf(GinkgoWriter, "✓ HostedCluster API server is reachable after %s\n", elapsed.Round(time.Second))
+	}, 5*time.Minute, 10*time.Second).Should(Succeed(), func() string {
+		// If we fail after 5 minutes, dump final pod status for debugging
+		_, _ = fmt.Fprintf(GinkgoWriter, "\n❌ TIMEOUT: HostedCluster API server did not become reachable after 5 minutes\n")
+		_, _ = fmt.Fprintf(GinkgoWriter, "Final control plane status:\n")
+		dumpControlPlanePods(hcNamespace, hcName)
+		return "HostedCluster API server did not become reachable after 5 minutes"
+	})
 }
 
 // getHCClient creates a Kubernetes client from a rest.Config.
