@@ -3,7 +3,7 @@ FROM quay.io/hypershift/hypershift-operator:latest as hypershift-cli
 FROM quay.io/openshift/origin-cli:latest as oc-cli
 
 # Main test image
-FROM registry.access.redhat.com/ubi10/go-toolset:1.25 AS tester
+FROM registry.access.redhat.com/ubi10/go-toolset:10.1-1777043914 AS tester
 
 USER root
 WORKDIR /workspace
