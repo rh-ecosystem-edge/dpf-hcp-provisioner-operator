@@ -241,6 +241,9 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				b64Kubeconfig := getHostedClusterKubeconfig(ciNamespace, provisionerName)
 				kubeconfigFile = writeKubeconfigToFile(b64Kubeconfig)
 				hcConfig = loadHCConfig(kubeconfigFile)
+
+				By("waiting for HostedCluster API to be reachable")
+				waitForHostedClusterAPIReachable(hcConfig, 5*time.Minute)
 			}
 		})
 

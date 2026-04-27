@@ -38,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -523,6 +524,26 @@ func loadHCConfig(kubeconfigFile string) *rest.Config {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
 	ExpectWithOffset(2, err).NotTo(HaveOccurred(), "Failed to build config from kubeconfig file")
 	return config
+}
+
+// waitForHostedClusterAPIReachable waits for the HostedCluster kube-apiserver to be reachable.
+// This is needed because the HostedCluster can report "Available" before the kube-apiserver
+// pod is fully ready and the NodePort service is routing traffic.
+func waitForHostedClusterAPIReachable(hcConfig *rest.Config, timeout time.Duration) {
+	_, _ = fmt.Fprintf(GinkgoWriter, "Waiting for HostedCluster API to be reachable at %s\n", hcConfig.Host)
+
+	// Create discovery client once - config errors won't fix themselves by retrying
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(hcConfig)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create discovery client")
+
+	// Test the /api endpoint that client.Create() will actually use for resource operations
+	Eventually(func(g Gomega) {
+		_, err := discoveryClient.ServerGroups()
+		g.Expect(err).NotTo(HaveOccurred(), "API server discovery not yet reachable")
+	}, timeout, 5*time.Second).Should(Succeed(),
+		"HostedCluster API server did not become reachable after %v at %s", timeout, hcConfig.Host)
+
+	_, _ = fmt.Fprintf(GinkgoWriter, "HostedCluster API is now reachable\n")
 }
 
 // getHCClient creates a Kubernetes client from a rest.Config.
