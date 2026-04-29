@@ -38,6 +38,11 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
+const (
+	DefaultClusterCIDR = "10.132.0.0/14"
+	DefaultServiceCIDR = "172.31.0.0/16"
+)
+
 // HostedClusterManager manages HostedCluster resources
 type HostedClusterManager struct {
 	client.Client
@@ -236,13 +241,23 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 // When FlannelEnabled is nil (default) or true, AllocateNodeCIDRs is set to Enabled so that
 // kube-controller-manager manages node CIDR allocation as required by Flannel.
 func buildNetworking(cr *provisioningv1alpha1.DPFHCPProvisioner) hyperv1.ClusterNetworking {
+	clusterCIDR := DefaultClusterCIDR
+	if cr.Spec.ClusterCIDR != "" {
+		clusterCIDR = cr.Spec.ClusterCIDR
+	}
+
+	serviceCIDR := DefaultServiceCIDR
+	if cr.Spec.ServiceCIDR != "" {
+		serviceCIDR = cr.Spec.ServiceCIDR
+	}
+
 	networking := hyperv1.ClusterNetworking{
 		NetworkType: hyperv1.Other,
 		ServiceNetwork: []hyperv1.ServiceNetworkEntry{
-			{CIDR: *ipnet.MustParseCIDR("172.31.0.0/16")},
+			{CIDR: *ipnet.MustParseCIDR(serviceCIDR)},
 		},
 		ClusterNetwork: []hyperv1.ClusterNetworkEntry{
-			{CIDR: *ipnet.MustParseCIDR("10.132.0.0/14")},
+			{CIDR: *ipnet.MustParseCIDR(clusterCIDR)},
 		},
 		MachineNetwork: []hyperv1.MachineNetworkEntry{},
 	}

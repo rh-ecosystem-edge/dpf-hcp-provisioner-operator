@@ -134,6 +134,24 @@ type DPFHCPProvisionerSpec struct {
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
+	// ClusterCIDR is the CIDR block used for pod IP allocation in the hosted cluster.
+	// If not specified, defaults to "10.132.0.0/14".
+	// This field is immutable.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="clusterCIDR is immutable"
+	// +kubebuilder:validation:XValidation:rule="isCIDR(self)",message="clusterCIDR must be a valid CIDR block"
+	// +immutable
+	// +optional
+	ClusterCIDR string `json:"clusterCIDR,omitempty"`
+
+	// ServiceCIDR is the CIDR block used for Kubernetes Service ClusterIP allocation in the hosted cluster.
+	// If not specified, defaults to "172.31.0.0/16".
+	// This field is immutable.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="serviceCIDR is immutable"
+	// +kubebuilder:validation:XValidation:rule="isCIDR(self)",message="serviceCIDR must be a valid CIDR block"
+	// +immutable
+	// +optional
+	ServiceCIDR string `json:"serviceCIDR,omitempty"`
+
 	// FlannelEnabled indicates whether Flannel should be used as the CNI plugin for the hosted cluster.
 	// When set to true, the HostedCluster will be configured with NetworkType "Other" and
 	// AllocateNodeCIDRs set to "Enabled", which allows kube-controller-manager to manage node CIDR

@@ -407,6 +407,201 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 		})
 	})
 
+	Context("CIDR Validation", func() {
+		It("should accept valid clusterCIDR values", func() {
+			validCIDRs := []string{
+				"10.128.0.0/14",
+				"10.0.0.0/8",
+				"192.168.0.0/16",
+				"172.16.0.0/12",
+			}
+
+			for i, cidr := range validCIDRs {
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fmt.Sprintf("valid-cluster-cidr-%d", i),
+						Namespace: "default",
+					},
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+							Name:      "test-dpu",
+							Namespace: "default",
+						},
+						DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+							Name:      "test-dpu-deployment",
+							Namespace: "default",
+						},
+						BaseDomain:                     "test.example.com",
+						OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
+						SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
+						PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
+						ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+						ClusterCIDR:                    cidr,
+					},
+				}
+				err := k8sClient.Create(ctx, provisioner)
+				Expect(err).NotTo(HaveOccurred(), "ClusterCIDR %q should be valid", cidr)
+				_ = k8sClient.Delete(ctx, provisioner)
+			}
+		})
+
+		It("should reject invalid clusterCIDR values", func() {
+			invalidCIDRs := []string{
+				"not-a-cidr",
+				"10.0.0.0",
+				"10.0.0.0/",
+				"999.999.999.999/24",
+			}
+
+			for _, cidr := range invalidCIDRs {
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "invalid-cluster-cidr",
+						Namespace: "default",
+					},
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+							Name:      "test-dpu",
+							Namespace: "default",
+						},
+						BaseDomain:                     "test.example.com",
+						OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
+						SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
+						PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
+						ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+						ClusterCIDR:                    cidr,
+					},
+				}
+				err := k8sClient.Create(ctx, provisioner)
+				Expect(err).To(HaveOccurred(), "ClusterCIDR %q should be invalid", cidr)
+			}
+		})
+
+		It("should accept valid serviceCIDR values", func() {
+			validCIDRs := []string{
+				"172.31.0.0/16",
+				"10.96.0.0/12",
+				"192.168.0.0/16",
+			}
+
+			for i, cidr := range validCIDRs {
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fmt.Sprintf("valid-service-cidr-%d", i),
+						Namespace: "default",
+					},
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+							Name:      "test-dpu",
+							Namespace: "default",
+						},
+						DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+							Name:      "test-dpu-deployment",
+							Namespace: "default",
+						},
+						BaseDomain:                     "test.example.com",
+						OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
+						SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
+						PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
+						ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+						ServiceCIDR:                    cidr,
+					},
+				}
+				err := k8sClient.Create(ctx, provisioner)
+				Expect(err).NotTo(HaveOccurred(), "ServiceCIDR %q should be valid", cidr)
+				_ = k8sClient.Delete(ctx, provisioner)
+			}
+		})
+
+		It("should reject invalid serviceCIDR values", func() {
+			invalidCIDRs := []string{
+				"not-a-cidr",
+				"172.31.0.0",
+				"10.0.0.0/",
+				"999.999.999.999/16",
+			}
+
+			for _, cidr := range invalidCIDRs {
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "invalid-service-cidr",
+						Namespace: "default",
+					},
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+						DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+							Name:      "test-dpu",
+							Namespace: "default",
+						},
+						BaseDomain:                     "test.example.com",
+						OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
+						SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
+						PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
+						ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+						ServiceCIDR:                    cidr,
+					},
+				}
+				err := k8sClient.Create(ctx, provisioner)
+				Expect(err).To(HaveOccurred(), "ServiceCIDR %q should be invalid", cidr)
+			}
+		})
+
+		It("should accept CR without CIDR fields (uses defaults)", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "no-cidr-defaults",
+					Namespace: "default",
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "test-dpu",
+						Namespace: "default",
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
+					},
+					BaseDomain:                     "test.example.com",
+					OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
+					SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
+					PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+				},
+			}
+			err := k8sClient.Create(ctx, provisioner)
+			Expect(err).NotTo(HaveOccurred(), "Should accept CR without optional CIDR fields")
+			_ = k8sClient.Delete(ctx, provisioner)
+		})
+
+		It("should accept CR with both custom CIDRs", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "both-cidrs",
+					Namespace: "default",
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "test-dpu",
+						Namespace: "default",
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: "default",
+					},
+					BaseDomain:                     "test.example.com",
+					OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi",
+					SSHKeySecretRef:                corev1.LocalObjectReference{Name: "test-ssh-key"},
+					PullSecretRef:                  corev1.LocalObjectReference{Name: "test-pull-secret"},
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+					ClusterCIDR:                    "10.128.0.0/14",
+					ServiceCIDR:                    "10.96.0.0/12",
+				},
+			}
+			err := k8sClient.Create(ctx, provisioner)
+			Expect(err).NotTo(HaveOccurred(), "Should accept CR with both custom CIDRs")
+			_ = k8sClient.Delete(ctx, provisioner)
+		})
+	})
+
 	Context("Field Immutability Validation", func() {
 		var provisioner *provisioningv1alpha1.DPFHCPProvisioner
 
@@ -551,6 +746,54 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				updated2.Spec.VirtualIP = "192.168.1.101"
 				return k8sClient.Update(ctx, updated2)
 			}, time.Second*5, time.Millisecond*100).Should(MatchError(ContainSubstring("virtualIP is immutable")))
+		})
+
+		It("should reject updates to clusterCIDR", func() {
+			// First set the clusterCIDR
+			Eventually(func() error {
+				fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "immutability-test", Namespace: "default"}, fresh); err != nil {
+					return err
+				}
+				updated := fresh.DeepCopy()
+				updated.Spec.ClusterCIDR = "10.128.0.0/14"
+				return k8sClient.Update(ctx, updated)
+			}, time.Second*5, time.Millisecond*100).Should(Succeed())
+
+			// Now try to change it - should fail with immutability error
+			Eventually(func() error {
+				fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "immutability-test", Namespace: "default"}, fresh); err != nil {
+					return err
+				}
+				updated := fresh.DeepCopy()
+				updated.Spec.ClusterCIDR = "10.244.0.0/16"
+				return k8sClient.Update(ctx, updated)
+			}, time.Second*5, time.Millisecond*100).Should(MatchError(ContainSubstring("clusterCIDR is immutable")))
+		})
+
+		It("should reject updates to serviceCIDR", func() {
+			// First set the serviceCIDR
+			Eventually(func() error {
+				fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "immutability-test", Namespace: "default"}, fresh); err != nil {
+					return err
+				}
+				updated := fresh.DeepCopy()
+				updated.Spec.ServiceCIDR = "10.96.0.0/12"
+				return k8sClient.Update(ctx, updated)
+			}, time.Second*5, time.Millisecond*100).Should(Succeed())
+
+			// Now try to change it - should fail with immutability error
+			Eventually(func() error {
+				fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "immutability-test", Namespace: "default"}, fresh); err != nil {
+					return err
+				}
+				updated := fresh.DeepCopy()
+				updated.Spec.ServiceCIDR = "172.31.0.0/16"
+				return k8sClient.Update(ctx, updated)
+			}, time.Second*5, time.Millisecond*100).Should(MatchError(ContainSubstring("serviceCIDR is immutable")))
 		})
 
 		It("should allow updates to ocpReleaseImage (mutable)", func() {
