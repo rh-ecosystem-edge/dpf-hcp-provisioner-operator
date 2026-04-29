@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -27,8 +28,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/discovery"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -222,6 +226,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := validateRequiredCRDs(mgr.GetConfig()); err != nil {
+		setupLog.Error(err, "required CRDs are not installed")
+		os.Exit(1)
+	}
+
 	client := mgr.GetClient()
 	scheme := mgr.GetScheme()
 
@@ -338,4 +347,36 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// validateRequiredCRDs checks that all CRDs required by the operator are installed in the cluster.
+// If any CRD is missing, the operator should exit so Kubernetes can restart it, retrying until
+// all prerequisites are met.
+func validateRequiredCRDs(cfg *rest.Config) error {
+	dc, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create discovery client: %w", err)
+	}
+
+	requiredGVRs := []schema.GroupVersion{
+		{Group: "provisioning.dpu.hcp.io", Version: "v1alpha1"},     // DPFHCPProvisioner
+		{Group: "provisioning.dpu.nvidia.com", Version: "v1alpha1"}, // DPUCluster
+		{Group: "hypershift.openshift.io", Version: "v1beta1"},      // HostedCluster, NodePool
+		{Group: "metallb.io", Version: "v1beta1"},                   // IPAddressPool, L2Advertisement
+	}
+
+	var missing []string
+	for _, gv := range requiredGVRs {
+		_, err := dc.ServerResourcesForGroupVersion(gv.String())
+		if err != nil {
+			missing = append(missing, gv.String())
+		}
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required CRD group versions: %v", missing)
+	}
+
+	setupLog.Info("All required CRDs are installed")
+	return nil
 }
