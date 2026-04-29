@@ -28,7 +28,8 @@ import (
 
 // OperatorConfig holds operator-wide configuration.
 type OperatorConfig struct {
-	BlueFieldOCPLayerRepo string
+	BlueFieldOCPLayerRepo     string
+	ManageDPUServiceTemplates bool
 }
 
 // LoadOperatorConfigFromCR fetches the DPFHCPProvisionerConfig singleton CR.
@@ -47,7 +48,8 @@ func LoadOperatorConfigFromCR(ctx context.Context, c client.Client) (*OperatorCo
 	}
 
 	cfg := &OperatorConfig{
-		BlueFieldOCPLayerRepo: configCR.Spec.BlueFieldOCPLayerRepo,
+		BlueFieldOCPLayerRepo:     configCR.Spec.BlueFieldOCPLayerRepo,
+		ManageDPUServiceTemplates: configCR.Spec.ManageDPUServiceTemplates,
 	}
 
 	logger.V(1).Info("Operator config loaded from CR",

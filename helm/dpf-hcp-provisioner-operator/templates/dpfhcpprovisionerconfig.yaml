@@ -10,3 +10,4 @@ metadata:
   {{- end }}
 spec:
   blueFieldOCPLayerRepo: {{ .Values.provisionerConfig.blueFieldOCPLayerRepo | default "quay.io/eelgaev/rhcos-bfb" | quote }}
+  manageDPUServiceTemplates: {{ .Values.provisionerConfig.manageDPUServiceTemplates | default false }}

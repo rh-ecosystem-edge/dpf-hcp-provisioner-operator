@@ -38,6 +38,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
@@ -91,6 +92,9 @@ var _ = BeforeSuite(func() {
 	err = hyperv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = dpuservicev1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:scheme
 
 	By("bootstrapping test environment")
@@ -129,6 +133,15 @@ var _ = BeforeSuite(func() {
 		},
 	}
 	err = k8sClient.Create(ctx, clustersNs)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("creating dpf-operator-system namespace")
+	dpfNs := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dpf-operator-system",
+		},
+	}
+	err = k8sClient.Create(ctx, dpfNs)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("creating DPFHCPProvisionerConfig CR")
