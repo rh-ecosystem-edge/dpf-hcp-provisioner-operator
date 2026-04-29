@@ -109,13 +109,21 @@ type Overrides struct {
 	// ClusterIP Kubernetes Service is not functional.
 	// +optional
 	KubernetesAPIServerPort *int `json:"kubernetesAPIServerPort,omitempty"`
+
+	// ArgoCDNamespace is the namespace where ArgoCD is deployed.
+	// AppProjects and cluster secrets required by DPF will be created in this namespace.
+	// Defaults to the namespace of the DPFOperatorConfig.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	ArgoCDNamespace *string `json:"argoCDNamespace,omitempty"`
 }
 
 // Networking defines the networking configuration for the system components.
 type Networking struct {
 	// ControlPlaneMTU is the MTU value to be set on the management network.
 	// The default is 1500.
-	// +kubebuilder:validation:Minimum=1000
+	// +kubebuilder:validation:Minimum=1280
 	// +kubebuilder:validation:Maximum=9216
 	// +kubebuilder:default=1500
 	// +optional
@@ -123,7 +131,7 @@ type Networking struct {
 
 	// HighSpeedMTU is the MTU value to be set on the high-speed interface.
 	// The default is 1500.
-	// +kubebuilder:validation:Minimum=1000
+	// +kubebuilder:validation:Minimum=1280
 	// +kubebuilder:validation:Maximum=9216
 	// +kubebuilder:default=1500
 	// +optional
@@ -138,6 +146,9 @@ type DPFOperatorConfigSpec struct {
 	// +kubebuilder:default={controlPlaneMTU: 1500}
 	// +optional
 	Networking *Networking `json:"networking,omitempty"`
+	// Monitoring is the configuration for monitoring resources.
+	// +optional
+	Monitoring *MonitoringConfiguration `json:"monitoring,omitempty"`
 
 	// List of secret names which are used to pull images for DPF system components and DPUServices.
 	// These secrets must be in the same namespace as the DPF Operator Config and should be created before the config is created.
@@ -149,7 +160,7 @@ type DPFOperatorConfigSpec struct {
 	// +optional
 	DPUServiceController *DPUServiceControllerConfiguration `json:"dpuServiceController,omitempty"`
 	// ProvisioningController is the configuration for the ProvisioningController
-	ProvisioningController ProvisioningControllerConfiguration `json:"provisioningController"`
+	ProvisioningController *ProvisioningControllerConfiguration `json:"provisioningController"`
 	// ServiceSetController is the configuration for the ServiceSetController
 	// +optional
 	ServiceSetController *ServiceSetControllerConfiguration `json:"serviceSetController,omitempty"`
@@ -171,6 +182,9 @@ type DPFOperatorConfigSpec struct {
 	// NVIPAM is the configuration for NVIPAM
 	// +optional
 	NVIPAM *NVIPAMConfiguration `json:"nvipam,omitempty"`
+	// CNIInstaller is the configuration for the cni-installer
+	// +optional
+	CNIInstaller *CNIInstallerConfiguration `json:"cniInstaller,omitempty"`
 	// SFCController is the configuration for the SFCController
 	// +optional
 	SFCController *SFCControllerConfiguration `json:"sfcController,omitempty"`
@@ -180,6 +194,35 @@ type DPFOperatorConfigSpec struct {
 	// StaticClusterManager is the configuration for the static-cluster-manager
 	// +optional
 	StaticClusterManager *StaticClusterManagerConfiguration `json:"staticClusterManager,omitempty"`
+	// NodeSRIOVDevicePluginController is the configuration for the NodeSRIOVDevicePlugin controller.
+	// This controller manages per-node SRIOV device plugin pods based on DPU configurations.
+	// The controller is disabled by default.
+	// +optional
+	NodeSRIOVDevicePluginController *NodeSRIOVDevicePluginControllerConfiguration `json:"nodeSRIOVDevicePluginController,omitempty"`
+}
+
+// MonitoringConfiguration defines the configuration for monitoring resources.
+type MonitoringConfiguration struct {
+	// Disabled controls whether monitoring resources are installed.
+	// When enabled (default), the controller:
+	// - Creates ServiceMonitors for Kamaji clusters to scrape control-plane metrics.
+	// - Deploys kube-state-metrics as a DPUService to expose metrics for custom resources.
+	// - Deploys node-problem-detector as a DaemonSet on DPU nodes to detect and report node-level problems.
+	// - Deploys opentelemetry-collector as a DaemonSet on DPU nodes to collect and forward logs.
+	// +optional
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// KubeStateMetrics is the configuration for kube-state-metrics
+	// +optional
+	KubeStateMetrics *KubeStateMetricsConfiguration `json:"kubeStateMetrics,omitempty"`
+
+	// NodeProblemDetector is the configuration for node-problem-detector
+	// +optional
+	NodeProblemDetector *NodeProblemDetectorConfiguration `json:"nodeProblemDetector,omitempty"`
+
+	// OpenTelemetryCollector is the configuration for opentelemetry-collector
+	// +optional
+	OpenTelemetryCollector *OpenTelemetryCollectorConfiguration `json:"openTelemetryCollector,omitempty"`
 }
 
 // DPFOperatorConfigStatus defines the observed state of DPFOperatorConfig
@@ -196,6 +239,7 @@ type DPFOperatorConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].status`
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].reason`
@@ -236,4 +280,17 @@ func (c *DPFOperatorConfig) UpgradeInProgress() bool {
 
 func (c *DPFOperatorConfig) IsNewConfig() bool {
 	return c.Status.ObservedGeneration == 0
+}
+
+// GetArgoCDNamespace returns the namespace where ArgoCD is deployed.
+// Falls back to the DPFOperatorConfig's own namespace if not explicitly configured.
+func (c *DPFOperatorConfig) GetArgoCDNamespace() string {
+	if c.Spec.Overrides != nil && c.Spec.Overrides.ArgoCDNamespace != nil && *c.Spec.Overrides.ArgoCDNamespace != "" {
+		return *c.Spec.Overrides.ArgoCDNamespace
+	}
+	return c.GetNamespace()
+}
+
+func (c *DPFOperatorConfig) MonitoringEnabled() bool {
+	return c.Spec.Monitoring == nil || c.Spec.Monitoring.Disabled == nil || !*c.Spec.Monitoring.Disabled
 }

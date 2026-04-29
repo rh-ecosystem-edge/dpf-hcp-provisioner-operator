@@ -57,6 +57,7 @@ func (c *DPUServiceTemplate) SetConditions(conditions []metav1.Condition) {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 
 // DPUServiceTemplate is the Schema for the DPUServiceTemplate API. This object is intended to be used in

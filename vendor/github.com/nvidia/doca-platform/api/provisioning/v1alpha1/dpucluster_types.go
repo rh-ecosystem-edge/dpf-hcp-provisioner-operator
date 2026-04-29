@@ -114,6 +114,11 @@ type DPUClusterStatus struct {
 	// +optional
 	Version string `json:"version"`
 
+	// NodesCount is the number of DPUs assigned to the cluster
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	NodesCount int `json:"nodesCount"`
+
 	// +optional
 	Conditions []metav1.Condition `json:"conditions"`
 }
@@ -145,12 +150,14 @@ type KeepalivedSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].status`
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="phase of the cluster"
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type",description="type of the cluster"
 // +kubebuilder:printcolumn:name="MaxNodes",type="integer",JSONPath=".spec.maxNodes",description="max amount of nodes"
-// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="Kubernetes control-plane version"
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="Kubernetes control-plane version"
+// +kubebuilder:printcolumn:name="NodesCount",type="integer",JSONPath=".status.nodesCount",description="number of assigned DPUs"
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63", message="name length can't be bigger than 63 chars"
 
@@ -181,7 +188,7 @@ func init() {
 }
 
 const (
-	// DPUClusterLabelKey is the key of the label linking objects to a specific DPU Cluster. The value should be the
+	// DPUClusterNameLabelKey is the key of the label linking objects to a specific DPU Cluster. The value should be the
 	// namespace of the DPUCluster.
 	DPUClusterNameLabelKey = "dpu.nvidia.com/cluster"
 	// DPUClusterNamespaceLabelKey is the key of the label linking objects to a specific DPU Cluster. The value should

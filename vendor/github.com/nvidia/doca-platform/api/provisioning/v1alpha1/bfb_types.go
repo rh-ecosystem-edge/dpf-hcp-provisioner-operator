@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/nvidia/doca-platform/pkg/conditions"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,7 +52,32 @@ const (
 	BFBError BFBPhase = "Error"
 )
 
+const (
+	// BFBCondInitialized indicates the BFB has been initialized
+	BFBCondInitialized conditions.ConditionType = "Initialized"
+	// BFBCondDownloaded indicates the BFB has been downloaded
+	BFBCondDownloaded conditions.ConditionType = "Downloaded"
+	// BFBCondReady indicates the BFB is ready for use
+	BFBCondReady conditions.ConditionType = conditions.TypeReady
+	// BFBCondError indicates the BFB is in error state
+	BFBCondError conditions.ConditionType = "Error"
+	// BFBCondDeleted indicates the BFB has been deleted
+	BFBCondDeleted conditions.ConditionType = "Deleted"
+)
+
+var (
+	// BFBConditions are conditions that can be set on a BFB object.
+	BFBConditions = []conditions.ConditionType{
+		BFBCondInitialized,
+		BFBCondDownloaded,
+		BFBCondReady,
+		BFBCondError,
+		BFBCondDeleted,
+	}
+)
+
 // BFBSpec defines the content of the BFB
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.versions) || has(self.versions)",message="versions cannot be removed once set"
 type BFBSpec struct {
 	// Specifies the file name where the BFB is downloaded on the volume.
 	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9\_\-\.]+\.bfb$`
@@ -63,6 +90,13 @@ type BFBSpec struct {
 	// +required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Value is immutable"
 	URL string `json:"url"`
+
+	// Optionally specify BFB component versions. When set, these versions are
+	// used directly in status instead of being extracted from the BFB file.
+	// If set, all four fields (BSP, DOCA, UEFI, ATF) must be provided.
+	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.bsp != '' && self.doca != '' && self.uefi != '' && self.atf != ''",message="all four version fields (bsp, doca, uefi, atf) must be provided when versions is set"
+	Versions *BFBVersions `json:"versions,omitempty"`
 }
 
 // BFBVersions represents the version information for BFB components.
@@ -108,12 +142,20 @@ type BFBStatus struct {
 	// Holds detailed version information for each component within the BFB
 	// +optional
 	Versions BFBVersions `json:"versions,omitempty"`
+	// ObservedGeneration records the Generation observed on the object the last time it was patched.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// Conditions represent the latest available observations of BFB state
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 187", message="name length can't be bigger than 187 chars"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="phase of the bfb"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // BFB is the Schema for the bfbs API
 type BFB struct {
@@ -134,6 +176,19 @@ type BFBList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []BFB `json:"items"`
+}
+
+// Implement conditions.GetSet interface
+var _ conditions.GetSet = &BFB{}
+
+// GetConditions returns the conditions of the BFB
+func (b *BFB) GetConditions() []metav1.Condition {
+	return b.Status.Conditions
+}
+
+// SetConditions sets the conditions of the BFB
+func (b *BFB) SetConditions(conditions []metav1.Condition) {
+	b.Status.Conditions = conditions
 }
 
 func init() {
