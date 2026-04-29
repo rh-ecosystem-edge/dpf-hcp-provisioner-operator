@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +35,7 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 )
 
 var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", func() {
@@ -176,6 +178,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 		}
 		_ = k8sClient.Delete(ctx, etcdKeyTarget)
 
+		// Clean up HostedCluster and NodePool created by the controller
+		_ = k8sClient.Delete(ctx, &hyperv1.HostedCluster{ObjectMeta: metav1.ObjectMeta{Name: provisionerName, Namespace: testNamespace}})
+		_ = k8sClient.Delete(ctx, &hyperv1.NodePool{ObjectMeta: metav1.ObjectMeta{Name: provisionerName, Namespace: testNamespace}})
+
+		// Clean up MetalLB resources
+		_ = k8sClient.Delete(ctx, &metallbv1beta1.IPAddressPool{ObjectMeta: metav1.ObjectMeta{Name: provisionerName, Namespace: common.OpenshiftOperatorsNamespace}})
+		_ = k8sClient.Delete(ctx, &metallbv1beta1.L2Advertisement{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("advertise-%s", provisionerName), Namespace: common.OpenshiftOperatorsNamespace}})
 	})
 
 	Context("Finalizer Management", func() {

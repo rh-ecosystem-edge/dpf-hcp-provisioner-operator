@@ -151,6 +151,13 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			},
 		})
 
+		// Clean up NodePools
+		npList := &hyperv1.NodePoolList{}
+		_ = k8sClient.List(ctx, npList)
+		for _, np := range npList.Items {
+			_ = k8sClient.Delete(ctx, &np)
+		}
+
 		// Clean up copied secrets in clusters namespace
 		_ = k8sClient.Delete(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -408,6 +415,169 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 				}
 				return provisioner.Status.Phase
 			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseProvisioning))
+		})
+
+		It("should transition to IgnitionGenerating when HC available and kubeconfig injected but ignition not configured", func() {
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "phase-test-ignition-gen",
+					Namespace: testNamespace,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: testNamespace,
+					},
+					BaseDomain:                     "test-cluster.example.com",
+					OCPReleaseImage:                ocpReleaseImage,
+					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
+					PullSecretRef:                  corev1.LocalObjectReference{Name: pullSecretName},
+					EtcdStorageClass:               "standard",
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+				},
+			}
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
+
+			// Wait for Pending phase
+			Eventually(func() provisioningv1alpha1.DPFHCPProvisionerPhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ignition-gen", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return ""
+				}
+				return provisioner.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhasePending))
+
+			// Simulate: Set HostedClusterRef, HC available=True, kubeconfig injected=True
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ignition-gen", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return err
+				}
+				provisioner.Status.HostedClusterRef = &corev1.ObjectReference{
+					Name:      "phase-test-ignition-gen",
+					Namespace: testNamespace,
+				}
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.HostedClusterAvailable,
+					Status:             metav1.ConditionTrue,
+					Reason:             "Available",
+					Message:            "HostedCluster is available",
+					LastTransitionTime: metav1.Now(),
+				})
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.KubeConfigInjected,
+					Status:             metav1.ConditionTrue,
+					Reason:             "Injected",
+					Message:            "Kubeconfig injected successfully",
+					LastTransitionTime: metav1.Now(),
+				})
+				return k8sClient.Status().Update(ctx, provisioner)
+			}, timeout, interval).Should(Succeed())
+
+			// Controller should transition to IgnitionGenerating
+			// (IgnitionConfigured condition is not set, so phase should be IgnitionGenerating)
+			Eventually(func() provisioningv1alpha1.DPFHCPProvisionerPhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ignition-gen", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return ""
+				}
+				return provisioner.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseIgnitionGenerating))
+		})
+
+		It("should transition to Ready when all conditions are met", func() {
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "phase-test-ready",
+					Namespace: testNamespace,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: testNamespace,
+					},
+					BaseDomain:                     "test-cluster.example.com",
+					OCPReleaseImage:                ocpReleaseImage,
+					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
+					PullSecretRef:                  corev1.LocalObjectReference{Name: pullSecretName},
+					EtcdStorageClass:               "standard",
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+				},
+			}
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
+
+			// Wait for Pending phase
+			Eventually(func() provisioningv1alpha1.DPFHCPProvisionerPhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ready", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return ""
+				}
+				return provisioner.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhasePending))
+
+			// Simulate: Set all conditions for Ready
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ready", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return err
+				}
+				provisioner.Status.HostedClusterRef = &corev1.ObjectReference{
+					Name:      "phase-test-ready",
+					Namespace: testNamespace,
+				}
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.HostedClusterAvailable,
+					Status:             metav1.ConditionTrue,
+					Reason:             "Available",
+					Message:            "HostedCluster is available",
+					LastTransitionTime: metav1.Now(),
+				})
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.KubeConfigInjected,
+					Status:             metav1.ConditionTrue,
+					Reason:             "Injected",
+					Message:            "Kubeconfig injected successfully",
+					LastTransitionTime: metav1.Now(),
+				})
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.IgnitionConfigured,
+					Status:             metav1.ConditionTrue,
+					Reason:             "Configured",
+					Message:            "Ignition configured successfully",
+					LastTransitionTime: metav1.Now(),
+					ObservedGeneration: provisioner.Generation,
+				})
+				return k8sClient.Status().Update(ctx, provisioner)
+			}, timeout, interval).Should(Succeed())
+
+			// Controller should transition to Ready
+			Eventually(func() provisioningv1alpha1.DPFHCPProvisionerPhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ready", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return ""
+				}
+				return provisioner.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseReady))
+
+			// Verify Ready condition is True
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ready", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return false
+				}
+				readyCond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.Ready)
+				return readyCond != nil && readyCond.Status == metav1.ConditionTrue
+			}, timeout, interval).Should(BeTrue())
 		})
 
 		It("should stay in Provisioning when HostedCluster is available BUT kubeconfig is NOT injected", func() {
