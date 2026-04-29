@@ -28,7 +28,7 @@ type DPFHCPProvisionerConfigSpec struct {
 	// BlueFieldOCPLayerRepo is the container registry repository for BlueField OCP layer images.
 	// The operator queries this repository to find an image tag matching the OCP version.
 	// TODO: Replace with the official registry once we have one
-	// +kubebuilder:default="quay.io/eelgaev/rhcos-bfb"
+	// +kubebuilder:default="quay.io/edge-infrastructure/bluefield-ocp"
 	// +optional
 	BlueFieldOCPLayerRepo string `json:"blueFieldOCPLayerRepo,omitempty"`
 }
