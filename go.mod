@@ -7,7 +7,7 @@ require (
 	github.com/google/go-containerregistry v0.21.2
 	github.com/nvidia/doca-platform v0.0.0-20251115082520-81369e955c6c
 	github.com/onsi/ginkgo/v2 v2.27.2
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.40.0
 	github.com/openshift/hypershift v0.1.71
 	github.com/openshift/hypershift/api v0.0.0-20251229083354-c1d28e31a05d
 	go.universe.tf/metallb v0.15.3
@@ -16,6 +16,7 @@ require (
 	k8s.io/client-go v0.34.2
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	sigs.k8s.io/controller-runtime v0.22.3
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -120,5 +121,4 @@ require (
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
-	sigs.k8s.io/yaml v1.6.0 // indirect
 )
