@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift/hypershift v0.1.71
-	github.com/openshift/hypershift/api v0.0.0-20251229083354-c1d28e31a05d
+	github.com/openshift/hypershift/api 5eaee747fb5e
 	go.universe.tf/metallb v0.15.3
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
