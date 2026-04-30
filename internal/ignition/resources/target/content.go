@@ -76,6 +76,16 @@ func NewProvider() *content.EmbeddedProvider {
 				Mode:          0600,
 				ContentSource: f("openvswitch"),
 			},
+			{
+				Path:          "/etc/tmpfiles.d/99-hugetlbfs-dpf.conf",
+				Mode:          0644,
+				ContentSource: f("tmpfiles-hugetlbfs-dpf.conf"),
+			},
+			{
+				Path:          "/etc/openshift/kubelet.conf.d/kubelet-dpf-override.conf",
+				Mode:          0644,
+				ContentSource: f("kubelet-dpf-override.conf"),
+			},
 		},
 		SystemdFS: &systemdFS,
 	}
