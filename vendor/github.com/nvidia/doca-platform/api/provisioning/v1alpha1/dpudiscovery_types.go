@@ -32,6 +32,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Last Scan",type="date",JSONPath=".status.lastScanTime"
 // +kubebuilder:printcolumn:name="Found DPUs",type="integer",JSONPath=".status.foundDPUs"
 
@@ -57,6 +58,10 @@ type DPUDiscoverySpec struct {
 
 // DPUDiscoveryStatus defines the observed state of DPUDiscovery
 type DPUDiscoveryStatus struct {
+	// ObservedGeneration is the generation of the spec that was last applied by a successful scan.
+	// When spec (e.g. IP range) changes, reconciliation runs a scan immediately instead of waiting for the next interval.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// LastScanTime is the timestamp of the last successful scan
 	LastScanTime *metav1.Time `json:"lastScanTime,omitempty"`
 	// FoundDPUs is the list of discovered DPU BMC IPs
@@ -78,6 +83,13 @@ type IPRange struct {
 	// +required
 
 	EndIP string `json:"endIP"`
+
+	// +optional
+	// Port defines the port to on which BMC is listening
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:default=443
+	Port *uint32 `json:"port,omitempty"`
 }
 
 // IPRangeValidationSpec defines the desired state of IPRangeValidation
