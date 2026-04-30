@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/nvidia/doca-platform/pkg/conditions"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,8 +38,9 @@ type DPUNodeInstallInterfaceType string
 
 // List of valid Install Interface types
 const (
-	DPUNodeInstallInterfaceGNOI    DPUNodeInstallInterfaceType = "gNOI"
-	DPUNodeInstallIntrefaceRedfish DPUNodeInstallInterfaceType = "redfish"
+	DPUNodeInstallInterfaceGNOI      DPUNodeInstallInterfaceType = "gNOI"
+	DPUNodeInstallInterfaceHostAgent DPUNodeInstallInterfaceType = "hostAgent"
+	DPUNodeInstallIntrefaceRedfish   DPUNodeInstallInterfaceType = "redfish"
 )
 
 type DPUNodeConditionType string
@@ -54,18 +57,41 @@ const (
 	DPUNodeConditionDPUUpdateInProgress DPUNodeConditionType = "DPUUpdateInProgress"
 	// DPUNodeConditionNeedDMSUpgrade means the DMS needs to be upgraded.
 	DPUNodeConditionNeedHostAgentUpgrade DPUNodeConditionType = "NeedHostAgentUpgrade"
+	// DPUNodeConditionBridgeConfigured means the bridge br-dpu is configured.
+	DPUNodeConditionBridgeConfigured DPUNodeConditionType = "OOBBridgeConfigured"
+	// DPUNodeConditionRshimAvailable means the rshim is available.
+	DPUNodeConditionRshimAvailable DPUNodeConditionType = "RshimAvailable"
+	// DPUNodeConditionNodeEffectInProgress means the node effect is processing on the node.
+	DPUNodeConditionNodeEffectInProgress DPUNodeConditionType = "DPUNodeNodeEffectInProgress"
 )
 
 const (
 	DPUNodeExternalRebootRequiredAnnotation = "provisioning.dpu.nvidia.com/dpunode-external-reboot-required"
+	// DPUNodeNameLabel is the label added to the DPU Kubernetes Node that indicates the name of
+	// the DPUNode that this DPU belongs to.
+	DPUNodeNameLabel = "provisioning.dpu.nvidia.com/dpunode-name"
+	// DPUNodeNamespaceLabel is the label added to the DPU Kubernetes Node that indicates
+	// the namespace of the DPUNode that this DPU belongs to.
+	DPUNodeNamespaceLabel = "provisioning.dpu.nvidia.com/dpunode-namespace"
 )
 
 func (ct DPUNodeConditionType) String() string {
 	return string(ct)
 }
 
+var _ conditions.GetSet = &DPUNode{}
+
+func (c *DPUNode) GetConditions() []metav1.Condition {
+	return c.Status.Conditions
+}
+
+func (c *DPUNode) SetConditions(conditions []metav1.Condition) {
+	c.Status.Conditions = conditions
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // TODO: Add e2e test when we add scenarios that include creating our own DPUNode and DPUDevice objects
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 48", message="name length can't be bigger than 48 chars"
@@ -81,6 +107,8 @@ type DPUNode struct {
 
 type GNOI struct{}
 
+type HostAgent struct{}
+
 type External struct{}
 
 type Script struct {
@@ -90,11 +118,16 @@ type Script struct {
 }
 
 // NodeRebootMethod defines the desired reboot method
-// +kubebuilder:validation:XValidation:rule="(has(self.gNOI) && !has(self.external) && !has(self.script) || has(self.external) && !has(self.gNOI) && !has(self.script) || has(self.script) && !has(self.external) && !has(self.gNOI))", message="only one of gNOI, external, script can be set"
+// +kubebuilder:validation:XValidation:rule="(((has(self.hostAgent) || has(self.gNOI)) && !has(self.external) && !has(self.script)) || (has(self.external) && !has(self.hostAgent) && !has(self.gNOI) && !has(self.script)) || (has(self.script) && !has(self.external) && !has(self.hostAgent) && !has(self.gNOI)))", message="only one of hostAgent, external, script can be set"
 type NodeRebootMethod struct {
 	// Use the DPU's DMS interface to reboot the host.
+	//
+	// Deprecated: Use HostAgent instead.
 	// +optional
 	GNOI *GNOI `json:"gNOI,omitempty"`
+	// Use the HostAgent to reboot the host.
+	// +optional
+	HostAgent *HostAgent `json:"hostAgent,omitempty"`
 	// Reboot the host via an external means, not controlled by the DPU controller.
 	// +optional
 	External *External `json:"external,omitempty"`
@@ -119,13 +152,15 @@ type DPUNodeSpec struct {
 	//    - "external": Reboot the host via an external means, not controlled by the
 	//      DPU controller.
 	//    - "script": Reboot the host by executing a custom script.
-	//    - "gNOI": Use the DPU's DMS interface to reboot the host.
-	// "gNOI" is the default value.
-	// +kubebuilder:default={gNOI:{}}
+	//    - "hostAgent": Use the host agent to reboot the host.
+	// "hostAgent" is the default value.
+	// +kubebuilder:default={hostAgent:{}}
 	// +optional
 	NodeRebootMethod *NodeRebootMethod `json:"nodeRebootMethod,omitempty"`
 
 	// The IP address and port where the DMS is exposed. Only applicable if dpuInstallInterface is set to gNOI.
+	//
+	// Deprecated: this field is no longer used.
 	// +optional
 	NodeDMSAddress *DMSAddress `json:"nodeDMSAddress,omitempty"`
 
@@ -158,8 +193,8 @@ type DPUNodeStatus struct {
 	// +kubebuilder:validation:Type=array
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	// The name of the interface which will be used to install the bfb image, can be one of gNOI,redfish
-	// +kubebuilder:validation:Enum=gNOI;redfish
+	// The name of the interface which will be used to install the bfb image, can be one of hostAgent,redfish
+	// +kubebuilder:validation:Enum=gNOI;hostAgent;redfish
 	// +optional
 	DPUInstallInterface *string `json:"dpuInstallInterface,omitempty"`
 	// The name of the Kubernetes Node object that this DPUNode represents.
@@ -167,6 +202,9 @@ type DPUNodeStatus struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="KubeNodeRef is immutable"
 	// +optional
 	KubeNodeRef *string `json:"kubeNodeRef,omitempty"`
+	// RebootInProgress indicates if the node is in the process of rebooting.
+	// +optional
+	RebootInProgress *bool `json:"rebootInProgress,omitempty"`
 }
 
 // +kubebuilder:object:root=true
