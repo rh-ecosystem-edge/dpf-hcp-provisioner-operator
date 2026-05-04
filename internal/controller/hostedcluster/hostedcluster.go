@@ -233,18 +233,37 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 }
 
 // buildNetworking constructs the ClusterNetworking spec from DPFHCPProvisioner fields.
-// When FlannelEnabled is nil (default) or true, AllocateNodeCIDRs is set to Enabled so that
-// kube-controller-manager manages node CIDR allocation as required by Flannel.
+// User-provided networking values override the defaults. When FlannelEnabled is nil (default)
+// or true, AllocateNodeCIDRs is set to Enabled so that kube-controller-manager manages
+// node CIDR allocation as required by Flannel.
 func buildNetworking(cr *provisioningv1alpha1.DPFHCPProvisioner) hyperv1.ClusterNetworking {
+	// Defaults
+	serviceNetwork := []hyperv1.ServiceNetworkEntry{
+		{CIDR: *ipnet.MustParseCIDR("172.31.0.0/16")},
+	}
+	clusterNetwork := []hyperv1.ClusterNetworkEntry{
+		{CIDR: *ipnet.MustParseCIDR("10.132.0.0/14")},
+	}
+	machineNetwork := []hyperv1.MachineNetworkEntry{}
+
+	// Override with user-provided values
+	if cr.Spec.Networking != nil {
+		if len(cr.Spec.Networking.ServiceNetwork) > 0 {
+			serviceNetwork = cr.Spec.Networking.ServiceNetwork
+		}
+		if len(cr.Spec.Networking.ClusterNetwork) > 0 {
+			clusterNetwork = cr.Spec.Networking.ClusterNetwork
+		}
+		if len(cr.Spec.Networking.MachineNetwork) > 0 {
+			machineNetwork = cr.Spec.Networking.MachineNetwork
+		}
+	}
+
 	networking := hyperv1.ClusterNetworking{
-		NetworkType: hyperv1.Other,
-		ServiceNetwork: []hyperv1.ServiceNetworkEntry{
-			{CIDR: *ipnet.MustParseCIDR("172.31.0.0/16")},
-		},
-		ClusterNetwork: []hyperv1.ClusterNetworkEntry{
-			{CIDR: *ipnet.MustParseCIDR("10.132.0.0/14")},
-		},
-		MachineNetwork: []hyperv1.MachineNetworkEntry{},
+		NetworkType:    hyperv1.Other,
+		ServiceNetwork: serviceNetwork,
+		ClusterNetwork: clusterNetwork,
+		MachineNetwork: machineNetwork,
 	}
 
 	if cr.Spec.FlannelEnabled == nil || *cr.Spec.FlannelEnabled {

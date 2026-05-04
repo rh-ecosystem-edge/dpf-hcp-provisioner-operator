@@ -23,6 +23,30 @@ import (
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
 
+// ClusterNetworkConfig defines the network CIDR configuration for the hosted cluster.
+// NetworkType is always set to "Other" for DPU environments and cannot be changed.
+type ClusterNetworkConfig struct {
+	// ServiceNetwork is the list of IP address pools for services.
+	// Defaults to a single entry with CIDR 172.31.0.0/16.
+	// Currently only one entry is supported.
+	// +kubebuilder:validation:MaxItems=1
+	// +optional
+	ServiceNetwork []hyperv1.ServiceNetworkEntry `json:"serviceNetwork,omitempty"`
+
+	// ClusterNetwork is the list of IP address pools for pods.
+	// Defaults to a single entry with CIDR 10.132.0.0/14.
+	// Currently only one entry is supported.
+	// +kubebuilder:validation:MaxItems=1
+	// +optional
+	ClusterNetwork []hyperv1.ClusterNetworkEntry `json:"clusterNetwork,omitempty"`
+
+	// MachineNetwork is the list of IP address pools for machines/nodes.
+	// Defaults to empty (no machine network CIDR).
+	// +kubebuilder:validation:MaxItems=1
+	// +optional
+	MachineNetwork []hyperv1.MachineNetworkEntry `json:"machineNetwork,omitempty"`
+}
+
 // DPUClusterReference defines a cross-namespace reference to a DPUCluster CR
 type DPUClusterReference struct {
 	// Name is the name of the DPUCluster CR
@@ -155,6 +179,16 @@ type DPFHCPProvisionerSpec struct {
 	// This URL replaces the default OS image URL in the HyperShift-generated ignition
 	// +optional
 	MachineOSURL string `json:"machineOSURL,omitempty"`
+
+	// Networking defines the network CIDR configuration for the hosted cluster.
+	// When not specified, defaults are used: ServiceNetwork 172.31.0.0/16,
+	// ClusterNetwork 10.132.0.0/14, MachineNetwork empty.
+	// NetworkType is always set to "Other" for DPU environments.
+	// This field is immutable.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="networking is immutable"
+	// +immutable
+	// +optional
+	Networking *ClusterNetworkConfig `json:"networking,omitempty"`
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
