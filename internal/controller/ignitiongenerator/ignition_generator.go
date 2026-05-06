@@ -81,6 +81,8 @@ const (
 	bfcfgTemplateDPUFlavorNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-name"
 	// bfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
 	bfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
+	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
+	bfcfgTemplateMachineOSURLAnnotation = dpuProvisioningPrefix + "bfcfg-template-machine-os-url"
 )
 
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
@@ -242,7 +244,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 
 	// Step 5: Create/Update ConfigMap
 	log.V(1).Info("Creating/Updating ConfigMap")
-	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition); err != nil {
+	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, machineOSURL); err != nil {
 		return fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
@@ -517,7 +519,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 }
 
 // createOrUpdateConfigMap creates or updates the ignition ConfigMap in DPUCluster namespace
-func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *igntypes.Config) error {
+func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *igntypes.Config, machineOSURL string) error {
 	log := logf.FromContext(ctx)
 
 	// Marshal live ignition to JSON
@@ -536,6 +538,7 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 	annotations := map[string]string{
 		bfcfgTemplateClusterNameAnnotation:      cr.Spec.DPUClusterRef.Name,
 		bfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
+		bfcfgTemplateMachineOSURLAnnotation:     machineOSURL,
 	}
 	if cr.Spec.DPUDeploymentRef != nil {
 		dpuDeployment, err := ig.getDPUDeployment(ctx, cr)
