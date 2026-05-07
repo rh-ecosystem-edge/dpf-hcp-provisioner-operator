@@ -33,9 +33,9 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("install-dpu-agent.sh"),
 			},
 			{
-				Path:          "/usr/local/bin/devlink-activate.sh",
+				Path:          "/usr/local/bin/setup-vfs-devlink.sh",
 				Mode:          0755,
-				ContentSource: f("devlink-activate.sh"),
+				ContentSource: f("setup-vfs-devlink.sh"),
 			},
 			{
 				Path:          "/etc/mellanox/mlnx-bf.conf",

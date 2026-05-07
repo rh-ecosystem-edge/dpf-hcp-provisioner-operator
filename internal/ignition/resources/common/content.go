@@ -35,6 +35,11 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("oob_net0.nmconnection"),
 			},
 			{
+				Path:          "/usr/local/bin/dpuagent-client.py",
+				Mode:          0755,
+				ContentSource: f("dpuagent-client.py"),
+			},
+			{
 				Path:          "/usr/local/bin/bflog.sh",
 				Mode:          0755,
 				ContentSource: f("bflog.sh"),

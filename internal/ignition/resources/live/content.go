@@ -39,11 +39,6 @@ func NewProvider() *content.EmbeddedProvider {
 					"DPUUID={{.DPUUID}}" + nl,
 			},
 			{
-				Path:          "/usr/local/bin/dpuagent-client.py",
-				Mode:          0755,
-				ContentSource: f("dpuagent-client.py"),
-			},
-			{
 				Path:          "/usr/local/bin/install-rhcos-dpf.sh",
 				Mode:          0755,
 				ContentSource: f("install-rhcos-dpf.sh"),

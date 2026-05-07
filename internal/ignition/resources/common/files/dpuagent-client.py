@@ -57,6 +57,25 @@ def update_host_reboot():
     })
 
 
+def update_nvconfig_applied():
+    boot_id = open("/proc/sys/kernel/random/boot_id").read().strip()
+    return base_request("POST", "/update-status", {
+        "dpuName": DPU_NAME,
+        "dpuNamespace": DPU_NAMESPACE,
+        "dpuUID": DPU_UID,
+        "agentStatus": {
+            "initialBootID": boot_id,
+            "conditions": [{
+                "type": "NVConfigApplied",
+                "status": "True",
+                "reason": "AppliedByInstallScript",
+                "message": "NVConfig applied during live RHCOS installation",
+                "lastTransitionTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            }],
+        },
+    })
+
+
 def update_time():
     return base_request("POST", "/update-status", {
         "dpuName": DPU_NAME,
@@ -68,10 +87,29 @@ def update_time():
     })
 
 
+def send_error(reason, message):
+    return base_request("POST", "/update-status", {
+        "dpuName": DPU_NAME,
+        "dpuNamespace": DPU_NAMESPACE,
+        "dpuUID": DPU_UID,
+        "agentStatus": {
+            "conditions": [{
+                "type": "InstallError",
+                "status": "True",
+                "reason": reason,
+                "message": message[:4096],
+                "lastTransitionTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            }],
+        },
+    })
+
+
 COMMANDS = {
     "configure-host-vfs": configure_host_vfs,
     "update-host-reboot": update_host_reboot,
+    "update-nvconfig-applied": update_nvconfig_applied,
     "update-time": update_time,
+    "send-error": lambda: send_error(sys.argv[2], sys.argv[3]),
 }
 
 if __name__ == "__main__":
