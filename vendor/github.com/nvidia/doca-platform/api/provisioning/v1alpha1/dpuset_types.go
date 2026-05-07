@@ -95,16 +95,9 @@ type DPUSetStrategy struct {
 type RollingUpdateDPU struct {
 	// MaxUnavailable is the maximum number of DPUs that can be unavailable during the update.
 	//
-	// Deprecated: This field is deprecated and will be removed with v26.4.0.
+	// Deprecated: This field is deprecated and will be removed with v26.7.0.
 	// +optional
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
-}
-
-// BlueFieldSoftwareReference is a reference to a specific BlueFieldSoftware
-type BlueFieldSoftwareReference struct {
-	// Specifies name of the BlueFieldSoftware CR to use for this DPU
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name,omitempty"`
 }
 
 // BFBReference is a reference to a specific BFB
@@ -126,9 +119,6 @@ type ClusterSpec struct {
 type DPUTemplateSpec struct {
 	// Specifies a BFB CR
 	BFB BFBReference `json:"bfb,omitempty"`
-	// Specifies a BlueFieldSoftware CR
-	// +optional
-	BlueFieldSoftware *BlueFieldSoftwareReference `json:"blueFieldSoftware,omitempty"`
 	// Specifies how changes to the DPU should affect the Node
 	// +required
 	NodeEffect NodeEffect `json:"nodeEffect"`
@@ -139,9 +129,6 @@ type DPUTemplateSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	DPUFlavor string `json:"dpuFlavor"`
-	// AstraEnabled indicates whether E/W NIC configuration (Astra) is enabled
-	// +optional
-	AstraEnabled *bool `json:"astraEnabled,omitempty"`
 	// SecureBoot specifies whether UEFI Secure Boot should be enabled.
 	// +optional
 	SecureBoot *bool `json:"secureBoot,omitempty"`
@@ -320,14 +307,6 @@ type DPUSet struct {
 
 	Spec   DPUSetSpec   `json:"spec,omitempty"`
 	Status DPUSetStatus `json:"status,omitempty"`
-}
-
-// IsAstraEnabledForNonBlueField4 returns true if Astra is enabled on this DPUSet
-// and the target DPUDevice is not a BlueField4.
-func (c *DPUSet) IsAstraEnabledForNonBlueField4(dpuDevice DPUDevice) bool {
-	return c.Spec.DPUTemplate.Spec.AstraEnabled != nil &&
-		*c.Spec.DPUTemplate.Spec.AstraEnabled &&
-		dpuDevice.Status.DPUType != DPUTypeBlueField4
 }
 
 // +kubebuilder:object:root=true

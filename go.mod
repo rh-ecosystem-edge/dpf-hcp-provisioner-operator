@@ -5,7 +5,7 @@ go 1.25.6
 require (
 	github.com/coreos/ignition/v2 v2.26.0
 	github.com/google/go-containerregistry v0.21.2
-	github.com/nvidia/doca-platform v0.0.0-20260428072533-ac117243d68d
+	github.com/nvidia/doca-platform v0.0.0-20260507043605-b1192d60f2cc
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/openshift/hypershift v0.1.71
@@ -22,7 +22,6 @@ require (
 require (
 	cel.dev/expr v0.25.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
-	github.com/Mellanox/nic-configuration-operator v1.3.2-0.20260319154659-15edbc851cce // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

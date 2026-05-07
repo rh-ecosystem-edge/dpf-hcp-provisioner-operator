@@ -92,6 +92,7 @@ const (
 	DPUCondFWConfigured           DPUConditionType = "FWConfigured"
 	DPUCondBFBTransferred         DPUConditionType = "BFBTransferred"
 	DPUCondOSInstalled            DPUConditionType = "OSInstalled"
+	DPUConditionHostPowerCycle    DPUConditionType = "HostPowerCycle"
 	DPUCondRebooted               DPUConditionType = "Rebooted"
 	DPUCondHostNetworkReady       DPUConditionType = "HostNetworkReady"
 	DPUCondDPUClusterReady        DPUConditionType = "DPUClusterReady"
@@ -257,10 +258,6 @@ type DPUSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	DPUFlavor string `json:"dpuFlavor"`
-
-	// AstraEnabled indicates whether E/W NIC configuration (Astra) is enabled
-	// +optional
-	AstraEnabled *bool `json:"astraEnabled,omitempty"`
 
 	// SecureBoot specifies whether UEFI Secure Boot should be enabled.
 	// +optional

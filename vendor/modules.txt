@@ -4,9 +4,6 @@ cel.dev/expr
 # github.com/Masterminds/semver/v3 v3.4.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
-# github.com/Mellanox/nic-configuration-operator v1.3.2-0.20260319154659-15edbc851cce
-## explicit; go 1.24.11
-github.com/Mellanox/nic-configuration-operator/api/v1alpha1
 # github.com/antlr4-go/antlr/v4 v4.13.1
 ## explicit; go 1.22
 github.com/antlr4-go/antlr/v4
@@ -224,7 +221,7 @@ github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
-# github.com/nvidia/doca-platform v0.0.0-20260428072533-ac117243d68d
+# github.com/nvidia/doca-platform v0.0.0-20260507043605-b1192d60f2cc
 ## explicit; go 1.25.0
 github.com/nvidia/doca-platform/api/dpuservice/v1alpha1
 github.com/nvidia/doca-platform/api/operator/v1alpha1
