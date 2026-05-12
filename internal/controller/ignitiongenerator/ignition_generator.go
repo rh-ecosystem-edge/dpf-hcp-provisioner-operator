@@ -213,8 +213,14 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 
 	var mtu = uint16(*dpfOperatorConfig.Spec.Networking.ControlPlaneMTU)
 
-	// Use spec.machineOSURL if set, otherwise fall back to status.blueFieldOCPLayerImage (from OCP layer lookup)
-	machineOSURL := cr.Spec.MachineOSURL
+	// Image URL priority:
+	// 1. status.cachedMachineOSURL (cached in internal registry) - best for DPU provisioning
+	// 2. spec.machineOSURL (user-specified external URL)
+	// 3. status.blueFieldOCPLayerImage (auto-discovered from OCP layer lookup)
+	machineOSURL := cr.Status.CachedMachineOSURL
+	if machineOSURL == "" {
+		machineOSURL = cr.Spec.MachineOSURL
+	}
 	if machineOSURL == "" {
 		machineOSURL = cr.Status.BlueFieldOCPLayerImage
 	}

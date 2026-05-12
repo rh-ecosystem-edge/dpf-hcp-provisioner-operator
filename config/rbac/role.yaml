@@ -84,6 +84,14 @@ rules:
   verbs:
   - get
 - apiGroups:
+  - imageregistry.operator.openshift.io
+  resources:
+  - configs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - metallb.io
   resources:
   - ipaddresspools
@@ -154,6 +162,14 @@ rules:
   resources:
   - dpuflavors
   - dpus
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
   verbs:
   - get
   - list
