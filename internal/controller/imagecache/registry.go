@@ -18,7 +18,9 @@ package imagecache
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -95,6 +97,15 @@ func checkRegistryAvailability(ctx context.Context, c client.Client) (*RegistryI
 	return &RegistryInfo{Hostname: hostname}, nil
 }
 
+// insecureTransport returns an http.Transport that skips TLS verification.
+// Used for the OpenShift internal registry whose route uses the cluster's
+// self-signed ingress certificate.
+func insecureTransport() *http.Transport {
+	return &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- internal registry only
+	}
+}
+
 // compareImageDigests compares the digests of the source and cached images.
 // Returns true if digests match (cache is valid), false otherwise.
 func compareImageDigests(ctx context.Context, sourceURL, cachedURL string, externalKeychain, internalKeychain authn.Keychain) (bool, error) {
@@ -119,7 +130,7 @@ func compareImageDigests(ctx context.Context, sourceURL, cachedURL string, exter
 		return false, nil
 	}
 
-	cachedDesc, err := remote.Head(cachedRef, remote.WithAuthFromKeychain(internalKeychain), remote.WithContext(ctx))
+	cachedDesc, err := remote.Head(cachedRef, remote.WithAuthFromKeychain(internalKeychain), remote.WithContext(ctx), remote.WithTransport(insecureTransport()))
 	if err != nil {
 		log.V(1).Info("Failed to fetch cached image digest, will re-cache", "error", err)
 		return false, nil
@@ -183,7 +194,8 @@ func mirrorImage(ctx context.Context, sourceURL string, registry *RegistryInfo, 
 	log.Info("Pushing image to internal registry")
 	err = remote.Write(targetRef, img,
 		remote.WithAuthFromKeychain(internalKeychain),
-		remote.WithContext(ctx))
+		remote.WithContext(ctx),
+		remote.WithTransport(insecureTransport()))
 	if err != nil {
 		return "", &ImagePushError{URL: targetURL, Err: err}
 	}
