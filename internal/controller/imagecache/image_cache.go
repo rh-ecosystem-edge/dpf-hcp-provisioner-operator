@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -38,14 +40,25 @@ import (
 )
 
 const (
-	// operatorNamespace is where the operator SA lives for internal registry auth
-	operatorNamespace = "dpf-hcp-provisioner-system"
-
 	// Exponential backoff durations for retries
 	initialBackoff = 30 * time.Second
 	maxBackoff     = 10 * time.Minute
 	maxRetries     = 5
 )
+
+// resolveOperatorNamespace determines the namespace the operator is running in.
+// Prefers POD_NAMESPACE (set via the downward API) and falls back to the
+// in-cluster serviceaccount namespace file.
+func resolveOperatorNamespace() (string, error) {
+	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
+		return ns, nil
+	}
+	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return "", fmt.Errorf("unable to determine operator namespace: %w", err)
+	}
+	return strings.TrimSpace(string(data)), nil
+}
 
 // GVKs for unstructured lookups (avoids importing operator and route APIs)
 var (
@@ -88,8 +101,12 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	}
 	if sourceURL == "" {
 		log.V(1).Info("No image URL available for caching, skipping")
-		ic.setSkipCondition(cr, provisioningv1alpha1.ReasonRegistryNotAvailable,
+		ic.setSkipCondition(cr, provisioningv1alpha1.ReasonNoUpstreamURL,
 			"No image URL available for caching (machineOSURL and blueFieldOCPLayerImage are both empty)")
+		if err := ic.Client.Status().Update(ctx, cr); err != nil {
+			log.Error(err, "Failed to persist ImageCached skip condition")
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -104,6 +121,10 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 				fmt.Sprintf("Internal registry not available: %s. Using external URL directly.", registryErr.Reason))
 			ic.Recorder.Event(cr, corev1.EventTypeNormal, "ImageCachingSkipped",
 				fmt.Sprintf("Image caching skipped: %s", registryErr.Reason))
+			if err := ic.Client.Status().Update(ctx, cr); err != nil {
+				log.Error(err, "Failed to persist ImageCached skip condition")
+				return ctrl.Result{}, err
+			}
 			return ctrl.Result{}, nil
 		}
 		// Unexpected error checking registry
@@ -159,12 +180,29 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 		log.Error(err, "Failed to build external keychain")
 		ic.setErrorCondition(cr, provisioningv1alpha1.ReasonRegistryAuthFailed,
 			fmt.Sprintf("Failed to build external registry keychain: %v", err))
+		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
+			log.Error(updateErr, "Failed to update status after keychain failure")
+		}
+		ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheFailed",
+			fmt.Sprintf("Failed to build external registry keychain: %v", err))
 		return ctrl.Result{RequeueAfter: initialBackoff}, nil
 	}
 	internalKeychain := ic.buildInternalKeychain()
 
+	// Step 6.5: Resolve operator namespace for target image reference
+	opNamespace, err := resolveOperatorNamespace()
+	if err != nil {
+		log.Error(err, "Failed to resolve operator namespace")
+		ic.setErrorCondition(cr, provisioningv1alpha1.ReasonCacheFailed,
+			fmt.Sprintf("Failed to resolve operator namespace: %v", err))
+		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
+			log.Error(updateErr, "Failed to update status after namespace resolution failure")
+		}
+		return ctrl.Result{RequeueAfter: initialBackoff}, nil
+	}
+
 	// Step 7: Mirror image
-	targetURL, err := mirrorImage(ctx, sourceURL, registryInfo, operatorNamespace, externalKeychain, internalKeychain)
+	targetURL, err := mirrorImage(ctx, sourceURL, registryInfo, opNamespace, externalKeychain, internalKeychain)
 	if err != nil {
 		var pullErr *ImagePullError
 		var pushErr *ImagePushError
@@ -254,8 +292,27 @@ func (ic *ImageCache) buildExternalKeychain(ctx context.Context, cr *provisionin
 	return bfocplookup.NewKeychainFromDockerConfig(dockerConfigJSON)
 }
 
-// buildInternalKeychain creates an authn.Keychain for the internal registry.
-// Uses the operator's ServiceAccount token mounted at the standard path.
+// buildInternalKeychain creates an authn.Keychain backed by the operator's
+// ServiceAccount token mounted at the standard Kubernetes path.
 func (ic *ImageCache) buildInternalKeychain() authn.Keychain {
-	return authn.DefaultKeychain
+	token, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		// Fallback if token cannot be read (non-fatal for graceful degradation)
+		logf.Log.Error(err, "Failed to read serviceaccount token, falling back to DefaultKeychain")
+		return authn.DefaultKeychain
+	}
+	auth := authn.FromConfig(authn.AuthConfig{
+		Username: "serviceaccount",
+		Password: strings.TrimSpace(string(token)),
+	})
+	return &staticKeychain{auth: auth}
+}
+
+// staticKeychain implements authn.Keychain with a single static Authenticator.
+type staticKeychain struct {
+	auth authn.Authenticator
+}
+
+func (s *staticKeychain) Resolve(_ authn.Resource) (authn.Authenticator, error) {
+	return s.auth, nil
 }

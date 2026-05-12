@@ -320,6 +320,9 @@ const (
 	// ReasonImageCached indicates the image was successfully cached to the internal registry.
 	ReasonImageCached string = "ImageCached"
 
+	// ReasonNoUpstreamURL indicates neither machineOSURL nor blueFieldOCPLayerImage is populated.
+	ReasonNoUpstreamURL string = "NoUpstreamURL"
+
 	// ReasonRegistryNotAvailable indicates the internal registry is not configured or not available.
 	ReasonRegistryNotAvailable string = "RegistryNotAvailable"
 

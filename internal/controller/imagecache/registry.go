@@ -149,11 +149,19 @@ func mirrorImage(ctx context.Context, sourceURL string, registry *RegistryInfo, 
 	parts := strings.Split(repoPath, "/")
 	repoName := parts[len(parts)-1]
 
-	targetURL := fmt.Sprintf("%s/%s/%s:%s",
+	// Determine the correct separator: digests use "@", tags use ":"
+	identifier := sourceRef.Identifier()
+	separator := ":"
+	if strings.HasPrefix(identifier, "sha256:") || strings.HasPrefix(identifier, "sha512:") {
+		separator = "@"
+	}
+
+	targetURL := fmt.Sprintf("%s/%s/%s%s%s",
 		registry.Hostname,
 		operatorNamespace,
 		repoName,
-		sourceRef.Identifier())
+		separator,
+		identifier)
 
 	targetRef, err := name.ParseReference(targetURL)
 	if err != nil {
