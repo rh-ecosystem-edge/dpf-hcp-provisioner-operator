@@ -285,7 +285,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Feature: Image Caching (Opportunistic)
 	// Cache machineOSURL image to internal registry if available
 	// This runs before ignition generation so the cached URL can be used in ignition
-	if result, err := r.cacheImage(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+	if result, err := r.cacheImage(ctx, &cr); err != nil || result.Requeue || result.RequeueAfter > 0 {
 		return result, err
 	}
 
