@@ -767,12 +767,28 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 	return result, err
 }
 
-// cacheImage runs the image caching feature if the CR is in the ImageCaching phase.
+// cacheImage runs the image caching feature when prerequisites are met.
+// Prerequisites: HostedCluster available + kubeconfig injected + image not yet cached.
+// This checks conditions directly rather than relying on the phase field, because
+// updatePhaseFromConditions() runs after this in the reconcile loop.
 func (r *DPFHCPProvisionerReconciler) cacheImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	if cr.Status.Phase != provisioningv1alpha1.PhaseImageCaching {
-		log.V(1).Info("Skipping image caching", "phase", cr.Status.Phase)
+	// Check prerequisites: HC must be available and kubeconfig injected
+	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
+	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+
+	if hcAvailable == nil || hcAvailable.Status != metav1.ConditionTrue ||
+		kcInjected == nil || kcInjected.Status != metav1.ConditionTrue {
+		log.V(1).Info("Skipping image caching - prerequisites not met")
+		return ctrl.Result{}, nil
+	}
+
+	// Check if image caching is needed
+	imageCached := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.ImageCached)
+	if imageCached != nil && imageCached.Status == metav1.ConditionTrue &&
+		imageCached.ObservedGeneration == cr.Generation {
+		log.V(1).Info("Image already cached, skipping")
 		return ctrl.Result{}, nil
 	}
 
