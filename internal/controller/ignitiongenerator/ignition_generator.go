@@ -229,10 +229,10 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 			Type:               provisioningv1alpha1.IgnitionConfigured,
 			Status:             metav1.ConditionFalse,
 			Reason:             "MachineOSURLMissing",
-			Message:            "No machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set",
+			Message:            "No machine OS URL available: status.cachedMachineOSURL, spec.machineOSURL, and status.blueFieldOCPLayerImage are all empty",
 			ObservedGeneration: cr.Generation,
 		})
-		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
+		return fmt.Errorf("no machine OS URL available: status.cachedMachineOSURL, spec.machineOSURL, and status.blueFieldOCPLayerImage are all empty")
 	}
 
 	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu)

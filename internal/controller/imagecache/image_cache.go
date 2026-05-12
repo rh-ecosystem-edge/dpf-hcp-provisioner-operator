@@ -40,10 +40,8 @@ import (
 )
 
 const (
-	// Exponential backoff durations for retries
+	// Exponential backoff duration for initial retry
 	initialBackoff = 30 * time.Second
-	maxBackoff     = 10 * time.Minute
-	maxRetries     = 5
 )
 
 // resolveOperatorNamespace determines the namespace the operator is running in.
