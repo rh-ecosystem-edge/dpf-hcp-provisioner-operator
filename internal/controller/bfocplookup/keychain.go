@@ -43,10 +43,41 @@ func NewKeychainFromDockerConfig(dockerConfigJSON []byte) (authn.Keychain, error
 	return &dockerConfigKeychain{auths: config.Auths}, nil
 }
 
-// Resolve looks up credentials for the given registry in the docker config
+// Resolve looks up credentials for the given registry in the docker config.
+// It tries the most specific match first (registry + path) then falls back to
+// registry-only, matching Docker/podman behavior for scoped credentials.
 func (k *dockerConfigKeychain) Resolve(target authn.Resource) (authn.Authenticator, error) {
-	if authConfig, ok := k.auths[target.RegistryStr()]; ok {
+	registry := target.RegistryStr()
+	repo := target.String() // e.g. "quay.io/edge-infrastructure/bluefield-ocp"
+
+	// Try most-specific match first (registry/org/repo, registry/org)
+	// Walk up from the full repo path to just the registry
+	for path := repo; path != ""; {
+		if authConfig, ok := k.auths[path]; ok {
+			return authn.FromConfig(authConfig), nil
+		}
+		// Strip last path component
+		if i := lastSlash(path); i >= 0 {
+			path = path[:i]
+		} else {
+			break
+		}
+	}
+
+	// Try exact registry match
+	if authConfig, ok := k.auths[registry]; ok {
 		return authn.FromConfig(authConfig), nil
 	}
+
 	return authn.Anonymous, nil
+}
+
+// lastSlash returns the index of the last '/' in s, or -1 if not found.
+func lastSlash(s string) int {
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] == '/' {
+			return i
+		}
+	}
+	return -1
 }
