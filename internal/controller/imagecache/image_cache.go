@@ -92,7 +92,10 @@ func NewImageCache(c client.Client, recorder record.EventRecorder) *ImageCache {
 func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "image-cache")
 
-	// Step 1: Determine image source URL
+	// Step 1: Determine image source URL.
+	// Spec.MachineOSURL is an optional user-provided override (e.g., custom build, private registry).
+	// Status.BlueFieldOCPLayerImage is the auto-discovered URL from the bfocplookup controller.
+	// The user override takes priority; auto-discovered URL is the fallback.
 	sourceURL := cr.Spec.MachineOSURL
 	if sourceURL == "" {
 		sourceURL = cr.Status.BlueFieldOCPLayerImage
