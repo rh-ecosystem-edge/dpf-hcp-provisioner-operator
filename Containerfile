@@ -10,7 +10,7 @@ WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
-RUN go mod download
+COPY vendor/ vendor/
 
 # Copy the go source
 COPY cmd/main.go cmd/main.go
