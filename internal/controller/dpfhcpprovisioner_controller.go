@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -282,6 +283,9 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return result, err
 	}
 
+	// Verify ignition ConfigMap still exists (self-heal on external deletion)
+	r.verifyIgnitionConfigMap(ctx, &cr)
+
 	// Compute Ready condition based on all operational requirements
 	// This must run AFTER all features have updated their conditions
 	// (HostedClusterAvailable, KubeConfigInjected, etc.)
@@ -334,6 +338,11 @@ func (r *DPFHCPProvisionerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&provisioningv1alpha1.DPFHCPProvisionerConfig{},
 			handler.EnqueueRequestsFromMapFunc(r.configToRequests),
 			builder.WithPredicates(configPredicate()),
+		).
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.ignitionConfigMapToRequests),
+			builder.WithPredicates(ignitionConfigMapPredicate()),
 		).
 		Named("dpfhcpprovisioner").
 		Complete(r)
@@ -547,6 +556,107 @@ func (r *DPFHCPProvisionerReconciler) configToRequests(ctx context.Context, obj 
 	}
 
 	return requests
+}
+
+// ignitionConfigMapPredicate filters ConfigMap events to only react to ignition bfcfg template ConfigMaps.
+// Only Delete events are processed since the reconciler re-creates missing ConfigMaps.
+func ignitionConfigMapPredicate() predicate.Predicate {
+	isBfcfgTemplate := func(labels map[string]string) bool {
+		return labels != nil && labels[ignitiongenerator.BfcfgTemplateLabel] == "true"
+	}
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return isBfcfgTemplate(e.Object.GetLabels())
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
+}
+
+// ignitionConfigMapToRequests maps ignition ConfigMap delete events to reconcile requests
+// for the DPFHCPProvisioner CR that owns the ConfigMap.
+func (r *DPFHCPProvisionerReconciler) ignitionConfigMapToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		return nil
+	}
+
+	dpuClusterName := annotations[ignitiongenerator.BfcfgTemplateClusterNameAnnotation]
+	dpuClusterNamespace := annotations[ignitiongenerator.BfcfgTemplateClusterNamespaceAnnotation]
+	if dpuClusterName == "" || dpuClusterNamespace == "" {
+		return nil
+	}
+
+	var provisionerList provisioningv1alpha1.DPFHCPProvisionerList
+	if err := r.List(ctx, &provisionerList); err != nil {
+		log.Error(err, "Failed to list DPFHCPProvisioner CRs for ignition ConfigMap watch")
+		return nil
+	}
+
+	for _, provisioner := range provisionerList.Items {
+		if provisioner.Spec.DPUClusterRef.Name == dpuClusterName &&
+			provisioner.Spec.DPUClusterRef.Namespace == dpuClusterNamespace {
+			log.Info("Ignition ConfigMap deleted, reconciling DPFHCPProvisioner",
+				"configmap", obj.GetName(),
+				"configmapNamespace", obj.GetNamespace(),
+				"provisioner", provisioner.Name,
+				"provisionerNamespace", provisioner.Namespace)
+			return []reconcile.Request{{
+				NamespacedName: types.NamespacedName{
+					Name:      provisioner.Name,
+					Namespace: provisioner.Namespace,
+				},
+			}}
+		}
+	}
+
+	return nil
+}
+
+// verifyIgnitionConfigMap checks that the ignition ConfigMap still exists when IgnitionConfigured=True.
+// If the ConfigMap was deleted externally, this clears IgnitionConfigured so the reconciler
+// re-enters the IgnitionGenerating phase and re-creates it.
+func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) {
+	log := logf.FromContext(ctx)
+
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue {
+		return
+	}
+
+	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
+	cmNamespace := cr.Spec.DPUClusterRef.Namespace
+
+	cm := &corev1.ConfigMap{}
+	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNamespace}, cm)
+	if err == nil {
+		return
+	}
+	if client.IgnoreNotFound(err) != nil {
+		log.Error(err, "Failed to verify ignition ConfigMap existence", "configmap", cmName, "namespace", cmNamespace)
+		return
+	}
+
+	log.Info("Ignition ConfigMap was deleted externally, clearing IgnitionConfigured condition",
+		"configmap", cmName, "namespace", cmNamespace)
+	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		Type:               provisioningv1alpha1.IgnitionConfigured,
+		Status:             metav1.ConditionFalse,
+		Reason:             "ConfigMapDeleted",
+		Message:            fmt.Sprintf("Ignition ConfigMap %s was deleted, will regenerate", cmName),
+		ObservedGeneration: cr.Generation,
+	})
+	r.Recorder.Event(cr, corev1.EventTypeWarning, "IgnitionConfigMapDeleted",
+		fmt.Sprintf("Ignition ConfigMap %s/%s was deleted externally, triggering regeneration", cmNamespace, cmName))
 }
 
 // conditionsEqual compares two condition slices for equality

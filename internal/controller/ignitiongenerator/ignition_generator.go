@@ -67,16 +67,17 @@ const (
 	// Copied from github.com/nvidia/doca-platform/internal/provisioning/controllers/util
 	// (cannot be imported because it is internal)
 	dpuProvisioningPrefix = "provisioning.dpu.nvidia.com/"
-	// bfcfgTemplateLabel is the label on a bf.cfg template ConfigMap.
-	bfcfgTemplateLabel = dpuProvisioningPrefix + "bfcfg-template"
+	// BfcfgTemplateLabel is the label on a bf.cfg template ConfigMap.
+	BfcfgTemplateLabel = dpuProvisioningPrefix + "bfcfg-template"
+	// BfcfgTemplateClusterNameAnnotation is the annotation specifying the target DPUCluster name.
+	BfcfgTemplateClusterNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-cluster-name"
+	// BfcfgTemplateClusterNamespaceAnnotation is the annotation specifying the target DPUCluster namespace.
+	BfcfgTemplateClusterNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-cluster-namespace"
+
 	// bfcfgTemplateBFBNameAnnotation is the annotation specifying the target BFB name.
 	bfcfgTemplateBFBNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-name"
 	// bfcfgTemplateBFBNamespaceAnnotation is the annotation specifying the target BFB namespace.
 	bfcfgTemplateBFBNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-namespace"
-	// bfcfgTemplateClusterNameAnnotation is the annotation specifying the target DPUCluster name.
-	bfcfgTemplateClusterNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-cluster-name"
-	// bfcfgTemplateClusterNamespaceAnnotation is the annotation specifying the target DPUCluster namespace.
-	bfcfgTemplateClusterNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-cluster-namespace"
 	// bfcfgTemplateDPUFlavorNameAnnotation is the annotation specifying the target DPUFlavor name.
 	bfcfgTemplateDPUFlavorNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-name"
 	// bfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
@@ -84,6 +85,11 @@ const (
 	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
 	bfcfgTemplateMachineOSURLAnnotation = dpuProvisioningPrefix + "bfcfg-template-machine-os-url"
 )
+
+// ConfigMapName returns the expected ignition ConfigMap name for a given DPUCluster.
+func ConfigMapName(dpuClusterName string) string {
+	return fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, dpuClusterName)
+}
 
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
 type IgnitionGenerator struct {
@@ -528,16 +534,16 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 		return fmt.Errorf("failed to marshal live ignition: %w", err)
 	}
 
-	cmName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
+	cmName := ConfigMapName(cr.Spec.DPUClusterRef.Name)
 	cmNamespace := cr.Spec.DPUClusterRef.Namespace
 
 	// Build labels and annotations required by the DPF provisioning controller
 	labels := map[string]string{
-		bfcfgTemplateLabel: "true",
+		BfcfgTemplateLabel: "true",
 	}
 	annotations := map[string]string{
-		bfcfgTemplateClusterNameAnnotation:      cr.Spec.DPUClusterRef.Name,
-		bfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
+		BfcfgTemplateClusterNameAnnotation:      cr.Spec.DPUClusterRef.Name,
+		BfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
 		bfcfgTemplateMachineOSURLAnnotation:     machineOSURL,
 	}
 	if cr.Spec.DPUDeploymentRef != nil {

@@ -671,11 +671,11 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(cm.Data).To(HaveKey(configMapKeyName))
 
 		// Verify labels
-		Expect(cm.Labels).To(HaveKeyWithValue(bfcfgTemplateLabel, "true"))
+		Expect(cm.Labels).To(HaveKeyWithValue(BfcfgTemplateLabel, "true"))
 
 		// Verify annotations
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
@@ -708,9 +708,9 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(cm.Data[configMapKeyName]).NotTo(Equal("old-data"))
 
 		// Verify labels and annotations are set on update
-		Expect(cm.Labels).To(HaveKeyWithValue(bfcfgTemplateLabel, "true"))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
+		Expect(cm.Labels).To(HaveKeyWithValue(BfcfgTemplateLabel, "true"))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
@@ -773,11 +773,11 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
 
 		// Label should still be present
-		Expect(cm.Labels).To(HaveKeyWithValue(bfcfgTemplateLabel, "true"))
+		Expect(cm.Labels).To(HaveKeyWithValue(BfcfgTemplateLabel, "true"))
 
 		// Cluster annotations should be present
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 
 		// BFB and DPUFlavor annotations should NOT be present
