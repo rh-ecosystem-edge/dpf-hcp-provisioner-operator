@@ -787,10 +787,17 @@ func (r *DPFHCPProvisionerReconciler) cacheImage(ctx context.Context, cr *provis
 
 	// Check if image caching is needed
 	imageCached := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.ImageCached)
-	if imageCached != nil && imageCached.Status == metav1.ConditionTrue &&
-		imageCached.ObservedGeneration == cr.Generation {
-		log.V(1).Info("Image already cached, skipping")
-		return ctrl.Result{}, nil
+	if imageCached != nil && imageCached.ObservedGeneration == cr.Generation {
+		if imageCached.Status == metav1.ConditionTrue {
+			log.V(1).Info("Image already cached, skipping")
+			return ctrl.Result{}, nil
+		}
+		// CacheFailed means we exhausted retries for this generation —
+		// proceed with the external URL (opportunistic caching).
+		if imageCached.Reason == provisioningv1alpha1.ReasonCacheFailed {
+			log.V(1).Info("Image caching permanently failed for this generation, skipping")
+			return ctrl.Result{}, nil
+		}
 	}
 
 	log.V(1).Info("Running image caching feature")

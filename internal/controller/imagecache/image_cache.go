@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,6 +43,16 @@ import (
 const (
 	// Exponential backoff duration for initial retry
 	initialBackoff = 30 * time.Second
+
+	// maxCacheRetries is the maximum number of mirror failures before
+	// the caching feature gives up and lets provisioning proceed with
+	// the external URL directly.  This preserves the "opportunistic"
+	// design: caching is best-effort and must never block indefinitely.
+	maxCacheRetries = 5
+
+	// cacheRetryAnnotation tracks the number of consecutive mirror failures.
+	// Using an annotation avoids an API-type change and is reset on success.
+	cacheRetryAnnotation = "dpf.nvidia.com/image-cache-retries"
 )
 
 // resolveOperatorNamespace determines the namespace the operator is running in.
@@ -102,7 +113,7 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	}
 	if sourceURL == "" {
 		log.V(1).Info("No image URL available for caching, skipping")
-		ic.setSkipCondition(cr, provisioningv1alpha1.ReasonNoUpstreamURL,
+		ic.setConditionFalse(cr, provisioningv1alpha1.ReasonNoUpstreamURL,
 			"No image URL available for caching (machineOSURL and blueFieldOCPLayerImage are both empty)")
 		if err := ic.Client.Status().Update(ctx, cr); err != nil {
 			log.Error(err, "Failed to persist ImageCached skip condition")
@@ -118,7 +129,7 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 		if errors.As(err, &registryErr) {
 			// Registry not available - skip gracefully
 			log.Info("Internal registry not available, skipping image caching", "reason", registryErr.Reason)
-			ic.setSkipCondition(cr, registryErr.ConditionReason,
+			ic.setConditionFalse(cr, registryErr.ConditionReason,
 				fmt.Sprintf("Internal registry not available: %s. Using external URL directly.", registryErr.Reason))
 			ic.Recorder.Event(cr, corev1.EventTypeNormal, "ImageCachingSkipped",
 				fmt.Sprintf("Image caching skipped: %s", registryErr.Reason))
@@ -179,7 +190,7 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	externalKeychain, err := ic.buildExternalKeychain(ctx, cr)
 	if err != nil {
 		log.Error(err, "Failed to build external keychain")
-		ic.setErrorCondition(cr, provisioningv1alpha1.ReasonRegistryAuthFailed,
+		ic.setConditionFalse(cr, provisioningv1alpha1.ReasonRegistryAuthFailed,
 			fmt.Sprintf("Failed to build external registry keychain: %v", err))
 		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
 			log.Error(updateErr, "Failed to update status after keychain failure")
@@ -194,7 +205,7 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	opNamespace, err := resolveOperatorNamespace()
 	if err != nil {
 		log.Error(err, "Failed to resolve operator namespace")
-		ic.setErrorCondition(cr, provisioningv1alpha1.ReasonCacheFailed,
+		ic.setConditionFalse(cr, provisioningv1alpha1.ReasonCacheFailed,
 			fmt.Sprintf("Failed to resolve operator namespace: %v", err))
 		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
 			log.Error(updateErr, "Failed to update status after namespace resolution failure")
@@ -218,17 +229,48 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 			reason = provisioningv1alpha1.ReasonCacheFailed
 		}
 
-		log.Error(err, "Image mirror failed", "reason", reason)
-		ic.setErrorCondition(cr, reason, fmt.Sprintf("Image caching failed: %v", err))
-		if err := ic.Client.Status().Update(ctx, cr); err != nil {
-			log.Error(err, "Failed to update status after mirror failure")
+		// Track retry count via annotation so we can give up after maxCacheRetries
+		retries := getCacheRetryCount(cr) + 1
+		log.Error(err, "Image mirror failed", "reason", reason, "attempt", retries, "maxRetries", maxCacheRetries)
+
+		if retries >= maxCacheRetries {
+			// Exceeded max retries — give up on caching and let provisioning
+			// proceed with the external URL (opportunistic design).
+			log.Info("Max cache retries exceeded, skipping image caching permanently for this generation",
+				"retries", retries)
+			ic.setConditionFalse(cr, provisioningv1alpha1.ReasonCacheFailed,
+				fmt.Sprintf("Image caching failed after %d attempts, proceeding with external URL: %v", retries, err))
+			clearCacheRetryCount(cr)
+			if updateErr := ic.Client.Update(ctx, cr); updateErr != nil {
+				log.Error(updateErr, "Failed to clear retry annotation after max retries")
+			}
+			if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
+				log.Error(updateErr, "Failed to update status after max retries")
+			}
+			ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheAbandoned",
+				fmt.Sprintf("Image caching abandoned after %d failures, using external URL directly", retries))
+			return ctrl.Result{}, nil
+		}
+
+		setCacheRetryCount(cr, retries)
+		ic.setConditionFalse(cr, reason,
+			fmt.Sprintf("Image caching failed (attempt %d/%d): %v", retries, maxCacheRetries, err))
+		if updateErr := ic.Client.Update(ctx, cr); updateErr != nil {
+			log.Error(updateErr, "Failed to persist retry annotation")
+		}
+		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
+			log.Error(updateErr, "Failed to update status after mirror failure")
 		}
 		ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheFailed",
-			fmt.Sprintf("Failed to cache image: %v", err))
+			fmt.Sprintf("Failed to cache image (attempt %d/%d): %v", retries, maxCacheRetries, err))
 		return ctrl.Result{RequeueAfter: initialBackoff}, nil
 	}
 
-	// Step 8: Update status with cached URL
+	// Step 8: Update status with cached URL and clear retry counter
+	clearCacheRetryCount(cr)
+	if updateErr := ic.Client.Update(ctx, cr); updateErr != nil {
+		log.Error(updateErr, "Failed to clear retry annotation on success")
+	}
 	cr.Status.CachedMachineOSURL = targetURL
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.ImageCached,
@@ -250,9 +292,9 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	return ctrl.Result{}, nil
 }
 
-// setSkipCondition sets the ImageCached condition to False with a skip reason.
-// This indicates the feature was skipped gracefully (not an error).
-func (ic *ImageCache) setSkipCondition(cr *provisioningv1alpha1.DPFHCPProvisioner, reason, message string) {
+// setConditionFalse sets the ImageCached condition to False.
+// The semantic distinction between "skip" and "error" is encoded in the reason parameter.
+func (ic *ImageCache) setConditionFalse(cr *provisioningv1alpha1.DPFHCPProvisioner, reason, message string) {
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.ImageCached,
 		Status:             metav1.ConditionFalse,
@@ -262,15 +304,31 @@ func (ic *ImageCache) setSkipCondition(cr *provisioningv1alpha1.DPFHCPProvisione
 	})
 }
 
-// setErrorCondition sets the ImageCached condition to False with an error reason.
-func (ic *ImageCache) setErrorCondition(cr *provisioningv1alpha1.DPFHCPProvisioner, reason, message string) {
-	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
-		Type:               provisioningv1alpha1.ImageCached,
-		Status:             metav1.ConditionFalse,
-		Reason:             reason,
-		Message:            message,
-		ObservedGeneration: cr.Generation,
-	})
+// getCacheRetryCount reads the retry counter from the CR's annotations.
+func getCacheRetryCount(cr *provisioningv1alpha1.DPFHCPProvisioner) int {
+	if cr.Annotations == nil {
+		return 0
+	}
+	v, err := strconv.Atoi(cr.Annotations[cacheRetryAnnotation])
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+// setCacheRetryCount persists the retry counter as an annotation on the CR.
+func setCacheRetryCount(cr *provisioningv1alpha1.DPFHCPProvisioner, count int) {
+	if cr.Annotations == nil {
+		cr.Annotations = make(map[string]string)
+	}
+	cr.Annotations[cacheRetryAnnotation] = strconv.Itoa(count)
+}
+
+// clearCacheRetryCount removes the retry counter annotation.
+func clearCacheRetryCount(cr *provisioningv1alpha1.DPFHCPProvisioner) {
+	if cr.Annotations != nil {
+		delete(cr.Annotations, cacheRetryAnnotation)
+	}
 }
 
 // buildExternalKeychain creates an authn.Keychain from the CR's pull secret.
@@ -295,6 +353,11 @@ func (ic *ImageCache) buildExternalKeychain(ctx context.Context, cr *provisionin
 
 // buildInternalKeychain creates an authn.Keychain backed by the operator's
 // ServiceAccount token mounted at the standard Kubernetes path.
+//
+// PREREQUISITE: The operator's ServiceAccount must have the `registry-editor`
+// (or `system:image-builder`) role in the target namespace for image pushes
+// to succeed. This RoleBinding must be set up by the deployment mechanism
+// (Helm chart, OLM, etc.) — it is not managed by the operator's own RBAC.
 func (ic *ImageCache) buildInternalKeychain() authn.Keychain {
 	token, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {

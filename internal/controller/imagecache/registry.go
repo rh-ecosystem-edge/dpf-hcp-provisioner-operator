@@ -97,13 +97,12 @@ func checkRegistryAvailability(ctx context.Context, c client.Client) (*RegistryI
 	return &RegistryInfo{Hostname: hostname}, nil
 }
 
-// insecureTransport returns an http.Transport that skips TLS verification.
+// internalRegistryTransport is a shared http.Transport that skips TLS verification.
 // Used for the OpenShift internal registry whose route uses the cluster's
 // self-signed ingress certificate.
-func insecureTransport() *http.Transport {
-	return &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- internal registry only
-	}
+// Package-level singleton to allow connection pooling across calls.
+var internalRegistryTransport = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- internal registry only
 }
 
 // compareImageDigests compares the digests of the source and cached images.
@@ -130,7 +129,7 @@ func compareImageDigests(ctx context.Context, sourceURL, cachedURL string, exter
 		return false, nil
 	}
 
-	cachedDesc, err := remote.Head(cachedRef, remote.WithAuthFromKeychain(internalKeychain), remote.WithContext(ctx), remote.WithTransport(insecureTransport()))
+	cachedDesc, err := remote.Head(cachedRef, remote.WithAuthFromKeychain(internalKeychain), remote.WithContext(ctx), remote.WithTransport(internalRegistryTransport))
 	if err != nil {
 		log.V(1).Info("Failed to fetch cached image digest, will re-cache", "error", err)
 		return false, nil
@@ -195,7 +194,7 @@ func mirrorImage(ctx context.Context, sourceURL string, registry *RegistryInfo, 
 	err = remote.Write(targetRef, img,
 		remote.WithAuthFromKeychain(internalKeychain),
 		remote.WithContext(ctx),
-		remote.WithTransport(insecureTransport()))
+		remote.WithTransport(internalRegistryTransport))
 	if err != nil {
 		return "", &ImagePushError{URL: targetURL, Err: err}
 	}

@@ -19,6 +19,7 @@ package bfocplookup
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 )
@@ -57,7 +58,7 @@ func (k *dockerConfigKeychain) Resolve(target authn.Resource) (authn.Authenticat
 			return authn.FromConfig(authConfig), nil
 		}
 		// Strip last path component
-		if i := lastSlash(path); i >= 0 {
+		if i := strings.LastIndex(path, "/"); i >= 0 {
 			path = path[:i]
 		} else {
 			break
@@ -70,14 +71,4 @@ func (k *dockerConfigKeychain) Resolve(target authn.Resource) (authn.Authenticat
 	}
 
 	return authn.Anonymous, nil
-}
-
-// lastSlash returns the index of the last '/' in s, or -1 if not found.
-func lastSlash(s string) int {
-	for i := len(s) - 1; i >= 0; i-- {
-		if s[i] == '/' {
-			return i
-		}
-	}
-	return -1
 }
