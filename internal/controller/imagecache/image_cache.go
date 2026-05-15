@@ -112,12 +112,14 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 		sourceURL = cr.Status.BlueFieldOCPLayerImage
 	}
 	if sourceURL == "" {
-		log.V(1).Info("No image URL available for caching, skipping")
-		ic.setConditionFalse(cr, provisioningv1alpha1.ReasonNoUpstreamURL,
+		changed := ic.setConditionFalse(cr, provisioningv1alpha1.ReasonNoUpstreamURL,
 			"No image URL available for caching (machineOSURL and blueFieldOCPLayerImage are both empty)")
-		if err := ic.Client.Status().Update(ctx, cr); err != nil {
-			log.Error(err, "Failed to persist ImageCached skip condition")
-			return ctrl.Result{}, err
+		if changed {
+			log.V(1).Info("No image URL available for caching, skipping")
+			if err := ic.Client.Status().Update(ctx, cr); err != nil {
+				log.Error(err, "Failed to persist ImageCached skip condition")
+				return ctrl.Result{}, err
+			}
 		}
 		return ctrl.Result{}, nil
 	}
@@ -128,11 +130,12 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 		var registryErr *RegistryNotAvailableError
 		if errors.As(err, &registryErr) {
 			// Registry not available - skip gracefully
-			log.Info("Internal registry not available, skipping image caching", "reason", registryErr.Reason)
-			ic.setConditionFalse(cr, registryErr.ConditionReason,
-				fmt.Sprintf("Internal registry not available: %s. Using external URL directly.", registryErr.Reason))
-			ic.Recorder.Event(cr, corev1.EventTypeNormal, "ImageCachingSkipped",
-				fmt.Sprintf("Image caching skipped: %s", registryErr.Reason))
+			msg := fmt.Sprintf("Internal registry not available: %s. Using external URL directly.", registryErr.Reason)
+			if changed := ic.setConditionFalse(cr, registryErr.ConditionReason, msg); changed {
+				log.Info("Internal registry not available, skipping image caching", "reason", registryErr.Reason)
+				ic.Recorder.Event(cr, corev1.EventTypeNormal, "ImageCachingSkipped",
+					fmt.Sprintf("Image caching skipped: %s", registryErr.Reason))
+			}
 			if err := ic.Client.Status().Update(ctx, cr); err != nil {
 				log.Error(err, "Failed to persist ImageCached skip condition")
 				return ctrl.Result{}, err
@@ -174,13 +177,15 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	}
 
 	// Step 5: Set CachingInProgress condition
-	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.ImageCached,
 		Status:             metav1.ConditionFalse,
 		Reason:             provisioningv1alpha1.ReasonCachingInProgress,
 		Message:            fmt.Sprintf("Caching image %s to internal registry", sourceURL),
 		ObservedGeneration: cr.Generation,
-	})
+	}); changed {
+		log.Info("Image caching in progress", "sourceURL", sourceURL)
+	}
 	if err := ic.Client.Status().Update(ctx, cr); err != nil {
 		log.Error(err, "Failed to update status for CachingInProgress")
 		return ctrl.Result{}, err
@@ -190,13 +195,13 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	externalKeychain, err := ic.buildExternalKeychain(ctx, cr)
 	if err != nil {
 		log.Error(err, "Failed to build external keychain")
-		ic.setConditionFalse(cr, provisioningv1alpha1.ReasonRegistryAuthFailed,
-			fmt.Sprintf("Failed to build external registry keychain: %v", err))
+		msg := fmt.Sprintf("Failed to build external registry keychain: %v", err)
+		if changed := ic.setConditionFalse(cr, provisioningv1alpha1.ReasonRegistryAuthFailed, msg); changed {
+			ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheFailed", msg)
+		}
 		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
 			log.Error(updateErr, "Failed to update status after keychain failure")
 		}
-		ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheFailed",
-			fmt.Sprintf("Failed to build external registry keychain: %v", err))
 		return ctrl.Result{RequeueAfter: initialBackoff}, nil
 	}
 	internalKeychain := ic.buildInternalKeychain()
@@ -205,8 +210,10 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 	opNamespace, err := resolveOperatorNamespace()
 	if err != nil {
 		log.Error(err, "Failed to resolve operator namespace")
-		ic.setConditionFalse(cr, provisioningv1alpha1.ReasonCacheFailed,
-			fmt.Sprintf("Failed to resolve operator namespace: %v", err))
+		msg := fmt.Sprintf("Failed to resolve operator namespace: %v", err)
+		if changed := ic.setConditionFalse(cr, provisioningv1alpha1.ReasonCacheFailed, msg); changed {
+			ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheFailed", msg)
+		}
 		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
 			log.Error(updateErr, "Failed to update status after namespace resolution failure")
 		}
@@ -238,8 +245,11 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 			// proceed with the external URL (opportunistic design).
 			log.Info("Max cache retries exceeded, skipping image caching permanently for this generation",
 				"retries", retries)
-			ic.setConditionFalse(cr, provisioningv1alpha1.ReasonCacheFailed,
-				fmt.Sprintf("Image caching failed after %d attempts, proceeding with external URL: %v", retries, err))
+			msg := fmt.Sprintf("Image caching failed after %d attempts, proceeding with external URL: %v", retries, err)
+			if changed := ic.setConditionFalse(cr, provisioningv1alpha1.ReasonCacheFailed, msg); changed {
+				ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheAbandoned",
+					fmt.Sprintf("Image caching abandoned after %d failures, using external URL directly", retries))
+			}
 			clearCacheRetryCount(cr)
 			if updateErr := ic.Client.Update(ctx, cr); updateErr != nil {
 				log.Error(updateErr, "Failed to clear retry annotation after max retries")
@@ -247,22 +257,20 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 			if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
 				log.Error(updateErr, "Failed to update status after max retries")
 			}
-			ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheAbandoned",
-				fmt.Sprintf("Image caching abandoned after %d failures, using external URL directly", retries))
 			return ctrl.Result{}, nil
 		}
 
 		setCacheRetryCount(cr, retries)
-		ic.setConditionFalse(cr, reason,
-			fmt.Sprintf("Image caching failed (attempt %d/%d): %v", retries, maxCacheRetries, err))
+		msg := fmt.Sprintf("Image caching failed (attempt %d/%d): %v", retries, maxCacheRetries, err)
+		if changed := ic.setConditionFalse(cr, reason, msg); changed {
+			ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheFailed", msg)
+		}
 		if updateErr := ic.Client.Update(ctx, cr); updateErr != nil {
 			log.Error(updateErr, "Failed to persist retry annotation")
 		}
 		if updateErr := ic.Client.Status().Update(ctx, cr); updateErr != nil {
 			log.Error(updateErr, "Failed to update status after mirror failure")
 		}
-		ic.Recorder.Event(cr, corev1.EventTypeWarning, "ImageCacheFailed",
-			fmt.Sprintf("Failed to cache image (attempt %d/%d): %v", retries, maxCacheRetries, err))
 		return ctrl.Result{RequeueAfter: initialBackoff}, nil
 	}
 
@@ -272,30 +280,31 @@ func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DP
 		log.Error(updateErr, "Failed to clear retry annotation on success")
 	}
 	cr.Status.CachedMachineOSURL = targetURL
-	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+	if changed := meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.ImageCached,
 		Status:             metav1.ConditionTrue,
 		Reason:             provisioningv1alpha1.ReasonImageCached,
 		Message:            fmt.Sprintf("Image successfully cached to internal registry: %s", targetURL),
 		ObservedGeneration: cr.Generation,
-	})
+	}); changed {
+		ic.Recorder.Event(cr, corev1.EventTypeNormal, "ImageCached",
+			fmt.Sprintf("Image cached to internal registry: %s", targetURL))
+		log.Info("Image caching completed successfully", "cachedURL", targetURL)
+	}
 
 	if err := ic.Client.Status().Update(ctx, cr); err != nil {
 		log.Error(err, "Failed to update status after successful cache")
 		return ctrl.Result{}, err
 	}
 
-	ic.Recorder.Event(cr, corev1.EventTypeNormal, "ImageCached",
-		fmt.Sprintf("Image cached to internal registry: %s", targetURL))
-
-	log.Info("Image caching completed successfully", "cachedURL", targetURL)
 	return ctrl.Result{}, nil
 }
 
 // setConditionFalse sets the ImageCached condition to False.
 // The semantic distinction between "skip" and "error" is encoded in the reason parameter.
-func (ic *ImageCache) setConditionFalse(cr *provisioningv1alpha1.DPFHCPProvisioner, reason, message string) {
-	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+// Returns true if the condition actually changed (callers should gate events/logs on this).
+func (ic *ImageCache) setConditionFalse(cr *provisioningv1alpha1.DPFHCPProvisioner, reason, message string) bool {
+	return meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.ImageCached,
 		Status:             metav1.ConditionFalse,
 		Reason:             reason,
