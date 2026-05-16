@@ -18,26 +18,6 @@ func NewProvider() *content.EmbeddedProvider {
 	return &content.EmbeddedProvider{
 		Files: []content.FileDefinition{
 			{
-				Path:          "/etc/yum.repos.d/agentrepo.repo",
-				Mode:          0644,
-				ContentSource: f("agentrepo.repo"),
-			},
-			{
-				Path:          "/etc/systemd/system/machine-config-daemon-firstboot.service.d/10-require-dpu-agent.conf",
-				Mode:          0644,
-				ContentSource: f("10-require-dpu-agent.conf"),
-			},
-			{
-				Path:          "/usr/local/bin/install-dpu-agent.sh",
-				Mode:          0755,
-				ContentSource: f("install-dpu-agent.sh"),
-			},
-			{
-				Path:          "/usr/local/bin/setup-vfs-devlink.sh",
-				Mode:          0755,
-				ContentSource: f("setup-vfs-devlink.sh"),
-			},
-			{
 				Path:          "/etc/mellanox/mlnx-bf.conf",
 				Mode:          0644,
 				ContentSource: f("mlnx-bf.conf"),
@@ -66,6 +46,46 @@ func NewProvider() *content.EmbeddedProvider {
 				Path:          "/etc/sysctl.d/98-dpunet.conf",
 				Mode:          0644,
 				ContentSource: f("98-dpunet.conf"),
+			},
+			{
+				Path:          "/etc/systemd/system/NetworkManager-wait-online.service.d/override.conf",
+				Mode:          0644,
+				ContentSource: f("nm-wait-online-override.conf"),
+			},
+			{
+				Path:          "/etc/yum.repos.d/agentrepo.repo",
+				Mode:          0644,
+				ContentSource: f("agentrepo.repo"),
+			},
+			{
+				Path:          "/etc/systemd/system/machine-config-daemon-firstboot.service.d/10-require-dpu-agent.conf",
+				Mode:          0644,
+				ContentSource: f("10-require-dpu-agent.conf"),
+			},
+			{
+				Path:          "/etc/systemd/system/machine-config-daemon-pull.service.d/10-require-setup-vfs.conf",
+				Mode:          0644,
+				ContentSource: f("10-require-setup-vfs.conf"),
+			},
+			{
+				Path:          "/usr/local/bin/install-dpu-agent.sh",
+				Mode:          0755,
+				ContentSource: f("install-dpu-agent.sh"),
+			},
+					{
+				Path:          "/usr/local/bin/setup-vfs-devlink.sh",
+				Mode:          0755,
+				ContentSource: f("setup-vfs-devlink.sh"),
+			},
+			{
+				Path:          "/usr/local/bin/dpu-fw-upgrade.sh",
+				Mode:          0755,
+				ContentSource: f("dpu-fw-upgrade.sh"),
+			},
+			{
+				Path:          "/usr/local/bin/tmfifo-agent-link.sh",
+				Mode:          0755,
+				ContentSource: f("tmfifo-agent-link.sh"),
 			},
 			{
 				Path:          "/etc/modules-load.d/br_netfilter.conf",

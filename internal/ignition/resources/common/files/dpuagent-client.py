@@ -46,6 +46,23 @@ def configure_host_vfs():
     })
 
 
+def update_reboot_method_discovery():
+    return base_request("POST", "/update-status", {
+        "dpuName": DPU_NAME,
+        "dpuNamespace": DPU_NAMESPACE,
+        "dpuUID": DPU_UID,
+        "agentStatus": {
+            "conditions": [{
+                "type": "RebootMethodDiscovery",
+                "status": "True",
+                "reason": "SystemLevelReset",
+                "message": "Reboot method discovered during live RHCOS installation",
+                "lastTransitionTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            }],
+        },
+    })
+
+
 def update_host_reboot():
     return base_request("POST", "/update-status", {
         "dpuName": DPU_NAME,
@@ -106,6 +123,7 @@ def send_error(reason, message):
 
 COMMANDS = {
     "configure-host-vfs": configure_host_vfs,
+    "update-reboot-method-discovery": update_reboot_method_discovery,
     "update-host-reboot": update_host_reboot,
     "update-nvconfig-applied": update_nvconfig_applied,
     "update-time": update_time,

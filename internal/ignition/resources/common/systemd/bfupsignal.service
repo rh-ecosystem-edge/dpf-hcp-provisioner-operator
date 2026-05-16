@@ -1,8 +1,6 @@
 [Unit]
 Description=bfup signal
 After=devlink-activate.service
-# Don't start if this file exists:
-ConditionPathExists=!/etc/mlnx-release
 
 [Service]
 Type=oneshot

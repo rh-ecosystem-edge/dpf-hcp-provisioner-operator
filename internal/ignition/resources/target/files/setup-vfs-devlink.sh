@@ -1,12 +1,5 @@
 #!/bin/bash
 
-echo "INFO: Waiting for host agent connectivity..."
-until curl -s -o /dev/null "http://[fe80::1%25tmfifo_net0]:11029/"; do
-  echo "INFO: Waiting for host agent HTTP server..."
-  sleep 5
-done
-echo "INFO: Host agent is reachable."
-
 TIMEOUT=600
 START_TIME=$(date +%s)
 LAST_ERROR=""
@@ -51,5 +44,20 @@ until $VF_READY; do
     echo "WARN: ${LAST_ERROR}"
   fi
 done
+
+echo "INFO: Waiting for default route..."
+while true; do
+  if ip route show default | grep -q default; then
+    break
+  fi
+  ELAPSED=$(($(date +%s) - START_TIME))
+  if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+    echo "ERROR: Timed out waiting for default route"
+    /usr/local/bin/dpuagent-client.py send-error "DefaultRouteTimedOut" "No default route after ${TIMEOUT}s"
+    exit 1
+  fi
+  sleep 5
+done
+echo "INFO: Default route available"
 
 echo "Finished activating devlink"

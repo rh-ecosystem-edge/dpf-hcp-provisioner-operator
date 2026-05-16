@@ -7,7 +7,7 @@ SuccessAction=reboot-force
 
 [Service]
 Type=oneshot
-EnvironmentFile=/etc/dpf/identity
+EnvironmentFile=/etc/dpf/environment
 ExecStart=/usr/local/bin/install-rhcos-dpf.sh
 RemainAfterExit=yes
 TimeoutSec=0

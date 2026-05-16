@@ -6,6 +6,8 @@ import sys
 
 IGNITION_FILE = sys.argv[1]
 
+ENV_FILE = '/etc/dpf/environment'
+
 ignition = json.load(open(IGNITION_FILE))
 
 hostname: str = open('/etc/hostname').read().strip()
@@ -19,10 +21,10 @@ ignition['storage']['files'].append({
     }
 })
 
-identity = open('/etc/dpf/identity').read()
+identity = open(ENV_FILE).read()
 identity_b64 = base64.b64encode(identity.encode()).decode()
 ignition['storage']['files'].append({
-    'path': '/etc/dpf/identity',
+    'path': ENV_FILE,
     'overwrite': True,
     'mode': 420,
     'contents': {

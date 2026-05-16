@@ -92,12 +92,11 @@ dpu_agent() {
     done
 }
 
+NVCONFIG_CHANGED=false
+
 set_nvconfig() {
-    local nvconfig_params=$(jq -r '.spec.nvconfig[].parameters[]' "$DPUFLAVOR_FILE" | tr '\n' ' ')
-    if [ -z "$nvconfig_params" ]; then
-        log "INFO: No nvconfig parameters found, skipping"
-        return
-    fi
+    local desired_vfs=$(jq -r '[.spec.nvconfig[].parameters[] | select(startswith("NUM_OF_VFS="))] | first // "NUM_OF_VFS=1"' "$DPUFLAVOR_FILE" | cut -d= -f2)
+    log "INFO: Desired NUM_OF_VFS from DPUFlavor: ${desired_vfs}"
 
     local pcie_dev_list=$(lspci -d 15b3: | grep ConnectX | awk '{print $1}')
     for dev in ${pcie_dev_list}; do
@@ -107,10 +106,19 @@ set_nvconfig() {
             exit 1
         fi
 
-        log "INFO: Setting NVConfig on dev ${dev}: ${nvconfig_params}"
-        if ! mstconfig -d ${dev} -y set ${nvconfig_params}; then
-            error "NVConfig" "Failed to set NVConfig on dev ${dev}"
-            exit 1
+        local cfg=$(jq '.[].tlv_configuration' "/tmp/nvconfig-${dev}.json")
+        local sriov_en=$(echo "$cfg" | jq -r '.SRIOV_EN.next_value')
+        local current_vfs=$(echo "$cfg" | jq -r '.NUM_OF_VFS.next_value')
+
+        if [ "$sriov_en" != "True(1)" ] || [ "$current_vfs" != "$desired_vfs" ]; then
+            log "INFO: Setting NVConfig on dev ${dev}: SRIOV_EN=1 NUM_OF_VFS=${desired_vfs} (was SRIOV_EN=${sriov_en}, NUM_OF_VFS=${current_vfs})"
+            if ! mstconfig -d ${dev} -y set SRIOV_EN=1 NUM_OF_VFS=${desired_vfs}; then
+                error "NVConfig" "Failed to set NVConfig on dev ${dev}"
+                exit 1
+            fi
+            NVCONFIG_CHANGED=true
+        else
+            log "INFO: NVConfig on dev ${dev} already correct, skipping"
         fi
     done
     log "INFO: Finished setting nvconfig parameters"
@@ -141,31 +149,21 @@ install_rhcos() {
 }
 
 wait_for_host_reboot_if_required() {
-    for f in /tmp/nvconfig-*.json; do
-        [ -f "$f" ] || continue
-        local cfg=$(jq '.[].tlv_configuration' "$f")
-        local sriov_en=$(echo "$cfg" | jq -r '.SRIOV_EN.next_value')
-        local num_of_vfs=$(echo "$cfg" | jq -r '.NUM_OF_VFS.next_value')
-
-        if [ "$sriov_en" != "True(1)" ] || [ "$num_of_vfs" = "0" ]; then
-            log "INFO: Host reboot required, signaling host agent"
-            dpu_agent update-host-reboot
-            shutdown -h now
-            sleep infinity
-        fi
-    done
+    if [ "$NVCONFIG_CHANGED" = "true" ]; then
+        log "INFO: Host reboot required (NVConfig was changed), signaling host agent"
+        dpu_agent update-host-reboot
+        dpu_agent update-time
+        shutdown -h now
+        sleep infinity
+    fi
     log "INFO: No host reboot required."
 }
-
-# call_configure_host_vfs() {
-#     log "INFO: Calling configure-host-vfs"
-#     dpu_agent configure-host-vfs
-# }
 
 validate_identity
 validate_ignition
 update_ignition
 wait_for_host_agent
+dpu_agent update-reboot-method-discovery
 set_nvconfig
 
 install_rhcos
@@ -175,7 +173,6 @@ sync
 log "INFO: Installation complete."
 
 dpu_agent update-time
-dpu_agent update-nvconfig-applied
 
 wait_for_host_reboot_if_required
 
