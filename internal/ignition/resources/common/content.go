@@ -9,6 +9,9 @@ import (
 //go:embed files/*
 var filesFS embed.FS
 
+//go:embed systemd/*
+var systemdFS embed.FS
+
 func NewProvider() *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
 
@@ -50,5 +53,6 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("bfupsignal.sh"),
 			},
 		},
+		SystemdFS: &systemdFS,
 	}
 }

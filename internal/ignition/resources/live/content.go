@@ -31,7 +31,7 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: "data:,{{.DPUHostName}}",
 			},
 			{
-				Path: "/etc/dpf/identity",
+				Path: "/etc/dpf/environment",
 				Mode: 0644,
 				ContentSource: "data:," +
 					"DPUName={{.DPUName}}" + nl +

@@ -1,12 +1,14 @@
 [Unit]
 Description=DPF DPU Agent - Provisioning and Configuration
-After=sys-subsystem-net-devices-tmfifo_net0.device
-Wants=sys-subsystem-net-devices-tmfifo_net0.device
+After=tmfifo-agent-link.service install-dpu-agent.service dpu-fw-upgrade.service
+Requires=tmfifo-agent-link.service
+Wants=install-dpu-agent.service dpu-fw-upgrade.service
 ConditionPathExists=/etc/mlnx-release
+ConditionPathExists=/usr/local/bin/dpu-agent
 
 [Service]
-Type=oneshot
-EnvironmentFile=/etc/dpf/identity
+Type=simple
+EnvironmentFile=/etc/dpf/environment
 ExecStart=/usr/local/bin/dpu-agent \
   --dpu-name $DPUName \
   --dpu-namespace $DPUNamespace \

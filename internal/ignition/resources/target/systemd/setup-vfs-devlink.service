@@ -1,12 +1,12 @@
 [Unit]
 Description=Setup Host VFs and Activate devlink
+After=tmfifo-agent-link.service
+Requires=tmfifo-agent-link.service
 Before=install-dpu-agent.service
-After=network-pre.target
-# Don't start if this file exists:
 ConditionPathExists=!/etc/mlnx-release
 
 [Service]
-EnvironmentFile=/etc/dpf/identity
+EnvironmentFile=/etc/dpf/environment
 Type=oneshot
 ExecStart=/usr/local/bin/setup-vfs-devlink.sh
 

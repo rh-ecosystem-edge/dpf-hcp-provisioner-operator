@@ -1,0 +1,12 @@
+[Unit]
+Description=Wait for host agent connectivity via tmfifo
+After=sys-subsystem-net-devices-tmfifo_net0.device
+Wants=sys-subsystem-net-devices-tmfifo_net0.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/tmfifo-agent-link.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=DPF DPU Firmware Upgrade
+After=tmfifo-agent-link.service
+Requires=tmfifo-agent-link.service
+Before=install-dpu-agent.service
+ConditionPathExists=/etc/mlnx-release
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/dpu-fw-upgrade.sh
+
+[Install]
+WantedBy=multi-user.target
