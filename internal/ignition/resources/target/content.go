@@ -48,9 +48,14 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("98-dpunet.conf"),
 			},
 			{
+				Path:          "/etc/systemd/system/chrony-wait.service.d/override.conf",
+				Mode:          0644,
+				ContentSource: f("10-chrony-wait-timeout.conf"),
+			},
+			{
 				Path:          "/etc/systemd/system/NetworkManager-wait-online.service.d/override.conf",
 				Mode:          0644,
-				ContentSource: f("nm-wait-online-override.conf"),
+				ContentSource: f("10-nm-wait-online-unstrict.conf"),
 			},
 			{
 				Path:          "/etc/yum.repos.d/agentrepo.repo",
@@ -72,7 +77,7 @@ func NewProvider() *content.EmbeddedProvider {
 				Mode:          0755,
 				ContentSource: f("install-dpu-agent.sh"),
 			},
-					{
+			{
 				Path:          "/usr/local/bin/setup-vfs-devlink.sh",
 				Mode:          0755,
 				ContentSource: f("setup-vfs-devlink.sh"),
