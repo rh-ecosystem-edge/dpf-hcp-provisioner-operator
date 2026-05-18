@@ -7,7 +7,7 @@ require (
 	github.com/google/go-containerregistry v0.21.2
 	github.com/nvidia/doca-platform v0.0.0-20260507043605-b1192d60f2cc
 	github.com/onsi/ginkgo/v2 v2.28.1
-	github.com/onsi/gomega v1.39.1
+	github.com/onsi/gomega v1.41.0
 	github.com/openshift/hypershift v0.1.71
 	github.com/openshift/hypershift/api v0.0.0-20251229083354-c1d28e31a05d
 	go.universe.tf/metallb v0.15.3
