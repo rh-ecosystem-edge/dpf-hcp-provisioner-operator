@@ -3,8 +3,10 @@ module github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
 go 1.25.6
 
 require (
+	github.com/blang/semver/v4 v4.0.0
 	github.com/coreos/go-semver v0.3.1
 	github.com/coreos/ignition/v2 v2.26.0
+	github.com/go-logr/logr v1.4.3
 	github.com/google/go-containerregistry v0.21.2
 	github.com/nvidia/doca-platform v0.0.0-20260507043605-b1192d60f2cc
 	github.com/onsi/ginkgo/v2 v2.28.1
@@ -27,7 +29,6 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
@@ -43,7 +44,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect

@@ -44,6 +44,7 @@ import (
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
 	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
+	configv1 "github.com/openshift/api/config/v1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
@@ -51,6 +52,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bfocplookup"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/csrapproval"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpuservicetemplate"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/ignitiongenerator"
@@ -75,6 +77,7 @@ func init() {
 	utilruntime.Must(operatorv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(hyperv1.AddToScheme(scheme))
 	utilruntime.Must(metallbv1beta1.AddToScheme(scheme))
+	utilruntime.Must(configv1.Install(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -212,9 +215,14 @@ func main() {
 		Cache: cache.Options{
 			ByObject: map[crclient.Object]cache.ByObject{
 				&corev1.ConfigMap{}: {
-					Label: labels.SelectorFromSet(labels.Set{
-						ignitiongenerator.BfcfgTemplateLabel: "true",
-					}),
+					Namespaces: map[string]cache.Config{
+						cache.AllNamespaces: {
+							LabelSelector: labels.SelectorFromSet(labels.Set{
+								ignitiongenerator.BfcfgTemplateLabel: "true",
+							}),
+						},
+						controller.OperatorNamespace: {},
+					},
 				},
 			},
 		},
@@ -317,6 +325,19 @@ func main() {
 		Approver: csrApprover,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CSRApproval")
+		os.Exit(1)
+	}
+
+	// Setup DPUServiceTemplate controller (manages templates per DPUCluster namespace)
+	if err := (&dpuservicetemplate.DPUServiceTemplateReconciler{
+		Client: client,
+		Scheme: scheme,
+		Manager: dpuservicetemplate.NewDPUServiceTemplateManager(client,
+			mgr.GetAPIReader(),
+			&dpuservicetemplate.RemoteReleaseImageReader{},
+			controller.OperatorNamespace),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DPUServiceTemplate")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

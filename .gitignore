@@ -37,3 +37,6 @@ agents_outputs
 # IDE local history and cursor rules
 .history
 .cursor
+
+# Generated helm charts
+*.tgz

@@ -28,13 +28,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 )
 
 const (
@@ -228,26 +228,7 @@ func ExtractOCPVersion(ctx context.Context, releaseImage string, keychain authn.
 // getKeychain returns an authn.Keychain for authenticating to the container registry.
 // It reuses the CR's pullSecretRef which typically contains credentials for multiple registries.
 func (r *ImageLookup) getKeychain(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (authn.Keychain, error) {
-	secret := &corev1.Secret{}
-	err := r.Get(ctx, types.NamespacedName{
-		Name:      cr.Spec.PullSecretRef.Name,
-		Namespace: cr.Namespace,
-	}, secret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch pull secret %s: %w", cr.Spec.PullSecretRef.Name, err)
-	}
-
-	dockerConfigJSON, ok := secret.Data[".dockerconfigjson"]
-	if !ok {
-		return nil, fmt.Errorf("pull secret %s does not contain key '.dockerconfigjson'", cr.Spec.PullSecretRef.Name)
-	}
-
-	keychain, err := NewKeychainFromDockerConfig(dockerConfigJSON)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse docker config from secret %s: %w", cr.Spec.PullSecretRef.Name, err)
-	}
-
-	return keychain, nil
+	return common.KeychainFromPullSecret(ctx, r.Client, cr.Spec.PullSecretRef.Name, cr.Namespace)
 }
 
 // buildImageReference constructs a full image reference string and parses it into a name.Reference.

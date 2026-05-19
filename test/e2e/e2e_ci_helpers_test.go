@@ -53,14 +53,15 @@ import (
 )
 
 const (
-	ciNamespace       = "dpf-hcp-provisioner-system"
-	dpuClusterNS      = "dpf-e2e-dpucluster"
-	provisionerName   = "e2e-test-provisioner"
-	dpuClusterName    = "e2e-dpucluster"
-	sshKeySecretName  = "e2e-ssh-key"
-	pullSecretName    = "e2e-pull-secret"
-	dpuDeploymentName = "e2e-dpudeployment"
-	dpuFlavorName     = "e2e-dpuflavor"
+	ciNamespace                = "dpf-hcp-provisioner-system"
+	dpfOperatorConfigNamespace = "dpf-operator-system"
+	dpuClusterNS               = "dpf-e2e-dpucluster"
+	provisionerName            = "e2e-test-provisioner"
+	dpuClusterName             = "e2e-dpucluster"
+	sshKeySecretName           = "e2e-ssh-key"
+	pullSecretName             = "e2e-pull-secret"
+	dpuDeploymentName          = "e2e-dpudeployment"
+	dpuFlavorName              = "e2e-dpuflavor"
 
 	// Cleanup test constants
 	cleanupTestName       = "e2e-cleanup-test"
@@ -340,16 +341,15 @@ func createDPUFlavorStub(ns, name string) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUFlavor stub")
 }
 
-// createDPFOperatorConfig creates a DPFOperatorConfig in the DPUCluster namespace
-// (needed by the ignition generator for controlPlaneMTU and BFCFGTemplateConfigMap).
-func createDPFOperatorConfig(ns string) {
+// createDPFOperatorConfig creates the singleton DPFOperatorConfig in dpf-operator-system.
+func createDPFOperatorConfig() {
 	ctx := context.Background()
 	mtu := 1500
 	bfbPVCName := "e2e-bfb-pvc"
 	dpfOperatorConfig := &operatorv1.DPFOperatorConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dpfoperatorconfig",
-			Namespace: ns,
+			Namespace: dpfOperatorConfigNamespace,
 		},
 		Spec: operatorv1.DPFOperatorConfigSpec{
 			ProvisioningController: &operatorv1.ProvisioningControllerConfiguration{
@@ -960,7 +960,7 @@ func cleanupStaleResources() {
 		warnError("failed to cleanup DPUDeployments: %v", err)
 	}
 	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
-		client.InNamespace(dpuClusterNS))); err != nil {
+		client.InNamespace(dpfOperatorConfigNamespace))); err != nil {
 		warnError("failed to cleanup DPFOperatorConfigs: %v", err)
 	}
 
@@ -977,11 +977,6 @@ func cleanupStaleResources() {
 		client.InNamespace(cleanupDPUClusterNS))); err != nil {
 		warnError("failed to cleanup cleanup test DPUDeployments: %v", err)
 	}
-	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
-		client.InNamespace(cleanupDPUClusterNS))); err != nil {
-		warnError("failed to cleanup cleanup test DPFOperatorConfigs: %v", err)
-	}
-
 	// Clean up secrets in operator namespace (best effort)
 	secret := &corev1.Secret{}
 	secret.SetName(sshKeySecretName)

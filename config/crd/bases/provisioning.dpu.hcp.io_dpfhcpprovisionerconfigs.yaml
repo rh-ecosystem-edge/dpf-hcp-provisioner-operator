@@ -66,6 +66,20 @@ spec:
                   This is useful when the management cluster runs on a cloud platform (AWS, Azure, GCP)
                   that provides native LoadBalancer support via cloud controller manager.
                 type: boolean
+              dpuServicesImagePullSecret:
+                description: |-
+                  DPUServicesImagePullSecret is the name of the image pull secret to inject into
+                  DPUServiceTemplates that require pull credentials (DTS, HBN).
+                  When empty, no imagePullSecrets section is added to the templates.
+                type: string
+              manageDPUServiceTemplates:
+                default: false
+                description: |-
+                  ManageDPUServiceTemplates controls whether the operator creates and manages
+                  DPUServiceTemplate resources (OVN, DTS, HBN) in the DPUCluster namespace.
+                  Deprecated: This field will be removed in a future release, at which point
+                  DPUServiceTemplate management will always be enabled.
+                type: boolean
             type: object
         type: object
         x-kubernetes-validations:

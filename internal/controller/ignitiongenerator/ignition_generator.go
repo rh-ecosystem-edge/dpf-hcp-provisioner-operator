@@ -43,10 +43,10 @@ import (
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
-	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	operatorcommon "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition"
 	igncontent "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/content"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/resources/common"
@@ -160,18 +160,6 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	return ctrl.Result{}, nil
 }
 
-// getDPFOperatorConfig retrieves the DPFOperatorConfig from the DPUCluster namespace
-func (ig *IgnitionGenerator) getDPFOperatorConfig(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (*operatorv1alpha1.DPFOperatorConfig, error) {
-	configList := &operatorv1alpha1.DPFOperatorConfigList{}
-	if err := ig.Client.List(ctx, configList, client.InNamespace(cr.Spec.DPUClusterRef.Namespace)); err != nil {
-		return nil, fmt.Errorf("failed to list DPFOperatorConfig: %w", err)
-	}
-	if len(configList.Items) == 0 {
-		return nil, fmt.Errorf("no DPFOperatorConfig found in namespace %s", cr.Spec.DPUClusterRef.Namespace)
-	}
-	return &configList.Items[0], nil
-}
-
 // generateIgnition executes the complete ignition generation workflow
 func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx)
@@ -211,7 +199,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	// mode-specific content.
 	log.V(1).Info("Building target ignition")
 
-	dpfOperatorConfig, err := ig.getDPFOperatorConfig(ctx, cr)
+	dpfOperatorConfig, err := operatorcommon.GetSingletonDPFOperatorConfig(ctx, ig.Client)
 	if err != nil {
 		return fmt.Errorf("failed to get DPFOperatorConfig: %w", err)
 	}

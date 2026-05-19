@@ -38,6 +38,9 @@ const (
 	// LabelDPFHCPProvisionerNamespace is the label key for the DPFHCPProvisioner namespace
 	// Used to track resources owned by a specific DPFHCPProvisioner across namespaces
 	LabelDPFHCPProvisionerNamespace = "dpfhcpprovisioner.dpu.hcp.io/namespace"
+
+	// LabelManagedBy marks resources created and owned by this operator.
+	LabelManagedBy = "dpfhcpprovisioner.dpu.hcp.io/managed"
 )
 
 // Namespace constants
