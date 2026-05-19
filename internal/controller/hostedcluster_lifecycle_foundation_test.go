@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
@@ -80,6 +81,13 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			},
 		}
 		Expect(k8sClient.Create(ctx, dpuCluster)).To(Succeed())
+
+		// Clean up any leftover DPUServiceTemplates from previous test runs
+		dpuServiceTemplateList := &dpuservicev1alpha1.DPUServiceTemplateList{}
+		Expect(k8sClient.List(ctx, dpuServiceTemplateList, client.InNamespace(testNamespace))).To(Succeed())
+		for i := range dpuServiceTemplateList.Items {
+			Expect(k8sClient.Delete(ctx, &dpuServiceTemplateList.Items[i])).To(Or(Succeed(), MatchError(ContainSubstring("not found"))))
+		}
 
 		// Set DPUCluster phase to Ready
 		dpuCluster.Status.Phase = dpuprovisioningv1alpha1.PhaseReady
