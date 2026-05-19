@@ -38,6 +38,14 @@ type DPFHCPProvisionerConfigSpec struct {
 	// +kubebuilder:default=false
 	// +optional
 	DisableMetalLB bool `json:"disableMetalLB,omitempty"`
+
+	// ManageDPUServiceTemplates controls whether the operator creates and manages
+	// DPUServiceTemplate resources (OVN, DTS, HBN) in the DPUCluster namespace.
+	// Deprecated: This field will be removed in a future release, at which point
+	// DPUServiceTemplate management will always be enabled.
+	// +kubebuilder:default=false
+	// +optional
+	ManageDPUServiceTemplates bool `json:"manageDPUServiceTemplates,omitempty"`
 }
 
 // +kubebuilder:object:root=true
