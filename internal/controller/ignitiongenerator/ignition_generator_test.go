@@ -41,6 +41,7 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	operatorcommon "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition"
 )
 
@@ -423,20 +424,18 @@ var _ = Describe("retrieveDPUFlavor", func() {
 	})
 })
 
-var _ = Describe("getDPFOperatorConfig", func() {
+var _ = Describe("GetSingletonDPFOperatorConfig", func() {
 	var (
 		ctx    context.Context
 		scheme *runtime.Scheme
-		cr     *provisioningv1alpha1.DPFHCPProvisioner
 	)
 
 	BeforeEach(func() {
 		ctx = context.TODO()
 		scheme = newTestScheme()
-		cr = newTestProvisioner()
 	})
 
-	It("should return the first DPFOperatorConfig in the namespace", func() {
+	It("should return the singleton DPFOperatorConfig from the cluster", func() {
 		mtu := int(9000)
 		config := &operatorv1alpha1.DPFOperatorConfig{
 			ObjectMeta: metav1.ObjectMeta{
@@ -450,20 +449,18 @@ var _ = Describe("getDPFOperatorConfig", func() {
 			},
 		}
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(config).Build()
-		ig := &IgnitionGenerator{Client: fakeClient}
 
-		result, err := ig.getDPFOperatorConfig(ctx, cr)
+		result, err := operatorcommon.GetSingletonDPFOperatorConfig(ctx, fakeClient)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(*result.Spec.Networking.ControlPlaneMTU).To(BeEquivalentTo(9000))
 	})
 
 	It("should return error when no DPFOperatorConfig exists", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-		ig := &IgnitionGenerator{Client: fakeClient}
 
-		_, err := ig.getDPFOperatorConfig(ctx, cr)
+		_, err := operatorcommon.GetSingletonDPFOperatorConfig(ctx, fakeClient)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("no DPFOperatorConfig found"))
+		Expect(err.Error()).To(ContainSubstring("expected exactly one DPFOperatorConfig"))
 	})
 })
 
