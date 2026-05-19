@@ -93,6 +93,26 @@ rules:
   - patch
   - delete
 
+# DaemonSet permissions (for DPUServiceTemplate controller)
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+
+# ClusterVersion permissions (for OpenShift version detection)
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - clusterversions
+  verbs:
+  - get
+  - list
+  - watch
+
 # Namespace permissions (create clusters namespace at startup)
 - apiGroups:
   - ""
@@ -188,6 +208,20 @@ rules:
   - list
   - watch
   - patch
+
+# DPUServiceTemplate permissions (for DPUServiceTemplate lifecycle management)
+- apiGroups:
+  - svc.dpu.nvidia.com
+  resources:
+  - dpuservicetemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 
 # MetalLB permissions (for LoadBalancer service exposure)
 - apiGroups:

@@ -26,8 +26,15 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldfl
 
 
 FROM registry.access.redhat.com/ubi10-micro:latest
+
 WORKDIR /
+
+# ubi-micro has no CA certs; needed for outbound TLS (e.g. quay.io when
+# resolving the corresponding ARM OVN-K image tag)
+COPY --from=builder /etc/pki/tls/certs/ca-bundle.crt /etc/pki/tls/certs/
+
 COPY --from=builder /workspace/manager .
+
 USER 65532:65532
 
 ARG release=22

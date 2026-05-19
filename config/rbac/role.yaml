@@ -52,6 +52,22 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - clusterversions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -162,6 +178,33 @@ rules:
   - svc.dpu.nvidia.com
   resources:
   - dpudeployments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - svc.dpu.nvidia.com
+  resources:
+  - dpuservicetemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: manager-role
+  namespace: openshift-config
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
   verbs:
   - get
   - list
