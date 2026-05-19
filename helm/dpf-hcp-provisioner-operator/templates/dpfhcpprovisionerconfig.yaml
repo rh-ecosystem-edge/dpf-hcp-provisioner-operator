@@ -13,3 +13,4 @@ spec:
   {{- if hasKey .Values.provisionerConfig "disableMetalLB" }}
   disableMetalLB: {{ .Values.provisionerConfig.disableMetalLB }}
   {{- end }}
+  manageDPUServiceTemplates: {{ .Values.provisionerConfig.manageDPUServiceTemplates | default false }}
