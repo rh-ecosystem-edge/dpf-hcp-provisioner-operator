@@ -54,6 +54,22 @@ rules:
       - update
       - watch
   - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - clusterversions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - coordination.k8s.io
     resources:
       - leases
@@ -167,4 +183,16 @@ rules:
     verbs:
       - get
       - list
+      - watch
+  - apiGroups:
+      - svc.dpu.nvidia.com
+    resources:
+      - dpuservicetemplates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
       - watch
