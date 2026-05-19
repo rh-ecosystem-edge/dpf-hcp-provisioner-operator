@@ -1,0 +1,14 @@
+[Unit]
+Description=Activate devlink
+Before=network-pre.target
+# Don't start if this file exists:
+ConditionPathExists=!/etc/mlnx-release
+
+[Service]
+Type=oneshot
+Restart=on-failure
+RestartSec=5
+ExecStart=/usr/local/bin/setup-vfs-devlink.sh switchdev
+
+[Install]
+WantedBy=multi-user.target
