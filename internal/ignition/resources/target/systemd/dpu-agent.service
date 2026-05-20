@@ -20,7 +20,7 @@ ExecStart=/usr/local/bin/dpu-agent \
   --skip-network-config \
   --skip-remove-builtin-kubelet \
   --skip-configure-kubelet \
-  --skip-start-kubelet \
+  # --skip-start-kubelet \
   --skip-ovs-raw-script \
   --kubeadm-secret-name=unused
 Restart=on-failure

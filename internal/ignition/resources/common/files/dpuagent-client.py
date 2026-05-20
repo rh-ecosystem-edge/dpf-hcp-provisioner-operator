@@ -138,6 +138,7 @@ def send_error(reason, message):
 COMMANDS = {
     "configure-host-vfs": lambda: configure_host_vfs(opt_int_arg(2)),
     "update-reboot-method-discovery": update_reboot_method_discovery,
+    "request-system-level-reset": request_system_level_reset,
     "update-host-reboot": update_host_reboot,
     "update-nvconfig-applied": update_nvconfig_applied,
     "update-time": update_time,
