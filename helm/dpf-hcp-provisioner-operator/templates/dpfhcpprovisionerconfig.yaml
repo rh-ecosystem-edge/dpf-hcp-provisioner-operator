@@ -10,3 +10,6 @@ metadata:
   {{- end }}
 spec:
   blueFieldOCPLayerRepo: {{ .Values.provisionerConfig.blueFieldOCPLayerRepo | default "quay.io/eelgaev/rhcos-bfb" | quote }}
+  {{- if hasKey .Values.provisionerConfig "disableMetalLB" }}
+  disableMetalLB: {{ .Values.provisionerConfig.disableMetalLB }}
+  {{- end }}

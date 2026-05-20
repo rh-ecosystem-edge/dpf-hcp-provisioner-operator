@@ -38,9 +38,18 @@ type DPUFlavorSpec struct {
 	// Sysctl contains the sysctl configuration for the DPUFlavor.
 	// +optional
 	Sysctl DPUFLavorSysctl `json:"sysctl,omitempty"`
-	// NVConfig contains the configuration for the DPUFlavor.
+	// NVConfig contains the device-specific configuration (firmware settings, device parameters).
+	// Each entry specifies a device (wildcard '*', or port identifiers 'p0'/'P0'/'p1'/'P1') and its parameters.
+	// If device is '*' or unspecified (defaults to '*'), it applies to all devices and must be the only entry.
+	// Each device (including unspecified as '*') must be unique across all nvconfig entries (case-insensitive).
+	// Validation enforces: device enum values, parameter format (KEY=VALUE), case-insensitive uniqueness, and size limits.
+	// +kubebuilder:validation:MaxItems=3
+	// +kubebuilder:validation:XValidation:rule="size(self) == 0 || !self.exists(x, has(x.device) && x.device == '*') || size(self) == 1",message="when device is '*', it must be the only nvconfig entry"
+	// +kubebuilder:validation:XValidation:rule="size(self) == 0 || !self.exists(x, !has(x.device)) || size(self) == 1",message="when device is unspecified (defaults to '*'), it must be the only nvconfig entry"
+	// +kubebuilder:validation:XValidation:rule="self.all(p1, self.exists_one(p2, (has(p1.device) ? p1.device.lowerAscii() : '*') == (has(p2.device) ? p2.device.lowerAscii() : '*')))",message="each nvconfig.device (including unspecified as '*') must be unique (case-insensitive)"
+	// +listType=atomic
 	// +optional
-	NVConfig []DPUFlavorNVConfig `json:"nvconfig,omitempty"`
+	NVConfig []NVConfig `json:"nvconfig,omitempty"`
 	// OVS contains the OVS configuration for the DPUFlavor.
 	// +optional
 	OVS DPUFlavorOVS `json:"ovs,omitempty"`
@@ -65,10 +74,15 @@ type DPUFlavorSpec struct {
 	// +optional
 	SystemReservedResources corev1.ResourceList `json:"systemReservedResources,omitempty"`
 
-	// Specifies the DPU Mode type: one of dpu,zero-trust
-	// +kubebuilder:default=dpu
+	// Specifies the DPU Mode type: one of dpu,zero-trust.
+	// When not specified, defaults to "zero-trust" if the DPF deployment uses Redfish install interface,
+	// otherwise defaults to "dpu".
 	// +optional
 	DpuMode DpuModeType `json:"dpuMode,omitempty"`
+
+	// HostNetworkInterfaceConfigs contains the configuration for the host-side network interfaces.
+	// +optional
+	HostNetworkInterfaceConfigs []NetworkInterfaceConfig `json:"hostNetworkInterfaceConfigs,omitempty"`
 }
 
 type DPUFlavorGrub struct {
@@ -83,16 +97,20 @@ type DPUFLavorSysctl struct {
 	Parameters []string `json:"parameters,omitempty"`
 }
 
-type DPUFlavorNVConfig struct {
+type NVConfig struct {
 	// Device is the device to which the configuration applies. If not specified, the configuration applies to all.
+	// Supported values: "*" (wildcard for all devices), "p0"/"P0" (port 0), "p1"/"P1" (port 1). Case-insensitive.
+	// +kubebuilder:validation:Enum={"*","p0","p1","P0","P1"}
 	// +optional
 	Device *string `json:"device,omitempty"`
 	// Parameters are the parameters to be set for the device.
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	// +kubebuilder:validation:items:Pattern=`^[^=\s]+=[^\s]*$`
+	// +kubebuilder:validation:items:MaxLength=200
+	// +listType=atomic
 	// +optional
 	Parameters []string `json:"parameters,omitempty"`
-	// HostPowerCycleRequired indicates if the host needs to be power cycled after applying the configuration.
-	// +optional
-	HostPowerCycleRequired *bool `json:"hostPowerCycleRequired,omitempty"`
 }
 
 type DPUFlavorOVS struct {
@@ -102,12 +120,13 @@ type DPUFlavorOVS struct {
 }
 
 // DpuModeType defines the mode of the DPU
-// +kubebuilder:validation:Enum=dpu;zero-trust
+// +kubebuilder:validation:Enum=dpu;zero-trust;nic
 type DpuModeType string
 
 const (
 	DpuMode       DpuModeType = "dpu"
 	ZeroTrustMode DpuModeType = "zero-trust"
+	NicMode       DpuModeType = "nic"
 )
 
 // DPUFlavorFileOp defines the operation to be performed on the file
@@ -140,7 +159,33 @@ type ContainerdConfig struct {
 	RegistryEndpoint string `json:"registryEndpoint,omitempty"`
 }
 
+// NetworkInterfaceConfig defines the configuration for a network interface
+type NetworkInterfaceConfig struct {
+	// MTU is the MTU value to be set on the network interface.
+	// +kubebuilder:validation:Minimum=1280
+	// +kubebuilder:validation:Maximum=9216
+	// +optional
+	MTU *int32 `json:"mtu,omitempty"`
+
+	// DHCP is the DHCP configuration for the network interface.
+	// +optional
+	DHCP *bool `json:"dhcp,omitempty"`
+
+	// PortNumber identifies which port this configuration applies to.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1
+	// +required
+	PortNumber int32 `json:"portNumber"`
+
+	// NVConfig contains port-specific configuration for this network interface.
+	// This configuration is applied in addition to the global NVConfig settings in DPUFlavorSpec.
+	// Both global and per-interface NVConfig settings can coexist without collision.
+	// +optional
+	NVConfig *NVConfig `json:"nvconfig,omitempty"`
+}
+
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 
 // DPUFlavor is the Schema for the dpuflavors API

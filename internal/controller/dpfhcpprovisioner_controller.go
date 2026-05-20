@@ -173,8 +173,8 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Feature: MetalLB Configuration
 	// Configure MetalLB resources (IPAddressPool and L2Advertisement) when LoadBalancer exposure is needed
-	log.V(1).Info("Configuring MetalLB resources")
-	if result, err := r.MetalLBManager.ConfigureMetalLB(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+	log.V(1).Info("Running MetalLB configuration feature")
+	if result, err := r.MetalLBManager.ConfigureMetalLB(ctx, &cr, operatorConfig); err != nil || result.RequeueAfter > 0 {
 		if err != nil {
 			log.Error(err, "MetalLB configuration failed")
 		}

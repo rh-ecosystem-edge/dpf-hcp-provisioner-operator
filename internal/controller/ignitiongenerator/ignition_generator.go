@@ -81,6 +81,8 @@ const (
 	bfcfgTemplateDPUFlavorNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-name"
 	// bfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
 	bfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
+	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
+	bfcfgTemplateMachineOSURLAnnotation = dpuProvisioningPrefix + "bfcfg-template-machine-os-url"
 )
 
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
@@ -180,7 +182,22 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("retrieved DPU Flavor is nil")
 	}
 
+	// Step 2.5: Detect DPU mode from DPU Flavor
+	dpuMode, err := DetectDPUMode(dpuFlavor)
+	if err != nil {
+		log.Error(err, "Failed to detect DPU mode")
+		return fmt.Errorf("failed to detect DPU mode: %w", err)
+	}
+	log.Info("DPU mode detected",
+		"mode", dpuMode,
+		"description", GetModeDescription(dpuMode),
+		"dpuFlavor", dpuFlavor.Name,
+		"isZeroTrust", IsZeroTrustMode(dpuMode))
+
 	// Step 3: Build target ignition (HCP + DPF modifications)
+	// NOTE: For now, we just detect and log the mode. In the future, we'll pass
+	// the mode to buildTargetIgnition() and buildLiveIgnition() to generate
+	// mode-specific content.
 	log.V(1).Info("Building target ignition")
 
 	dpfOperatorConfig, err := ig.getDPFOperatorConfig(ctx, cr)
@@ -227,7 +244,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 
 	// Step 5: Create/Update ConfigMap
 	log.V(1).Info("Creating/Updating ConfigMap")
-	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition); err != nil {
+	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, machineOSURL); err != nil {
 		return fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
@@ -502,7 +519,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 }
 
 // createOrUpdateConfigMap creates or updates the ignition ConfigMap in DPUCluster namespace
-func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *igntypes.Config) error {
+func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *igntypes.Config, machineOSURL string) error {
 	log := logf.FromContext(ctx)
 
 	// Marshal live ignition to JSON
@@ -521,6 +538,7 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 	annotations := map[string]string{
 		bfcfgTemplateClusterNameAnnotation:      cr.Spec.DPUClusterRef.Name,
 		bfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
+		bfcfgTemplateMachineOSURLAnnotation:     machineOSURL,
 	}
 	if cr.Spec.DPUDeploymentRef != nil {
 		dpuDeployment, err := ig.getDPUDeployment(ctx, cr)

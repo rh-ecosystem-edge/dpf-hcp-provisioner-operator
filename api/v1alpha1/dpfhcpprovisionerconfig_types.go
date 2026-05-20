@@ -31,12 +31,20 @@ type DPFHCPProvisionerConfigSpec struct {
 	// +kubebuilder:default="quay.io/eelgaev/rhcos-bfb"
 	// +optional
 	BlueFieldOCPLayerRepo string `json:"blueFieldOCPLayerRepo,omitempty"`
+
+	// DisableMetalLB disables MetalLB configuration even when VirtualIP is specified.
+	// This is useful when the management cluster runs on a cloud platform (AWS, Azure, GCP)
+	// that provides native LoadBalancer support via cloud controller manager.
+	// +kubebuilder:default=false
+	// +optional
+	DisableMetalLB bool `json:"disableMetalLB,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=dpfhcpconfig
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'default'",message="DPFHCPProvisionerConfig must be named 'default'"
 // +kubebuilder:printcolumn:name="BlueFieldOCPLayerRepo",type=string,JSONPath=`.spec.blueFieldOCPLayerRepo`
+// +kubebuilder:printcolumn:name="DisableMetalLB",type=boolean,JSONPath=`.spec.disableMetalLB`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // DPFHCPProvisionerConfig is the cluster-scoped singleton configuration for the DPF HCP Provisioner operator.

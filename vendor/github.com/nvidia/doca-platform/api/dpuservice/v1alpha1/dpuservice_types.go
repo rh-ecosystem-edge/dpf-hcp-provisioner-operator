@@ -50,10 +50,6 @@ const (
 	// DPUServiceInterfaceAnnotationKey is the key used to add an annotation to a
 	// the DPUServiceInterface to indicate that it is consumed by a DPUService.
 	DPUServiceInterfaceAnnotationKey = "dpu.nvidia.com/consumed-by"
-
-	// InterfaceIndexKey is the key used to index the DPUService by the interfaces
-	// it consumes.
-	InterfaceIndexKey = ".metadata.interfaces"
 )
 
 var DPUServiceGroupVersionKind = GroupVersion.WithKind(DPUServiceKind)
@@ -103,6 +99,7 @@ func (s *DPUService) SetConditions(conditions []metav1.Condition) {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].status`
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].reason`
@@ -121,7 +118,12 @@ type DPUService struct {
 // DPUServiceSpec defines the desired state of DPUService
 // +kubebuilder:validation:XValidation:rule="(has(self.interfaces) && has(self.serviceID)) || (!has(self.interfaces) && !has(self.serviceID)) || has(self.serviceID)", message="serviceID must be provided when interfaces are provided"
 // +kubebuilder:validation:XValidation:rule="!(has(self.deployInCluster) && self.deployInCluster && has(self.configPorts))", message="configPorts cannot be set when deployInCluster is true"
+// +kubebuilder:validation:XValidation:rule="!(has(self.deployInCluster) && self.deployInCluster && has(self.dpuClusterSelector))", message="dpuClusterSelector cannot be set when deployInCluster is true"
 type DPUServiceSpec struct {
+	// Select the Clusters with specific labels, Applications will be created only for these Clusters
+	// +optional
+	DPUClusterSelector *metav1.LabelSelector `json:"dpuClusterSelector,omitempty"`
+
 	// HelmChart reflects the Helm related configuration
 	// +required
 	HelmChart HelmChart `json:"helmChart"`
@@ -229,8 +231,8 @@ type ConfigPort struct {
 	NodePort *uint16 `json:"nodePort,omitempty"`
 }
 
-// SetServiceDeamonSetNodeSelector sets the nodeSelector for the ServiceDaemonSet.
-func (s *DPUService) SetServiceDeamonSetNodeSelector(nodeSelector *corev1.NodeSelector) {
+// SetServiceDaemonSetNodeSelector sets the nodeSelector for the ServiceDaemonSet.
+func (s *DPUService) SetServiceDaemonSetNodeSelector(nodeSelector *corev1.NodeSelector) {
 	if s.Spec.ServiceDaemonSet == nil {
 		s.Spec.ServiceDaemonSet = &ServiceDaemonSetValues{}
 	}
@@ -327,6 +329,11 @@ type DPUServiceStatus struct {
 	// It contains the actual port numbers that are exposed on the DPUService per cluster.
 	// +optional
 	ConfigPorts map[string][]ConfigPort `json:"configPorts,omitempty"`
+
+	// ServiceID is the ID of the service that the DPUService is associated with.
+	// This is set when the DPUService is created.
+	// +optional
+	ServiceID string `json:"serviceID,omitempty"`
 }
 
 // +kubebuilder:object:root=true

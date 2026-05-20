@@ -659,7 +659,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
 
 		// Verify ConfigMap was created
 		cm := &corev1.ConfigMap{}
@@ -680,6 +680,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 	})
 
 	It("should update an existing ConfigMap", func() {
@@ -698,7 +699,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
 
 		// Verify data was updated
 		cm := &corev1.ConfigMap{}
@@ -714,6 +715,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 	})
 
 	It("should set owner reference when CR and ConfigMap are in the same namespace", func() {
@@ -726,7 +728,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
@@ -744,7 +746,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
@@ -761,7 +763,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
@@ -776,6 +778,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		// Cluster annotations should be present
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 
 		// BFB and DPUFlavor annotations should NOT be present
 		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateBFBNameAnnotation))

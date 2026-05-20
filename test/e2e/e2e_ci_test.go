@@ -302,19 +302,15 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 	})
 
 	Context("Cleanup Verification", func() {
-		const (
-			cleanupTestName       = "e2e-cleanup-test"
-			cleanupDPUClusterNS   = "dpf-e2e-cleanup-dpucluster"
-			cleanupDPUClusterName = "cleanup-dpucluster" // Max 20 chars for NVIDIA validation
-			cleanupDPUFlavorName  = "cleanup-dpuflavor"  // Max 20 chars for NVIDIA validation
-			cleanupDPUDeployName  = "cleanup-dpudeploy"  // Max 20 chars for NVIDIA validation
-		)
-
 		AfterEach(func() {
-			// Force delete the cleanup test CR if it still exists
-			forceDeleteProvisioner(ciNamespace, cleanupTestName)
+			// Dump status on failure (preserve all resources for debugging)
+			if CurrentSpecReport().Failed() {
+				dumpProvisionerStatus(ciNamespace, cleanupTestName)
+				return
+			}
 
-			// Clean up the cleanup test's DPUCluster namespace and all resources
+			// On success: Clean up DPF-specific namespace
+			// (Provisioner CR should already be deleted - verified by the test)
 			ctx := context.Background()
 			ns := &corev1.Namespace{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cleanupDPUClusterNS}, ns)

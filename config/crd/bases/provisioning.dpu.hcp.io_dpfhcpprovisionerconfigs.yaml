@@ -20,6 +20,9 @@ spec:
     - jsonPath: .spec.blueFieldOCPLayerRepo
       name: BlueFieldOCPLayerRepo
       type: string
+    - jsonPath: .spec.disableMetalLB
+      name: DisableMetalLB
+      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -56,6 +59,13 @@ spec:
                   BlueFieldOCPLayerRepo is the container registry repository for BlueField OCP layer images.
                   The operator queries this repository to find an image tag matching the OCP version.
                 type: string
+              disableMetalLB:
+                default: false
+                description: |-
+                  DisableMetalLB disables MetalLB configuration even when VirtualIP is specified.
+                  This is useful when the management cluster runs on a cloud platform (AWS, Azure, GCP)
+                  that provides native LoadBalancer support via cloud controller manager.
+                type: boolean
             type: object
         type: object
         x-kubernetes-validations:

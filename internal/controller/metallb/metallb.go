@@ -50,7 +50,7 @@ func NewMetalLBManager(c client.Client, recorder record.EventRecorder) *MetalLBM
 
 // ConfigureMetalLB orchestrates MetalLB resource configuration for a DPFHCPProvisioner
 // It creates and maintains IPAddressPool and L2Advertisement resources when LoadBalancer exposure is needed.
-func (m *MetalLBManager) ConfigureMetalLB(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+func (m *MetalLBManager) ConfigureMetalLB(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner, operatorConfig *common.OperatorConfig) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("provisioner", client.ObjectKeyFromObject(provisioner))
 
 	// Check if MetalLB configuration is needed
@@ -59,11 +59,26 @@ func (m *MetalLBManager) ConfigureMetalLB(ctx context.Context, provisioner *prov
 		return ctrl.Result{}, nil
 	}
 
+	// Check if MetalLB is disabled in operator config
+	if operatorConfig.DisableMetalLB {
+		log.Info("MetalLB disabled in operator config - skipping MetalLB configuration")
+		if err := m.setCondition(ctx, provisioner, metav1.ConditionTrue, "MetalLBDisabled",
+			"MetalLB disabled in operator configuration"); err != nil {
+			log.Error(err, "Failed to update MetalLBConfigured condition")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
 	log.Info("Starting MetalLB configuration")
 
 	// Configure IPAddressPool
 	log.V(1).Info("Configuring IPAddressPool")
 	if err := m.ensureIPAddressPool(ctx, provisioner); err != nil {
+		if meta.IsNoMatchError(err) {
+			return m.handleMissingMetalLBCRDs(ctx, provisioner, err)
+		}
+
 		log.Error(err, "Failed to configure IPAddressPool")
 
 		if condErr := m.setCondition(ctx, provisioner, metav1.ConditionFalse, "CreatingIPAddressPool",
@@ -78,6 +93,10 @@ func (m *MetalLBManager) ConfigureMetalLB(ctx context.Context, provisioner *prov
 	// Configure L2Advertisement
 	log.V(1).Info("Configuring L2Advertisement")
 	if err := m.ensureL2Advertisement(ctx, provisioner); err != nil {
+		if meta.IsNoMatchError(err) {
+			return m.handleMissingMetalLBCRDs(ctx, provisioner, err)
+		}
+
 		log.Error(err, "Failed to configure L2Advertisement")
 
 		if condErr := m.setCondition(ctx, provisioner, metav1.ConditionFalse, "L2AdvertisementFailed",
@@ -248,4 +267,17 @@ func (m *MetalLBManager) ensureL2Advertisement(ctx context.Context, provisioner 
 	}
 
 	return nil
+}
+
+// handleMissingMetalLBCRDs handles the case when MetalLB CRDs are not installed on bare-metal platforms.
+// This method is called after the platform check, so we know we're on bare-metal and MetalLB is required.
+func (m *MetalLBManager) handleMissingMetalLBCRDs(ctx context.Context, provisioner *provisioningv1alpha1.DPFHCPProvisioner, originalErr error) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	if condErr := m.setCondition(ctx, provisioner, metav1.ConditionFalse, "MetalLBNotInstalled",
+		"LoadBalancer mode requires MetalLB on non-cloud platforms. Install MetalLB operator or remove VirtualIP to use NodePort mode."); condErr != nil {
+		log.Error(condErr, "Failed to update MetalLBConfigured condition")
+	}
+
+	return ctrl.Result{}, fmt.Errorf("MetalLB CRDs not found: %w. Install MetalLB operator for LoadBalancer support on bare-metal", originalErr)
 }

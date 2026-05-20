@@ -42,6 +42,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
@@ -57,6 +58,13 @@ const (
 	pullSecretName    = "e2e-pull-secret"
 	dpuDeploymentName = "e2e-dpudeployment"
 	dpuFlavorName     = "e2e-dpuflavor"
+
+	// Cleanup test constants
+	cleanupTestName       = "e2e-cleanup-test"
+	cleanupDPUClusterNS   = "dpf-e2e-cleanup-dpucluster"
+	cleanupDPUClusterName = "cleanup-dpucluster"
+	cleanupDPUFlavorName  = "cleanup-dpuflavor"
+	cleanupDPUDeployName  = "cleanup-dpudeploy"
 
 	hostedClusterReadyTimeout = 25 * time.Minute
 	crReadyTimeout            = 35 * time.Minute
@@ -258,9 +266,21 @@ func createDPUDeploymentStub(ns, name, flavorName string) {
 			DPUs: dpuservicev1.DPUs{
 				BFB:    "e2e-bfb",
 				Flavor: flavorName,
+				// NodeEffect is required - use empty struct for stub (no node tainting)
+				NodeEffect: dpuprovisioningv1.Action{},
+				// DPUSetStrategy is required - use RollingUpdate for stub
+				DPUSetStrategy: dpuprovisioningv1.DPUSetStrategy{
+					Type: "RollingUpdate",
+				},
 			},
-			Services: map[string]dpuservicev1.DPUDeploymentServiceConfiguration{},
-			ServiceChains: dpuservicev1.ServiceChains{
+			// Services requires at least 1 service - add minimal stub service
+			Services: map[string]dpuservicev1.DPUDeploymentServiceConfiguration{
+				"e2e-stub-service": {
+					ServiceTemplate:      "e2e-stub-template",
+					ServiceConfiguration: "e2e-stub-config",
+				},
+			},
+			ServiceChains: &dpuservicev1.ServiceChains{
 				UpgradePolicy: dpuservicev1.UpgradePolicy{},
 				Switches: []dpuservicev1.DPUDeploymentSwitch{
 					{
@@ -291,6 +311,7 @@ func createDPUFlavorStub(ns, name string) {
 			Namespace: ns,
 		},
 		Spec: dpuprovisioningv1.DPUFlavorSpec{
+			DpuMode: dpuprovisioningv1.DpuMode,
 			OVS: dpuprovisioningv1.DPUFlavorOVS{
 				RawConfigScript: "#!/bin/bash\necho \"e2e test OVS config\"\n",
 			},
@@ -305,16 +326,15 @@ func createDPUFlavorStub(ns, name string) {
 func createDPFOperatorConfig(ns string) {
 	ctx := context.Background()
 	mtu := 1500
-	disable := true
+	bfbPVCName := "e2e-bfb-pvc"
 	dpfOperatorConfig := &operatorv1.DPFOperatorConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dpfoperatorconfig",
 			Namespace: ns,
 		},
 		Spec: operatorv1.DPFOperatorConfigSpec{
-			ProvisioningController: operatorv1.ProvisioningControllerConfiguration{
-				BFBPersistentVolumeClaimName: "e2e-bfb-pvc",
-				Disable:                      &disable,
+			ProvisioningController: &operatorv1.ProvisioningControllerConfiguration{
+				BFBPersistentVolumeClaimName: &bfbPVCName,
 			},
 			Networking: &operatorv1.Networking{
 				ControlPlaneMTU: &mtu,
@@ -346,6 +366,7 @@ func createDPFHCPProvisionerWithCluster(ns, name, clusterName, clusterNS, deploy
 			"  releaseImage=%s\n  baseDomain=%s\n"+
 			"  availability=%s\n  machineOSURL=%s\n"+
 			"  etcdStorageClass=%s\n"+
+			"  virtualIP=192.168.100.100 (dummy IP for AWS LoadBalancer mode)\n"+
 			"  dpuCluster=%s/%s\n",
 		releaseImage, baseDomain, availability, machineOSURL, etcdSC, clusterNS, clusterName)
 
@@ -370,6 +391,10 @@ func createDPFHCPProvisionerWithCluster(ns, name, clusterName, clusterNS, deploy
 				Name: pullSecretName,
 			},
 			ControlPlaneAvailabilityPolicy: availabilityPolicy,
+			// VirtualIP: Use a dummy IP to trigger LoadBalancer mode on AWS
+			// AWS Cloud Controller will create an AWS NLB instead of using NodePort with internal IP
+			// The actual VirtualIP value is not used on AWS (only for MetalLB on bare-metal)
+			VirtualIP: "192.168.100.100",
 			DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
 				Name:      deploymentName,
 				Namespace: clusterNS,
@@ -443,6 +468,12 @@ func createDPUStub(ns, name, phase string) {
 			DPUDeviceName: "bf3-device",
 			BFB:           "e2e-bfb",
 			SerialNumber:  "E2E0000000001",
+			DPUFlavor:     dpuFlavorName,
+			NodeEffect: dpuprovisioningv1.NodeEffect{
+				Action: dpuprovisioningv1.Action{
+					NoEffect: ptr.To(true),
+				},
+			},
 		},
 	}
 	err := k8sClient.Create(ctx, dpu)
@@ -876,8 +907,11 @@ func forceDeleteProvisioner(ns, name string) {
 func cleanupStaleResources() {
 	ctx := context.Background()
 
-	// Delete the provisioner first (this should cascade delete HostedCluster and NodePools)
+	// Delete the main test provisioner (this should cascade delete HostedCluster and NodePools)
 	forceDeleteProvisioner(ciNamespace, provisionerName)
+
+	// Delete the cleanup test provisioner (from previous failed runs)
+	forceDeleteProvisioner(ciNamespace, cleanupTestName)
 
 	// Clean up any orphaned HostedClusters and NodePools (best effort)
 	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &hyperv1.HostedCluster{},
@@ -889,7 +923,7 @@ func cleanupStaleResources() {
 		warnError("failed to cleanup orphaned NodePools: %v", err)
 	}
 
-	// Clean up DPU resources in DPUCluster namespace (best effort)
+	// Clean up DPU resources in main test DPUCluster namespace (best effort)
 	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPU{},
 		client.InNamespace(dpuClusterNS))); err != nil {
 		warnError("failed to cleanup DPUs: %v", err)
@@ -909,6 +943,24 @@ func cleanupStaleResources() {
 	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
 		client.InNamespace(dpuClusterNS))); err != nil {
 		warnError("failed to cleanup DPFOperatorConfigs: %v", err)
+	}
+
+	// Clean up DPU resources in cleanup test namespace (best effort)
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUCluster{},
+		client.InNamespace(cleanupDPUClusterNS))); err != nil {
+		warnError("failed to cleanup cleanup test DPUClusters: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuprovisioningv1.DPUFlavor{},
+		client.InNamespace(cleanupDPUClusterNS))); err != nil {
+		warnError("failed to cleanup cleanup test DPUFlavors: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &dpuservicev1.DPUDeployment{},
+		client.InNamespace(cleanupDPUClusterNS))); err != nil {
+		warnError("failed to cleanup cleanup test DPUDeployments: %v", err)
+	}
+	if err := client.IgnoreNotFound(k8sClient.DeleteAllOf(ctx, &operatorv1.DPFOperatorConfig{},
+		client.InNamespace(cleanupDPUClusterNS))); err != nil {
+		warnError("failed to cleanup cleanup test DPFOperatorConfigs: %v", err)
 	}
 
 	// Clean up secrets in operator namespace (best effort)

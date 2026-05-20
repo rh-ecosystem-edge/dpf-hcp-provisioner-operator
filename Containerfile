@@ -10,7 +10,7 @@ WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
-RUN go mod download
+COPY vendor/ vendor/
 
 # Copy the go source
 COPY cmd/main.go cmd/main.go
@@ -29,5 +29,22 @@ FROM registry.access.redhat.com/ubi10-micro:latest
 WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532
+
+ARG release=22
+ARG version=v4
+
+LABEL com.redhat.component="dpf-hcp-provisioner-rhel10-operator" \
+      name="dpu-kit-for-nvidia-operator/dpf-hcp-provisioner-rhel10-operator" \
+      version="${version}" \
+      upstream-ref="${version}" \
+      upstream-url="https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator" \
+      url="https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator" \
+      summary="DPU Kit for NVIDIA Operator - DPF HCP Provisioner" \
+      io.k8s.display-name="DPU Kit for NVIDIA Operator - DPF HCP Provisioner" \
+      description="DPU Kit for NVIDIA Operator - DPF HCP Provisioner" \
+      io.k8s.description="DPU Kit for NVIDIA Operator - DPF HCP Provisioner" \
+      distribution-scope="public" \
+      release="${release}" \
+      cpe="cpe:/a:redhat:dpu_kit:4.22::el10"
 
 ENTRYPOINT ["/manager"]

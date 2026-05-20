@@ -1,5 +1,5 @@
 /*
-COPYRIGHT 2024 NVIDIA
+Copyright 2024 NVIDIA
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ type Switch struct {
 
 	// ServiceMTU of the switch
 	// The default is 1500.
-	// +kubebuilder:validation:Minimum=1000
+	// +kubebuilder:validation:Minimum=1280
 	// +kubebuilder:validation:Maximum=9216
 	// +kubebuilder:default=1500
 	// +optional
@@ -123,6 +123,7 @@ type ServiceChainStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:printcolumn:name="Node",type=string,JSONPath=`.spec.node`
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].status`

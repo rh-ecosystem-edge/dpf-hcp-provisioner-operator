@@ -38,11 +38,12 @@ import (
 
 var _ = Describe("MetalLB Manager", func() {
 	var (
-		ctx        context.Context
-		fakeClient client.Client
-		recorder   *record.FakeRecorder
-		manager    *metallb.MetalLBManager
-		scheme     *runtime.Scheme
+		ctx            context.Context
+		fakeClient     client.Client
+		recorder       *record.FakeRecorder
+		manager        *metallb.MetalLBManager
+		scheme         *runtime.Scheme
+		operatorConfig *common.OperatorConfig
 	)
 
 	BeforeEach(func() {
@@ -55,6 +56,11 @@ var _ = Describe("MetalLB Manager", func() {
 		Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
 
 		recorder = record.NewFakeRecorder(100)
+
+		// Default operator config with MetalLB enabled
+		operatorConfig = &common.OperatorConfig{
+			DisableMetalLB: false,
+		}
 	})
 
 	Describe("ConfigureMetalLB", func() {
@@ -81,7 +87,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: No error, no requeue
 				Expect(err).NotTo(HaveOccurred())
@@ -117,7 +123,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
@@ -212,7 +218,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: Success, no updates
 				Expect(err).NotTo(HaveOccurred())
@@ -279,7 +285,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
@@ -351,7 +357,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
@@ -367,6 +373,66 @@ var _ = Describe("MetalLB Manager", func() {
 
 				// Drift correction event emitted
 				Eventually(recorder.Events).Should(Receive(ContainSubstring("MetalLBDriftCorrected")))
+			})
+		})
+
+		Context("when DisableMetalLB is true in operator config", func() {
+			It("should skip MetalLB configuration and set condition", func() {
+				// Given: DPFHCPProvisioner with VirtualIP but MetalLB disabled in config
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-provisioner",
+						Namespace: "test-ns",
+					},
+					Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+						ControlPlaneAvailabilityPolicy: hyperv1.HighlyAvailable,
+						VirtualIP:                      "192.168.1.100",
+					},
+				}
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(provisioner).
+					WithStatusSubresource(provisioner).
+					Build()
+
+				manager = metallb.NewMetalLBManager(fakeClient, recorder)
+
+				// Override operator config to disable MetalLB
+				configWithDisabled := &common.OperatorConfig{
+					DisableMetalLB: true,
+				}
+
+				// When: ConfigureMetalLB is called
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, configWithDisabled)
+
+				// Then: No error
+				Expect(err).NotTo(HaveOccurred())
+
+				// No MetalLB resources should be created
+				poolList := &metallbv1beta1.IPAddressPoolList{}
+				err = fakeClient.List(ctx, poolList)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(poolList.Items).To(BeEmpty())
+
+				advertList := &metallbv1beta1.L2AdvertisementList{}
+				err = fakeClient.List(ctx, advertList)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(advertList.Items).To(BeEmpty())
+
+				// Condition set to True with MetalLBDisabled reason
+				updatedProvisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+				err = fakeClient.Get(ctx, types.NamespacedName{
+					Name:      "test-provisioner",
+					Namespace: "test-ns",
+				}, updatedProvisioner)
+				Expect(err).NotTo(HaveOccurred())
+
+				cond := meta.FindStatusCondition(updatedProvisioner.Status.Conditions, provisioningv1alpha1.MetalLBConfigured)
+				Expect(cond).NotTo(BeNil())
+				Expect(cond.Status).To(Equal(metav1.ConditionTrue))
+				Expect(cond.Reason).To(Equal("MetalLBDisabled"))
+				Expect(cond.Message).To(Equal("MetalLB disabled in operator configuration"))
 			})
 		})
 	})
@@ -619,7 +685,7 @@ var _ = Describe("MetalLB Manager", func() {
 					Build()
 
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Then: Verify the created pool matches expected spec
@@ -658,7 +724,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB creates the advertisement
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Then: Verify the created advertisement matches expected spec
@@ -697,7 +763,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: MetalLB resources created
 				Expect(err).NotTo(HaveOccurred())
@@ -745,7 +811,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: Error returned - won't take ownership
 				Expect(err).To(HaveOccurred())
@@ -817,7 +883,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 
 				// Then: Error returned - won't take ownership
 				Expect(err).To(HaveOccurred())
@@ -860,7 +926,7 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB succeeds
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Then: Condition is True with MetalLBReady reason
@@ -896,14 +962,14 @@ var _ = Describe("MetalLB Manager", func() {
 				manager = metallb.NewMetalLBManager(fakeClient, recorder)
 
 				// When: ConfigureMetalLB is called first time
-				_, err := manager.ConfigureMetalLB(ctx, provisioner)
+				_, err := manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Then: Event emitted
 				Eventually(recorder.Events).Should(Receive(ContainSubstring("MetalLBConfigured")))
 
 				// When: ConfigureMetalLB is called again (no change)
-				_, err = manager.ConfigureMetalLB(ctx, provisioner)
+				_, err = manager.ConfigureMetalLB(ctx, provisioner, operatorConfig)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Then: No additional event (condition didn't change)

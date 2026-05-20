@@ -17,11 +17,13 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
 	operatorv1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
@@ -29,6 +31,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -152,6 +156,28 @@ var _ = BeforeSuite(func() {
 	_, _ = fmt.Fprintf(GinkgoWriter, "Using operator image: %s\n", operatorImage)
 	_, _ = fmt.Fprintf(GinkgoWriter, "Using helm chart: %s\n", operatorChart)
 
+	By("uninstalling any previous operator helm release")
+	// Uninstall previous helm release (if exists) to ensure clean slate.
+	uninstallCmd := exec.Command("helm", "uninstall", "dpf-hcp-provisioner-operator",
+		"--namespace", "dpf-hcp-provisioner-system", "--ignore-not-found", "--timeout=2m")
+	_, _ = utils.Run(uninstallCmd) // Ignore errors - might not exist on first run
+
+	// Wait for operator pods to be fully terminated
+	By("waiting for operator pods to terminate")
+	Eventually(func(g Gomega) {
+		podList := &corev1.PodList{}
+		err := k8sClient.List(context.Background(), podList,
+			client.InNamespace("dpf-hcp-provisioner-system"),
+			client.MatchingLabels{"app.kubernetes.io/name": "dpf-hcp-provisioner-operator"})
+
+		// not found means cleanup completed
+		if apierrors.IsNotFound(err) {
+			return
+		}
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to list operator pods")
+		g.Expect(podList.Items).To(BeEmpty(), "Operator pods should be terminated")
+	}, 30*time.Second, 1*time.Second).Should(Succeed())
+
 	By("deploying the operator via helm chart")
 	helmArgs := []string{"upgrade", "--install",
 		"dpf-hcp-provisioner-operator", operatorChart,
@@ -169,6 +195,7 @@ var _ = BeforeSuite(func() {
 
 	helmArgs = append(helmArgs,
 		"--set", "logLevel=debug",
+		"--set", "provisionerConfig.disableMetalLB=true",
 		"--wait", "--timeout", "5m",
 	)
 
