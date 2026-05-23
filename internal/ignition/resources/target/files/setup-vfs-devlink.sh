@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TIMEOUT=600
+TIMEOUT=1800
 START_TIME=$(date +%s)
 LAST_ERROR=""
 ACTION="${1:-}"

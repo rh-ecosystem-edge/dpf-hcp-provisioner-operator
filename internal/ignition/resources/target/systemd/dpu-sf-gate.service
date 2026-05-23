@@ -1,0 +1,14 @@
+[Unit]
+Description=Wait for DPU SFs before kubelet
+After=dpu-agent.service
+Before=kubelet-dependencies.target
+ConditionPathExists=/etc/mlnx-release
+ConditionPathExists=/etc/dpf/dpuflavor.yaml
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wait-for-sfs.sh
+TimeoutStartSec=infinity
+
+[Install]
+RequiredBy=kubelet-dependencies.target

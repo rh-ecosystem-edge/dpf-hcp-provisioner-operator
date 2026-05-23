@@ -82,11 +82,16 @@ func NewProvider() *content.EmbeddedProvider {
 				Mode:          0755,
 				ContentSource: f("setup-vfs-devlink.sh"),
 			},
-			{
-				Path:          "/usr/local/bin/dpu-fw-upgrade.sh",
-				Mode:          0755,
-				ContentSource: f("dpu-fw-upgrade.sh"),
-			},
+		{
+			Path:          "/usr/local/bin/dpu-fw-upgrade.sh",
+			Mode:          0755,
+			ContentSource: f("dpu-fw-upgrade.sh"),
+		},
+		{
+			Path:          "/usr/local/bin/wait-for-sfs.sh",
+			Mode:          0755,
+			ContentSource: f("wait-for-sfs.sh"),
+		},
 			{
 				Path:          "/usr/local/bin/tmfifo-agent-link.sh",
 				Mode:          0755,
