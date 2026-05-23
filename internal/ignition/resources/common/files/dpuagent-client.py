@@ -79,12 +79,12 @@ def update_reboot_method_discovery():
     })
 
 
-def update_host_reboot():
-    return base_request("POST", "/update-status", {
+def request_host_power_cycle():
+    return base_request("POST", "/trigger-reboot", {
         "dpuName": DPU_NAME,
         "dpuNamespace": DPU_NAMESPACE,
         "dpuUID": DPU_UID,
-        "rebootMethod": "SystemLevelReset"
+        "rebootMethod": "PowerCycle",
     })
 
 
@@ -139,7 +139,7 @@ COMMANDS = {
     "configure-host-vfs": lambda: configure_host_vfs(opt_int_arg(2)),
     "update-reboot-method-discovery": update_reboot_method_discovery,
     "request-system-level-reset": request_system_level_reset,
-    "update-host-reboot": update_host_reboot,
+    "request-host-power-cycle": request_host_power_cycle,
     "update-nvconfig-applied": update_nvconfig_applied,
     "update-time": update_time,
     "send-error": lambda: send_error(sys.argv[2], sys.argv[3]),

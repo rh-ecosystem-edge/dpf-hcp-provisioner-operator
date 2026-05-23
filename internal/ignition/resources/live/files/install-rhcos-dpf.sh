@@ -148,15 +148,28 @@ install_rhcos() {
     fi
 }
 
-wait_for_host_reboot_if_required() {
-    if [ "$NVCONFIG_CHANGED" = "true" ]; then
-        log "INFO: Host reboot required (NVConfig was changed), signaling host agent"
-        dpu_agent update-host-reboot
+request_host_power_cycle() {
+    log "INFO: Host power cycle required (NVConfig was changed), requesting from host agent"
+    dpu_agent update-nvconfig-applied
+    dpu_agent request-host-power-cycle
+    log "INFO: Host agent acknowledged power cycle request, waiting for host to power cycle..."
+    dpu_agent update-time
+    while true; do
+        sleep 60
+        log "INFO: Waiting for host power cycle, retrying..."
+        dpu_agent request-host-power-cycle
+    done
+}
+
+reboot_or_power_cycle() {
+    if [ "$NVCONFIG_CHANGED" != "true" ]; then
+        log "INFO: No host reboot required, rebooting DPU into RHCOS..."
         dpu_agent update-time
-        shutdown -h now
-        sleep infinity
+        sleep 10
+        reboot
     fi
-    log "INFO: No host reboot required."
+
+    request_host_power_cycle
 }
 
 validate_identity
@@ -172,11 +185,4 @@ sync
 
 log "INFO: Installation complete."
 
-dpu_agent update-time
-
-wait_for_host_reboot_if_required
-
-log "INFO: Waiting for 10 seconds before rebooting"
-sleep 10
-log "INFO: Rebooting..."
-reboot
+reboot_or_power_cycle
