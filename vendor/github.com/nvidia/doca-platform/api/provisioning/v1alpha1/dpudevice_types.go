@@ -30,6 +30,10 @@ const (
 
 	// DPUDeviceFinalizer is the finalizer used to prevent DpuDevice deletion while DPU is using it
 	DPUDeviceFinalizer = "provisioning.dpu.nvidia.com/dpudevice-protection"
+
+	// BMCCredentialFinalizer is the finalizer added to per-device BMC credential secrets
+	// to prevent accidental deletion while the DPUDevice depends on them.
+	BMCCredentialFinalizer = "provisioning.dpu.nvidia.com/bmc-credential"
 )
 
 // DPUDeviceGroupVersionKind is the GroupVersionKind of the DPUDevice object
@@ -49,6 +53,22 @@ const (
 	ConditionDpuDeviceError conditions.ConditionType = "Error"
 	// ConditionDpuDeviceReady indicates that the DPUDevice is ready
 	ConditionDpuDeviceReady conditions.ConditionType = "Ready"
+	// ConditionBMCCredentialsReady reports the health of BMC credential resolution.
+	ConditionBMCCredentialsReady conditions.ConditionType = "BMCCredentialsReady"
+)
+
+// BMCCredentialsReady condition reasons
+const (
+	// ReasonCredentialsValid indicates the credential secret is valid and authentication succeeded.
+	ReasonCredentialsValid = "CredentialsValid"
+	// ReasonCredentialsSecretNotFound indicates the referenced secret does not exist.
+	ReasonCredentialsSecretNotFound = "CredentialsSecretNotFound"
+	// ReasonCredentialsSecretInvalid indicates the secret exists but is malformed.
+	ReasonCredentialsSecretInvalid = "CredentialsSecretInvalid"
+	// ReasonBMCAuthenticationFailed indicates the password was rejected by the BMC.
+	ReasonBMCAuthenticationFailed = "BMCAuthenticationFailed"
+	// ReasonModeSwitchNotAllowed indicates an attempt to switch from per-device to shared mode.
+	ReasonModeSwitchNotAllowed = "ModeSwitchNotAllowed"
 )
 
 var (
@@ -60,6 +80,7 @@ var (
 		ConditionDpuDeviceInitialized,
 		ConditionDpuDeviceError,
 		ConditionDpuDeviceReady,
+		ConditionBMCCredentialsReady,
 	}
 )
 
@@ -98,7 +119,6 @@ type DPUDeviceSpec struct {
 
 	// BMCIP is the IP address of the BMC (Base Management Controller) on the device.
 	// This is used for remote management and monitoring of the device.
-	// This value is immutable and should not be changed once set.
 	// Example: "10.1.2.3"
 	// +kubebuilder:validation:Format=ipv4
 	// +optional
@@ -123,6 +143,14 @@ type DPUDeviceSpec struct {
 	// +optional
 	NumberOfPFs *int `json:"numberOfPFs,omitempty"`
 
+	// NICDeviceCount is the expected number of NIC devices used by dpu-agent provisioning.
+	// Valid range is 1 to 8. When unspecified, it defaults to 8.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=8
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="NICDeviceCount is immutable"
+	// +optional
+	NICDeviceCount *int `json:"nicDeviceCount,omitempty"`
+
 	// PF0Name is the name of the PF0 on the device.
 	// This value is immutable and should not be changed once set.
 	// Example: "eth0"
@@ -131,6 +159,26 @@ type DPUDeviceSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="PF0 Name is immutable"
 	// +optional
 	PF0Name *string `json:"pf0Name,omitempty"`
+
+	// BMCCredentialSecretName is the name of a Secret in the same namespace containing
+	// per-device BMC credentials. The secret must contain a "password" key with the BMC credential value.
+	// If specified, this password takes precedence over the shared bmc-shared-password secret.
+	// +optional
+	BMCCredentialSecretName *string `json:"bmcCredentialSecretName,omitempty"`
+
+	// Specifies details on the K8S cluster to join
+	// +optional
+	Cluster *DPUDeviceClusterSpec `json:"cluster,omitempty"`
+}
+
+// DPUDeviceClusterSpec holds node labels and annotations propagated from DPUDevice to the DPU and cluster node.
+type DPUDeviceClusterSpec struct {
+	// NodeLabels specifies labels to be added to the DPU cluster node for this device.
+	// +optional
+	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
+	// NodeAnnotations specifies annotations to be added to the DPU cluster node for this device.
+	// +optional
+	NodeAnnotations map[string]string `json:"nodeAnnotations,omitempty"`
 }
 
 type DPUDeviceStatus struct {
@@ -204,6 +252,10 @@ type DPUDeviceStatus struct {
 	// SecureBoot indicates the current UEFI Secure Boot state.
 	// +optional
 	SecureBoot *SecureBootStatus `json:"secureBoot,omitempty"`
+
+	// BMCCredentialSecretName is the name of the Secret last used successfully for BMC authentication.
+	// +optional
+	BMCCredentialSecretName *string `json:"bmcCredentialSecretName,omitempty"`
 
 	// +optional
 	Conditions []metav1.Condition `json:"conditions"`

@@ -92,10 +92,10 @@ const (
 	DPUCondFWConfigured           DPUConditionType = "FWConfigured"
 	DPUCondBFBTransferred         DPUConditionType = "BFBTransferred"
 	DPUCondOSInstalled            DPUConditionType = "OSInstalled"
-	DPUConditionHostPowerCycle    DPUConditionType = "HostPowerCycle"
 	DPUCondRebooted               DPUConditionType = "Rebooted"
 	DPUCondHostNetworkReady       DPUConditionType = "HostNetworkReady"
 	DPUCondDPUClusterReady        DPUConditionType = "DPUClusterReady"
+	DPUCondDPUConfig              DPUConditionType = "DPUConfig"
 	DPUCondNodeEffectRemoved      DPUConditionType = "NodeEffectRemoved"
 	DPUCondDeleting               DPUConditionType = "Deleting"
 	DPUCondReady                  DPUConditionType = "Ready"
@@ -183,6 +183,18 @@ const (
 	InstallViaMock      DPUInstallInterfaceType = "mock"
 )
 
+// DeploymentMode describes the cluster deployment model for provisioning (zero-trust vs host-trusted).
+// This type is intentionally duplicated from operator/v1alpha1.DeploymentMode: the provisioning API
+// must not import the operator API group. Keep values and semantics aligned with
+// DPFOperatorConfig.spec.deploymentMode.
+// +kubebuilder:validation:Enum=zero-trust;host-trusted
+type DeploymentMode string
+
+const (
+	DeploymentModeZeroTrust   DeploymentMode = "zero-trust"
+	DeploymentModeHostTrusted DeploymentMode = "host-trusted"
+)
+
 func (ct DPUConditionType) String() string {
 	return string(ct)
 }
@@ -258,6 +270,10 @@ type DPUSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	DPUFlavor string `json:"dpuFlavor"`
+
+	// AstraEnabled indicates whether E/W NIC configuration (Astra) is enabled
+	// +optional
+	AstraEnabled *bool `json:"astraEnabled,omitempty"`
 
 	// SecureBoot specifies whether UEFI Secure Boot should be enabled.
 	// +optional
@@ -356,11 +372,22 @@ type DPUStatus struct {
 	// +optional
 	AgentStatus *AgentStatus `json:"agentStatus,omitempty"`
 
+	// RebootStatus contains host reboot progress.
+	// DPU controller derives user-facing DPUCondRebooted from this status.
+	// +optional
+	RebootStatus *RebootStatus `json:"rebootStatus,omitempty"`
+
 	// The mode of the DPU
 	// +kubebuilder:validation:Enum=dpu;nic
 	// +kubebuilder:default=dpu
 	// +optional
 	DPUMode DpuModeType `json:"dpuMode,omitempty"`
+
+	// DeploymentMode is copied from DPFOperatorConfig.spec.deploymentMode by the controller.
+	// This field is read-only for users.
+	// +kubebuilder:validation:Enum=zero-trust;host-trusted
+	// +optional
+	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
 
 	// SecureBoot indicates the current UEFI Secure Boot state.
 	// +optional
@@ -460,6 +487,40 @@ type PendingNVConfigEntry struct {
 	Current string `json:"current,omitempty"`
 	// NextBoot uses the "next_boot" so this type can be reused for parsing mlxfwrest output
 	NextBoot string `json:"next_boot,omitempty"`
+}
+
+// RebootStatusPhase is the host reboot progress phase.
+// +kubebuilder:validation:Enum=Pending;Succeeded;Failed;Unknown
+type RebootStatusPhase string
+
+const (
+	// RebootStatusPending means reboot is requested but execution has not started yet
+	// (for example, waiting for a manual external reboot trigger).
+	RebootStatusPending RebootStatusPhase = "Pending"
+	// RebootStatusSucceeded means reboot completed successfully.
+	RebootStatusSucceeded RebootStatusPhase = "Succeeded"
+	// RebootStatusFailed means reboot execution failed.
+	RebootStatusFailed RebootStatusPhase = "Failed"
+	// RebootStatusUnknown means reboot execution state cannot be determined.
+	RebootStatusUnknown RebootStatusPhase = "Unknown"
+)
+
+// RebootStatus stores the host reboot execution status.
+type RebootStatus struct {
+	// Phase is the current host reboot progress.
+	Phase RebootStatusPhase `json:"phase,omitempty"`
+	// Method is the recommended reboot method.
+	// +optional
+	Method *RebootMethodType `json:"method,omitempty"`
+	// Reason indicates machine-readable reason for current phase.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Message provides human-readable details for current phase.
+	// +optional
+	Message string `json:"message,omitempty"`
+	// LastTransitionTime is the last update time for reboot status.
+	// +optional
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -100,6 +100,13 @@ type RollingUpdateDPU struct {
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 }
 
+// BlueFieldSoftwareReference is a reference to a specific BlueFieldSoftware
+type BlueFieldSoftwareReference struct {
+	// Specifies name of the BlueFieldSoftware CR to use for this DPU
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name,omitempty"`
+}
+
 // BFBReference is a reference to a specific BFB
 type BFBReference struct {
 	// Specifies name of the bfb CR to use for this DPU
@@ -111,6 +118,9 @@ type ClusterSpec struct {
 	// NodeLabels specifies the labels to be added to the node.
 	// +optional
 	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
+	// NodeAnnotations specifies the annotations to be added to the node.
+	// +optional
+	NodeAnnotations map[string]string `json:"nodeAnnotations,omitempty"`
 	// Selector defines the selector of the DPUClusters the produced DPUs should join
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
@@ -119,6 +129,9 @@ type ClusterSpec struct {
 type DPUTemplateSpec struct {
 	// Specifies a BFB CR
 	BFB BFBReference `json:"bfb,omitempty"`
+	// Specifies a BlueFieldSoftware CR
+	// +optional
+	BlueFieldSoftware *BlueFieldSoftwareReference `json:"blueFieldSoftware,omitempty"`
 	// Specifies how changes to the DPU should affect the Node
 	// +required
 	NodeEffect NodeEffect `json:"nodeEffect"`
@@ -129,6 +142,9 @@ type DPUTemplateSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	DPUFlavor string `json:"dpuFlavor"`
+	// AstraEnabled indicates whether E/W NIC configuration (Astra) is enabled
+	// +optional
+	AstraEnabled *bool `json:"astraEnabled,omitempty"`
 	// SecureBoot specifies whether UEFI Secure Boot should be enabled.
 	// +optional
 	SecureBoot *bool `json:"secureBoot,omitempty"`
@@ -307,6 +323,14 @@ type DPUSet struct {
 
 	Spec   DPUSetSpec   `json:"spec,omitempty"`
 	Status DPUSetStatus `json:"status,omitempty"`
+}
+
+// IsAstraEnabledForNonBlueField4 returns true if Astra is enabled on this DPUSet
+// and the target DPUDevice is not a BlueField4.
+func (c *DPUSet) IsAstraEnabledForNonBlueField4(dpuDevice DPUDevice) bool {
+	return c.Spec.DPUTemplate.Spec.AstraEnabled != nil &&
+		*c.Spec.DPUTemplate.Spec.AstraEnabled &&
+		dpuDevice.Status.DPUType != DPUTypeBlueField4
 }
 
 // +kubebuilder:object:root=true

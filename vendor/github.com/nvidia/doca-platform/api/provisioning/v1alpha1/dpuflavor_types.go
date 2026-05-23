@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	nicconfigv1alpha1 "github.com/Mellanox/nic-configuration-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -59,6 +60,12 @@ type DPUFlavorSpec struct {
 	// ConfigFiles are the files to be written on the DPU.
 	// +optional
 	ConfigFiles []ConfigFile `json:"configFiles,omitempty"`
+	// Packages are the packages to reconcile on the node.
+	// +optional
+	Packages []PackageSpec `json:"packages,omitempty"`
+	// SystemdServices are the systemd services to manage on the node.
+	// +optional
+	SystemdServices []SystemdServiceSpec `json:"systemdServices,omitempty"`
 	// ContainerdConfig contains the configuration for containerd.
 	// +optional
 	ContainerdConfig ContainerdConfig `json:"containerdConfig,omitempty"`
@@ -74,15 +81,35 @@ type DPUFlavorSpec struct {
 	// +optional
 	SystemReservedResources corev1.ResourceList `json:"systemReservedResources,omitempty"`
 
-	// Specifies the DPU Mode type: one of dpu,zero-trust.
-	// When not specified, defaults to "zero-trust" if the DPF deployment uses Redfish install interface,
-	// otherwise defaults to "dpu".
+	// DpuMode is deprecated and no longer used by provisioning workflows.
+	// Deployment mode is sourced from DPFOperatorConfig and exposed on DPU.status.deploymentMode.
 	// +optional
 	DpuMode DpuModeType `json:"dpuMode,omitempty"`
 
 	// HostNetworkInterfaceConfigs contains the configuration for the host-side network interfaces.
 	// +optional
 	HostNetworkInterfaceConfigs []NetworkInterfaceConfig `json:"hostNetworkInterfaceConfigs,omitempty"`
+
+	// EWNicConfigurations contains the configuration for the E/W NICs.
+	// +optional
+	EWNicConfigurations *NicConfiguration `json:"ewNicConfigurations,omitempty"`
+}
+
+// NicConfiguration is a set of configurations for the NICs
+// +kubebuilder:validation:XValidation:rule="!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled) || (self.linkType == 'Ethernet' && self.numVfs == 1)",message="spectrumXOptimized can be enabled only when linkType=='Ethernet' and numVfs==1"
+// +kubebuilder:validation:XValidation:rule="!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled) || !has(self.rawNvConfig) || size(self.rawNvConfig) == 0",message="when spectrumXOptimized is enabled, rawNvConfig must be empty"
+type NicConfiguration struct {
+	// Number of VFs to be configured
+	// +required
+	NumVfs int `json:"numVfs"`
+	// LinkType to be configured, Ethernet|Infiniband
+	// +kubebuilder:validation:Enum=Ethernet;Infiniband
+	// +required
+	LinkType nicconfigv1alpha1.LinkTypeEnum `json:"linkType"`
+	// Spectrum-X optimization settings. Works only with linkType==Ethernet && numVfs==0. Other optimizations must be skipped or disabled. RawNvConfig must be empty.
+	SpectrumXOptimized *nicconfigv1alpha1.SpectrumXOptimizedSpec `json:"spectrumXOptimized,omitempty"`
+	// List of arbitrary nv config parameters
+	RawNvConfig []nicconfigv1alpha1.NvConfigParam `json:"rawNvConfig,omitempty"`
 }
 
 type DPUFlavorGrub struct {
@@ -124,9 +151,11 @@ type DPUFlavorOVS struct {
 type DpuModeType string
 
 const (
-	DpuMode       DpuModeType = "dpu"
+	DpuMode DpuModeType = "dpu"
+	NicMode DpuModeType = "nic"
+	// ZeroTrustMode is deprecated and kept for backward compatibility with DPUFlavor.spec.dpuMode.
+	// Deprecated: DPUFlavor.spec.dpuMode is deprecated; use DPFOperatorConfig.spec.deploymentMode.
 	ZeroTrustMode DpuModeType = "zero-trust"
-	NicMode       DpuModeType = "nic"
 )
 
 // DPUFlavorFileOp defines the operation to be performed on the file
@@ -151,6 +180,71 @@ type ConfigFile struct {
 	// Permissions are the permissions to be set on the file.
 	// +optional
 	Permissions string `json:"permissions,omitempty"`
+}
+
+// PackageSpec defines a package to reconcile on the node.
+type PackageSpec struct {
+	// Name is the package name.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+	// Version constrains the package version.
+	// If empty, any installed version satisfies the spec.
+	// +optional
+	Version *PackageVersionSpec `json:"version,omitempty"`
+	// RepoFileRef constrains package resolution to a specific repository file available on the node.
+	// If empty, any configured repository may satisfy the package.
+	// If specified, only the referenced repository file may provide candidates.
+	// If that repository file does not provide the package or requested version, the dpu-agent flow does not continue.
+	// +optional
+	RepoFileRef string `json:"repoFileRef,omitempty"`
+}
+
+// PackageVersionSpec defines a package version constraint.
+type PackageVersionSpec struct {
+	// Value is the package version to compare against.
+	// +kubebuilder:validation:MinLength=1
+	Value string `json:"value"`
+	// MatchPolicy controls how Value is matched.
+	// If omitted, AtLeast is used.
+	// +kubebuilder:validation:Enum=Exact;AtLeast
+	// +kubebuilder:default=AtLeast
+	// +optional
+	MatchPolicy PackageVersionMatchPolicy `json:"matchPolicy,omitempty"`
+}
+
+// PackageVersionMatchPolicy defines how a package version constraint is evaluated.
+type PackageVersionMatchPolicy string
+
+const (
+	// PackageVersionMatchExact requires the installed package version to equal Value.
+	PackageVersionMatchExact PackageVersionMatchPolicy = "Exact"
+
+	// PackageVersionMatchAtLeast requires the installed package version to be greater than or equal to Value.
+	PackageVersionMatchAtLeast PackageVersionMatchPolicy = "AtLeast"
+)
+
+// SystemdServiceOperation defines the operation to perform on a systemd service.
+// +kubebuilder:validation:Enum=Start;Enable;EnableAndStart
+type SystemdServiceOperation string
+
+const (
+	// SystemdServiceStart starts the service without enabling it at boot.
+	SystemdServiceStart SystemdServiceOperation = "Start"
+
+	// SystemdServiceEnable enables the service at boot without starting it immediately.
+	SystemdServiceEnable SystemdServiceOperation = "Enable"
+
+	// SystemdServiceEnableAndStart enables the service at boot and starts it immediately (equivalent to systemctl enable --now).
+	SystemdServiceEnableAndStart SystemdServiceOperation = "EnableAndStart"
+)
+
+// SystemdServiceSpec defines a systemd service to manage on the node.
+type SystemdServiceSpec struct {
+	// Name is the systemd service name.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+	// Operation is the systemd operation to perform on the service.
+	Operation SystemdServiceOperation `json:"operation"`
 }
 
 type ContainerdConfig struct {

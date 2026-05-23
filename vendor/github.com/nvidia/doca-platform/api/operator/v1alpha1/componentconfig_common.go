@@ -45,6 +45,8 @@ var (
 	KubeStateMetricsRBACName            ComponentName = "kube-state-metrics-rbac"
 	NodeProblemDetectorName             ComponentName = "node-problem-detector"
 	OpenTelemetryCollectorName          ComponentName = "opentelemetry-collector"
+	PLDMUnpackContainerName             ComponentName = "pldmunpack"
+	KataContainersName                  ComponentName = "kata-containers"
 )
 
 type ComponentName string
@@ -76,7 +78,7 @@ var (
 	// SRIOVDevicePluginContainer is the default name of the scaffolded SR-IOV Device Plugin container.
 	SRIOVDevicePluginContainer ContainerName = "kube-sriovdp"
 	// OVSCNI is the default name of the scaffolded OVS CNI
-	OVSCNI ContainerName = "ovs-cni-marker"
+	OVSCNI ContainerName = "ovs-cni-plugin"
 	// CNIInstallerContainer is the default name of the scaffolded CNI Installer container.
 	CNIInstallerContainer ContainerName = "cni-installer"
 	// KubeStateMetricsContainer is the default name of the kube-state-metrics container.
@@ -85,6 +87,8 @@ var (
 	NodeProblemDetectorContainer ContainerName = "node-problem-detector"
 	// OpenTelemetryCollectorContainer is the default name of the opentelemetry-collector container.
 	OpenTelemetryCollectorContainer ContainerName = "opentelemetry-collector"
+	// KataDeployContainer is the default name of the kata-deploy container.
+	KataDeployContainer ContainerName = "kata-deploy"
 )
 
 type ContainerName string
@@ -137,6 +141,9 @@ func (c *DPFOperatorConfig) ComponentConfigs() []ComponentConfigurable {
 	}
 	if c.Spec.NodeSRIOVDevicePluginController != nil {
 		out = append(out, c.Spec.NodeSRIOVDevicePluginController)
+	}
+	if c.Spec.KataContainers != nil {
+		out = append(out, c.Spec.KataContainers)
 	}
 	if c.Spec.Monitoring != nil && c.Spec.Monitoring.KubeStateMetrics != nil {
 		out = append(out, c.Spec.Monitoring.KubeStateMetrics)

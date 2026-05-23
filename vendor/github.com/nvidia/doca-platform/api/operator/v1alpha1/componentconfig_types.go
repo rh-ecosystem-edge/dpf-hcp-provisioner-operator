@@ -118,7 +118,7 @@ type ProvisioningControllerConfiguration struct {
 
 	// OSInstallTimeout is the maximum time allowed for OS installation in zero-trust mode.
 	// If the installation exceeds this timeout, the DPU will transition to an error state.
-	// +kubebuilder:default="45m"
+	// +kubebuilder:default="60m"
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern=`^([0-9]+(h|m|s|ms|us|µs|ns))+$`
 	// +kubebuilder:validation:Format=duration
@@ -1036,4 +1036,54 @@ func (c *OpenTelemetryCollectorConfiguration) GetResources() map[ContainerName]*
 	return map[ContainerName]*corev1.ResourceRequirements{
 		OpenTelemetryCollectorContainer: c.Daemon.GetResource(),
 	}
+}
+
+// KataShim identifies a Kata hypervisor shim variant.
+// Values must match the shim keys in the kata-deploy Helm chart's
+// shims.<name>.enabled values.
+// Only arm64-compatible shims are supported.
+// +kubebuilder:validation:Enum=qemu
+type KataShim string
+
+const (
+	// KataShimQEMU is the QEMU hypervisor shim.
+	KataShimQEMU KataShim = "qemu"
+)
+
+type KataContainersConfiguration struct {
+	BaseComponentConfig `json:",inline"`
+	HelmComponentConfig `json:",inline"`
+
+	// Daemon contains the configuration for the kata-deploy component.
+	// It contains the image for the kata-deploy container.
+	// +optional
+	Daemon *ImageComponentConfig `json:"daemon,omitempty"`
+
+	// NodeSelector restricts which nodes kata-deploy runs on.
+	// This is passed as the Helm chart's nodeSelector value.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// Shims selects which Kata hypervisor shims to enable.
+	// Defaults to ["qemu"] if empty.
+	// +optional
+	// +kubebuilder:validation:items:Enum=qemu
+	Shims []KataShim `json:"shims,omitempty"`
+
+	// ContainerdConfigFileName overrides the containerd config file name
+	// on the target nodes. Defaults to "config-mlnx.toml".
+	// +optional
+	ContainerdConfigFileName string `json:"containerdConfigFileName,omitempty"`
+}
+
+func (c *KataContainersConfiguration) Name() string {
+	return KataContainersName.String()
+}
+
+func (c *KataContainersConfiguration) GetImages() map[ContainerName]*string {
+	images := make(map[ContainerName]*string)
+	if c.Daemon != nil {
+		images[KataDeployContainer] = c.Daemon.GetImage()
+	}
+	return images
 }
