@@ -78,11 +78,6 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("install-dpu-agent.sh"),
 			},
 			{
-				Path:          "/usr/local/bin/setup-vfs-devlink.sh",
-				Mode:          0755,
-				ContentSource: f("setup-vfs-devlink.sh"),
-			},
-			{
 				Path:          "/usr/local/bin/dpu-fw-upgrade.sh",
 				Mode:          0755,
 				ContentSource: f("dpu-fw-upgrade.sh"),

@@ -52,6 +52,11 @@ func NewProvider() *content.EmbeddedProvider {
 				Mode:          0755,
 				ContentSource: f("bfupsignal.sh"),
 			},
+			{
+				Path:          "/usr/local/bin/setup-vfs-devlink.sh",
+				Mode:          0755,
+				ContentSource: f("setup-vfs-devlink.sh"),
+			},
 		},
 		SystemdFS: &systemdFS,
 	}
