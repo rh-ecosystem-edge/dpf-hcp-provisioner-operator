@@ -283,8 +283,18 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return result, err
 	}
 
-	// Verify ignition ConfigMap still exists (self-heal on external deletion)
-	r.verifyIgnitionConfigMap(ctx, &cr)
+	// Verify ignition ConfigMap still exists (self-heal on external deletion).
+	// If the ConfigMap was deleted, persist the updated status immediately and
+	// requeue so the next reconcile regenerates it.
+	if configMapDeleted := r.verifyIgnitionConfigMap(ctx, &cr); configMapDeleted {
+		r.computeReadyCondition(ctx, &cr)
+		r.updatePhaseFromConditions(&cr)
+		if err := r.Status().Update(ctx, &cr); err != nil {
+			log.Error(err, "Failed to update status after ignition ConfigMap deletion")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	// Compute Ready condition based on all operational requirements
 	// This must run AFTER all features have updated their conditions
@@ -625,12 +635,13 @@ func (r *DPFHCPProvisionerReconciler) ignitionConfigMapToRequests(ctx context.Co
 // verifyIgnitionConfigMap checks that the ignition ConfigMap still exists when IgnitionConfigured=True.
 // If the ConfigMap was deleted externally, this clears IgnitionConfigured so the reconciler
 // re-enters the IgnitionGenerating phase and re-creates it.
-func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) {
+// Returns true if the ConfigMap was found missing and the condition was cleared.
+func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
 	log := logf.FromContext(ctx)
 
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue {
-		return
+		return false
 	}
 
 	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
@@ -639,11 +650,11 @@ func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Contex
 	cm := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNamespace}, cm)
 	if err == nil {
-		return
+		return false
 	}
 	if client.IgnoreNotFound(err) != nil {
 		log.Error(err, "Failed to verify ignition ConfigMap existence", "configmap", cmName, "namespace", cmNamespace)
-		return
+		return false
 	}
 
 	log.Info("Ignition ConfigMap was deleted externally, clearing IgnitionConfigured condition",
@@ -657,6 +668,7 @@ func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Contex
 	})
 	r.Recorder.Event(cr, corev1.EventTypeWarning, "IgnitionConfigMapDeleted",
 		fmt.Sprintf("Ignition ConfigMap %s/%s was deleted externally, triggering regeneration", cmNamespace, cmName))
+	return true
 }
 
 // conditionsEqual compares two condition slices for equality

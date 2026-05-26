@@ -329,7 +329,7 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 	})
 
 	Describe("verifyIgnitionConfigMap", func() {
-		It("should do nothing when no conditions exist", func() {
+		It("should return false when no conditions exist", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -348,13 +348,14 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				Client:   fakeClient,
 				Recorder: record.NewFakeRecorder(10),
 			}
-			r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			deleted := r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			Expect(deleted).To(BeFalse())
 
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).To(BeNil())
 		})
 
-		It("should do nothing when IgnitionConfigured is False", func() {
+		It("should return false when IgnitionConfigured is False", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -383,7 +384,8 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				Client:   fakeClient,
 				Recorder: record.NewFakeRecorder(10),
 			}
-			r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			deleted := r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			Expect(deleted).To(BeFalse())
 
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).NotTo(BeNil())
@@ -391,7 +393,7 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 			Expect(cond.Reason).To(Equal("IgnitionGenerationFailed"))
 		})
 
-		It("should do nothing when ConfigMap exists", func() {
+		It("should return false when ConfigMap exists", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -430,14 +432,15 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				Client:   fakeClient,
 				Recorder: record.NewFakeRecorder(10),
 			}
-			r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			deleted := r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			Expect(deleted).To(BeFalse())
 
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 		})
 
-		It("should clear IgnitionConfigured when ConfigMap is missing", func() {
+		It("should clear IgnitionConfigured and return true when ConfigMap is missing", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "test",
@@ -471,7 +474,8 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				Client:   fakeClient,
 				Recorder: recorder,
 			}
-			r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			deleted := r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			Expect(deleted).To(BeTrue())
 
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).NotTo(BeNil())
@@ -517,7 +521,8 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				Client:   fakeClient,
 				Recorder: record.NewFakeRecorder(10),
 			}
-			r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			deleted := r.verifyIgnitionConfigMap(context.TODO(), provisioner)
+			Expect(deleted).To(BeTrue())
 
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).NotTo(BeNil())
