@@ -200,10 +200,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		"dpuFlavor", dpuFlavor.Name,
 		"isZeroTrust", IsZeroTrustMode(dpuMode))
 
-	// Build target ignition (HCP + DPF modifications)
-	// NOTE: For now, we just detect and log the mode. In the future, we'll pass
-	// the mode to buildTargetIgnition() and buildLiveIgnition() to generate
-	// mode-specific content.
+	// Step 3: Build target ignition (HCP + DPF modifications)
 	log.V(1).Info("Building target ignition")
 
 	dpfOperatorConfig, err := ig.getDPFOperatorConfig(ctx, cr)
@@ -229,7 +226,8 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
 	}
 
-	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu)
+	isZeroTrust := IsZeroTrustMode(dpuMode)
+	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, isZeroTrust)
 	if err != nil {
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
@@ -249,7 +247,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	log.V(1).Info("Building live ignition")
 	// We are adding DPU Flavor in JSON format for early setup tasks, such as nvconfig parameters setup.
 	// JSON is easier to parse with the tooling we have in Live RHCOS install media.
-	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, IsZeroTrustMode(dpuMode))
+	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, isZeroTrust)
 	if err != nil {
 		return fmt.Errorf("failed to build live ignition: %w", err)
 	}
@@ -438,7 +436,7 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications
-func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, isZeroTrust bool) (*igntypes.Config, error) {
 	// Parse HCP ignition
 	targetIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, targetIgnition); err != nil {
@@ -457,7 +455,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	}
 
 	// Add common content files and systemd units
-	commonProvider := common.NewProvider()
+	commonProvider := common.NewProvider(isZeroTrust)
 	if err := igncontent.AddContent(targetIgnition, commonProvider); err != nil {
 		return nil, fmt.Errorf("failed to add common content: %w", err)
 	}
@@ -485,7 +483,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 }
 
 // buildLiveIgnition builds the live ignition with embedded target ignition
-func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, zeroTrust bool) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, isZeroTrust bool) (*igntypes.Config, error) {
 	// Parse HCP to extract passwd
 	hcpIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, hcpIgnition); err != nil {
@@ -501,13 +499,13 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 	}
 
 	// Add live content files and systemd units
-	liveProvider := live.NewProvider(zeroTrust)
+	liveProvider := live.NewProvider(isZeroTrust)
 	if err := igncontent.AddContent(liveIgnition, liveProvider); err != nil {
 		return nil, fmt.Errorf("failed to add live content: %w", err)
 	}
 
 	// Add common content files and systemd units
-	commonProvider := common.NewProvider()
+	commonProvider := common.NewProvider(isZeroTrust)
 	if err := igncontent.AddContent(liveIgnition, commonProvider); err != nil {
 		return nil, fmt.Errorf("failed to add common content: %w", err)
 	}
