@@ -1,5 +1,5 @@
 # Extract oc CLI from its official image
-FROM quay.io/openshift/origin-cli:4.22 AS oc-cli
+FROM registry.redhat.io/openshift4/ose-cli:latest AS oc-cli
 
 FROM registry.access.redhat.com/ubi10/ubi-minimal
 
