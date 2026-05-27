@@ -445,7 +445,7 @@ func getCRConditions(ns, name string) []metav1.Condition {
 }
 
 // getConditionStatus returns the status of a specific condition type.
-func getConditionStatus(ns, name, conditionType string) string {
+func getConditionStatus(ns, name, conditionType string) string { //nolint:unparam
 	conditions := getCRConditions(ns, name)
 	for _, c := range conditions {
 		if c.Type == conditionType {

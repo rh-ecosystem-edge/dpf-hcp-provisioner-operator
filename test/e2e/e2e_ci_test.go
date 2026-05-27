@@ -179,6 +179,62 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				"Ignition data should contain 'ignition' key")
 		})
 
+		It("should self-heal when ignition ConfigMap is deleted", func() {
+			ctx := context.Background()
+			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+
+			By("verifying ignition ConfigMap exists before deletion")
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      ignitionCMName,
+			}, cm)
+			Expect(err).NotTo(HaveOccurred(), "Ignition ConfigMap should exist before test")
+
+			By("deleting the ignition ConfigMap to trigger self-heal")
+			Expect(k8sClient.Delete(ctx, cm)).To(Succeed())
+
+			By("verifying ConfigMap is actually gone")
+			Eventually(func(g Gomega) {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: dpuClusterNS,
+					Name:      ignitionCMName,
+				}, &corev1.ConfigMap{})
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(),
+					"ConfigMap should be deleted")
+			}, 30*time.Second, pollingInterval).Should(Succeed())
+
+			By("waiting for CR to leave Ready state")
+			Eventually(func(g Gomega) {
+				status := getConditionStatus(ciNamespace, provisionerName, "IgnitionConfigured")
+				g.Expect(status).To(Equal(string(metav1.ConditionFalse)),
+					"IgnitionConfigured should be False after ConfigMap deletion")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for ignition ConfigMap to be regenerated")
+			Eventually(func(g Gomega) {
+				cm := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: dpuClusterNS,
+					Name:      ignitionCMName,
+				}, cm)
+				g.Expect(err).NotTo(HaveOccurred(),
+					"Ignition ConfigMap should be regenerated")
+				g.Expect(cm.Data["BF_CFG_TEMPLATE"]).NotTo(BeEmpty(),
+					"Regenerated ConfigMap should have ignition data")
+			}, 5*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for CR to return to Ready state")
+			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)
+
+			By("verifying IgnitionConfigured condition is True again")
+			Eventually(func(g Gomega) {
+				status := getConditionStatus(ciNamespace, provisionerName, "IgnitionConfigured")
+				g.Expect(status).To(Equal(string(metav1.ConditionTrue)),
+					"IgnitionConfigured should be True after regeneration")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+		})
+
 		It("should have injected kubeconfig into DPUCluster namespace", func() {
 			ctx := context.Background()
 			kubeconfigSecretName := fmt.Sprintf("%s-admin-kubeconfig", provisionerName)
