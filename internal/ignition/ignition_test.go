@@ -543,3 +543,249 @@ var _ = Describe("AddDPUFlavorJSON", func() {
 		Expect(metadata).NotTo(HaveKey("resourceVersion"))
 	})
 })
+
+var _ = Describe("AddFlavorConfigFiles", func() {
+	It("should add override files with Overwrite=true and Contents", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/mellanox/mlnx-bf.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "ALLOW_SHARED_RQ=\"no\"\nENABLE_ESWITCH_MULTIPORT=\"yes\"\n",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ign.Storage.Files).To(HaveLen(1))
+
+		file := ign.Storage.Files[0]
+		Expect(file.Path).To(Equal("/etc/mellanox/mlnx-bf.conf"))
+		Expect(*file.Overwrite).To(BeTrue())
+		Expect(*file.Mode).To(Equal(0644))
+		Expect(file.Contents.Source).NotTo(BeNil())
+		Expect(file.Append).To(BeEmpty())
+	})
+
+	It("should add append files using the Append field", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/sysctl.d/99-custom.conf",
+					Operation:   dpuprovisioningv1alpha1.FileAppend,
+					Raw:         "net.ipv4.ip_forward=1\n",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ign.Storage.Files).To(HaveLen(1))
+
+		file := ign.Storage.Files[0]
+		Expect(file.Path).To(Equal("/etc/sysctl.d/99-custom.conf"))
+		Expect(file.Overwrite).To(BeNil())
+		Expect(*file.Mode).To(Equal(0644))
+		Expect(file.Append).To(HaveLen(1))
+		Expect(file.Append[0].Source).NotTo(BeNil())
+	})
+
+	It("should base64-encode the raw content correctly", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		rawContent := "CREATE_OVS_BRIDGES=\"no\"\nOVS_DOCA=\"yes\"\n"
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/mellanox/mlnx-ovs.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         rawContent,
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		source := *ign.Storage.Files[0].Contents.Source
+		Expect(source).To(HavePrefix("data:text/plain;charset=utf-8;base64,"))
+		b64 := strings.TrimPrefix(source, "data:text/plain;charset=utf-8;base64,")
+		decoded, err := base64.StdEncoding.DecodeString(b64)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(decoded)).To(Equal(rawContent))
+	})
+
+	It("should handle multiple config files", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/mellanox/mlnx-bf.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "ALLOW_SHARED_RQ=\"no\"",
+					Permissions: "0644",
+				},
+				{
+					Path:        "/etc/mellanox/mlnx-ovs.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "CREATE_OVS_BRIDGES=\"no\"",
+					Permissions: "0644",
+				},
+				{
+					Path:        "/etc/mellanox/mlnx-sf.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ign.Storage.Files).To(HaveLen(3))
+		Expect(ign.Storage.Files[0].Path).To(Equal("/etc/mellanox/mlnx-bf.conf"))
+		Expect(ign.Storage.Files[1].Path).To(Equal("/etc/mellanox/mlnx-ovs.conf"))
+		Expect(ign.Storage.Files[2].Path).To(Equal("/etc/mellanox/mlnx-sf.conf"))
+	})
+
+	It("should handle empty raw content (for creating empty files)", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/mellanox/mlnx-sf.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ign.Storage.Files).To(HaveLen(1))
+
+		source := *ign.Storage.Files[0].Contents.Source
+		b64 := strings.TrimPrefix(source, "data:text/plain;charset=utf-8;base64,")
+		decoded, err := base64.StdEncoding.DecodeString(b64)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(decoded)).To(BeEmpty())
+	})
+
+	It("should use default permissions when not specified", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:      "/etc/some/config",
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "content",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(*ign.Storage.Files[0].Mode).To(Equal(0644))
+	})
+
+	It("should parse permissions correctly", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/usr/local/bin/custom-script.sh",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "#!/bin/bash\necho hello",
+					Permissions: "0755",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(*ign.Storage.Files[0].Mode).To(Equal(0755))
+	})
+
+	It("should return error for invalid permissions", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/test",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "content",
+					Permissions: "invalid",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid permissions"))
+	})
+
+	It("should skip config files with empty path", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "content",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ign.Storage.Files).To(BeEmpty())
+	})
+
+	It("should be a no-op when ConfigFiles is empty", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ign.Storage.Files).To(BeEmpty())
+	})
+
+	It("should handle mixed override and append operations", func() {
+		ign := NewEmptyIgnition(testIgnitionVersion)
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/mellanox/mlnx-bf.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "ALLOW_SHARED_RQ=\"no\"",
+					Permissions: "0644",
+				},
+				{
+					Path:        "/etc/sysctl.d/99-custom.conf",
+					Operation:   dpuprovisioningv1alpha1.FileAppend,
+					Raw:         "net.ipv4.ip_forward=1\n",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := AddFlavorConfigFiles(ign, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ign.Storage.Files).To(HaveLen(2))
+
+		Expect(ign.Storage.Files[0].Path).To(Equal("/etc/mellanox/mlnx-bf.conf"))
+		Expect(*ign.Storage.Files[0].Overwrite).To(BeTrue())
+		Expect(ign.Storage.Files[0].Append).To(BeEmpty())
+
+		Expect(ign.Storage.Files[1].Path).To(Equal("/etc/sysctl.d/99-custom.conf"))
+		Expect(ign.Storage.Files[1].Overwrite).To(BeNil())
+		Expect(ign.Storage.Files[1].Append).To(HaveLen(1))
+	})
+})

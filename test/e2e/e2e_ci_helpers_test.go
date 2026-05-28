@@ -17,12 +17,15 @@ limitations under the License.
 package e2e
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
@@ -302,7 +305,7 @@ func createDPUDeploymentStub(ns, name, flavorName string) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUDeployment stub")
 }
 
-// createDPUFlavorStub creates a minimal DPUFlavor CR.
+// createDPUFlavorStub creates a minimal DPUFlavor CR with OVS config and ConfigFiles.
 func createDPUFlavorStub(ns, name string) {
 	ctx := context.Background()
 	dpuFlavor := &dpuprovisioningv1.DPUFlavor{
@@ -314,6 +317,20 @@ func createDPUFlavorStub(ns, name string) {
 			DpuMode: dpuprovisioningv1.DpuMode,
 			OVS: dpuprovisioningv1.DPUFlavorOVS{
 				RawConfigScript: "#!/bin/bash\necho \"e2e test OVS config\"\n",
+			},
+			ConfigFiles: []dpuprovisioningv1.ConfigFile{
+				{
+					Path:        "/etc/dpf/e2e-config-override.conf",
+					Operation:   dpuprovisioningv1.FileOverride,
+					Raw:         "E2E_KEY=\"e2e_value\"\n",
+					Permissions: "0644",
+				},
+				{
+					Path:        "/etc/dpf/e2e-config-append.conf",
+					Operation:   dpuprovisioningv1.FileAppend,
+					Raw:         "APPEND_KEY=\"append_value\"\n",
+					Permissions: "0644",
+				},
 			},
 		},
 	}
@@ -980,6 +997,123 @@ func cleanupStaleResources() {
 
 	// Give resources time to clean up
 	time.Sleep(2 * time.Second)
+}
+
+// decodeTargetIgnition extracts and decodes the target ignition from the live ignition JSON.
+// The live ignition contains the target ignition as a gzip+base64-encoded file at /var/target.ign.
+func decodeTargetIgnition(liveIgnitionJSON string) map[string]interface{} {
+	var liveIgn map[string]interface{}
+	ExpectWithOffset(1, json.Unmarshal([]byte(liveIgnitionJSON), &liveIgn)).To(Succeed(),
+		"failed to parse live ignition JSON")
+
+	storage, ok := liveIgn["storage"].(map[string]interface{})
+	ExpectWithOffset(1, ok).To(BeTrue(), "live ignition missing storage section")
+	files, ok := storage["files"].([]interface{})
+	ExpectWithOffset(1, ok).To(BeTrue(), "live ignition missing files section")
+
+	var targetSource string
+	for _, f := range files {
+		file, _ := f.(map[string]interface{})
+		if path, _ := file["path"].(string); path == "/var/target.ign" {
+			contents, _ := file["contents"].(map[string]interface{})
+			targetSource, _ = contents["source"].(string)
+			break
+		}
+	}
+	ExpectWithOffset(1, targetSource).NotTo(BeEmpty(), "/var/target.ign not found in live ignition")
+
+	b64Data := strings.TrimPrefix(targetSource, "data:;base64,")
+	compressed, err := base64.StdEncoding.DecodeString(b64Data)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "failed to base64-decode target ignition")
+
+	gzReader, err := gzip.NewReader(bytes.NewReader(compressed))
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "failed to create gzip reader for target ignition")
+	defer gzReader.Close()
+
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(gzReader)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "failed to decompress target ignition")
+
+	var targetIgn map[string]interface{}
+	ExpectWithOffset(1, json.Unmarshal(buf.Bytes(), &targetIgn)).To(Succeed(),
+		"failed to parse target ignition JSON")
+	return targetIgn
+}
+
+// getTargetIgnitionFilePaths returns all file paths from the target ignition
+// embedded in a live ignition ConfigMap.
+func getTargetIgnitionFilePaths(liveIgnitionJSON string) []string {
+	targetIgn := decodeTargetIgnition(liveIgnitionJSON)
+
+	targetStorage, ok := targetIgn["storage"].(map[string]interface{})
+	ExpectWithOffset(1, ok).To(BeTrue(), "target ignition missing storage section")
+	targetFiles, ok := targetStorage["files"].([]interface{})
+	ExpectWithOffset(1, ok).To(BeTrue(), "target ignition missing files section")
+
+	var paths []string
+	for _, f := range targetFiles {
+		file, _ := f.(map[string]interface{})
+		if path, ok := file["path"].(string); ok {
+			paths = append(paths, path)
+		}
+	}
+	return paths
+}
+
+// getTargetIgnitionFileContent returns the decoded content of a specific file
+// from the target ignition. Works with gzip-compressed files (override operation)
+// that have been processed by GzipIgnitionFiles.
+func getTargetIgnitionFileContent(liveIgnitionJSON, filePath string) string {
+	targetIgn := decodeTargetIgnition(liveIgnitionJSON)
+
+	targetStorage := targetIgn["storage"].(map[string]interface{})
+	targetFiles := targetStorage["files"].([]interface{})
+
+	for _, f := range targetFiles {
+		file, _ := f.(map[string]interface{})
+		path, _ := file["path"].(string)
+		if path != filePath {
+			continue
+		}
+
+		contents, ok := file["contents"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		source, _ := contents["source"].(string)
+		if source == "" {
+			continue
+		}
+		compression, _ := contents["compression"].(string)
+
+		if compression == "gzip" {
+			b64 := strings.TrimPrefix(source, "data:;base64,")
+			compressedBytes, err := base64.StdEncoding.DecodeString(b64)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred(), "failed to base64-decode file content")
+
+			gzReader, err := gzip.NewReader(bytes.NewReader(compressedBytes))
+			ExpectWithOffset(1, err).NotTo(HaveOccurred(), "failed to create gzip reader for file content")
+			defer gzReader.Close()
+
+			var contentBuf bytes.Buffer
+			_, err = contentBuf.ReadFrom(gzReader)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred(), "failed to decompress file content")
+			return contentBuf.String()
+		}
+
+		// Non-gzip base64 encoded
+		if strings.Contains(source, ";base64,") {
+			parts := strings.SplitN(source, ";base64,", 2)
+			decoded, err := base64.StdEncoding.DecodeString(parts[1])
+			ExpectWithOffset(1, err).NotTo(HaveOccurred(), "failed to base64-decode file content")
+			return string(decoded)
+		}
+
+		return source
+	}
+
+	Fail(fmt.Sprintf("file %s not found in target ignition contents", filePath))
+	return ""
 }
 
 // dumpProvisionerStatus logs the current CR status for debugging.
