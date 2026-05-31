@@ -179,6 +179,37 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				"Ignition data should contain 'ignition' key")
 		})
 
+		It("should include DPUFlavor config files in target ignition", func() {
+			ctx := context.Background()
+			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+
+			By("getting the ignition ConfigMap")
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      ignitionCMName,
+			}, cm)
+			Expect(err).NotTo(HaveOccurred())
+			ignitionData := cm.Data["BF_CFG_TEMPLATE"]
+			Expect(ignitionData).NotTo(BeEmpty())
+
+			By("extracting target ignition file paths")
+			filePaths := getTargetIgnitionFilePaths(ignitionData)
+
+			By("verifying override config file is present")
+			Expect(filePaths).To(ContainElement("/etc/dpf/e2e-config-override.conf"),
+				"override config file not found in target ignition")
+
+			By("verifying append config file is present")
+			Expect(filePaths).To(ContainElement("/etc/dpf/e2e-config-append.conf"),
+				"append config file not found in target ignition")
+
+			By("verifying override config file content matches DPUFlavor spec")
+			content := getTargetIgnitionFileContent(ignitionData, "/etc/dpf/e2e-config-override.conf")
+			Expect(content).To(Equal("E2E_KEY=\"e2e_value\"\n"),
+				"override config file content does not match expected value")
+		})
+
 		It("should self-heal when ignition ConfigMap is deleted", func() {
 			ctx := context.Background()
 			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)

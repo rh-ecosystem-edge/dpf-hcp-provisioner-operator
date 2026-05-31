@@ -452,6 +452,11 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	// Add flavor OVS script
 	ignition.AddFlavorOVSScript(targetIgnition, &dpuFlavor.Spec)
 
+	// Add flavor config files (user-specified files from DPUFlavor.Spec.ConfigFiles)
+	if err := ignition.AddFlavorConfigFiles(targetIgnition, &dpuFlavor.Spec); err != nil {
+		return nil, fmt.Errorf("failed to add flavor config files: %w", err)
+	}
+
 	// Add DPU flavor YAML
 	if err := ignition.AddDPUFlavorYAML(targetIgnition, dpuFlavor); err != nil {
 		return nil, fmt.Errorf("failed to add DPU flavor YAML: %w", err)
