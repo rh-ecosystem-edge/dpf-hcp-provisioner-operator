@@ -5,7 +5,7 @@ ConditionPathExists=/etc/mlnx-release
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/dpf-ovs-script.sh
+ExecStart=/bin/bash /usr/local/bin/dpf-ovs-script.sh
 RemainAfterExit=true
 
 [Install]
