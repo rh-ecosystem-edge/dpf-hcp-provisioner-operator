@@ -2,7 +2,7 @@
 Description=DPF DPU Firmware Upgrade
 After=tmfifo-agent-link.service
 Requires=tmfifo-agent-link.service
-Before=install-dpu-agent.service
+Before=dpu-agent.service
 ConditionPathExists=/etc/mlnx-release
 
 [Service]
