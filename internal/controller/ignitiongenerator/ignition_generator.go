@@ -234,7 +234,13 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
 
-	// Step 3.5: Gzip-compress all uncompressed files in target ignition
+	// Step 3.5a: Validate target ignition before compression
+	log.V(1).Info("Validating target ignition")
+	if err := ignition.ValidateConfig(targetIgnition); err != nil {
+		return fmt.Errorf("target ignition validation failed: %w", err)
+	}
+
+	// Step 3.5b: Gzip-compress all uncompressed files in target ignition
 	if err := ignition.GzipIgnitionFiles(targetIgnition); err != nil {
 		return fmt.Errorf("failed to gzip target ignition files: %w", err)
 	}
@@ -246,6 +252,12 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor)
 	if err != nil {
 		return fmt.Errorf("failed to build live ignition: %w", err)
+	}
+
+	// Step 4.5: Validate live ignition before persisting
+	log.V(1).Info("Validating live ignition")
+	if err := ignition.ValidateConfig(liveIgnition); err != nil {
+		return fmt.Errorf("live ignition validation failed: %w", err)
 	}
 
 	// Step 5: Create/Update ConfigMap
