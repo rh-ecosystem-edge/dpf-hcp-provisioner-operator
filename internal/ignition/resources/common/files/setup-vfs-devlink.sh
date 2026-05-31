@@ -93,7 +93,7 @@ do_create_vfs() {
     fi
     echo "INFO: All devices in switchdev mode"
 
-    if ! /usr/local/bin/dpuagent-client.py configure-host-vfs; then
+    if ! /usr/local/bin/dpuagent-client.py configure-host-vfs 4; then
       LAST_ERROR="configure-host-vfs failed"
       echo "WARN: ${LAST_ERROR}"
       sleep 5

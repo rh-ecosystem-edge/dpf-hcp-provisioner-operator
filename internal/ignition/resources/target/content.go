@@ -63,9 +63,9 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("agentrepo.repo"),
 			},
 			{
-				Path:          "/etc/systemd/system/machine-config-daemon-firstboot.service.d/10-require-dpu-agent.conf",
+				Path:          "/etc/systemd/system/machine-config-daemon-firstboot.service.d/10-mcd-firstboot-dpuagent.conf",
 				Mode:          0644,
-				ContentSource: f("10-require-dpu-agent.conf"),
+				ContentSource: f("10-mcd-firstboot-dpuagent.conf"),
 			},
 			{
 				Path:          "/etc/systemd/system/machine-config-daemon-pull.service.d/10-require-setup-vfs.conf",
