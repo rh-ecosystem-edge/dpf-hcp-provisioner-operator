@@ -17,6 +17,8 @@
 set -euo pipefail
 
 BASE_COLLECTION_PATH=/must-gather
+DPF_OPERATOR_NS=dpf-operator-system
+
 mkdir -p "${BASE_COLLECTION_PATH}"
 
 # Tee all output to a log file inside the artifact dir
@@ -70,7 +72,7 @@ inspect() {
 # ---------------------------------------------------------------------------
 CRD_LIST=$(oc get crd \
     -o jsonpath='{range .items[*]}{.metadata.name},{.spec.scope}{"\n"}{end}' 2>/dev/null \
-    | grep -E '\.dpu\.nvidia\.com|\.dpu\.hcp\.io|\.hypershift\.openshift\.io' \
+    | grep -E 'nvidia|\.dpu\.hcp\.io|\.hypershift\.openshift\.io' \
     || true)
 
 readarray -t CRDS          < <(echo "${CRD_LIST}" | cut -d',' -f1 | grep -v '^$')
@@ -114,31 +116,17 @@ function get_all_ns_crs() {
 function get_provisioner_and_hypershift_operators_namespaces() {
     echo
     echo "Collecting DPF HCP Provisioner operator and HyperShift namespaces..."
-    echo "  ns/${OPERATOR_NAMESPACE} (DPF HCP Provisioner Operator)"
+    echo "  ns/${OPERATOR_NAMESPACE}"
     inspect "ns/${OPERATOR_NAMESPACE}"
-    echo "  ns/hypershift (HyperShift Operator)"
+    echo "  ns/hypershift"
     inspect "ns/hypershift"
 }
 
 function get_dpf_operator_namespace() {
     echo
     echo "Collecting DPF operator namespace (DPFOperatorConfig, DPUCluster, DPUFlavor, BFcfg CMs)..."
-
-    local DPF_NS oc_rc=0
-    DPF_NS=$(oc get dpfoperatorconfigs --all-namespaces \
-        -o jsonpath='{.items[0].metadata.namespace}' 2>&1) || oc_rc=$?
-
-    if [[ ${oc_rc} -ne 0 ]]; then
-        echo "  [warn] failed to query DPFOperatorConfig: ${DPF_NS}"
-        return
-    fi
-    if [[ -z "${DPF_NS}" ]]; then
-        echo "  [warn] DPFOperatorConfig not found — skipping DPF operator namespace collection"
-        return
-    fi
-
-    echo "  DPF operator namespace: ${DPF_NS}"
-    inspect "ns/${DPF_NS}"
+    echo "  ns/${DPF_OPERATOR_NS}"
+    inspect "ns/${DPF_OPERATOR_NS}"
 }
 
 function get_dpfhcpprovisioner_and_hcp_namespaces() {
@@ -162,22 +150,127 @@ function get_dpfhcpprovisioner_and_hcp_namespaces() {
     while IFS=',' read -r CR_NS CR_NAME; do
         [[ -z "${CR_NS}" || -z "${CR_NAME}" ]] && continue
 
-        echo
         echo "  >> DPFHCPProvisioner ${CR_NS}/${CR_NAME}"
-
-        # CR namespace: DPFHCPProvisioner, HostedCluster, NodePools, BFcfg CMs, Secrets, pod logs
         inspect "ns/${CR_NS}"
 
-        # HCP namespace: <cr-namespace>-<cr-name>
         local HCP_NS="${CR_NS}-${CR_NAME}"
         if oc get namespace "${HCP_NS}" &>/dev/null; then
             echo "     HCP namespace: ${HCP_NS}"
             inspect "ns/${HCP_NS}"
         else
-            echo "     [warn] HCP namespace '${HCP_NS}' not found (cluster not yet provisioned?)"
+            echo "  [warn] HCP namespace '${HCP_NS}' not found (cluster not yet provisioned?)"
         fi
 
     done <<< "${PROVISIONERS}"
+}
+
+function get_dpf_rbac() {
+    echo
+    echo "Collecting DPF/DPF-HCP-Provisioning/HyperShift RBAC resources..."
+    local rbac_resources
+    rbac_resources=$(oc get clusterroles,clusterrolebindings -o name 2>/dev/null \
+        | grep -iE 'dpf|dpu|nvidia|hypershift|hcp' || true)
+    if [[ -n "${rbac_resources}" ]]; then
+        # shellcheck disable=SC2086
+        inspect ${rbac_resources}
+    else
+        echo "  [warn] no relevant RBAC resources found"
+    fi
+}
+
+function get_hosted_cluster_resources() {
+    echo
+    echo "Collecting hosted (DPU) cluster resources..."
+
+    if ! oc get dpuclusters.provisioning.dpu.nvidia.com -n "${DPF_OPERATOR_NS}" &>/dev/null; then
+        echo "  [warn] no DPUCluster resources found in ns/${DPF_OPERATOR_NS}"
+        return
+    fi
+
+    local TMPDIR
+    TMPDIR=$(mktemp -d)
+    trap 'rm -rf "${TMPDIR}"' RETURN
+
+    local PIDS=()
+
+    while IFS=' ' read -r cluster_name secret_name; do
+        [[ -z "${cluster_name}" ]] && continue
+
+        local kubeconfig="${TMPDIR}/${cluster_name}.kubeconfig"
+        if ! oc get secret "${secret_name}" -n "${DPF_OPERATOR_NS}" \
+                -o jsonpath='{.data.super-admin\.conf}' 2>/dev/null \
+                | base64 -d >"${kubeconfig}" 2>/dev/null; then
+            echo "  [warn] could not extract kubeconfig for DPUCluster ${cluster_name}"
+            continue
+        fi
+
+        if ! timeout 30s oc --kubeconfig="${kubeconfig}" cluster-info &>/dev/null; then
+            echo "  [warn] DPUCluster ${cluster_name} is unreachable — skipping"
+            continue
+        fi
+
+        local dest="${BASE_COLLECTION_PATH}/hosted-clusters/${cluster_name}"
+        mkdir -p "${dest}"
+        echo "  >> collecting resources from hosted cluster: ${cluster_name}"
+
+        # CSRs first — pending CSRs are why nodes fail to join; oc adm must-gather
+        # cannot run in that state (no schedulable nodes), so we use inspect directly.
+        echo "     csr"
+        timeout 60s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" csr &
+        PIDS+=($!)
+
+        echo "     nodes"
+        timeout 60s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" nodes &
+        PIDS+=($!)
+
+        echo "     events (all namespaces)"
+        timeout 60s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" --all-namespaces events &
+        PIDS+=($!)
+
+        echo "     ns/${DPF_OPERATOR_NS}"
+        timeout 120s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" "ns/${DPF_OPERATOR_NS}" &
+        PIDS+=($!)
+
+        echo "     pods (all namespaces)"
+        timeout 120s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" --all-namespaces pods &
+        PIDS+=($!)
+
+        # DPF CRDs present on the hosted cluster (e.g. DPU services deployed there)
+        while IFS=',' read -r crd_name crd_scope; do
+            [[ -z "${crd_name}" ]] && continue
+            echo "     ${crd_name}"
+            # CRD definition (needed by omc to recognise the resource type)
+            timeout 60s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" "crd/${crd_name}" &
+            PIDS+=($!)
+            # CR instances
+            if [[ "${crd_scope}" == "Namespaced" ]]; then
+                timeout 60s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" --all-namespaces "${crd_name}" &
+            else
+                timeout 60s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" "${crd_name}" &
+            fi
+            PIDS+=($!)
+        done < <(oc --kubeconfig="${kubeconfig}" get crd \
+            -o jsonpath='{range .items[*]}{.metadata.name},{.spec.scope}{"\n"}{end}' 2>/dev/null \
+            | grep -E 'nvidia|\.dpu\.hcp\.io' \
+            || true)
+
+        # DPF/DPU/NVIDIA RBAC on the hosted cluster
+        local hc_rbac
+        hc_rbac=$(oc --kubeconfig="${kubeconfig}" get clusterroles,clusterrolebindings \
+            -o name 2>/dev/null | grep -iE 'dpf|dpu|nvidia|hypershift|hcp' || true)
+        if [[ -n "${hc_rbac}" ]]; then
+            echo "     rbac"
+            # shellcheck disable=SC2086
+            timeout 60s oc --kubeconfig="${kubeconfig}" adm inspect --dest-dir="${dest}" ${hc_rbac} &
+            PIDS+=($!)
+        fi
+
+    done < <(oc get dpuclusters.provisioning.dpu.nvidia.com -n "${DPF_OPERATOR_NS}" \
+        -o jsonpath='{range .items[*]}{.metadata.name} {.spec.kubeconfig}{"\n"}{end}' 2>/dev/null)
+
+    for pid in "${PIDS[@]}"; do
+        wait "${pid}" || true
+    done
 }
 
 # ---------------------------------------------------------------------------
@@ -189,6 +282,9 @@ get_all_ns_crs
 get_provisioner_and_hypershift_operators_namespaces
 get_dpf_operator_namespace
 get_dpfhcpprovisioner_and_hcp_namespaces
+get_dpf_rbac
+
+get_hosted_cluster_resources
 
 echo
 echo "Done. All data written to ${BASE_COLLECTION_PATH}"
