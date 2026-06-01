@@ -752,7 +752,25 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 	result, err := r.IgnitionGenerator.GenerateIgnition(ctx, cr)
 	if err != nil {
 		log.Error(err, "Ignition generation failed")
+		return result, err
 	}
+
+	// When ignition generation fails, the IgnitionGenerator sets IgnitionConfigured=False
+	// and returns RequeueAfter (without error). In that case, recompute the phase so the
+	// CR transitions to Failed instead of staying in IgnitionGenerating indefinitely.
+	if result.RequeueAfter > 0 {
+		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse {
+			r.updatePhaseFromConditions(cr)
+			// The IgnitionGenerator already persisted the IgnitionConfigured condition,
+			// but we need to persist the updated phase.
+			if statusErr := r.Status().Update(ctx, cr); statusErr != nil {
+				log.Error(statusErr, "Failed to update phase after ignition generation failure")
+				return ctrl.Result{}, statusErr
+			}
+		}
+	}
+
 	return result, err
 }
 
@@ -886,10 +904,19 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
-	// Phase 4: Check if ignition generation is required
+	// Phase 4: Check if ignition generation failed
+	// When IgnitionConfigured is explicitly False with a failure reason, transition to Failed
+	// so the user can see the error and take action. The controller will retry on requeue.
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse &&
+		(ignConfigured.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed || ignConfigured.Reason == provisioningv1alpha1.ReasonMachineOSURLMissing) {
+		cr.Status.Phase = provisioningv1alpha1.PhaseFailed
+		return
+	}
+
+	// Phase 5: Check if ignition generation is required
 	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
 	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
-	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
 		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
 		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
@@ -898,13 +925,13 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
-	// Phase 5: Check if HostedCluster provisioning has started
+	// Phase 6: Check if HostedCluster provisioning has started
 	if cr.Status.HostedClusterRef != nil {
 		cr.Status.Phase = provisioningv1alpha1.PhaseProvisioning
 		return
 	}
 
-	// Phase 6: All validations passed, waiting for provisioning to start
+	// Phase 7: All validations passed, waiting for provisioning to start
 	cr.Status.Phase = provisioningv1alpha1.PhasePending
 }
 

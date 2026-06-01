@@ -512,5 +512,97 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 				return readyCond == nil || readyCond.Status == metav1.ConditionFalse
 			}, timeout, interval).Should(BeTrue())
 		})
+
+		It("should transition to Failed when ignition generation fails (IgnitionConfigured=False)", func() {
+			// Create DPFHCPProvisioner
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "phase-test-ign-fail",
+					Namespace: testNamespace,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      dpuClusterName,
+						Namespace: testNamespace,
+					},
+					DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+						Name:      "test-dpu-deployment",
+						Namespace: testNamespace,
+					},
+					BaseDomain:                     "test-cluster.example.com",
+					OCPReleaseImage:                ocpReleaseImage,
+					SSHKeySecretRef:                corev1.LocalObjectReference{Name: sshKeySecretName},
+					PullSecretRef:                  corev1.LocalObjectReference{Name: pullSecretName},
+					EtcdStorageClass:               "standard",
+					ControlPlaneAvailabilityPolicy: hyperv1.SingleReplica,
+				},
+			}
+			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
+
+			// Wait for Pending phase
+			Eventually(func() provisioningv1alpha1.DPFHCPProvisionerPhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ign-fail", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return ""
+				}
+				return provisioner.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhasePending))
+
+			// Simulate: set HostedClusterRef + HC available + kubeconfig injected + IgnitionConfigured=False with failure
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ign-fail", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return err
+				}
+				provisioner.Status.HostedClusterRef = &corev1.ObjectReference{
+					Name:      "phase-test-ign-fail",
+					Namespace: testNamespace,
+				}
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.HostedClusterAvailable,
+					Status:             metav1.ConditionTrue,
+					Reason:             "Available",
+					Message:            "HostedCluster is available",
+					LastTransitionTime: metav1.Now(),
+				})
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.KubeConfigInjected,
+					Status:             metav1.ConditionTrue,
+					Reason:             provisioningv1alpha1.ReasonKubeConfigInjected,
+					Message:            "Kubeconfig injected",
+					LastTransitionTime: metav1.Now(),
+				})
+				meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.IgnitionConfigured,
+					Status:             metav1.ConditionFalse,
+					Reason:             provisioningv1alpha1.ReasonIgnitionGenerationFailed,
+					Message:            "Failed to generate ignition: some error",
+					ObservedGeneration: provisioner.Generation,
+					LastTransitionTime: metav1.Now(),
+				})
+				return k8sClient.Status().Update(ctx, provisioner)
+			}, timeout, interval).Should(Succeed())
+
+			// Controller should transition to Failed
+			Eventually(func() provisioningv1alpha1.DPFHCPProvisionerPhase {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ign-fail", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return ""
+				}
+				return provisioner.Status.Phase
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseFailed))
+
+			// Verify IgnitionConfigured condition shows failure
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "phase-test-ign-fail", Namespace: testNamespace}, provisioner)
+				if err != nil {
+					return false
+				}
+				ignCond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+				return ignCond != nil &&
+					ignCond.Status == metav1.ConditionFalse &&
+					ignCond.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed
+			}, timeout, interval).Should(BeTrue())
+		})
 	})
 })

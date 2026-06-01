@@ -119,7 +119,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:               provisioningv1alpha1.IgnitionConfigured,
 			Status:             metav1.ConditionFalse,
-			Reason:             "IgnitionGenerationFailed",
+			Reason:             provisioningv1alpha1.ReasonIgnitionGenerationFailed,
 			Message:            fmt.Sprintf("Failed to generate ignition: %v", err),
 			ObservedGeneration: cr.Generation,
 		})
@@ -137,7 +137,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionTrue,
-		Reason:             "IgnitionGenerated",
+		Reason:             provisioningv1alpha1.ReasonIgnitionGenerated,
 		Message:            fmt.Sprintf("Ignition ConfigMap %s-%s.cfg created and DPFOperatorConfig updated successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
 		ObservedGeneration: cr.Generation,
 	})
@@ -222,8 +222,8 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:               provisioningv1alpha1.IgnitionConfigured,
 			Status:             metav1.ConditionFalse,
-			Reason:             "MachineOSURLMissing",
-			Message:            "No machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set",
+			Reason:             provisioningv1alpha1.ReasonMachineOSURLMissing,
+			Message:            "No machine OS URL available: status.cachedMachineOSURL, spec.machineOSURL, and status.blueFieldOCPLayerImage are all empty",
 			ObservedGeneration: cr.Generation,
 		})
 		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
