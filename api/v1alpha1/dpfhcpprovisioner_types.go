@@ -246,6 +246,9 @@ const (
 	// Ready indicates the overall operational status of the DPFHCPProvisioner.
 	Ready string = "Ready"
 
+	// ImageCached indicates whether the machine OS image has been cached to the internal registry.
+	ImageCached string = "ImageCached"
+
 	// KubeConfigInjected indicates whether the kubeconfig was successfully injected into the DPUCluster CR.
 	KubeConfigInjected string = "KubeConfigInjected"
 
@@ -308,6 +311,43 @@ const (
 	ReasonKubeConfigInjectionFailed string = "InjectionFailed"
 )
 
+// Condition reasons for DPFHCPProvisioner ImageCached status.
+// These are used as the Reason field in the ImageCached condition.
+const (
+	// ReasonImageCached indicates the image was successfully cached to the internal registry.
+	ReasonImageCached string = "ImageCached"
+
+	// ReasonNoUpstreamURL indicates neither machineOSURL nor blueFieldOCPLayerImage is populated.
+	ReasonNoUpstreamURL string = "NoUpstreamURL"
+
+	// ReasonRegistryNotAvailable indicates the internal registry is not configured or not available.
+	ReasonRegistryNotAvailable string = "RegistryNotAvailable"
+
+	// ReasonRegistryConfigNotManaged indicates the ImageRegistry config has managementState != Managed.
+	ReasonRegistryConfigNotManaged string = "RegistryConfigNotManaged"
+
+	// ReasonRegistryRouteNotExposed indicates the default-route was not found in openshift-image-registry namespace.
+	ReasonRegistryRouteNotExposed string = "RegistryRouteNotExposed"
+
+	// ReasonUpstreamImageChanged indicates the upstream image digest changed and re-caching is in progress.
+	ReasonUpstreamImageChanged string = "UpstreamImageChanged"
+
+	// ReasonImagePullFailed indicates a failure to pull the image from the external registry.
+	ReasonImagePullFailed string = "ImagePullFailed"
+
+	// ReasonImagePushFailed indicates a failure to push the image to the internal registry.
+	ReasonImagePushFailed string = "ImagePushFailed"
+
+	// ReasonRegistryAuthFailed indicates authentication to a registry failed.
+	ReasonRegistryAuthFailed string = "RegistryAuthFailed"
+
+	// ReasonCachingInProgress indicates image caching is currently in progress.
+	ReasonCachingInProgress string = "CachingInProgress"
+
+	// ReasonCacheFailed indicates a permanent failure after multiple retries.
+	ReasonCacheFailed string = "CacheFailed"
+)
+
 // Condition reasons for DPFHCPProvisioner CSRAutoApprovalActive status.
 // These are used as the Reason field in the CSRAutoApprovalActive condition.
 const (
@@ -342,6 +382,10 @@ type DPFHCPProvisionerStatus struct {
 	// BlueFieldOCPLayerImage is the BlueField OCP layer image URL found via registry lookup
 	// +optional
 	BlueFieldOCPLayerImage string `json:"blueFieldOCPLayerImage,omitempty"`
+
+	// CachedMachineOSURL is the internal registry URL of the cached machine OS image
+	// +optional
+	CachedMachineOSURL string `json:"cachedMachineOSURL,omitempty"`
 }
 
 // +kubebuilder:object:root=true

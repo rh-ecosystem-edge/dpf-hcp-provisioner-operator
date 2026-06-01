@@ -177,6 +177,21 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			// Verify it has the ignition version field
 			Expect(ignitionJSON).To(HaveKey("ignition"),
 				"Ignition data should contain 'ignition' key")
+
+			// If image caching succeeded, verify ignition uses the cached internal URL
+			// rather than the external one
+			By("checking if ignition references the cached image URL")
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: ciNamespace,
+				Name:      provisionerName,
+			}, provisioner)
+			Expect(err).NotTo(HaveOccurred())
+
+			if provisioner.Status.CachedMachineOSURL != "" {
+				Expect(ignitionData).To(ContainSubstring(provisioner.Status.CachedMachineOSURL),
+					"Ignition should reference the cached internal registry URL when image caching succeeded")
+			}
 		})
 
 		It("should self-heal when ignition ConfigMap is deleted", func() {
@@ -275,6 +290,29 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				"Ready should be True")
 			Expect(condMap["DPUClusterMissing"]).To(Equal(metav1.ConditionFalse),
 				"DPUClusterMissing should be False")
+
+			// Image caching: the CI cluster (AWS SNO) has the internal registry
+			// available by default, so ImageCached should be set.
+			// It can be True (cached successfully) or False with a skip reason
+			// (e.g., no upstream URL yet). Either way the condition must exist.
+			Expect(condMap).To(HaveKey(provisioningv1alpha1.ImageCached),
+				"ImageCached condition should be present")
+
+			// If the image was cached, verify the cached URL is populated
+			if condMap[provisioningv1alpha1.ImageCached] == metav1.ConditionTrue {
+				ctx := context.Background()
+				provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: ciNamespace,
+					Name:      provisionerName,
+				}, provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(provisioner.Status.CachedMachineOSURL).NotTo(BeEmpty(),
+					"cachedMachineOSURL should be populated when ImageCached is True")
+				Expect(provisioner.Status.CachedMachineOSURL).To(
+					ContainSubstring("image-registry.openshift-image-registry.svc"),
+					"cachedMachineOSURL should point to the internal registry")
+			}
 		})
 	})
 

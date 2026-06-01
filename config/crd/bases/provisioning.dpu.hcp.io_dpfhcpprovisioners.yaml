@@ -327,6 +327,10 @@ spec:
                 description: BlueFieldOCPLayerImage is the BlueField OCP layer image
                   URL found via registry lookup
                 type: string
+              cachedMachineOSURL:
+                description: CachedMachineOSURL is the internal registry URL of the
+                  cached machine OS image
+                type: string
               conditions:
                 description: Conditions represent the latest available observations
                   of the DPFHCPProvisioner's state

@@ -213,20 +213,16 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 
 	var mtu = uint16(*dpfOperatorConfig.Spec.Networking.ControlPlaneMTU)
 
-	// Use spec.machineOSURL if set, otherwise fall back to status.blueFieldOCPLayerImage (from OCP layer lookup)
-	machineOSURL := cr.Spec.MachineOSURL
-	if machineOSURL == "" {
-		machineOSURL = cr.Status.BlueFieldOCPLayerImage
-	}
+	machineOSURL := resolveImageURL(cr)
 	if machineOSURL == "" {
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:               provisioningv1alpha1.IgnitionConfigured,
 			Status:             metav1.ConditionFalse,
 			Reason:             "MachineOSURLMissing",
-			Message:            "No machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set",
+			Message:            "No machine OS URL available: status.cachedMachineOSURL, spec.machineOSURL, and status.blueFieldOCPLayerImage are all empty",
 			ObservedGeneration: cr.Generation,
 		})
-		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
+		return fmt.Errorf("no machine OS URL available: status.cachedMachineOSURL, spec.machineOSURL, and status.blueFieldOCPLayerImage are all empty")
 	}
 
 	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu)
@@ -603,4 +599,21 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 
 	log.Info("Updated ignition ConfigMap", "name", cmName, "namespace", cmNamespace)
 	return nil
+}
+
+// resolveImageURL returns the machine OS image URL to use for ignition generation.
+// Priority order:
+//  1. status.cachedMachineOSURL — cached in the internal registry, fastest for DPU provisioning
+//  2. spec.machineOSURL — explicit user override
+//  3. status.blueFieldOCPLayerImage — auto-discovered from OCP layer lookup
+//
+// Returns empty string if none are set.
+func resolveImageURL(cr *provisioningv1alpha1.DPFHCPProvisioner) string {
+	if cr.Status.CachedMachineOSURL != "" {
+		return cr.Status.CachedMachineOSURL
+	}
+	if cr.Spec.MachineOSURL != "" {
+		return cr.Spec.MachineOSURL
+	}
+	return cr.Status.BlueFieldOCPLayerImage
 }

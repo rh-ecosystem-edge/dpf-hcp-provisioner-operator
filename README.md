@@ -9,6 +9,7 @@ The operator maintains a **1:1:1 relationship**: each `DPFHCPProvisioner` CR map
 - **HostedCluster lifecycle management** -- creates, updates, and deletes HostedClusters, NodePools, and associated secrets
 - **Automatic CSR approval** -- approves Certificate Signing Requests from DPU worker nodes joining the hosted cluster
 - **BlueField OCP layer image lookup** -- matches OCP release images to corresponding BlueField container images via container registry tag lookup (skipped when `machineOSURL` is provided)
+- **Opportunistic image caching** -- mirrors the machine OS image to the OpenShift internal registry for faster DPU provisioning; skips gracefully when the registry is not available (see [docs/image-caching.md](docs/image-caching.md))
 - **Kubeconfig injection** -- extracts the HostedCluster kubeconfig and injects it into the DPUCluster CR
 - **MetalLB configuration** -- deploys IPAddressPool and L2Advertisement resources for LoadBalancer service exposure
 - **Ignition generation** -- generates BlueField-specific ignition configurations from HyperShift ignition for DPU node provisioning
@@ -75,10 +76,11 @@ The following operators and components must be installed on the management clust
 #### Status
 
 - **`phase`** -- current lifecycle phase (see [DPFHCPProvisioner Lifecycle Phases](#dpfhcpprovisioner-lifecycle-phases))
-- **`conditions`** -- array of conditions tracking operator state (Ready, HostedClusterAvailable, KubeConfigInjected, CSRAutoApprovalActive, SecretsValid, BlueFieldOCPLayerImageFound, MetalLBConfigured, IgnitionConfigured, etc.)
+- **`conditions`** -- array of conditions tracking operator state (Ready, HostedClusterAvailable, KubeConfigInjected, CSRAutoApprovalActive, SecretsValid, BlueFieldOCPLayerImageFound, ImageCached, MetalLBConfigured, IgnitionConfigured, etc.)
 - **`hostedClusterRef`** -- reference to the created HostedCluster
 - **`kubeConfigSecretRef`** -- reference to the injected kubeconfig Secret
 - **`blueFieldOCPLayerImage`** -- matched BlueField OCP layer image URL
+- **`cachedMachineOSURL`** -- machine OS image URL cached in the internal registry (populated when image caching succeeds)
 
 #### Example
 
