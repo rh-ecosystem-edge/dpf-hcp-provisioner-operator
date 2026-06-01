@@ -183,12 +183,19 @@ function get_dpfhcpprovisioner_and_hcp_namespaces() {
 # ---------------------------------------------------------------------------
 # Run collection
 # ---------------------------------------------------------------------------
+
+# Run standard OCP cluster info collection in the background in parallel
+/usr/bin/gather_generic &
+GENERIC_PID=$!
+
 get_crds
 get_cluster_scoped_crs
 get_all_ns_crs
 get_provisioner_and_hypershift_operators_namespaces
 get_dpf_operator_namespace
 get_dpfhcpprovisioner_and_hcp_namespaces
+
+wait "${GENERIC_PID}" || true
 
 echo
 echo "Done. All data written to ${BASE_COLLECTION_PATH}"
