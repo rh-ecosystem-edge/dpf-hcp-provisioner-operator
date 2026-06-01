@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -38,11 +39,41 @@ def base_request(method, path, payload):
         sys.exit(1)
 
 
-def configure_host_vfs():
+def base_get(path, params):
+    qs = urllib.parse.urlencode(params)
+    req = urllib.request.Request(f"{HOSTAGENT_URL}{path}?{qs}", method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
+            return resp.read().decode()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"[{e.code}] {body}", file=sys.stderr)
+        sys.exit(1)
+
+
+def get_dpu():
+    body = base_get("/get-object", {
+        "group": "provisioning.dpu.nvidia.com",
+        "version": "v1alpha1",
+        "kind": "DPU",
+        "namespace": DPU_NAMESPACE,
+        "name": DPU_NAME,
+    })
+    return json.loads(body)
+
+
+def get_dpu_phase():
+    phase = get_dpu()["status"]["phase"]
+    print(phase)
+    return phase
+
+
+def configure_host_vfs(vf_count):
     return base_request("POST", "/configure-host-vfs", {
         "dpuName": DPU_NAME,
         "dpuNamespace": DPU_NAMESPACE,
         "dpuUID": DPU_UID,
+        "vfCount": vf_count,
     })
 
 
@@ -93,6 +124,15 @@ def update_nvconfig_applied():
     })
 
 
+def trigger_reboot(reboot_method):
+    return base_request("POST", "/trigger-reboot", {
+        "dpuName": DPU_NAME,
+        "dpuNamespace": DPU_NAMESPACE,
+        "dpuUID": DPU_UID,
+        "rebootMethod": reboot_method,
+    })
+
+
 def update_time():
     return base_request("POST", "/update-status", {
         "dpuName": DPU_NAME,
@@ -122,10 +162,12 @@ def send_error(reason, message):
 
 
 COMMANDS = {
-    "configure-host-vfs": configure_host_vfs,
+    "get-dpu-phase": get_dpu_phase,
+    "configure-host-vfs": lambda: configure_host_vfs(int(sys.argv[2])),
     "update-reboot-method-discovery": update_reboot_method_discovery,
     "update-host-reboot": update_host_reboot,
     "update-nvconfig-applied": update_nvconfig_applied,
+    "trigger-reboot": lambda: trigger_reboot(sys.argv[2]),
     "update-time": update_time,
     "send-error": lambda: send_error(sys.argv[2], sys.argv[3]),
 }

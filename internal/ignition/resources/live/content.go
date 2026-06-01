@@ -36,7 +36,8 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: "data:," +
 					"DPUName={{.DPUName}}" + nl +
 					"DPUNamespace={{.DPUNamespace}}" + nl +
-					"DPUUID={{.DPUUID}}" + nl,
+					"DPUUID={{.DPUUID}}" + nl +
+					"RHCOS_INSTALL_VFS=1" + nl,
 			},
 			{
 				Path:          "/usr/local/bin/install-rhcos-dpf.sh",
