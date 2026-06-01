@@ -453,7 +453,6 @@ spec:
                 enum:
                 - Pending
                 - Provisioning
-                - ImageCaching
                 - IgnitionGenerating
                 - Ready
                 - Failed

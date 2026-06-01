@@ -85,6 +85,14 @@ rules:
   verbs:
     - get
 - apiGroups:
+    - imageregistry.operator.openshift.io
+  resources:
+    - configs
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
     - metallb.io
   resources:
     - ipaddresspools
@@ -160,27 +168,6 @@ rules:
     - list
     - watch
 - apiGroups:
-    - svc.dpu.nvidia.com
-  resources:
-    - dpudeployments
-  verbs:
-    - get
-    - list
-    - watch
-    - patch
-
-# ImageRegistry config permissions (for image caching feature - registry availability check)
-- apiGroups:
-    - imageregistry.operator.openshift.io
-  resources:
-    - configs
-  verbs:
-    - get
-    - list
-    - watch
-
-# Route permissions (for image caching feature - internal registry route discovery)
-- apiGroups:
     - route.openshift.io
   resources:
     - routes
@@ -188,18 +175,11 @@ rules:
     - get
     - list
     - watch
-
-# MetalLB permissions (for LoadBalancer service exposure)
 - apiGroups:
-    - metallb.io
+    - svc.dpu.nvidia.com
   resources:
-    - ipaddresspools
-    - l2advertisements
+    - dpudeployments
   verbs:
-    - create
-    - delete
     - get
     - list
-    - patch
-    - update
     - watch

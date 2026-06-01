@@ -285,7 +285,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Feature: Image Caching (Opportunistic)
 	// Cache machineOSURL image to internal registry if available.
 	// This runs before ignition generation so the cached URL can be used in ignition.
-	// Note: ImageCacheManager.Reconcile must only signal requeues via RequeueAfter.
+	// Note: ImageCacheManager.EnsureCached must only signal requeues via RequeueAfter.
 	if result, err := r.cacheImage(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		return result, err
 	}
@@ -801,7 +801,7 @@ func (r *DPFHCPProvisionerReconciler) cacheImage(ctx context.Context, cr *provis
 	}
 
 	log.V(1).Info("Running image caching feature")
-	result, err := r.ImageCacheManager.Reconcile(ctx, cr)
+	result, err := r.ImageCacheManager.EnsureCached(ctx, cr)
 	if err != nil {
 		log.Error(err, "Image caching failed")
 	}
@@ -949,18 +949,17 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
 		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue {
 
-		// Check if image caching needs to run
-		// ImageCached is nil (never run), or generation changed, or it's in progress
-		imageCacheNeeded := imageCached == nil ||
-			imageCached.ObservedGeneration != cr.Generation ||
+		// Check if image caching is still in progress
+		imageCacheInProgress := imageCached != nil &&
 			imageCached.Reason == provisioningv1alpha1.ReasonCachingInProgress
 
-		if imageCacheNeeded {
-			cr.Status.Phase = provisioningv1alpha1.PhaseImageCaching
+		if imageCacheInProgress {
+			// Stay in Provisioning phase while caching runs (opportunistic, not a separate phase)
+			cr.Status.Phase = provisioningv1alpha1.PhaseProvisioning
 			return
 		}
 
-		// Image caching done (or skipped), check ignition
+		// Image caching done (or skipped/never run), check ignition
 		if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
 			ignConfigured.ObservedGeneration != cr.Generation {
 			cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating

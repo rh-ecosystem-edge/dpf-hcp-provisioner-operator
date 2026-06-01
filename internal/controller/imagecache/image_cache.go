@@ -97,10 +97,10 @@ func NewImageCache(c client.Client, recorder record.EventRecorder) *ImageCache {
 	}
 }
 
-// Reconcile performs the image caching workflow.
+// EnsureCached performs the image caching workflow.
 // It checks if the internal registry is available and mirrors the image if needed.
 // This is an opportunistic feature - if the registry is not available, it skips gracefully.
-func (ic *ImageCache) Reconcile(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+func (ic *ImageCache) EnsureCached(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues("feature", "image-cache")
 
 	// Step 1: Determine image source URL.

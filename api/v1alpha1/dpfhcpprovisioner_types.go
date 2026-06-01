@@ -192,7 +192,7 @@ type DPFHCPProvisionerSpec struct {
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
-// +kubebuilder:validation:Enum=Pending;Provisioning;ImageCaching;IgnitionGenerating;Ready;Failed;Deleting
+// +kubebuilder:validation:Enum=Pending;Provisioning;IgnitionGenerating;Ready;Failed;Deleting
 type DPFHCPProvisionerPhase string
 
 const (
@@ -201,9 +201,6 @@ const (
 
 	// PhaseProvisioning indicates HostedCluster and related resources are being created
 	PhaseProvisioning DPFHCPProvisionerPhase = "Provisioning"
-
-	// PhaseImageCaching indicates the machine OS image is being cached to the internal registry
-	PhaseImageCaching DPFHCPProvisionerPhase = "ImageCaching"
 
 	// PhaseIgnitionGenerating indicates ignition generation is in progress
 	PhaseIgnitionGenerating DPFHCPProvisionerPhase = "IgnitionGenerating"
