@@ -114,7 +114,7 @@ set_nvconfig() {
         local current_vfs=$(echo "$query_output" | grep NUM_OF_VFS | awk '{print $(NF-1)}')
 
         if [ "$sriov_en" != "True(1)" ] || [ "$current_vfs" -le 0 ]; then
-            log "INFO: Setting NVConfig on dev ${dev}: SRIOV_EN=1 NUM_OF_VFS=4 (was SRIOV_EN=${sriov_en}, NUM_OF_VFS=${current_vfs})"
+            log "INFO: Setting NVConfig on dev ${dev}: SRIOV_EN=1 NUM_OF_VFS=${RHCOS_INSTALL_VFS} (was SRIOV_EN=${sriov_en}, NUM_OF_VFS=${current_vfs})"
             run_mstconfig -d ${dev} -y reset
             run_mstconfig -d ${dev} -y set SRIOV_EN=1 NUM_OF_VFS=4
             NVCONFIG_CHANGED=true
@@ -154,8 +154,11 @@ wait_for_host_reboot_if_required() {
         log "INFO: Host reboot required (NVConfig was changed), signaling host agent"
         dpu_agent trigger-reboot PowerCycle
 
-        shutdown -h now
-        sleep infinity
+        while true; do
+            sleep 60
+            log "INFO: Waiting for host power cycle, retrying..."
+            dpu_agent trigger-reboot PowerCycle
+        done
     fi
     log "INFO: No host reboot required."
 }
