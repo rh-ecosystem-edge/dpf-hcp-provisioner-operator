@@ -121,3 +121,10 @@ commonLabels: {}
 
 # Additional annotations to apply to all resources
 commonAnnotations: {}
+
+# DPU worker host-cluster configuration
+dpuWorkerConfig:
+  # MTU for the br-dpu bridge on DPU worker nodes.
+  # Leave empty (default) to inherit MTU from the physical interface (standard 1500 networks).
+  # Set to "9000" for jumbo frame networks.
+  networkMTU: ""
