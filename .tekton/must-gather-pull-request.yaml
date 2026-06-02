@@ -364,6 +364,8 @@ spec:
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+      - name: ARGS
+        value: "--project-name=dpf-hcp-provisioner-operator --report --org=1a7a9d42-f2bf-40c6-a34e-1174f3c11785"
       runAfter:
       - build-image-index
       taskRef:
