@@ -83,39 +83,40 @@ dpu_agent() {
     until /usr/local/bin/dpuagent-client.py "$@"; do
         local ELAPSED=$(($(date +%s) - START))
         if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-            log "ERROR: Timed out contacting dpu-agent on call $1"
+            log "ERROR: Timed out contacting dpu-agent on call $1" >&2
             exit 1
         fi
 
-        log "WARN: dpuagent-client $1 failed, retrying in 5s..."
+        log "WARN: dpuagent-client $1 failed, retrying in 5s..." >&2
         sleep 5
     done
 }
 
 NVCONFIG_CHANGED=false
 
-set_nvconfig() {
-    local desired_vfs=$(jq -r '[.spec.nvconfig[].parameters[] | select(startswith("NUM_OF_VFS="))] | first // "NUM_OF_VFS=1"' "$DPUFLAVOR_FILE" | cut -d= -f2)
-    log "INFO: Desired NUM_OF_VFS from DPUFlavor: ${desired_vfs}"
+run_mstconfig() {
+    if ! mstconfig "$@"; then
+        error "NVConfig" "Failed: mstconfig $*"
+        return 1
+    fi
+}
 
+set_nvconfig() {
     local pcie_dev_list=$(lspci -d 15b3: | grep ConnectX | awk '{print $1}')
     for dev in ${pcie_dev_list}; do
-        log "INFO: Saving NVConfig query to /tmp/nvconfig-${dev}.json"
-        if ! mstconfig -d ${dev} -j /tmp/nvconfig-${dev}.json query; then
+        local query_output
+        if ! query_output=$(mstconfig -d ${dev} -e q SRIOV_EN NUM_OF_VFS 2>&1); then
             error "NVConfig" "Failed to query NVConfig on dev ${dev}"
             exit 1
         fi
 
-        local cfg=$(jq '.[].tlv_configuration' "/tmp/nvconfig-${dev}.json")
-        local sriov_en=$(echo "$cfg" | jq -r '.SRIOV_EN.next_value')
-        local current_vfs=$(echo "$cfg" | jq -r '.NUM_OF_VFS.next_value')
+        local sriov_en=$(echo "$query_output" | grep SRIOV_EN | awk '{print $(NF-1)}')
+        local current_vfs=$(echo "$query_output" | grep NUM_OF_VFS | awk '{print $(NF-1)}')
 
-        if [ "$sriov_en" != "True(1)" ] || [ "$current_vfs" != "$desired_vfs" ]; then
-            log "INFO: Setting NVConfig on dev ${dev}: SRIOV_EN=1 NUM_OF_VFS=${desired_vfs} (was SRIOV_EN=${sriov_en}, NUM_OF_VFS=${current_vfs})"
-            if ! mstconfig -d ${dev} -y set SRIOV_EN=1 NUM_OF_VFS=${desired_vfs}; then
-                error "NVConfig" "Failed to set NVConfig on dev ${dev}"
-                exit 1
-            fi
+        if [ "$sriov_en" != "True(1)" ] || [ "$current_vfs" -le 0 ]; then
+            log "INFO: Setting NVConfig on dev ${dev}: SRIOV_EN=1 NUM_OF_VFS=1 (was SRIOV_EN=${sriov_en}, NUM_OF_VFS=${current_vfs})"
+            run_mstconfig -d ${dev} -y reset
+            run_mstconfig -d ${dev} -y set SRIOV_EN=1 NUM_OF_VFS=1
             NVCONFIG_CHANGED=true
         else
             log "INFO: NVConfig on dev ${dev} already correct, skipping"
@@ -151,10 +152,13 @@ install_rhcos() {
 wait_for_host_reboot_if_required() {
     if [ "$NVCONFIG_CHANGED" = "true" ]; then
         log "INFO: Host reboot required (NVConfig was changed), signaling host agent"
-        dpu_agent update-host-reboot
-        dpu_agent update-time
-        shutdown -h now
-        sleep infinity
+        dpu_agent trigger-reboot PowerCycle
+
+        while true; do
+            sleep 60
+            log "INFO: Waiting for host power cycle, retrying..."
+            dpu_agent trigger-reboot PowerCycle
+        done
     fi
     log "INFO: No host reboot required."
 }
@@ -173,6 +177,11 @@ sync
 log "INFO: Installation complete."
 
 dpu_agent update-time
+
+log "INFO: Waiting for DPU phase to reach 'DPU Config'..."
+until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
+    sleep 5
+done
 
 wait_for_host_reboot_if_required
 
