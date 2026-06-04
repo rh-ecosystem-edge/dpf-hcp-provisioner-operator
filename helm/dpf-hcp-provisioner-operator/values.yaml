@@ -15,7 +15,7 @@ image:
   # Example: sha256:abc123...
   digest: ""
   # Image pull policy
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 # Number of operator replicas (1 for leader election)
 replicaCount: 1
