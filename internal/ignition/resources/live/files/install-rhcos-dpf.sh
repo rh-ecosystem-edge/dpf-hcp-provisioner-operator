@@ -4,6 +4,9 @@ TARGET_DEVICE=/dev/nvme0n1
 IGNITION_FILE="/var/target.ign"
 DPUFLAVOR_FILE="/etc/dpf/dpuflavor.json"
 
+DPU_MODE=$(jq -r '.spec.dpuMode // "dpu"' "$DPUFLAVOR_FILE" 2>/dev/null || echo "dpu")
+is_zero_trust() { [ "$DPU_MODE" = "zero-trust" ]; }
+
 log() {
     msg="[$(date +%H:%M:%S)] $*"
     echo "$msg"
@@ -11,9 +14,15 @@ log() {
     /usr/local/bin/bflog.sh "$msg"
 }
 
+if is_zero_trust; then
+    log "INFO: Running in zero-trust mode (no host agent)"
+else
+    log "INFO: Running in trusted mode (DPU mode: $DPU_MODE)"
+fi
+
 error() {
     log "ERROR: $1 - $2"
-    dpu_agent send-error "$1" "$2"
+    is_zero_trust || dpu_agent send-error "$1" "$2"
 }
 
 validate_identity() {
@@ -166,8 +175,8 @@ wait_for_host_reboot_if_required() {
 validate_identity
 validate_ignition
 update_ignition
-wait_for_host_agent
-dpu_agent update-reboot-method-discovery
+is_zero_trust || wait_for_host_agent
+is_zero_trust || dpu_agent update-reboot-method-discovery
 set_nvconfig
 
 install_rhcos
@@ -176,14 +185,16 @@ sync
 
 log "INFO: Installation complete."
 
-dpu_agent update-time
+if ! is_zero_trust; then
+    dpu_agent update-time
 
-log "INFO: Waiting for DPU phase to reach 'DPU Config'..."
-until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
-    sleep 5
-done
+    log "INFO: Waiting for DPU phase to reach 'DPU Config'..."
+    until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
+        sleep 5
+    done
 
-wait_for_host_reboot_if_required
+    wait_for_host_reboot_if_required
+fi
 
 log "INFO: Waiting for 10 seconds before rebooting"
 sleep 10
