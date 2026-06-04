@@ -227,7 +227,17 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	}
 
 	isZeroTrust := IsZeroTrustMode(dpuMode)
-	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, isZeroTrust)
+
+	var bfbRegistryURL string
+	if isZeroTrust {
+		bfbRegistryURL, err = ig.resolveBFBRegistryURL(ctx, dpfOperatorConfig)
+		if err != nil {
+			return fmt.Errorf("failed to resolve bfb-registry URL for zero-trust mode: %w", err)
+		}
+		log.Info("Resolved bfb-registry URL for zero-trust mode", "url", bfbRegistryURL)
+	}
+
+	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, isZeroTrust, bfbRegistryURL)
 	if err != nil {
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
@@ -423,7 +433,7 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications
-func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, isZeroTrust bool) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, isZeroTrust bool, bfbRegistryURL string) (*igntypes.Config, error) {
 	// Parse HCP ignition
 	targetIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, targetIgnition); err != nil {
@@ -457,6 +467,22 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 
 	if mtu != 1500 {
 		ignition.EnableMTU(targetIgnition, mtu)
+	}
+
+	if bfbRegistryURL != "" {
+		source := fmt.Sprintf("data:,BFBRegistryURL=%s%%0A", bfbRegistryURL)
+		targetIgnition.Storage.Files = append(targetIgnition.Storage.Files, igntypes.File{
+			Node: igntypes.Node{
+				Path:      "/etc/dpf/bfb-registry",
+				Overwrite: ignition.Ptr(true),
+			},
+			FileEmbedded1: igntypes.FileEmbedded1{
+				Mode: ignition.Ptr(0644),
+				Contents: igntypes.Resource{
+					Source: &source,
+				},
+			},
+		})
 	}
 
 	return targetIgnition, nil
@@ -601,4 +627,69 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 
 	log.Info("Updated ignition ConfigMap", "name", cmName, "namespace", cmNamespace)
 	return nil
+}
+
+// resolveBFBRegistryURL resolves the bfb-registry URL for zero-trust mode.
+// It checks the DPFOperatorConfig registry configuration first, then falls back
+// to discovering the bfb-registry NodePort service.
+func (ig *IgnitionGenerator) resolveBFBRegistryURL(ctx context.Context, dpfOperatorConfig *operatorv1alpha1.DPFOperatorConfig) (string, error) {
+	log := logf.FromContext(ctx)
+
+	if reg := dpfOperatorConfig.Spec.ProvisioningController.Registry; reg != nil {
+		if reg.LoadBalancerAddress != nil && *reg.LoadBalancerAddress != "" {
+			log.V(1).Info("Using LoadBalancerAddress from DPFOperatorConfig", "address", *reg.LoadBalancerAddress)
+			return strings.TrimRight(*reg.LoadBalancerAddress, "/"), nil
+		}
+		if reg.Address != nil && *reg.Address != "" {
+			log.V(1).Info("Using Address from DPFOperatorConfig", "address", *reg.Address)
+			return strings.TrimRight(*reg.Address, "/"), nil
+		}
+	}
+
+	log.V(1).Info("No registry address configured, discovering bfb-registry NodePort service")
+
+	svc := &corev1.Service{}
+	svcKey := types.NamespacedName{
+		Name:      operatorv1alpha1.BFBRegistryName.String(),
+		Namespace: dpfOperatorConfig.Namespace,
+	}
+	if err := ig.Client.Get(ctx, svcKey, svc); err != nil {
+		return "", fmt.Errorf("failed to get bfb-registry service %s: %w", svcKey, err)
+	}
+
+	var nodePort int32
+	for _, port := range svc.Spec.Ports {
+		if port.NodePort != 0 {
+			nodePort = port.NodePort
+			break
+		}
+	}
+	if nodePort == 0 {
+		return "", fmt.Errorf("bfb-registry service %s has no NodePort", svcKey)
+	}
+
+	nodeList := &corev1.NodeList{}
+	if err := ig.Client.List(ctx, nodeList); err != nil {
+		return "", fmt.Errorf("failed to list nodes: %w", err)
+	}
+
+	var nodeIP string
+	for i := range nodeList.Items {
+		for _, addr := range nodeList.Items[i].Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP {
+				nodeIP = addr.Address
+				break
+			}
+		}
+		if nodeIP != "" {
+			break
+		}
+	}
+	if nodeIP == "" {
+		return "", fmt.Errorf("no node with InternalIP found")
+	}
+
+	url := fmt.Sprintf("http://%s:%d", nodeIP, nodePort)
+	log.Info("Discovered bfb-registry via NodePort", "url", url, "service", svcKey)
+	return url, nil
 }
