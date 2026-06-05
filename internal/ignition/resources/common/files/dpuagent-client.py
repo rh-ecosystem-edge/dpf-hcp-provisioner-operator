@@ -68,12 +68,11 @@ def get_dpu_phase():
     return phase
 
 
-def configure_host_vfs(vf_count):
+def configure_host_vfs():
     return base_request("POST", "/configure-host-vfs", {
         "dpuName": DPU_NAME,
         "dpuNamespace": DPU_NAMESPACE,
         "dpuUID": DPU_UID,
-        "vfCount": vf_count,
     })
 
 
@@ -163,7 +162,7 @@ def send_error(reason, message):
 
 COMMANDS = {
     "get-dpu-phase": get_dpu_phase,
-    "configure-host-vfs": lambda: configure_host_vfs(int(sys.argv[2])),
+    "configure-host-vfs": configure_host_vfs,
     "update-reboot-method-discovery": update_reboot_method_discovery,
     "update-host-reboot": update_host_reboot,
     "update-nvconfig-applied": update_nvconfig_applied,
