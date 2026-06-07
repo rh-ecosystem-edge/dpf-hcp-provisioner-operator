@@ -739,11 +739,29 @@ func (r *DPFHCPProvisionerReconciler) lookupBlueFieldOCPLayerImage(ctx context.C
 	return ctrl.Result{}, nil
 }
 
-// generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase.
+// generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase,
+// or if it's in the Failed phase due to a previous ignition generation failure (transient retry).
 func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	if cr.Status.HostedClusterRef == nil || cr.Status.Phase != provisioningv1alpha1.PhaseIgnitionGenerating {
+	if cr.Status.HostedClusterRef == nil {
+		log.V(1).Info("Skipping ignition generation - no HostedCluster ref", "phase", cr.Status.Phase)
+		return ctrl.Result{}, nil
+	}
+
+	// Run ignition generation when:
+	// 1. Phase is IgnitionGenerating (normal path), OR
+	// 2. Phase is Failed AND the failure was caused by ignition generation (retry path)
+	shouldGenerate := cr.Status.Phase == provisioningv1alpha1.PhaseIgnitionGenerating
+	if !shouldGenerate && cr.Status.Phase == provisioningv1alpha1.PhaseFailed {
+		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse &&
+			ignConfigured.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed {
+			shouldGenerate = true
+			log.Info("Retrying ignition generation after transient failure")
+		}
+	}
+	if !shouldGenerate {
 		log.V(1).Info("Skipping ignition generation", "phase", cr.Status.Phase)
 		return ctrl.Result{}, nil
 	}
