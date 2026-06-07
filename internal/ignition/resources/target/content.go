@@ -111,6 +111,11 @@ func NewProvider() *content.EmbeddedProvider {
 				Mode:          0644,
 				ContentSource: f("kubelet-dpf-override.conf"),
 			},
+			{
+				Path:          "/usr/local/bin/pf-monitor.sh",
+				Mode:          0755,
+				ContentSource: f("pf-monitor.sh"),
+			},
 		},
 		SystemdFS: &systemdFS,
 	}

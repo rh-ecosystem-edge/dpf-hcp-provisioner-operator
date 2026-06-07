@@ -1,0 +1,14 @@
+[Unit]
+Description=DPF PF Link State Monitor
+After=tmfifo-agent-link.service
+Requires=tmfifo-agent-link.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/dpf/environment
+ExecStart=/usr/local/bin/pf-monitor.sh
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

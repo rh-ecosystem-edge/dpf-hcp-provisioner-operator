@@ -160,6 +160,34 @@ def send_error(reason, message):
     })
 
 
+def update_pf_status():
+    """Report PF link status. Args: pf_label (PF0|PF1), status (up|down), interface name, detail message."""
+    if len(sys.argv) < 5:
+        print("Error: update-pf-status requires at least 3 arguments: pf_label status iface [message]", file=sys.stderr)
+        sys.exit(1)
+    pf_label = sys.argv[2]   # "PF0" or "PF1"
+    link_status = sys.argv[3]  # "up" or "down"
+    iface = sys.argv[4]
+    message = sys.argv[5] if len(sys.argv) > 5 else ""
+
+    is_down = link_status.lower() != "up"
+    condition_type = f"{pf_label}LinkDown"
+    return base_request("POST", "/update-status", {
+        "dpuName": DPU_NAME,
+        "dpuNamespace": DPU_NAMESPACE,
+        "dpuUID": DPU_UID,
+        "agentStatus": {
+            "conditions": [{
+                "type": condition_type,
+                "status": "True" if is_down else "False",
+                "reason": f"{pf_label}LinkDown" if is_down else f"{pf_label}LinkUp",
+                "message": message[:4096] if message else f"{pf_label} interface {iface} is {link_status}",
+                "lastTransitionTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            }],
+        },
+    })
+
+
 COMMANDS = {
     "get-dpu-phase": get_dpu_phase,
     "configure-host-vfs": configure_host_vfs,
@@ -169,6 +197,7 @@ COMMANDS = {
     "trigger-reboot": lambda: trigger_reboot(sys.argv[2]),
     "update-time": update_time,
     "send-error": lambda: send_error(sys.argv[2], sys.argv[3]),
+    "update-pf-status": update_pf_status,
 }
 
 if __name__ == "__main__":
