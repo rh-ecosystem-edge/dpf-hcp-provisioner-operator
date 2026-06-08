@@ -93,7 +93,7 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen yq ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	YQ=$(YQ) ./hack/sync-helm-rbac.sh
+	PATH="$(LOCALBIN):$$PATH" python3 ./hack/sync-helm-rbac.py
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
