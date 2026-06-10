@@ -46,6 +46,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/ignitiongenerator"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/imagecache"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/metallb"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
@@ -67,6 +68,7 @@ type DPFHCPProvisionerReconciler struct {
 	StatusSyncer         *hostedcluster.StatusSyncer
 	KubeconfigInjector   *kubeconfiginjection.KubeconfigInjector
 	IgnitionGenerator    *ignitiongenerator.IgnitionGenerator
+	ImageCacheManager    *imagecache.ImageCache
 }
 
 const (
@@ -96,6 +98,8 @@ const (
 // +kubebuilder:rbac:groups=operator.dpu.nvidia.com,resources=dpfoperatorconfigs,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=provisioning.dpu.hcp.io,resources=dpfhcpprovisionerconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=imageregistry.operator.openshift.io,resources=configs,verbs=get;list;watch
+// +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -276,6 +280,14 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 	} else {
 		log.V(1).Info("Skipping kubeconfig injection - HostedCluster not created yet")
+	}
+
+	// Feature: Image Caching (Opportunistic)
+	// Cache machineOSURL image to internal registry if available.
+	// This runs before ignition generation so the cached URL can be used in ignition.
+	// Note: ImageCacheManager.EnsureCached must only signal requeues via RequeueAfter.
+	if result, err := r.cacheImage(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+		return result, err
 	}
 
 	// Feature: Ignition Generation
@@ -756,6 +768,46 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 	return result, err
 }
 
+// cacheImage runs the image caching feature when prerequisites are met.
+// Prerequisites: HostedCluster available + kubeconfig injected + image not yet cached.
+// This checks conditions directly rather than relying on the phase field, because
+// updatePhaseFromConditions() runs after this in the reconcile loop.
+func (r *DPFHCPProvisionerReconciler) cacheImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	// Check prerequisites: HC must be available and kubeconfig injected
+	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
+	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+
+	if hcAvailable == nil || hcAvailable.Status != metav1.ConditionTrue ||
+		kcInjected == nil || kcInjected.Status != metav1.ConditionTrue {
+		log.V(1).Info("Skipping image caching - prerequisites not met")
+		return ctrl.Result{}, nil
+	}
+
+	// Check if image caching is needed
+	imageCached := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.ImageCached)
+	if imageCached != nil && imageCached.ObservedGeneration == cr.Generation {
+		if imageCached.Status == metav1.ConditionTrue {
+			log.V(1).Info("Image already cached, skipping")
+			return ctrl.Result{}, nil
+		}
+		// CacheFailed means we exhausted retries for this generation —
+		// proceed with the external URL (opportunistic caching).
+		if imageCached.Reason == provisioningv1alpha1.ReasonCacheFailed {
+			log.V(1).Info("Image caching permanently failed for this generation, skipping")
+			return ctrl.Result{}, nil
+		}
+	}
+
+	log.V(1).Info("Running image caching feature")
+	result, err := r.ImageCacheManager.EnsureCached(ctx, cr)
+	if err != nil {
+		log.Error(err, "Image caching failed")
+	}
+	return result, err
+}
+
 // computeReadyCondition determines if the DPFHCPProvisioner is fully operational and sets the Ready condition.
 //
 // Ready state requires ALL of the following currently implemented features:
@@ -886,16 +938,33 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
-	// Phase 4: Check if ignition generation is required
+	// Phase 4: Check if image caching is required
+	// Image caching runs after provisioning completes (HC available + kubeconfig injected)
+	// but before ignition generation
 	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
 	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+	imageCached := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.ImageCached)
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+
 	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
-		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
-		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
-			ignConfigured.ObservedGeneration != cr.Generation) {
-		cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
-		return
+		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue {
+
+		// Check if image caching is still in progress
+		imageCacheInProgress := imageCached != nil &&
+			imageCached.Reason == provisioningv1alpha1.ReasonCachingInProgress
+
+		if imageCacheInProgress {
+			// Stay in Provisioning phase while caching runs (opportunistic, not a separate phase)
+			cr.Status.Phase = provisioningv1alpha1.PhaseProvisioning
+			return
+		}
+
+		// Image caching done (or skipped/never run), check ignition
+		if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
+			ignConfigured.ObservedGeneration != cr.Generation {
+			cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
+			return
+		}
 	}
 
 	// Phase 5: Check if HostedCluster provisioning has started

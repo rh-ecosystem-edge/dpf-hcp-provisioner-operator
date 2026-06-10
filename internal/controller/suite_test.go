@@ -45,6 +45,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpucluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/finalizer"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/imagecache"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
 	// +kubebuilder:scaffold:imports
@@ -167,6 +168,7 @@ var _ = BeforeSuite(func() {
 		FinalizerManager:     finalizerManager,
 		StatusSyncer:         hostedcluster.NewStatusSyncer(k8sManager.GetClient()),
 		KubeconfigInjector:   kubeconfigInjector,
+		ImageCacheManager:    imagecache.NewImageCache(k8sManager.GetClient(), k8sManager.GetEventRecorderFor(common.ProvisionerControllerName)),
 	}
 	err = reconciler.SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
