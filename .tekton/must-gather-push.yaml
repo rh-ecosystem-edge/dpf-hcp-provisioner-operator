@@ -519,6 +519,28 @@ spec:
         operator: in
         values:
         - "false"
+    finally:
+    - name: slack-webhook-notification
+      params:
+      - name: secret-name
+        value: slack-notif-webhook
+      - name: key-name
+        value: token
+      - name: message
+        value: "[must-gather] [main] [<https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/commit/{{revision}}|{{revision}}>] [<https://konflux-ui.apps.kflux-prd-rh02.0fk9.p1.openshiftapps.com/ns/dpu-kit-for-nvidia-operator-tenant/applications/dpf-hcp-provisioner-operator/components/must-gather/activity/pipelineruns/$(context.pipelineRun.name)|pipeline>] Konflux build failed"
+      taskRef:
+        params:
+        - name: name
+          value: slack-webhook-notification
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-slack-webhook-notification:0.1
+        - name: kind
+          value: Task
+        resolver: bundles
+      when:
+      - input: $(tasks.status)
+        operator: in
+        values: [ "Failed" ]
     workspaces:
     - name: git-auth
       optional: true
