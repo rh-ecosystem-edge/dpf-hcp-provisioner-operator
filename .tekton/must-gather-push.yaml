@@ -527,7 +527,7 @@ spec:
       - name: key-name
         value: token
       - name: message
-        value: "[must-gather] [main] [<https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/commit/{{revision}}|{{revision}}>] [<https://konflux-ui.apps.kflux-prd-rh02.0fk9.p1.openshiftapps.com/ns/dpu-kit-for-nvidia-operator-tenant/applications/dpf-hcp-provisioner-operator/components/must-gather/activity/pipelineruns/$(context.pipelineRun.name)|pipeline>] Konflux build failed"
+        value: "[must-gather] [main] [<https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/commit/{{revision}}|commit-ref-{{revision}}>] [<https://konflux-ui.apps.kflux-prd-rh02.0fk9.p1.openshiftapps.com/ns/dpu-kit-for-nvidia-operator-tenant/applications/dpf-hcp-provisioner-operator/pipelineruns/$(context.pipelineRun.name)|pipeline>] Konflux build failed"
       taskRef:
         params:
         - name: name
