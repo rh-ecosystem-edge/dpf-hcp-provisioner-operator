@@ -171,14 +171,14 @@ func (ig *IgnitionGenerator) getDPFOperatorConfig(ctx context.Context, cr *provi
 func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx)
 
-	// Step 1: Download HCP ignition
+	// Download HCP ignition
 	log.V(1).Info("Downloading HCP ignition")
 	hcpIgnitionBytes, err := ig.downloadHCPIgnition(ctx, cr)
 	if err != nil {
 		return fmt.Errorf("failed to download HCP ignition: %w", err)
 	}
 
-	// Step 2: Retrieve DPU Flavor configuration
+	// Retrieve DPU Flavor configuration
 	log.V(1).Info("Retrieving DPU Flavor configuration")
 	dpuFlavor, err := ig.retrieveDPUFlavor(ctx, cr)
 	if err != nil {
@@ -188,7 +188,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("retrieved DPU Flavor is nil")
 	}
 
-	// Step 2.5: Detect DPU mode from DPU Flavor
+	// Detect DPU mode from DPU Flavor
 	dpuMode, err := DetectDPUMode(dpuFlavor)
 	if err != nil {
 		log.Error(err, "Failed to detect DPU mode")
@@ -200,7 +200,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		"dpuFlavor", dpuFlavor.Name,
 		"isZeroTrust", IsZeroTrustMode(dpuMode))
 
-	// Step 3: Build target ignition (HCP + DPF modifications)
+	// Build target ignition (HCP + DPF modifications)
 	// NOTE: For now, we just detect and log the mode. In the future, we'll pass
 	// the mode to buildTargetIgnition() and buildLiveIgnition() to generate
 	// mode-specific content.
@@ -234,12 +234,18 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
 
-	// Step 3.5: Gzip-compress all uncompressed files in target ignition
+	// Validate target ignition before compression
+	log.V(1).Info("Validating target ignition")
+	if err := ignition.ValidateConfig(targetIgnition); err != nil {
+		return fmt.Errorf("target ignition validation failed: %w", err)
+	}
+
+	// Gzip-compress all uncompressed files in target ignition
 	if err := ignition.GzipIgnitionFiles(targetIgnition); err != nil {
 		return fmt.Errorf("failed to gzip target ignition files: %w", err)
 	}
 
-	// Step 4: Build live ignition (embed target)
+	// Build live ignition (embed target)
 	log.V(1).Info("Building live ignition")
 	// We are adding DPU Flavor in JSON format for early setup tasks, such as nvconfig parameters setup.
 	// JSON is easier to parse with the tooling we have in Live RHCOS install media.
@@ -248,7 +254,14 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("failed to build live ignition: %w", err)
 	}
 
-	// Step 5: Create/Update ConfigMap
+	// NOTE: Live ignition is intentionally NOT validated here. It contains Go template
+	// placeholders (e.g. {{.DPUHostName}}) in data URIs that are substituted later by the
+	// DPF provisioning controller. These placeholders use curly braces which are invalid
+	// in RFC 2397 data URIs, so the ignition validator would reject them. The target
+	// ignition (validated above) is the structurally important config — it's what actually
+	// boots the DPU. The live ignition is just a delivery wrapper with templates.
+
+	// Create/Update ConfigMap
 	log.V(1).Info("Creating/Updating ConfigMap")
 	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, machineOSURL); err != nil {
 		return fmt.Errorf("failed to create/update ConfigMap: %w", err)

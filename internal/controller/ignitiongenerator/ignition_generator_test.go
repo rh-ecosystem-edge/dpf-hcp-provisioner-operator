@@ -526,6 +526,38 @@ var _ = Describe("buildTargetIgnition", func() {
 		Expect(hasOVS).To(BeTrue())
 	})
 
+	It("should preserve HCP ignition version from upstream", func() {
+		// HCP ignition may come with older spec versions (e.g. 3.2.0).
+		// buildTargetIgnition preserves the original version — validation
+		// handles version normalization internally.
+		machineConfig := map[string]interface{}{
+			"spec": map[string]interface{}{
+				"osImageURL": "https://old-image.example.com",
+			},
+		}
+		mcJSON, _ := json.Marshal(machineConfig)
+		encoded := url.QueryEscape(string(mcJSON))
+		source := fmt.Sprintf("data:,%s", encoded)
+
+		ign := &igntypes.Config{
+			Ignition: igntypes.Ignition{Version: "3.2.0"},
+			Storage: igntypes.Storage{
+				Files: []igntypes.File{
+					{
+						Node:          igntypes.Node{Path: "/etc/ignition-machine-config-encapsulated.json"},
+						FileEmbedded1: igntypes.FileEmbedded1{Contents: igntypes.Resource{Source: &source}},
+					},
+				},
+			},
+		}
+		data, _ := json.Marshal(ign)
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
+
+		result, err := ig.buildTargetIgnition(data, flavor, "https://new-image.example.com", 1500)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.Ignition.Version).To(Equal("3.2.0"))
+	})
+
 	It("should return error for invalid JSON", func() {
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 		_, err := ig.buildTargetIgnition([]byte("not-json"), flavor, "https://example.com", 1500)
