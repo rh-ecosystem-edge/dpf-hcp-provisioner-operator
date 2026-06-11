@@ -1,0 +1,22 @@
+{
+  "26": {
+    "ovn": {
+      "chartRepoURL": "oci://ghcr.io/mellanox/charts",
+      "chartName": "ovn-kubernetes-chart",
+      "chartVersion": "v26.4.0-ocpbeta"
+    },
+    "dts": {
+      "chartRepoURL": "https://helm.ngc.nvidia.com/nvidia/doca",
+      "chartName": "doca-telemetry",
+      "chartVersion": "1.22.1",
+      "imageDTS": "nvcr.io/nvidia/doca/doca_telemetry:1.21.5-doca3.0.0"
+    },
+    "hbn": {
+      "chartRepoURL": "https://helm.ngc.nvidia.com/nvidia/doca",
+      "chartName": "doca-hbn",
+      "chartVersion": "1.0.3",
+      "imageRepo": "nvcr.io/nvidia/doca/doca_hbn",
+      "imageTag": "3.2.0-doca3.2.0"
+    }
+  }
+}

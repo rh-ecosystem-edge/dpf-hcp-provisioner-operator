@@ -66,6 +66,14 @@ spec:
                   This is useful when the management cluster runs on a cloud platform (AWS, Azure, GCP)
                   that provides native LoadBalancer support via cloud controller manager.
                 type: boolean
+              manageDPUServiceTemplates:
+                default: false
+                description: |-
+                  ManageDPUServiceTemplates controls whether the operator creates and manages
+                  DPUServiceTemplate resources (OVN, DTS, HBN) in the DPUCluster namespace.
+                  Deprecated: This field will be removed in a future release, at which point
+                  DPUServiceTemplate management will always be enabled.
+                type: boolean
             type: object
         type: object
         x-kubernetes-validations:
