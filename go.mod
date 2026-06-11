@@ -3,6 +3,7 @@ module github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
 go 1.25.6
 
 require (
+	github.com/coreos/go-semver v0.3.1
 	github.com/coreos/ignition/v2 v2.26.0
 	github.com/google/go-containerregistry v0.21.2
 	github.com/nvidia/doca-platform v0.0.0-20260507043605-b1192d60f2cc
@@ -30,7 +31,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
 	github.com/coreos/go-json v0.0.0-20230131223807-18775e0fb4fb // indirect
-	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.6.0 // indirect
 	github.com/coreos/vcontext v0.0.0-20231102161604-685dc7299dc5 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
