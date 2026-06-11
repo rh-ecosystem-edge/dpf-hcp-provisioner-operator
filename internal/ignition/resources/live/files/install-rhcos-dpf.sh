@@ -1,8 +1,11 @@
 #!/bin/bash
 
-TARGET_DEVICE=/dev/nvme0n1
+BLOCK_DEVICE=/dev/nvme0n1
 IGNITION_FILE="/var/target.ign"
 DPUFLAVOR_FILE="/etc/dpf/dpuflavor.json"
+
+SECUREBOOT=false
+NVCONFIG_CHANGED=false
 
 log() {
     msg="[$(date +%H:%M:%S)] $*"
@@ -57,7 +60,7 @@ setup_RHCOS_EFI_record() {
         fi
     done
 
-    efibootmgr -c -d "$TARGET_DEVICE" -p 2 -l '\EFI\redhat\shimaa64.efi' -L "Red-Hat CoreOS GRUB"
+    efibootmgr -c -d "$BLOCK_DEVICE" -p 2 -l '\EFI\redhat\shimaa64.efi' -L "Red-Hat CoreOS GRUB"
     log "INFO: Created new RHCOS EFI record."
 }
 
@@ -92,7 +95,47 @@ dpu_agent() {
     done
 }
 
-NVCONFIG_CHANGED=false
+get_devlist() {
+    if [ "$SECUREBOOT" = "true" ]; then
+        ls /dev/fwctl/fwctl* 2>/dev/null
+    else
+        lspci -d 15b3: | grep ConnectX | awk '{print $1}'
+    fi
+}
+
+setup_secureboot() {
+    if mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+        SECUREBOOT=true
+    else
+        return 0
+    fi
+
+    log "INFO: SecureBoot enabled, loading fwctl modules"
+    modprobe fwctl 2>/dev/null
+    modprobe mlx5_fwctl 2>/dev/null
+    udevadm settle
+
+    local retries=5
+    while [ $retries -gt 0 ] && ! ls /dev/fwctl/fwctl* &>/dev/null; do
+        log "INFO: Waiting for fwctl devices to appear..."
+        sleep 1
+        retries=$((retries - 1))
+    done
+}
+
+validate_hardware() {
+    if [ ! -b "$BLOCK_DEVICE" ]; then
+        error "Hardware" "Target block device $BLOCK_DEVICE not found"
+        exit 1
+    fi
+
+    local dev_list=$(get_devlist)
+    if [ -z "$dev_list" ]; then
+        log "$(lspci -d 15b3:)"
+        error "Hardware" "No devices found"
+        exit 1
+    fi
+}
 
 run_mstconfig() {
     if ! mstconfig "$@"; then
@@ -102,8 +145,10 @@ run_mstconfig() {
 }
 
 set_nvconfig() {
-    local pcie_dev_list=$(lspci -d 15b3: | grep ConnectX | awk '{print $1}')
-    for dev in ${pcie_dev_list}; do
+    local dev_list
+    dev_list=$(get_devlist)
+
+    for dev in ${dev_list}; do
         local query_output
         if ! query_output=$(mstconfig -d ${dev} -e q SRIOV_EN NUM_OF_VFS 2>&1); then
             error "NVConfig" "Failed to query NVConfig on dev ${dev}"
@@ -126,9 +171,9 @@ set_nvconfig() {
 }
 
 install_rhcos() {
-    log "INFO: Installing Red Hat CoreOS on $TARGET_DEVICE with ignition file $IGNITION_FILE"
+    log "INFO: Installing Red Hat CoreOS on $BLOCK_DEVICE with ignition file $IGNITION_FILE"
 
-    KERNEL_PARAMETERS="console=hvc0 console=ttyAMA0 earlycon=pl011,0x13010000 ignore_loglevel modprobe.blacklist=mlxbf_pmc"
+    KERNEL_PARAMETERS="console=hvc0 console=ttyAMA0 earlycon=pl011,0x13010000 ignore_loglevel"
     FLAVOR_KARGS=$(jq -r .spec.grub.kernelParameters[] "$DPUFLAVOR_FILE")
 
     for param in $FLAVOR_KARGS; do
@@ -138,7 +183,7 @@ install_rhcos() {
         esac
     done
 
-    coreos-installer install "$TARGET_DEVICE" \
+    coreos-installer install "$BLOCK_DEVICE" \
         --append-karg "$KERNEL_PARAMETERS" \
         --ignition-file "$IGNITION_FILE" \
         --offline
@@ -162,6 +207,9 @@ wait_for_host_reboot_if_required() {
     fi
     log "INFO: No host reboot required."
 }
+
+setup_secureboot
+validate_hardware
 
 validate_identity
 validate_ignition
