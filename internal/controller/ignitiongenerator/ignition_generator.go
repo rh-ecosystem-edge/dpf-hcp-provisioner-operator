@@ -507,7 +507,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	}
 
 	if isZeroTrust {
-		agentArgsSource := "data:,DPU_AGENT_EXTRA_ARGS%3D--zero-trust-mode%20--kubeconfig%20/etc/dpf/kubeconfig%0A"
+		agentArgsSource := "data:,DPU_AGENT_EXTRA_ARGS%3D--zero-trust-mode%20--kubeconfig%20/var/lib/dpf/dpuagent/bootstrap-kubeconfig%0A"
 		targetIgnition.Storage.Files = append(targetIgnition.Storage.Files, igntypes.File{
 			Node: igntypes.Node{
 				Path:      "/etc/dpf/dpu-agent-args",
