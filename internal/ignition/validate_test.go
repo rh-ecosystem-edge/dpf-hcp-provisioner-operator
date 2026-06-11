@@ -104,6 +104,57 @@ var _ = Describe("ValidateConfig", func() {
 		}
 	})
 
+	It("should validate configs with files and units across ignition versions used by hypershift", func() {
+		// Hypershift may produce ignition configs with spec versions 3.2.0, 3.3.0, or 3.4.0.
+		// Ensure that validation works correctly for non-trivial configs at each version.
+		hypershiftVersions := []string{"3.2.0", "3.3.0", "3.4.0"}
+		for _, version := range hypershiftVersions {
+			By("validating a config with files and units at version " + version)
+			cfg := NewEmptyIgnition(version)
+			source := "data:,hello"
+			mode := 0644
+			overwrite := true
+			cfg.Storage.Files = append(cfg.Storage.Files, igntypes.File{
+				Node: igntypes.Node{Path: "/etc/test-file", Overwrite: &overwrite},
+				FileEmbedded1: igntypes.FileEmbedded1{
+					Contents: igntypes.Resource{Source: &source},
+					Mode:     &mode,
+				},
+			})
+			enabled := true
+			contents := "[Unit]\nDescription=Test\n[Service]\nExecStart=/bin/true\n[Install]\nWantedBy=multi-user.target"
+			cfg.Systemd.Units = append(cfg.Systemd.Units, igntypes.Unit{
+				Name:     "test.service",
+				Enabled:  &enabled,
+				Contents: &contents,
+			})
+			Expect(ValidateConfig(cfg)).To(Succeed(), "version %s with files and units should be accepted", version)
+		}
+	})
+
+	It("should detect duplicate files across ignition versions used by hypershift", func() {
+		// Ensure structural validation catches duplicates regardless of spec version.
+		hypershiftVersions := []string{"3.2.0", "3.3.0", "3.4.0"}
+		for _, version := range hypershiftVersions {
+			By("detecting duplicate files at version " + version)
+			cfg := NewEmptyIgnition(version)
+			source := "data:,content"
+			mode := 0644
+			overwrite := true
+			file := igntypes.File{
+				Node: igntypes.Node{Path: "/etc/duplicate", Overwrite: &overwrite},
+				FileEmbedded1: igntypes.FileEmbedded1{
+					Contents: igntypes.Resource{Source: &source},
+					Mode:     &mode,
+				},
+			}
+			cfg.Storage.Files = append(cfg.Storage.Files, file, file)
+			err := ValidateConfig(cfg)
+			Expect(err).To(HaveOccurred(), "version %s should reject duplicate files", version)
+			Expect(err.Error()).To(ContainSubstring("duplicate"))
+		}
+	})
+
 	It("should not modify the caller's config version", func() {
 		cfg := NewEmptyIgnition("3.2.0")
 		Expect(ValidateConfig(cfg)).To(Succeed())
