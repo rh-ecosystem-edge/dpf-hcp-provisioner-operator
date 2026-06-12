@@ -69,10 +69,12 @@ def get_dpu_phase():
 
 
 def configure_host_vfs():
+    vf_count = sys.argv[2] if len(sys.argv) > 2 else 1
     return base_request("POST", "/configure-host-vfs", {
         "dpuName": DPU_NAME,
         "dpuNamespace": DPU_NAMESPACE,
         "dpuUID": DPU_UID,
+        "vfCount": vf_count
     })
 
 
@@ -163,7 +165,8 @@ def send_error(reason, message):
 def update_pf_status():
     """Report PF link status. Args: pf_label (PF0|PF1), status (up|down), interface name, detail message."""
     if len(sys.argv) < 5:
-        print("Error: update-pf-status requires at least 3 arguments: pf_label status iface [message]", file=sys.stderr)
+        print(
+            "Error: update-pf-status requires at least 3 arguments: pf_label status iface [message]", file=sys.stderr)
         sys.exit(1)
     pf_label = sys.argv[2]   # "PF0" or "PF1"
     link_status = sys.argv[3]  # "up" or "down"
