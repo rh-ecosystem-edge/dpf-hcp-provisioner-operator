@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
 	dpuprovisioningv1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -226,6 +227,137 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				g.Expect(status).To(Equal(string(metav1.ConditionTrue)),
 					"IgnitionConfigured should be True after regeneration")
 			}, 2*time.Minute, pollingInterval).Should(Succeed())
+		})
+
+		It("should regenerate ignition when DPUDeployment flavor changes", func() {
+			ctx := context.Background()
+			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+			newFlavorName := "e2e-dpuflavor-v2"
+
+			By("verifying CR is Ready and ignition is configured")
+			Expect(getCRPhase(ciNamespace, provisionerName)).To(Equal("Ready"))
+			Expect(getConditionStatus(ciNamespace, provisionerName, "IgnitionConfigured")).
+				To(Equal(string(metav1.ConditionTrue)))
+
+			By("recording the current ConfigMap resourceVersion")
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      ignitionCMName,
+			}, cm)
+			Expect(err).NotTo(HaveOccurred())
+			oldResourceVersion := cm.ResourceVersion
+			oldFlavorAnnotation := cm.Annotations["provisioning.dpu.nvidia.com/bfcfg-template-dpuflavor-name"]
+			Expect(oldFlavorAnnotation).To(Equal(dpuFlavorName))
+
+			By("creating a new DPUFlavor")
+			newFlavor := &dpuprovisioningv1.DPUFlavor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      newFlavorName,
+					Namespace: dpuClusterNS,
+				},
+				Spec: dpuprovisioningv1.DPUFlavorSpec{
+					DpuMode: dpuprovisioningv1.DpuMode,
+					OVS: dpuprovisioningv1.DPUFlavorOVS{
+						RawConfigScript: "#!/bin/bash\necho \"e2e test OVS config v2\"\n",
+					},
+				},
+			}
+			err = k8sClient.Create(ctx, newFlavor)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("updating DPUDeployment to reference the new flavor")
+			dpuDeployment := &dpuservicev1.DPUDeployment{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      dpuDeploymentName,
+				Namespace: dpuClusterNS,
+			}, dpuDeployment)
+			Expect(err).NotTo(HaveOccurred())
+			dpuDeployment.Spec.DPUs.Flavor = newFlavorName
+			err = k8sClient.Update(ctx, dpuDeployment)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("waiting for IgnitionConfigured to transition to False (DPUDeploymentChanged)")
+			Eventually(func(g Gomega) {
+				conditions := getCRConditions(ciNamespace, provisionerName)
+				for _, c := range conditions {
+					if c.Type == "IgnitionConfigured" {
+						if c.Status == metav1.ConditionFalse && c.Reason == "DPUDeploymentChanged" {
+							return
+						}
+					}
+				}
+				g.Expect(false).To(BeTrue(), "IgnitionConfigured should be False with reason DPUDeploymentChanged")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for ignition ConfigMap to be regenerated with new flavor")
+			Eventually(func(g Gomega) {
+				cm := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: dpuClusterNS,
+					Name:      ignitionCMName,
+				}, cm)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(cm.ResourceVersion).NotTo(Equal(oldResourceVersion),
+					"ConfigMap should have been updated")
+				g.Expect(cm.Annotations["provisioning.dpu.nvidia.com/bfcfg-template-dpuflavor-name"]).
+					To(Equal(newFlavorName), "ConfigMap annotation should reflect the new flavor")
+			}, 5*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for CR to return to Ready state")
+			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)
+
+			By("verifying IgnitionConfigured condition is True again")
+			Eventually(func(g Gomega) {
+				status := getConditionStatus(ciNamespace, provisionerName, "IgnitionConfigured")
+				g.Expect(status).To(Equal(string(metav1.ConditionTrue)))
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+		})
+
+		It("should regenerate ignition when DPUDeployment BFB changes", func() {
+			ctx := context.Background()
+			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+			newBFBName := "e2e-bfb-v2"
+
+			By("verifying CR is Ready and ignition is configured")
+			Expect(getCRPhase(ciNamespace, provisionerName)).To(Equal("Ready"))
+
+			By("recording the current ConfigMap BFB annotation")
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      ignitionCMName,
+			}, cm)
+			Expect(err).NotTo(HaveOccurred())
+			oldResourceVersion := cm.ResourceVersion
+
+			By("updating DPUDeployment BFB reference")
+			dpuDeployment := &dpuservicev1.DPUDeployment{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      dpuDeploymentName,
+				Namespace: dpuClusterNS,
+			}, dpuDeployment)
+			Expect(err).NotTo(HaveOccurred())
+			dpuDeployment.Spec.DPUs.BFB = newBFBName
+			err = k8sClient.Update(ctx, dpuDeployment)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("waiting for ignition ConfigMap to be regenerated with new BFB annotation")
+			Eventually(func(g Gomega) {
+				cm := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: dpuClusterNS,
+					Name:      ignitionCMName,
+				}, cm)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(cm.ResourceVersion).NotTo(Equal(oldResourceVersion),
+					"ConfigMap should have been updated")
+				g.Expect(cm.Annotations["provisioning.dpu.nvidia.com/bfcfg-template-bfb-name"]).
+					To(Equal(newBFBName), "ConfigMap annotation should reflect the new BFB")
+			}, 5*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for CR to return to Ready state")
+			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)
 		})
 
 		It("should have injected kubeconfig into DPUCluster namespace", func() {

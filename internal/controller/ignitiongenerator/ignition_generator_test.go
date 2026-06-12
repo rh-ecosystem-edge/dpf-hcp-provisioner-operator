@@ -676,10 +676,10 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		// Verify annotations
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 	})
 
@@ -711,10 +711,10 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(cm.Labels).To(HaveKeyWithValue(BfcfgTemplateLabel, "true"))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 	})
 
@@ -781,10 +781,10 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 
 		// BFB and DPUFlavor annotations should NOT be present
-		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateBFBNameAnnotation))
-		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateBFBNamespaceAnnotation))
-		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateDPUFlavorNameAnnotation))
-		Expect(cm.Annotations).NotTo(HaveKey(bfcfgTemplateDPUFlavorNamespaceAnnotation))
+		Expect(cm.Annotations).NotTo(HaveKey(BfcfgTemplateBFBNameAnnotation))
+		Expect(cm.Annotations).NotTo(HaveKey(BfcfgTemplateBFBNamespaceAnnotation))
+		Expect(cm.Annotations).NotTo(HaveKey(BfcfgTemplateDPUFlavorNameAnnotation))
+		Expect(cm.Annotations).NotTo(HaveKey(BfcfgTemplateDPUFlavorNamespaceAnnotation))
 	})
 })
 

@@ -74,14 +74,14 @@ const (
 	// BfcfgTemplateClusterNamespaceAnnotation is the annotation specifying the target DPUCluster namespace.
 	BfcfgTemplateClusterNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-cluster-namespace"
 
-	// bfcfgTemplateBFBNameAnnotation is the annotation specifying the target BFB name.
-	bfcfgTemplateBFBNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-name"
-	// bfcfgTemplateBFBNamespaceAnnotation is the annotation specifying the target BFB namespace.
-	bfcfgTemplateBFBNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-namespace"
-	// bfcfgTemplateDPUFlavorNameAnnotation is the annotation specifying the target DPUFlavor name.
-	bfcfgTemplateDPUFlavorNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-name"
-	// bfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
-	bfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
+	// BfcfgTemplateBFBNameAnnotation is the annotation specifying the target BFB name.
+	BfcfgTemplateBFBNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-name"
+	// BfcfgTemplateBFBNamespaceAnnotation is the annotation specifying the target BFB namespace.
+	BfcfgTemplateBFBNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-bfb-namespace"
+	// BfcfgTemplateDPUFlavorNameAnnotation is the annotation specifying the target DPUFlavor name.
+	BfcfgTemplateDPUFlavorNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-name"
+	// BfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
+	BfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
 	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
 	bfcfgTemplateMachineOSURLAnnotation = dpuProvisioningPrefix + "bfcfg-template-machine-os-url"
 )
@@ -551,10 +551,10 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 		if err != nil {
 			return fmt.Errorf("failed to get DPUDeployment for BFB name: %w", err)
 		}
-		annotations[bfcfgTemplateBFBNameAnnotation] = dpuDeployment.Spec.DPUs.BFB
-		annotations[bfcfgTemplateBFBNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
-		annotations[bfcfgTemplateDPUFlavorNameAnnotation] = dpuDeployment.Spec.DPUs.Flavor
-		annotations[bfcfgTemplateDPUFlavorNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
+		annotations[BfcfgTemplateBFBNameAnnotation] = dpuDeployment.Spec.DPUs.BFB
+		annotations[BfcfgTemplateBFBNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
+		annotations[BfcfgTemplateDPUFlavorNameAnnotation] = dpuDeployment.Spec.DPUs.Flavor
+		annotations[BfcfgTemplateDPUFlavorNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
 	}
 
 	cm := &corev1.ConfigMap{
