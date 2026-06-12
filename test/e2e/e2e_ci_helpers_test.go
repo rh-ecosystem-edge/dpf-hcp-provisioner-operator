@@ -441,7 +441,7 @@ func waitForCRPhase(name, phase string, timeout time.Duration) {
 }
 
 // getCRPhase gets the current phase of a DPFHCPProvisioner.
-func getCRPhase(ns, name string) string {
+func getCRPhase(ns, name string) string { //nolint:unparam
 	ctx := context.Background()
 	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
 	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)

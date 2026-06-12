@@ -1,0 +1,77 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: dpudeployments.svc.dpu.nvidia.com
+spec:
+  group: svc.dpu.nvidia.com
+  names:
+    kind: DPUDeployment
+    listKind: DPUDeploymentList
+    plural: dpudeployments
+    singular: dpudeployment
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                dpus:
+                  type: object
+                  properties:
+                    bfb:
+                      type: string
+                    flavor:
+                      type: string
+                    nodeEffect:
+                      type: string
+                    dpuSetStrategy:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                    dpuSets:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          nameSuffix:
+                            type: string
+                    secureBoot:
+                      type: boolean
+                services:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                serviceChains:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                revisionHistoryLimit:
+                  type: integer
+            status:
+              type: object
+              properties:
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                observedGeneration:
+                  type: integer
+      subresources:
+        status: {}
