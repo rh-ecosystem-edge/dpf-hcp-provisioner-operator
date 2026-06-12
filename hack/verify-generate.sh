@@ -11,10 +11,10 @@ if ! [[ -z "$(git status --porcelain --untracked-files=all)" ]]; then
     exit 1
 fi
 
-make manifests generate
+make manifests generate generate-test-crds
 
 if ! [[ -z "$(git status --porcelain --untracked-files=all)" ]]; then
-    echo "Error: generated files are out of date. Run 'make manifests generate' and commit the result." >&2
+    echo "Error: generated files are out of date. Run 'make manifests generate generate-test-crds' and commit the result." >&2
     git diff --stat
     exit 1
 fi

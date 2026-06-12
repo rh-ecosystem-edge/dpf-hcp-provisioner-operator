@@ -97,7 +97,7 @@ var _ = Describe("Kubeconfig Injection Reconciler", func() {
 					Namespace: "dpu-ns",
 				},
 				Spec: dpuprovisioningv1alpha1.DPUClusterSpec{
-					Type: "bf3",
+					Type: string(dpuprovisioningv1alpha1.StaticCluster),
 				},
 			}
 

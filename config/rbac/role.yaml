@@ -8,8 +8,10 @@ rules:
   - ""
   resources:
   - configmaps
+  - secrets
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
@@ -39,18 +41,6 @@ rules:
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - coordination.k8s.io

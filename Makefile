@@ -96,8 +96,16 @@ manifests: controller-gen yq ## Generate WebhookConfiguration, ClusterRole and C
 	PATH="$(LOCALBIN):$$PATH" python3 ./hack/sync-helm-rbac.py
 
 .PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate: controller-gen generate-test-crds ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: generate-test-crds
+generate-test-crds: controller-gen ## Generate external CRDs for unit tests from vendored types.
+	rm -rf internal/controller/testdata/crds
+	mkdir -p internal/controller/testdata/crds
+	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
+	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
+	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/openshift/hypershift/api/hypershift/v1beta1/..." output:crd:dir=internal/controller/testdata/crds
 
 .PHONY: verify-generate
 verify-generate: ## Verify that all generated files are up to date.

@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
@@ -96,7 +97,7 @@ const (
 // +kubebuilder:rbac:groups=provisioning.dpu.nvidia.com,resources=dpuflavors,verbs=get;list;watch
 // +kubebuilder:rbac:groups=operator.dpu.nvidia.com,resources=dpfoperatorconfigs,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=provisioning.dpu.hcp.io,resources=dpfhcpprovisionerconfigs,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -279,6 +280,11 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		log.V(1).Info("Skipping kubeconfig injection - HostedCluster not created yet")
 	}
 
+	// Detect DPUDeployment Flavor changes and invalidate ignition if needed.
+	if changed, result, err := r.handleDPUDeploymentChange(ctx, &cr); changed || err != nil {
+		return result, err
+	}
+
 	// Feature: Ignition Generation
 	if result, err := r.generateIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		return result, err
@@ -354,6 +360,11 @@ func (r *DPFHCPProvisionerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.ignitionConfigMapToRequests),
 			builder.WithPredicates(ignitionConfigMapPredicate()),
+		).
+		Watches(
+			&dpuservicev1alpha1.DPUDeployment{},
+			handler.EnqueueRequestsFromMapFunc(r.dpuDeploymentToRequests),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
 		Named("dpfhcpprovisioner").
 		Complete(r)
@@ -631,6 +642,139 @@ func (r *DPFHCPProvisionerReconciler) ignitionConfigMapToRequests(ctx context.Co
 	}
 
 	return nil
+}
+
+// dpuDeploymentToRequests maps DPUDeployment events to reconcile requests for DPFHCPProvisioner CRs
+// that reference the affected DPUDeployment via spec.dpuDeploymentRef.
+func (r *DPFHCPProvisionerReconciler) dpuDeploymentToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+
+	dpuDeployment, ok := obj.(*dpuservicev1alpha1.DPUDeployment)
+	if !ok {
+		log.Error(nil, "Failed to convert object to DPUDeployment", "object", obj)
+		return nil
+	}
+
+	var provisionerList provisioningv1alpha1.DPFHCPProvisionerList
+	if err := r.List(ctx, &provisionerList); err != nil {
+		log.Error(err, "Failed to list DPFHCPProvisioner CRs for DPUDeployment watch")
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, provisioner := range provisionerList.Items {
+		if provisioner.Spec.DPUDeploymentRef != nil &&
+			provisioner.Spec.DPUDeploymentRef.Name == dpuDeployment.Name &&
+			provisioner.Spec.DPUDeploymentRef.Namespace == dpuDeployment.Namespace {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      provisioner.Name,
+					Namespace: provisioner.Namespace,
+				},
+			})
+		}
+	}
+
+	if len(requests) > 0 {
+		log.Info("DPUDeployment changed, reconciling DPFHCPProvisioner CRs",
+			"dpuDeployment", dpuDeployment.Name,
+			"dpuDeploymentNamespace", dpuDeployment.Namespace,
+			"affectedCRs", len(requests))
+	}
+
+	return requests
+}
+
+// handleDPUDeploymentChange detects DPUDeployment Flavor changes and invalidates
+// the ignition ConfigMap. Deletes the stale ConfigMap immediately so the DPF
+// provisioning controller does not use outdated configuration while we regenerate.
+// Returns (true, result, err) if a change was handled, (false, _, nil) otherwise.
+func (r *DPFHCPProvisionerReconciler) handleDPUDeploymentChange(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, ctrl.Result, error) {
+	if !r.dpuDeploymentChanged(ctx, cr) {
+		return false, ctrl.Result{}, nil
+	}
+
+	log := logf.FromContext(ctx)
+	log.Info("DPUDeployment Flavor changed, deleting stale ignition ConfigMap and regenerating")
+
+	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
+	staleCM := &corev1.ConfigMap{}
+	cmKey := types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}
+	if err := r.Get(ctx, cmKey, staleCM); err == nil {
+		if err := r.Delete(ctx, staleCM); err != nil {
+			log.Error(err, "Failed to delete stale ignition ConfigMap", "configmap", cmName)
+			return true, ctrl.Result{}, fmt.Errorf("failed to delete stale ignition ConfigMap: %w", err)
+		}
+		log.Info("Deleted stale ignition ConfigMap", "configmap", cmName)
+	}
+
+	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		Type:               provisioningv1alpha1.IgnitionConfigured,
+		Status:             metav1.ConditionFalse,
+		Reason:             provisioningv1alpha1.ReasonDPUDeploymentChanged,
+		Message:            "DPUDeployment Flavor changed, regenerating ignition configuration",
+		ObservedGeneration: cr.Generation,
+	})
+	r.Recorder.Event(cr, corev1.EventTypeNormal, "DPUDeploymentChanged",
+		"DPUDeployment Flavor changed, triggering ignition regeneration")
+	r.computeReadyCondition(ctx, cr)
+	r.updatePhaseFromConditions(cr)
+	if err := r.Status().Update(ctx, cr); err != nil {
+		log.Error(err, "Failed to update status after DPUDeployment change detection")
+		return true, ctrl.Result{}, err
+	}
+	return true, ctrl.Result{Requeue: true}, nil
+}
+
+// dpuDeploymentChanged checks whether the DPUDeployment's Flavor has changed since
+// the last ignition generation by comparing the current DPUDeployment spec with the
+// annotations stored on the ignition ConfigMap.
+// Returns true if a change is detected and ignition needs to be regenerated.
+func (r *DPFHCPProvisionerReconciler) dpuDeploymentChanged(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
+	log := logf.FromContext(ctx)
+
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue {
+		return false
+	}
+
+	if cr.Spec.DPUDeploymentRef == nil {
+		return false
+	}
+
+	dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
+	key := types.NamespacedName{
+		Name:      cr.Spec.DPUDeploymentRef.Name,
+		Namespace: cr.Spec.DPUDeploymentRef.Namespace,
+	}
+	if err := r.Get(ctx, key, dpuDeployment); err != nil {
+		log.V(1).Info("Cannot fetch DPUDeployment for change detection, skipping", "error", err)
+		return false
+	}
+
+	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
+	cm := &corev1.ConfigMap{}
+	cmKey := types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}
+	if err := r.Get(ctx, cmKey, cm); err != nil {
+		log.V(1).Info("Cannot fetch ignition ConfigMap for change detection, skipping", "error", err)
+		return false
+	}
+
+	annotations := cm.Annotations
+	if annotations == nil {
+		return true
+	}
+
+	currentFlavor := dpuDeployment.Spec.DPUs.Flavor
+	storedFlavor := annotations[ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation]
+
+	if currentFlavor != storedFlavor {
+		log.Info("DPUDeployment Flavor change detected",
+			"currentFlavor", currentFlavor, "storedFlavor", storedFlavor)
+		return true
+	}
+
+	return false
 }
 
 // verifyIgnitionConfigMap checks that the ignition ConfigMap still exists when IgnitionConfigured=True.
