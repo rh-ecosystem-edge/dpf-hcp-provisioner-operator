@@ -68,7 +68,7 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 				Namespace: testNamespace,
 			},
 			Spec: dpuprovisioningv1alpha1.DPUClusterSpec{
-				Type: "bf3",
+				Type: string(dpuprovisioningv1alpha1.StaticCluster),
 			},
 		}
 		Expect(k8sClient.Create(ctx, dpuCluster)).To(Succeed())

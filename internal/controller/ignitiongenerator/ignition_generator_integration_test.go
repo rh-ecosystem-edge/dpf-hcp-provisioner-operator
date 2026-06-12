@@ -292,8 +292,8 @@ var _ = Describe("generateIgnition integration", func() {
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
 		Expect(cm.Labels).To(HaveKeyWithValue(BfcfgTemplateLabel, "true"))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, "dpucluster-1"))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateBFBNameAnnotation, "test-bfb"))
-		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateDPUFlavorNameAnnotation, "test-flavor"))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNameAnnotation, "test-bfb"))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNameAnnotation, "test-flavor"))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, "https://registry.example.com/rhcos-bf:4.17"))
 
 		// Verify the ConfigMap data contains valid ignition JSON

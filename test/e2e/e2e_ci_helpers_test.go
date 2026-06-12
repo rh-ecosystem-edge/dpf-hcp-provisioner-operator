@@ -434,17 +434,17 @@ func createDPFHCPProvisionerWithCluster(ns, name, clusterName, clusterNS, deploy
 // waitForCRPhase waits for a DPFHCPProvisioner to reach a specific phase.
 func waitForCRPhase(name, phase string, timeout time.Duration) {
 	EventuallyWithOffset(1, func(g Gomega) {
-		currentPhase := getCRPhase(ciNamespace, name)
+		currentPhase := getCRPhase(name)
 		g.Expect(currentPhase).To(Equal(phase),
 			"CR phase is %s, expected %s", currentPhase, phase)
 	}, timeout, pollingInterval).Should(Succeed(), "Timed out waiting for phase %s", phase)
 }
 
 // getCRPhase gets the current phase of a DPFHCPProvisioner.
-func getCRPhase(ns, name string) string {
+func getCRPhase(name string) string {
 	ctx := context.Background()
 	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
-	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ciNamespace, Name: name}, provisioner)
 	if err != nil {
 		return ""
 	}

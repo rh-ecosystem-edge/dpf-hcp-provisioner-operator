@@ -334,6 +334,10 @@ const (
 	// ReasonMachineOSURLMissing indicates no machine OS URL is available from any source.
 	// This triggers a Failed phase transition because ignition cannot be generated without it.
 	ReasonMachineOSURLMissing string = "MachineOSURLMissing"
+
+	// ReasonDPUDeploymentChanged indicates the DPUDeployment's Flavor changed since last ignition generation.
+	// This invalidates the current ignition ConfigMap and triggers regeneration.
+	ReasonDPUDeploymentChanged string = "DPUDeploymentChanged"
 )
 
 // DPFHCPProvisionerStatus defines the observed state of DPFHCPProvisioner
