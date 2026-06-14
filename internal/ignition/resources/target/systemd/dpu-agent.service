@@ -10,6 +10,7 @@ ConditionPathExists=/usr/local/bin/dpu-agent
 [Service]
 Type=simple
 EnvironmentFile=/etc/dpf/environment
+EnvironmentFile=-/etc/dpf/dpu-agent-args
 ExecStart=/usr/local/bin/dpu-agent \
   --dpu-name $DPUName \
   --dpu-namespace $DPUNamespace \
@@ -23,7 +24,8 @@ ExecStart=/usr/local/bin/dpu-agent \
   --skip-configure-kubelet \
   --skip-start-kubelet \
   --skip-ovs-raw-script \
-  --kubeadm-secret-name=unused
+  --kubeadm-secret-name=unused \
+  $DPU_AGENT_EXTRA_ARGS
 Restart=on-failure
 RestartSec=5
 
