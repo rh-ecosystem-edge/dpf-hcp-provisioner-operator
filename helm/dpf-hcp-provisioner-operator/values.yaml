@@ -121,15 +121,3 @@ commonLabels: {}
 
 # Additional annotations to apply to all resources
 commonAnnotations: {}
-
-# DPU worker host-cluster configuration
-dpuWorkerConfig:
-  # MTU for the br-dpu bridge on DPU worker nodes.
-  # Leave empty (default) to inherit MTU from the physical interface (standard 1500 networks).
-  # Set to "9000" for jumbo frame networks.
-  networkMTU: ""
-  # Controls whether Helm manages the DPU worker MachineConfig lifecycle.
-  # When true (default): Helm applies MC changes on upgrade — MCO may reboot DPU worker nodes.
-  # When false: Helm skips the MC entirely (no update, no delete) — safe for operator-only upgrades.
-  # Switch back to true when you explicitly want to roll out MC changes to DPU workers.
-  manageMachineConfig: true
