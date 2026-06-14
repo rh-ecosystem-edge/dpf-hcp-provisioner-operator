@@ -14,41 +14,51 @@ var systemdFS embed.FS
 
 const nl = "%0A" // URL-encoded newline for data URIs
 
-func NewProvider() *content.EmbeddedProvider {
+func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
 
-	return &content.EmbeddedProvider{
-		Files: []content.FileDefinition{
-			{
-				// Trick DPF checking for the existence of these strings in /etc/bf.env
-				Path:          "/etc/temp_bfcfg_strings.env",
-				Mode:          0644,
-				ContentSource: "data:,bfb_pre_install%20bfb_modify_os%20bfb_post_install",
-			},
-			{
-				Path:          "/etc/hostname",
-				Mode:          0644,
-				ContentSource: "data:,{{.DPUHostName}}",
-			},
-			{
-				Path: "/etc/dpf/environment",
-				Mode: 0644,
-				ContentSource: "data:," +
-					"DPUName={{.DPUName}}" + nl +
-					"DPUNamespace={{.DPUNamespace}}" + nl +
-					"DPUUID={{.DPUUID}}" + nl,
-			},
-			{
-				Path:          "/usr/local/bin/install-rhcos-dpf.sh",
-				Mode:          0755,
-				ContentSource: f("install-rhcos-dpf.sh"),
-			},
-			{
-				Path:          "/usr/local/bin/update_ignition.py",
-				Mode:          0755,
-				ContentSource: f("update_ignition.py"),
-			},
+	files := []content.FileDefinition{
+		{
+			// Trick DPF checking for the existence of these strings in /etc/bf.env
+			Path:          "/etc/temp_bfcfg_strings.env",
+			Mode:          0644,
+			ContentSource: "data:,bfb_pre_install%20bfb_modify_os%20bfb_post_install",
 		},
+		{
+			Path:          "/etc/hostname",
+			Mode:          0644,
+			ContentSource: "data:,{{.DPUHostName}}",
+		},
+		{
+			Path: "/etc/dpf/environment",
+			Mode: 0644,
+			ContentSource: "data:," +
+				"DPUName={{.DPUName}}" + nl +
+				"DPUNamespace={{.DPUNamespace}}" + nl +
+				"DPUUID={{.DPUUID}}" + nl,
+		},
+		{
+			Path:          "/usr/local/bin/install-rhcos-dpf.sh",
+			Mode:          0755,
+			ContentSource: f("install-rhcos-dpf.sh"),
+		},
+		{
+			Path:          "/usr/local/bin/update_ignition.py",
+			Mode:          0755,
+			ContentSource: f("update_ignition.py"),
+		},
+	}
+
+	if zeroTrust {
+		files = append(files, content.FileDefinition{
+			Path:          "/var/lib/dpf/dpuagent/bootstrap-kubeconfig",
+			Mode:          0600,
+			ContentSource: "data:;base64,{{ .BootstrapKubeconfig | b64enc }}",
+		})
+	}
+
+	return &content.EmbeddedProvider{
+		Files:     files,
 		SystemdFS: &systemdFS,
 	}
 }

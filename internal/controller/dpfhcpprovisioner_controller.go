@@ -739,11 +739,29 @@ func (r *DPFHCPProvisionerReconciler) lookupBlueFieldOCPLayerImage(ctx context.C
 	return ctrl.Result{}, nil
 }
 
-// generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase.
+// generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase,
+// or if it's in the Failed phase due to a previous ignition generation failure (transient retry).
 func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	if cr.Status.HostedClusterRef == nil || cr.Status.Phase != provisioningv1alpha1.PhaseIgnitionGenerating {
+	if cr.Status.HostedClusterRef == nil {
+		log.V(1).Info("Skipping ignition generation - no HostedCluster ref", "phase", cr.Status.Phase)
+		return ctrl.Result{}, nil
+	}
+
+	// Run ignition generation when:
+	// 1. Phase is IgnitionGenerating (normal path), OR
+	// 2. Phase is Failed AND the failure was caused by ignition generation (retry path)
+	shouldGenerate := cr.Status.Phase == provisioningv1alpha1.PhaseIgnitionGenerating
+	if !shouldGenerate && cr.Status.Phase == provisioningv1alpha1.PhaseFailed {
+		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse &&
+			ignConfigured.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed {
+			shouldGenerate = true
+			log.Info("Retrying ignition generation after transient failure")
+		}
+	}
+	if !shouldGenerate {
 		log.V(1).Info("Skipping ignition generation", "phase", cr.Status.Phase)
 		return ctrl.Result{}, nil
 	}
@@ -752,7 +770,26 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 	result, err := r.IgnitionGenerator.GenerateIgnition(ctx, cr)
 	if err != nil {
 		log.Error(err, "Ignition generation failed")
+		r.updatePhaseFromConditions(cr)
+		return result, err
 	}
+
+	// When ignition generation fails, the IgnitionGenerator sets IgnitionConfigured=False
+	// and returns RequeueAfter (without error). In that case, recompute the phase so the
+	// CR transitions to Failed instead of staying in IgnitionGenerating indefinitely.
+	if result.RequeueAfter > 0 {
+		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse {
+			r.updatePhaseFromConditions(cr)
+			// The IgnitionGenerator already persisted the IgnitionConfigured condition,
+			// but we need to persist the updated phase.
+			if statusErr := r.Status().Update(ctx, cr); statusErr != nil {
+				log.Error(statusErr, "Failed to update phase after ignition generation failure")
+				return ctrl.Result{}, statusErr
+			}
+		}
+	}
+
 	return result, err
 }
 
@@ -840,13 +877,13 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 
 // updatePhaseFromConditions computes the phase based on all conditions
 func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioningv1alpha1.DPFHCPProvisioner) {
-	// Phase 1: Check for deletion (highest priority)
+	// Check for deletion (highest priority)
 	if !cr.DeletionTimestamp.IsZero() {
 		cr.Status.Phase = provisioningv1alpha1.PhaseDeleting
 		return
 	}
 
-	// Phase 2: List of validation conditions that must pass before provisioning
+	// List of validation conditions that must pass before provisioning
 	// Order matters: check critical validations first
 	validationChecks := []struct {
 		condType string
@@ -879,17 +916,26 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		}
 	}
 
-	// Phase 3: Check for Ready condition (HostedCluster is operational)
+	// Check for Ready condition (HostedCluster is operational)
 	readyCond := meta.FindStatusCondition(cr.Status.Conditions, "Ready")
 	if readyCond != nil && readyCond.Status == metav1.ConditionTrue {
 		cr.Status.Phase = provisioningv1alpha1.PhaseReady
 		return
 	}
 
-	// Phase 4: Check if ignition generation is required
+	// Check if ignition generation failed
+	// When IgnitionConfigured is explicitly False with a failure reason, transition to Failed
+	// so the user can see the error and take action. The controller will retry on requeue.
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse &&
+		(ignConfigured.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed || ignConfigured.Reason == provisioningv1alpha1.ReasonMachineOSURLMissing) {
+		cr.Status.Phase = provisioningv1alpha1.PhaseFailed
+		return
+	}
+
+	// Check if ignition generation is required
 	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
 	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
-	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
 		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
 		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
@@ -898,13 +944,13 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
-	// Phase 5: Check if HostedCluster provisioning has started
+	// Check if HostedCluster provisioning has started
 	if cr.Status.HostedClusterRef != nil {
 		cr.Status.Phase = provisioningv1alpha1.PhaseProvisioning
 		return
 	}
 
-	// Phase 6: All validations passed, waiting for provisioning to start
+	// All validations passed, waiting for provisioning to start
 	cr.Status.Phase = provisioningv1alpha1.PhasePending
 }
 

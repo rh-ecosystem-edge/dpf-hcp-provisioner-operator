@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	dpuprovisioningv1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
@@ -177,6 +178,65 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			// Verify it has the ignition version field
 			Expect(ignitionJSON).To(HaveKey("ignition"),
 				"Ignition data should contain 'ignition' key")
+		})
+
+		It("should include DPUFlavor config files in target ignition with correct merge behavior", func() {
+			ctx := context.Background()
+			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+
+			By("fetching the ignition ConfigMap")
+			cm := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      ignitionCMName,
+			}, cm)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("decoding the target ignition from live ignition")
+			targetIgn, err := decodeTargetIgnition(cm.Data["BF_CFG_TEMPLATE"])
+			Expect(err).NotTo(HaveOccurred(), "Failed to decode target ignition")
+
+			files := getTargetIgnitionFiles(targetIgn)
+			Expect(files).NotTo(BeEmpty(), "Target ignition should have files")
+
+			By("collecting file paths from target ignition")
+			pathSet := make(map[string]map[string]interface{})
+			for _, f := range files {
+				pathSet[f["path"].(string)] = f
+			}
+
+			By("verifying /etc/mellanox/mlnx-bf.conf was overridden by DPUFlavor (not duplicated)")
+			mlnxBf, exists := pathSet["/etc/mellanox/mlnx-bf.conf"]
+			Expect(exists).To(BeTrue(), "/etc/mellanox/mlnx-bf.conf should exist in target ignition")
+
+			content, err := decodeIgnitionFileContent(mlnxBf)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(content).To(ContainSubstring("E2E_CUSTOM=\"true\""),
+				"mlnx-bf.conf should contain the DPUFlavor override content")
+			Expect(content).To(ContainSubstring("ALLOW_SHARED_RQ=\"yes\""),
+				"mlnx-bf.conf should have the flavor's value, not the default")
+
+			count := 0
+			for _, f := range files {
+				if f["path"] == "/etc/mellanox/mlnx-bf.conf" {
+					count++
+				}
+			}
+			Expect(count).To(Equal(1),
+				"mlnx-bf.conf should appear exactly once (merged, not duplicated)")
+
+			By("verifying new file /etc/dpf/e2e-custom.conf was added")
+			customFile, exists := pathSet["/etc/dpf/e2e-custom.conf"]
+			Expect(exists).To(BeTrue(), "/etc/dpf/e2e-custom.conf should exist")
+			customContent, err := decodeIgnitionFileContent(customFile)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.TrimSpace(customContent)).To(Equal("E2E_NEW_FILE=yes"))
+
+			By("verifying default files not in DPUFlavor are still present")
+			_, hasOVS := pathSet["/etc/mellanox/mlnx-ovs.conf"]
+			Expect(hasOVS).To(BeTrue(), "Default mlnx-ovs.conf should still be present")
+			_, hasAgent := pathSet["/usr/local/bin/install-dpu-agent.sh"]
+			Expect(hasAgent).To(BeTrue(), "Default install-dpu-agent.sh should still be present")
 		})
 
 		It("should self-heal when ignition ConfigMap is deleted", func() {

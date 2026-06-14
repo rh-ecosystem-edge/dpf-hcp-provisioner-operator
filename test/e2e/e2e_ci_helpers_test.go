@@ -17,12 +17,15 @@ limitations under the License.
 package e2e
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	dpuservicev1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
@@ -314,6 +317,21 @@ func createDPUFlavorStub(ns, name string) {
 			DpuMode: dpuprovisioningv1.DpuMode,
 			OVS: dpuprovisioningv1.DPUFlavorOVS{
 				RawConfigScript: "#!/bin/bash\necho \"e2e test OVS config\"\n",
+			},
+			ConfigFiles: []dpuprovisioningv1.ConfigFile{
+				{
+					Path:        "/etc/mellanox/mlnx-bf.conf",
+					Operation:   dpuprovisioningv1.FileOverride,
+					Permissions: "0644",
+					Raw: "ALLOW_SHARED_RQ=\"yes\"\nIPSEC_FULL_OFFLOAD=\"no\"\n" +
+						"ENABLE_ESWITCH_MULTIPORT=\"yes\"\nE2E_CUSTOM=\"true\"\n",
+				},
+				{
+					Path:        "/etc/dpf/e2e-custom.conf",
+					Operation:   dpuprovisioningv1.FileOverride,
+					Permissions: "0644",
+					Raw:         "E2E_NEW_FILE=yes\n",
+				},
 			},
 		},
 	}
@@ -991,4 +1009,114 @@ func dumpProvisionerStatus(ns, name string) {
 		output, _ := json.MarshalIndent(provisioner, "", "  ")
 		_, _ = fmt.Fprintf(GinkgoWriter, "DPFHCPProvisioner status:\n%s\n", string(output))
 	}
+}
+
+// decodeTargetIgnition extracts and decodes the target ignition from a live
+// ignition ConfigMap. The target ignition is embedded at /var/target.ign as
+// a gzip-compressed, base64-encoded file inside the live ignition JSON.
+func decodeTargetIgnition(cmData string) (map[string]interface{}, error) {
+	var liveIgn map[string]interface{}
+	if err := json.Unmarshal([]byte(cmData), &liveIgn); err != nil {
+		return nil, fmt.Errorf("failed to parse live ignition: %w", err)
+	}
+
+	storage, ok := liveIgn["storage"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("no storage in live ignition")
+	}
+	files, ok := storage["files"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("no files in live ignition storage")
+	}
+
+	for _, f := range files {
+		file := f.(map[string]interface{})
+		if file["path"] != "/var/target.ign" {
+			continue
+		}
+		contents := file["contents"].(map[string]interface{})
+		source := contents["source"].(string)
+
+		b64Data := strings.TrimPrefix(source, "data:;base64,")
+		compressed, err := base64.StdEncoding.DecodeString(b64Data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode target ignition base64: %w", err)
+		}
+		gzReader, err := gzip.NewReader(bytes.NewReader(compressed))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+		}
+		defer gzReader.Close()
+
+		var buf bytes.Buffer
+		if _, err := buf.ReadFrom(gzReader); err != nil {
+			return nil, fmt.Errorf("failed to decompress target ignition: %w", err)
+		}
+
+		var targetIgn map[string]interface{}
+		if err := json.Unmarshal(buf.Bytes(), &targetIgn); err != nil {
+			return nil, fmt.Errorf("failed to parse target ignition: %w", err)
+		}
+		return targetIgn, nil
+	}
+	return nil, fmt.Errorf("/var/target.ign not found in live ignition")
+}
+
+// getTargetIgnitionFiles returns the files list from a decoded target ignition.
+func getTargetIgnitionFiles(targetIgn map[string]interface{}) []map[string]interface{} {
+	storage, ok := targetIgn["storage"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	files, ok := storage["files"].([]interface{})
+	if !ok {
+		return nil
+	}
+	var result []map[string]interface{}
+	for _, f := range files {
+		result = append(result, f.(map[string]interface{}))
+	}
+	return result
+}
+
+// decodeIgnitionFileContent decodes the content of a file entry from the target
+// ignition, handling gzip+base64 and plain base64 data URIs.
+func decodeIgnitionFileContent(file map[string]interface{}) (string, error) {
+	contents, ok := file["contents"].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("no contents in file")
+	}
+	source, ok := contents["source"].(string)
+	if !ok {
+		return "", fmt.Errorf("no source in contents")
+	}
+
+	compression, _ := contents["compression"].(string)
+
+	var b64Data string
+	if idx := strings.Index(source, ";base64,"); idx >= 0 {
+		b64Data = source[idx+len(";base64,"):]
+	} else {
+		return "", fmt.Errorf("unsupported source format: %s", source[:min(50, len(source))])
+	}
+
+	raw, err := base64.StdEncoding.DecodeString(b64Data)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode base64: %w", err)
+	}
+
+	if compression == "gzip" {
+		gzReader, err := gzip.NewReader(bytes.NewReader(raw))
+		if err != nil {
+			return "", fmt.Errorf("failed to create gzip reader: %w", err)
+		}
+		defer gzReader.Close()
+		var buf bytes.Buffer
+		if _, err := buf.ReadFrom(gzReader); err != nil {
+			return "", fmt.Errorf("failed to decompress: %w", err)
+		}
+		return buf.String(), nil
+	}
+
+	return string(raw), nil
 }

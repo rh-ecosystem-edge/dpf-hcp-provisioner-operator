@@ -321,6 +321,21 @@ const (
 	ReasonHostedClusterNotReachable string = "HostedClusterNotReachable"
 )
 
+// Condition reasons for DPFHCPProvisioner IgnitionConfigured status.
+// These are used as the Reason field in the IgnitionConfigured condition.
+const (
+	// ReasonIgnitionGenerated indicates ignition was successfully generated and deployed.
+	ReasonIgnitionGenerated string = "IgnitionGenerated"
+
+	// ReasonIgnitionGenerationFailed indicates ignition generation encountered an error.
+	// This triggers a Failed phase transition so the user can see the error and take action.
+	ReasonIgnitionGenerationFailed string = "IgnitionGenerationFailed"
+
+	// ReasonMachineOSURLMissing indicates no machine OS URL is available from any source.
+	// This triggers a Failed phase transition because ignition cannot be generated without it.
+	ReasonMachineOSURLMissing string = "MachineOSURLMissing"
+)
+
 // DPFHCPProvisionerStatus defines the observed state of DPFHCPProvisioner
 type DPFHCPProvisionerStatus struct {
 	// Phase represents the current lifecycle phase
