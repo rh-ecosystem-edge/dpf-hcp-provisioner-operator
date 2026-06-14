@@ -1,8 +1,6 @@
 #!/bin/bash
 
-DPUFLAVOR_FILE="/etc/dpf/dpuflavor.json"
-DPU_MODE=$(jq -r '.spec.dpuMode // "dpu"' "$DPUFLAVOR_FILE" 2>/dev/null || echo "dpu")
-is_zero_trust() { [ "$DPU_MODE" = "zero-trust" ]; }
+is_zero_trust() { [ "$DPUMode" = "zero-trust" ]; }
 
 TIMEOUT=1800
 START_TIME=$(date +%s)

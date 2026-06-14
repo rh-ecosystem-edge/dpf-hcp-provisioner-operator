@@ -2,9 +2,7 @@
 
 exec > >(tee >(while read -r line; do /usr/local/bin/bflog.sh "$line"; done)) 2>&1
 
-DPUFLAVOR_FILE="/etc/dpf/dpuflavor.json"
-DPU_MODE=$(jq -r '.spec.dpuMode // "dpu"' "$DPUFLAVOR_FILE" 2>/dev/null || echo "dpu")
-is_zero_trust() { [ "$DPU_MODE" = "zero-trust" ]; }
+is_zero_trust() { [ "$DPUMode" = "zero-trust" ]; }
 
 LOG="/tmp/dpu-fw-upgrade.log"
 rshimlog=$(which bfrshlog 2>/dev/null || true)
