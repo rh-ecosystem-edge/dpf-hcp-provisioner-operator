@@ -3,9 +3,7 @@
 BLOCK_DEVICE=/dev/nvme0n1
 IGNITION_FILE="/var/target.ign"
 DPUFLAVOR_FILE="/etc/dpf/dpuflavor.json"
-
-DPU_MODE=$(jq -r '.spec.dpuMode // "dpu"' "$DPUFLAVOR_FILE" 2>/dev/null || echo "dpu")
-is_zero_trust() { [ "$DPU_MODE" = "zero-trust" ]; }
+is_zero_trust() { [ "$DPUMode" = "zero-trust" ]; }
 
 SECUREBOOT=false
 NVCONFIG_CHANGED=false
@@ -20,7 +18,7 @@ log() {
 if is_zero_trust; then
     log "INFO: Running in zero-trust mode (no host agent)"
 else
-    log "INFO: Running in trusted mode (DPU mode: $DPU_MODE)"
+    log "INFO: Running in trusted mode (DPU mode: $DPUMode)"
 fi
 
 error() {
