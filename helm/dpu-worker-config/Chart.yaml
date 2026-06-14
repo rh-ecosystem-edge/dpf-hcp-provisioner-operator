@@ -1,0 +1,17 @@
+apiVersion: v2
+name: dpu-worker-config
+description: Host-cluster configuration for DPU worker nodes — deploys MachineConfig, bridge networking scripts, and CNO ConfigMaps required for DPU-enabled OpenShift workers
+type: application
+version: 0.1.0
+appVersion: v0.1.0
+keywords:
+  - dpu
+  - bluefield
+  - machineconfig
+  - openshift
+  - networking
+home: https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
+sources:
+  - https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
+maintainers:
+  - name: Red Hat Ecosystem Edge Team

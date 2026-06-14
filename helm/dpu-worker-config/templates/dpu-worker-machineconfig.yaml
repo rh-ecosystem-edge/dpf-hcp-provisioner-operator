@@ -1,0 +1,80 @@
+{{- $infra := lookup "config.openshift.io/v1" "Infrastructure" "" "cluster" }}
+{{- $workerRole := "worker-dpu" }}
+{{- if $infra }}
+  {{- if eq (dig "status" "controlPlaneTopology" "" $infra) "SingleReplica" }}
+    {{- $workerRole = "worker" }}
+  {{- end }}
+{{- end }}
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: {{ $workerRole }}
+    {{- include "dpu-worker-config.labels" . | nindent 4 }}
+  name: dpu-worker-configuration
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{ .Files.Get "files/machineconfig-scripts/apply-nmstate-bridge.sh" | b64enc }}
+          mode: 0755
+          overwrite: true
+          path: /usr/local/bin/apply-nmstate-bridge.sh
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{ .Files.Get "files/machineconfig-scripts/configure-p0-routing.sh" | b64enc }}
+          mode: 0755
+          overwrite: true
+          path: /usr/local/bin/configure-p0-routing.sh
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{ .Files.Get "files/machineconfig-scripts/unmanage-ovnk-interface.conf" | b64enc }}
+          mode: 0644
+          overwrite: true
+          path: /etc/NetworkManager/conf.d/unmanage-ovnk-interface.conf
+    systemd:
+      units:
+        - contents: |
+            [Unit]
+            Description=Apply NMState bridge configuration
+            After=network.target NetworkManager.service nodeip-configuration.service nmstate.service
+            Before=crio.service kubelet.service
+
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/local/bin/apply-nmstate-bridge.sh{{ if .Values.networkMTU }} {{ .Values.networkMTU }}{{ end }}
+            RemainAfterExit=yes
+            TimeoutStartSec=150s
+            Restart=on-failure
+            RestartSec=10
+
+            [Install]
+            WantedBy=multi-user.target
+          enabled: true
+          name: nmstate-bridge.service
+        - name: ovs-configuration.service
+          enabled: false
+        - name: openvswitch.service
+          enabled: false
+          mask: true
+        - name: wait-for-br-ex-up.service
+          enabled: false
+        - name: p0-routing.service
+          enabled: true
+          contents: |
+            [Unit]
+            Description=Configure and maintain p0 interface routing
+            After=kubelet.service network-online.target nmstate-bridge.service
+            Wants=network-online.target
+
+            [Service]
+            Type=simple
+            ExecStart=/usr/local/bin/configure-p0-routing.sh
+            StandardOutput=journal
+            StandardError=journal
+            Restart=always
+            RestartSec=10
+
+            [Install]
+            WantedBy=multi-user.target
