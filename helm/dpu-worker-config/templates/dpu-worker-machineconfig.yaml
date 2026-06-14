@@ -8,13 +8,9 @@
 apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
-  {{- if not .Values.dpuWorkerConfig.manageMachineConfig }}
-  annotations:
-    helm.sh/resource-policy: keep
-  {{- end }}
   labels:
     machineconfiguration.openshift.io/role: {{ $workerRole }}
-    {{- include "dpf-hcp-provisioner-operator.labels" . | nindent 4 }}
+    {{- include "dpu-worker-config.labels" . | nindent 4 }}
   name: dpu-worker-configuration
 spec:
   config:
@@ -47,7 +43,7 @@ spec:
 
             [Service]
             Type=oneshot
-            ExecStart=/usr/local/bin/apply-nmstate-bridge.sh{{ if .Values.dpuWorkerConfig.networkMTU }} {{ .Values.dpuWorkerConfig.networkMTU }}{{ end }}
+            ExecStart=/usr/local/bin/apply-nmstate-bridge.sh{{ if .Values.networkMTU }} {{ .Values.networkMTU }}{{ end }}
             RemainAfterExit=yes
             TimeoutStartSec=150s
             Restart=on-failure
