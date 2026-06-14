@@ -159,22 +159,10 @@ set_nvconfig() {
         local current_vfs=$(echo "$query_output" | grep NUM_OF_VFS | awk '{print $(NF-1)}')
         local pf_num_of_vf_valid=$(echo "$query_output" | grep PF_NUM_OF_VF_VALID | awk '{print $(NF-1)}')
 
-        log "INFO: dev ${dev}: SRIOV_EN=${sriov_en} NUM_OF_VFS=${current_vfs} PF_NUM_OF_VF_VALID=${pf_num_of_vf_valid}"
-
-        local params_to_set=""
-        if [ "$pf_num_of_vf_valid" == "True(1)" ]; then
-            params_to_set="$params_to_set PF_NUM_OF_VF_VALID=0"
-        fi
-        if [ "$sriov_en" != "True(1)" ]; then
-            params_to_set="$params_to_set SRIOV_EN=1"
-        fi
-        if [ "$current_vfs" -le 0 ]; then
-            params_to_set="$params_to_set NUM_OF_VFS=1"
-        fi
-
-        if [ -n "$params_to_set" ]; then
-            log "INFO: Updating NVConfig on dev ${dev}:${params_to_set}"
-            run_mstconfig -d ${dev} -y set ${params_to_set}
+        if [ "$sriov_en" != "True(1)" ] || [ "$current_vfs" -le 0 ] || [ "$pf_num_of_vf_valid" == "True(1)" ]; then
+            log "INFO: Caught Condition, Resetting DPU using NVConfig"
+            run_mstconfig -d ${dev} -y reset
+            run_mstconfig -d ${dev} -y set SRIOV_EN=1 NUM_OF_VFS=1 PF_NUM_OF_VF_VALID=0
             NVCONFIG_CHANGED=true
         else
             log "INFO: NVConfig on dev ${dev} already correct, skipping"

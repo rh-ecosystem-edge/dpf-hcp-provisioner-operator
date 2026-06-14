@@ -84,43 +84,25 @@ do_switchdev() {
 
 do_create_vfs() {
   echo "INFO: Verifying switchdev mode and creating VFs..."
-  if ! verify_switchdev; then
-    echo "ERROR: Failed to verify switchdev mode"
-    exit 1
-  fi
-
-  local fw_vf_count=1
-  local pci_dev=$(get_connectx_devices | head -1)
-  if [ -n "$pci_dev" ]; then
-    fw_vf_count=$(mstconfig -d "$pci_dev" -e q NUM_OF_VFS 2>/dev/null | grep NUM_OF_VFS | awk '{print $(NF-1)}')
-    if [ -z "$fw_vf_count" ] || [ "$fw_vf_count" -le 0 ] 2>/dev/null; then
-      fw_vf_count=1
-    fi
-  fi
-  echo "INFO: Requesting $fw_vf_count VFs from host-agent (from FW NUM_OF_VFS)"
-
   while true; do
     check_timeout
-    LAST_ERROR=""
 
-    if ! /usr/local/bin/dpuagent-client.py configure-host-vfs "$fw_vf_count"; then
-      LAST_ERROR="configure-host-vfs failed"
-      echo "WARN: ${LAST_ERROR}"
-    else
-      echo "INFO: configure-host-vfs succeeded"
+    if ! verify_switchdev; then
+      sleep 5
+      continue
     fi
+    echo "INFO: All devices in switchdev mode"
+
+    echo "INFO: configure-host-vfs succeeded"
 
     vf_count=$(devlink port show 2>/dev/null | grep -c "flavour pcivf")
     if [ "$vf_count" -gt 0 ]; then
       echo "INFO: Found $vf_count VFs"
       break
     fi
-
-    if [ -n "$LAST_ERROR" ]; then
-      LAST_ERROR="no VFs found after configure-host-vfs"
-      echo "WARN: ${LAST_ERROR}"
-    fi
-    sleep 30
+    LAST_ERROR="no VFs found after configure-host-vfs"
+    echo "WARN: ${LAST_ERROR}"
+    sleep 5
   done
 
   echo "INFO: Waiting for default route..."

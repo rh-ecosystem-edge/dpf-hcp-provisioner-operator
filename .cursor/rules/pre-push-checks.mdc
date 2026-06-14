@@ -1,0 +1,13 @@
+---
+description: Always run lint and tests before pushing code
+alwaysApply: true
+---
+
+# Pre-Push Checks
+
+Before running `git push`, always run lint and tests first:
+
+1. `make lint` — must return 0 issues
+2. `go test ./...` or the relevant package tests — must all pass
+
+Only push after both pass. If either fails, fix the issues before pushing.
