@@ -119,7 +119,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:               provisioningv1alpha1.IgnitionConfigured,
 			Status:             metav1.ConditionFalse,
-			Reason:             "IgnitionGenerationFailed",
+			Reason:             provisioningv1alpha1.ReasonIgnitionGenerationFailed,
 			Message:            fmt.Sprintf("Failed to generate ignition: %v", err),
 			ObservedGeneration: cr.Generation,
 		})
@@ -137,7 +137,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionTrue,
-		Reason:             "IgnitionGenerated",
+		Reason:             provisioningv1alpha1.ReasonIgnitionGenerated,
 		Message:            fmt.Sprintf("Ignition ConfigMap %s-%s.cfg created and DPFOperatorConfig updated successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
 		ObservedGeneration: cr.Generation,
 	})
@@ -171,14 +171,14 @@ func (ig *IgnitionGenerator) getDPFOperatorConfig(ctx context.Context, cr *provi
 func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
 	log := logf.FromContext(ctx)
 
-	// Step 1: Download HCP ignition
+	// Download HCP ignition
 	log.V(1).Info("Downloading HCP ignition")
 	hcpIgnitionBytes, err := ig.downloadHCPIgnition(ctx, cr)
 	if err != nil {
 		return fmt.Errorf("failed to download HCP ignition: %w", err)
 	}
 
-	// Step 2: Retrieve DPU Flavor configuration
+	// Retrieve DPU Flavor configuration
 	log.V(1).Info("Retrieving DPU Flavor configuration")
 	dpuFlavor, err := ig.retrieveDPUFlavor(ctx, cr)
 	if err != nil {
@@ -188,7 +188,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("retrieved DPU Flavor is nil")
 	}
 
-	// Step 2.5: Detect DPU mode from DPU Flavor
+	// Detect DPU mode from DPU Flavor
 	dpuMode, err := DetectDPUMode(dpuFlavor)
 	if err != nil {
 		log.Error(err, "Failed to detect DPU mode")
@@ -200,7 +200,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		"dpuFlavor", dpuFlavor.Name,
 		"isZeroTrust", IsZeroTrustMode(dpuMode))
 
-	// Step 3: Build target ignition (HCP + DPF modifications)
+	// Build target ignition (HCP + DPF modifications)
 	// NOTE: For now, we just detect and log the mode. In the future, we'll pass
 	// the mode to buildTargetIgnition() and buildLiveIgnition() to generate
 	// mode-specific content.
@@ -222,8 +222,8 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:               provisioningv1alpha1.IgnitionConfigured,
 			Status:             metav1.ConditionFalse,
-			Reason:             "MachineOSURLMissing",
-			Message:            "No machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set",
+			Reason:             provisioningv1alpha1.ReasonMachineOSURLMissing,
+			Message:            "No machine OS URL available: status.cachedMachineOSURL, spec.machineOSURL, and status.blueFieldOCPLayerImage are all empty",
 			ObservedGeneration: cr.Generation,
 		})
 		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
@@ -234,21 +234,34 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
 
-	// Step 3.5: Gzip-compress all uncompressed files in target ignition
+	// Validate target ignition before compression
+	log.V(1).Info("Validating target ignition")
+	if err := ignition.ValidateConfig(targetIgnition); err != nil {
+		return fmt.Errorf("target ignition validation failed: %w", err)
+	}
+
+	// Gzip-compress all uncompressed files in target ignition
 	if err := ignition.GzipIgnitionFiles(targetIgnition); err != nil {
 		return fmt.Errorf("failed to gzip target ignition files: %w", err)
 	}
 
-	// Step 4: Build live ignition (embed target)
+	// Build live ignition (embed target)
 	log.V(1).Info("Building live ignition")
 	// We are adding DPU Flavor in JSON format for early setup tasks, such as nvconfig parameters setup.
 	// JSON is easier to parse with the tooling we have in Live RHCOS install media.
-	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor)
+	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, IsZeroTrustMode(dpuMode))
 	if err != nil {
 		return fmt.Errorf("failed to build live ignition: %w", err)
 	}
 
-	// Step 5: Create/Update ConfigMap
+	// NOTE: Live ignition is intentionally NOT validated here. It contains Go template
+	// placeholders (e.g. {{.DPUHostName}}) in data URIs that are substituted later by the
+	// DPF provisioning controller. These placeholders use curly braces which are invalid
+	// in RFC 2397 data URIs, so the ignition validator would reject them. The target
+	// ignition (validated above) is the structurally important config — it's what actually
+	// boots the DPU. The live ignition is just a delivery wrapper with templates.
+
+	// Create/Update ConfigMap
 	log.V(1).Info("Creating/Updating ConfigMap")
 	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, machineOSURL); err != nil {
 		return fmt.Errorf("failed to create/update ConfigMap: %w", err)
@@ -452,6 +465,13 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	// Add flavor OVS script
 	ignition.AddFlavorOVSScript(targetIgnition, &dpuFlavor.Spec)
 
+	// Merge DPUFlavor config files into the target ignition.
+	// This must run after all default files are added so that flavor files
+	// can override defaults at conflicting paths (e.g. /etc/mellanox/mlnx-bf.conf).
+	if err := ignition.MergeFlavorConfigFiles(targetIgnition, &dpuFlavor.Spec); err != nil {
+		return nil, fmt.Errorf("failed to merge flavor config files: %w", err)
+	}
+
 	// Add DPU flavor YAML
 	if err := ignition.AddDPUFlavorYAML(targetIgnition, dpuFlavor); err != nil {
 		return nil, fmt.Errorf("failed to add DPU flavor YAML: %w", err)
@@ -465,7 +485,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 }
 
 // buildLiveIgnition builds the live ignition with embedded target ignition
-func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, zeroTrust bool) (*igntypes.Config, error) {
 	// Parse HCP to extract passwd
 	hcpIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, hcpIgnition); err != nil {
@@ -481,7 +501,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 	}
 
 	// Add live content files and systemd units
-	liveProvider := live.NewProvider()
+	liveProvider := live.NewProvider(zeroTrust)
 	if err := igncontent.AddContent(liveIgnition, liveProvider); err != nil {
 		return nil, fmt.Errorf("failed to add live content: %w", err)
 	}

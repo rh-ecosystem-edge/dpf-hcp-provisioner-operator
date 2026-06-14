@@ -37,6 +37,9 @@ import (
 const compressionGzip = "gzip"
 
 const testIgnitionVersion = "3.4.0"
+const testDataSource = "data:,hello"
+
+const testMlnxBfConfPath = "/etc/mellanox/mlnx-bf.conf"
 
 func TestIgnition(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -73,7 +76,7 @@ var _ = Describe("MarshalJSON", func() {
 
 	It("should preserve non-empty data", func() {
 		ign := NewEmptyIgnition("3.4.0")
-		source := "data:,hello"
+		source := testDataSource
 		ign.Storage.Files = append(ign.Storage.Files, igntypes.File{
 			Node:          igntypes.Node{Path: "/etc/test"},
 			FileEmbedded1: igntypes.FileEmbedded1{Contents: igntypes.Resource{Source: &source}},
@@ -541,5 +544,389 @@ var _ = Describe("AddDPUFlavorJSON", func() {
 		Expect(metadata["name"]).To(Equal("my-flavor"))
 		Expect(metadata["namespace"]).To(Equal("ns"))
 		Expect(metadata).NotTo(HaveKey("resourceVersion"))
+	})
+})
+
+// decodeFlavorFileContent extracts raw content from a gzip+base64-encoded ignition file source.
+func decodeFlavorFileContent(source string) string {
+	b64 := strings.TrimPrefix(source, "data:;base64,")
+	compressed, err := base64.StdEncoding.DecodeString(b64)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	reader, err := gzip.NewReader(bytes.NewReader(compressed))
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	defer reader.Close()
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(reader)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return buf.String()
+}
+
+var _ = Describe("MergeFlavorConfigFiles", func() {
+	var baseIgn *igntypes.Config
+
+	// Simulate the real scenario: base ignition has gzip-compressed default files.
+	BeforeEach(func() {
+		baseIgn = NewEmptyIgnition(testIgnitionVersion)
+		defaultResource, err := EncodeGzipFile([]byte("DEFAULT_CONTENT"))
+		Expect(err).NotTo(HaveOccurred())
+		baseIgn.Storage.Files = []igntypes.File{
+			{
+				Node:          igntypes.Node{Path: testMlnxBfConfPath, Overwrite: Ptr(true)},
+				FileEmbedded1: igntypes.FileEmbedded1{Contents: defaultResource, Mode: Ptr(0644)},
+			},
+			{
+				Node:          igntypes.Node{Path: "/etc/mellanox/mlnx-ovs.conf", Overwrite: Ptr(true)},
+				FileEmbedded1: igntypes.FileEmbedded1{Contents: defaultResource, Mode: Ptr(0644)},
+			},
+			{
+				Node:          igntypes.Node{Path: "/usr/local/bin/install-dpu-agent.sh", Overwrite: Ptr(true)},
+				FileEmbedded1: igntypes.FileEmbedded1{Contents: defaultResource, Mode: Ptr(0755)},
+			},
+		}
+	})
+
+	It("should be a no-op when there are no config files", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{}
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(baseIgn.Storage.Files).To(HaveLen(3))
+	})
+
+	It("should override a base file at a conflicting path", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        testMlnxBfConfPath,
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "ALLOW_SHARED_RQ=\"yes\"\nCUSTOM_SETTING=\"on\"\n",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Total files: 3 base - 1 overridden + 0 new = still 3
+		Expect(baseIgn.Storage.Files).To(HaveLen(3))
+
+		// The overridden file should have the DPUFlavor content
+		var mlnxBfFile igntypes.File
+		for _, f := range baseIgn.Storage.Files {
+			if f.Path == testMlnxBfConfPath {
+				mlnxBfFile = f
+				break
+			}
+		}
+		content := decodeFlavorFileContent(*mlnxBfFile.Contents.Source)
+		Expect(content).To(ContainSubstring("ALLOW_SHARED_RQ=\"yes\""))
+		Expect(content).To(ContainSubstring("CUSTOM_SETTING=\"on\""))
+		Expect(content).NotTo(ContainSubstring("DEFAULT_CONTENT"))
+		Expect(*mlnxBfFile.Overwrite).To(BeTrue())
+	})
+
+	It("should append to a base file at a conflicting path", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        testMlnxBfConfPath,
+					Operation:   dpuprovisioningv1alpha1.FileAppend,
+					Raw:         "EXTRA_SETTING=\"yes\"\n",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Total should still be 3 -- the append merges into the existing file entry
+		Expect(baseIgn.Storage.Files).To(HaveLen(3))
+
+		var mlnxBfFile igntypes.File
+		for _, f := range baseIgn.Storage.Files {
+			if f.Path == testMlnxBfConfPath {
+				mlnxBfFile = f
+				break
+			}
+		}
+		// Base contents preserved
+		Expect(mlnxBfFile.Contents.Source).NotTo(BeNil())
+		Expect(decodeFlavorFileContent(*mlnxBfFile.Contents.Source)).To(Equal("DEFAULT_CONTENT"))
+
+		// Append entries added
+		Expect(mlnxBfFile.Append).To(HaveLen(1))
+		appendContent := decodeFlavorFileContent(*mlnxBfFile.Append[0].Source)
+		Expect(appendContent).To(Equal("EXTRA_SETTING=\"yes\"\n"))
+	})
+
+	It("should add a new file when path does not conflict", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/mellanox/mlnx-sf.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "SF_CONFIG=1\n",
+					Permissions: "0644",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		// 3 base + 1 new = 4
+		Expect(baseIgn.Storage.Files).To(HaveLen(4))
+
+		var found bool
+		for _, f := range baseIgn.Storage.Files {
+			if f.Path == "/etc/mellanox/mlnx-sf.conf" {
+				found = true
+				content := decodeFlavorFileContent(*f.Contents.Source)
+				Expect(content).To(Equal("SF_CONFIG=1\n"))
+			}
+		}
+		Expect(found).To(BeTrue(), "new file should be present in ignition")
+	})
+
+	It("should handle a mix of override, append, and new files", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:      testMlnxBfConfPath,
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "REPLACED_CONTENT\n",
+				},
+				{
+					Path:      "/etc/mellanox/mlnx-ovs.conf",
+					Operation: dpuprovisioningv1alpha1.FileAppend,
+					Raw:       "APPENDED_LINE\n",
+				},
+				{
+					Path:      "/etc/dpf/custom.conf",
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "NEW_FILE\n",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		// 3 base - 1 overridden + 1 new = 4
+		// (mlnx-bf.conf overridden in-place, mlnx-ovs.conf gets append, custom.conf is new)
+		Expect(baseIgn.Storage.Files).To(HaveLen(4))
+
+		pathMap := make(map[string]igntypes.File)
+		for _, f := range baseIgn.Storage.Files {
+			pathMap[f.Path] = f
+		}
+
+		// mlnx-bf.conf: overridden
+		bf := pathMap[testMlnxBfConfPath]
+		Expect(decodeFlavorFileContent(*bf.Contents.Source)).To(Equal("REPLACED_CONTENT\n"))
+
+		// mlnx-ovs.conf: base contents preserved, append added
+		ovs := pathMap["/etc/mellanox/mlnx-ovs.conf"]
+		Expect(decodeFlavorFileContent(*ovs.Contents.Source)).To(Equal("DEFAULT_CONTENT"))
+		Expect(ovs.Append).To(HaveLen(1))
+
+		// custom.conf: new file
+		custom := pathMap["/etc/dpf/custom.conf"]
+		Expect(decodeFlavorFileContent(*custom.Contents.Source)).To(Equal("NEW_FILE\n"))
+
+		// install-dpu-agent.sh: untouched base file
+		agent := pathMap["/usr/local/bin/install-dpu-agent.sh"]
+		Expect(decodeFlavorFileContent(*agent.Contents.Source)).To(Equal("DEFAULT_CONTENT"))
+	})
+
+	It("should preserve file ordering with overridden file in its original position", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:      "/etc/mellanox/mlnx-ovs.conf",
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "NEW_OVS\n",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		// mlnx-ovs.conf was at index 1, should still be at index 1
+		Expect(baseIgn.Storage.Files[0].Path).To(Equal(testMlnxBfConfPath))
+		Expect(baseIgn.Storage.Files[1].Path).To(Equal("/etc/mellanox/mlnx-ovs.conf"))
+		Expect(baseIgn.Storage.Files[2].Path).To(Equal("/usr/local/bin/install-dpu-agent.sh"))
+	})
+
+	It("should use default permissions (0644) when not specified", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:      "/etc/dpf/test.conf",
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "test",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		var testFile igntypes.File
+		for _, f := range baseIgn.Storage.Files {
+			if f.Path == "/etc/dpf/test.conf" {
+				testFile = f
+				break
+			}
+		}
+		Expect(*testFile.Mode).To(Equal(0644))
+	})
+
+	It("should use custom permissions when specified", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/dpf/script.sh",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "#!/bin/bash\n",
+					Permissions: "0755",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		var scriptFile igntypes.File
+		for _, f := range baseIgn.Storage.Files {
+			if f.Path == "/etc/dpf/script.sh" {
+				scriptFile = f
+				break
+			}
+		}
+		Expect(*scriptFile.Mode).To(Equal(0755))
+	})
+
+	It("should return an error for invalid permissions", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        "/etc/dpf/bad.conf",
+					Operation:   dpuprovisioningv1alpha1.FileOverride,
+					Raw:         "content",
+					Permissions: "invalid",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid permissions"))
+	})
+
+	It("should skip entries with empty paths", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path: "",
+					Raw:  "should be skipped",
+				},
+				{
+					Path:      "/etc/dpf/valid.conf",
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "valid",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		// 3 base + 1 new (empty path skipped) = 4
+		Expect(baseIgn.Storage.Files).To(HaveLen(4))
+	})
+
+	It("should handle empty raw content for override (creates empty file)", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:      "/etc/mellanox/mlnx-sf.conf",
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		var sfFile igntypes.File
+		for _, f := range baseIgn.Storage.Files {
+			if f.Path == "/etc/mellanox/mlnx-sf.conf" {
+				sfFile = f
+				break
+			}
+		}
+		content := decodeFlavorFileContent(*sfFile.Contents.Source)
+		Expect(content).To(BeEmpty())
+	})
+
+	It("should override multiple base files simultaneously", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:      testMlnxBfConfPath,
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "NEW_BF\n",
+				},
+				{
+					Path:      "/etc/mellanox/mlnx-ovs.conf",
+					Operation: dpuprovisioningv1alpha1.FileOverride,
+					Raw:       "NEW_OVS\n",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(baseIgn.Storage.Files).To(HaveLen(3))
+
+		for _, f := range baseIgn.Storage.Files {
+			switch f.Path {
+			case testMlnxBfConfPath:
+				Expect(decodeFlavorFileContent(*f.Contents.Source)).To(Equal("NEW_BF\n"))
+			case "/etc/mellanox/mlnx-ovs.conf":
+				Expect(decodeFlavorFileContent(*f.Contents.Source)).To(Equal("NEW_OVS\n"))
+			case "/usr/local/bin/install-dpu-agent.sh":
+				Expect(decodeFlavorFileContent(*f.Contents.Source)).To(Equal("DEFAULT_CONTENT"))
+			}
+		}
+	})
+
+	It("should update mode on append if flavor specifies different permissions", func() {
+		flavorSpec := &dpuprovisioningv1alpha1.DPUFlavorSpec{
+			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
+				{
+					Path:        testMlnxBfConfPath,
+					Operation:   dpuprovisioningv1alpha1.FileAppend,
+					Raw:         "APPENDED\n",
+					Permissions: "0600",
+				},
+			},
+		}
+
+		err := MergeFlavorConfigFiles(baseIgn, flavorSpec)
+		Expect(err).NotTo(HaveOccurred())
+
+		var bf igntypes.File
+		for _, f := range baseIgn.Storage.Files {
+			if f.Path == testMlnxBfConfPath {
+				bf = f
+				break
+			}
+		}
+		// Mode should be updated to the flavor's permissions
+		Expect(*bf.Mode).To(Equal(0600))
 	})
 })
