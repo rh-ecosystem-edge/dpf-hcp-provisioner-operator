@@ -1,9 +1,11 @@
 #!/bin/bash
 
-# Monitors PF0 and PF1 link state and reports changes to the DPU object
-# via dpuagent-client.py → host agent → DPU.status.agentStatus.conditions.
-
 exec > >(tee >(while read -r line; do /usr/local/bin/bflog.sh "$line"; done)) 2>&1
+
+if [ "$DPUMode" = "zero-trust" ]; then
+    echo "INFO: Zero-trust mode, skipping PF monitor (no host agent)"
+    sleep infinity
+fi
 
 POLL_INTERVAL=${PF_MONITOR_INTERVAL:-30}
 
