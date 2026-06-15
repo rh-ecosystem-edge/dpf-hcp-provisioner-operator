@@ -145,6 +145,15 @@ run_mstconfig() {
 }
 
 set_nvconfig() {
+    local desired_vfs
+    if /usr/local/bin/dpuagent-client.py check-vf-count-support; then
+        desired_vfs=1
+        log "INFO: Host-agent supports vfCount, using NUM_OF_VFS=${desired_vfs}"
+    else
+        desired_vfs=$(jq -r '[.spec.nvconfig[].parameters[] | select(startswith("NUM_OF_VFS="))] | first // "NUM_OF_VFS=1"' "$DPUFLAVOR_FILE" | cut -d= -f2)
+        log "INFO: Host-agent does not support vfCount, using NUM_OF_VFS=${desired_vfs} from DPUFlavor"
+    fi
+
     local dev_list
     dev_list=$(get_devlist)
 
@@ -159,22 +168,11 @@ set_nvconfig() {
         local current_vfs=$(echo "$query_output" | grep NUM_OF_VFS | awk '{print $(NF-1)}')
         local pf_num_of_vf_valid=$(echo "$query_output" | grep PF_NUM_OF_VF_VALID | awk '{print $(NF-1)}')
 
-        log "INFO: dev ${dev}: SRIOV_EN=${sriov_en} NUM_OF_VFS=${current_vfs} PF_NUM_OF_VF_VALID=${pf_num_of_vf_valid}"
-
-        local params_to_set=""
-        if [ "$pf_num_of_vf_valid" == "True(1)" ]; then
-            params_to_set="$params_to_set PF_NUM_OF_VF_VALID=0"
-        fi
-        if [ "$sriov_en" != "True(1)" ]; then
-            params_to_set="$params_to_set SRIOV_EN=1"
-        fi
-        if [ "$current_vfs" -le 0 ]; then
-            params_to_set="$params_to_set NUM_OF_VFS=1"
-        fi
-
-        if [ -n "$params_to_set" ]; then
-            log "INFO: Updating NVConfig on dev ${dev}:${params_to_set}"
-            run_mstconfig -d ${dev} -y set ${params_to_set}
+        log "INFO: sriov_en: $sriov_en, current_vfs: $current_vfs, desired_vfs: $desired_vfs, pf_num_of_vf_valid: $pf_num_of_vf_valid"
+        if [ "$sriov_en" != "True(1)" ] || [ "$current_vfs" -lt "$desired_vfs" ] || [ "$pf_num_of_vf_valid" == "True(1)" ]; then
+            log "INFO: Caught Condition, Resetting DPU using NVConfig"
+            run_mstconfig -d ${dev} -y reset
+            run_mstconfig -d ${dev} -y set SRIOV_EN=1 NUM_OF_VFS=${desired_vfs} PF_NUM_OF_VF_VALID=0
             NVCONFIG_CHANGED=true
         else
             log "INFO: NVConfig on dev ${dev} already correct, skipping"
@@ -221,6 +219,41 @@ wait_for_host_reboot_if_required() {
     log "INFO: No host reboot required."
 }
 
+save_install_journal() {
+    log "INFO: Saving installation journal to target disk..."
+
+    local mount_point="/mnt/target_root"
+
+    mkdir -p "$mount_point"
+
+    if ! mount LABEL=root "$mount_point"; then
+        log "WARN: Failed to mount root partition, skipping journal save"
+        return 0
+    fi
+
+    local stateroot
+    stateroot=$(ls "$mount_point/ostree/deploy/" 2>/dev/null | head -1)
+    local log_dir
+    if [ -n "$stateroot" ]; then
+        log_dir="$mount_point/ostree/deploy/${stateroot}/var/log"
+    else
+        log_dir="$mount_point/var/log"
+    fi
+
+    mkdir -p "$log_dir"
+
+    if journalctl -b --no-pager --all 2>&1 | gzip > "${log_dir}/dpf-install-journal.gz"; then
+        local size
+        size=$(du -h "${log_dir}/dpf-install-journal.gz" | awk '{print $1}')
+        log "INFO: Installation journal saved (${size} compressed) to /var/log/dpf-install-journal.gz"
+    else
+        log "WARN: Failed to save installation journal"
+    fi
+
+    umount "$mount_point" 2>/dev/null
+    rmdir "$mount_point" 2>/dev/null
+}
+
 setup_secureboot
 validate_hardware
 
@@ -248,5 +281,6 @@ wait_for_host_reboot_if_required
 
 log "INFO: Waiting for 10 seconds before rebooting"
 sleep 10
+save_install_journal
 log "INFO: Rebooting..."
 reboot
