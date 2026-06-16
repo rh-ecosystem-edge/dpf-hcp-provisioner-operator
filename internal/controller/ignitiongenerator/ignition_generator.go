@@ -451,10 +451,18 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	}
 
 	// Add target content files and systemd units
-	targetProvider := target.NewProvider(zeroTrust)
+	targetProvider := target.NewProvider()
 	if err := igncontent.AddContent(targetIgnition, targetProvider); err != nil {
 		return nil, fmt.Errorf("failed to add target content: %w", err)
 	}
+
+	// Add templated dpu-agent.service unit (ZT mode adds extra flags)
+	unitName, unitContents := target.DPUAgentServiceUnit(zeroTrust)
+	targetIgnition.Systemd.Units = append(targetIgnition.Systemd.Units, igntypes.Unit{
+		Name:     unitName,
+		Enabled:  ignition.Ptr(true),
+		Contents: &unitContents,
+	})
 
 	// Add common content files and systemd units
 	commonProvider := common.NewProvider()
