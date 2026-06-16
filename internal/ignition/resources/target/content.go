@@ -12,8 +12,49 @@ var filesFS embed.FS
 //go:embed systemd/*
 var systemdFS embed.FS
 
-func NewProvider() *content.EmbeddedProvider {
+func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
+	nl := "%0A"
+
+	extraArgs := ""
+	if zeroTrust {
+		extraArgs = " --zero-trust-mode" +
+			" --bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig"
+	}
+
+	dpuAgentService := "data:," +
+		"[Unit]" + nl +
+		"Description=DPF DPU Agent - Provisioning and Configuration" + nl +
+		"After=tmfifo-agent-link.service install-dpu-agent.service dpu-fw-upgrade.service" + nl +
+		"Before=nodeip-configuration.service kubelet-dependencies.target ovs-configuration.service" + nl +
+		"Requires=tmfifo-agent-link.service" + nl +
+		"Wants=install-dpu-agent.service dpu-fw-upgrade.service" + nl +
+		"ConditionPathExists=/etc/mlnx-release" + nl +
+		"ConditionPathExists=/usr/local/bin/dpu-agent" + nl +
+		nl +
+		"[Service]" + nl +
+		"Type=simple" + nl +
+		"EnvironmentFile=/etc/dpf/environment" + nl +
+		"ExecStart=/usr/local/bin/dpu-agent" +
+		" --dpu-name $DPUName" +
+		" --dpu-namespace $DPUNamespace" +
+		" --dpu-uid $DPUUID" +
+		" --dpuflavor /etc/dpf/dpuflavor.yaml" +
+		" --skip-containerd-config" +
+		" --skip-dns-config" +
+		" --skip-kernel-cmd-line" +
+		" --skip-network-config" +
+		" --skip-remove-builtin-kubelet" +
+		" --skip-configure-kubelet" +
+		" --skip-start-kubelet" +
+		" --skip-ovs-raw-script" +
+		" --kubeadm-secret-name=unused" +
+		extraArgs + nl +
+		"Restart=on-failure" + nl +
+		"RestartSec=5" + nl +
+		nl +
+		"[Install]" + nl +
+		"WantedBy=multi-user.target" + nl
 
 	return &content.EmbeddedProvider{
 		Files: []content.FileDefinition{
@@ -115,6 +156,11 @@ func NewProvider() *content.EmbeddedProvider {
 				Path:          "/usr/local/bin/pf-monitor.sh",
 				Mode:          0755,
 				ContentSource: f("pf-monitor.sh"),
+			},
+			{
+				Path:          "/etc/systemd/system/dpu-agent.service",
+				Mode:          0644,
+				ContentSource: dpuAgentService,
 			},
 		},
 		SystemdFS: &systemdFS,

@@ -229,7 +229,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
 	}
 
-	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu)
+	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, IsZeroTrustMode(dpuMode))
 	if err != nil {
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
@@ -438,7 +438,7 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications
-func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, zeroTrust bool) (*igntypes.Config, error) {
 	// Parse HCP ignition
 	targetIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, targetIgnition); err != nil {
@@ -451,7 +451,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	}
 
 	// Add target content files and systemd units
-	targetProvider := target.NewProvider()
+	targetProvider := target.NewProvider(zeroTrust)
 	if err := igncontent.AddContent(targetIgnition, targetProvider); err != nil {
 		return nil, fmt.Errorf("failed to add target content: %w", err)
 	}
