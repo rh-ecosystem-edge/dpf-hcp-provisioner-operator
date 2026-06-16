@@ -144,28 +144,51 @@ run_mstconfig() {
     fi
 }
 
+# Usage: query_nvconfig <dev> <PARAM1> [PARAM2 ...]
+# Sets NVCONFIG_<PARAM> variables in the caller's scope.
+query_nvconfig() {
+    local dev=$1; shift
+    local query_output
+    if ! query_output=$(mstconfig -d ${dev} -e q "$@" 2>&1); then
+        error "NVConfig" "Failed to query NVConfig on dev ${dev}"
+        exit 1
+    fi
+    local param
+    for param in "$@"; do
+        local value
+        value=$(echo "$query_output" | grep "$param" | awk '{print $(NF-1)}')
+        printf -v "NVCONFIG_${param}" '%s' "$value"
+    done
+}
+
 set_nvconfig() {
+    local dpuflavor_vfs
+    dpuflavor_vfs=$(jq -r '[.spec.nvconfig[].parameters[] | select(startswith("NUM_OF_VFS="))] | first // "NUM_OF_VFS=1"' "$DPUFLAVOR_FILE" | cut -d= -f2)
+    log "INFO: Desired NUM_OF_VFS=${dpuflavor_vfs} (from DPUFlavor)"
+
     local dev_list
     dev_list=$(get_devlist)
 
     for dev in ${dev_list}; do
-        local query_output
-        if ! query_output=$(mstconfig -d ${dev} -e q SRIOV_EN NUM_OF_VFS 2>&1); then
-            error "NVConfig" "Failed to query NVConfig on dev ${dev}"
-            exit 1
+        query_nvconfig "${dev}" SRIOV_EN NUM_OF_VFS PF_NUM_OF_VF_VALID
+
+        log "INFO: dev ${dev}: SRIOV_EN=${NVCONFIG_SRIOV_EN} NUM_OF_VFS=${NVCONFIG_NUM_OF_VFS} PF_NUM_OF_VF_VALID=${NVCONFIG_PF_NUM_OF_VF_VALID}"
+
+        if [ "$NVCONFIG_PF_NUM_OF_VF_VALID" == "True(1)" ] || [ "$NVCONFIG_SRIOV_EN" != "True(1)" ]; then
+            log "INFO: Resetting NVConfig on dev ${dev} (PF_NUM_OF_VF_VALID=${NVCONFIG_PF_NUM_OF_VF_VALID}, SRIOV_EN=${NVCONFIG_SRIOV_EN})"
+            run_mstconfig -d "${dev}" -y reset
+            run_mstconfig -d "${dev}" -y set SRIOV_EN=1 PF_NUM_OF_VF_VALID=0
+            NVCONFIG_CHANGED=true
+
+            query_nvconfig "${dev}" NUM_OF_VFS
         fi
 
-        local sriov_en=$(echo "$query_output" | grep SRIOV_EN | awk '{print $(NF-1)}')
-        local current_vfs=$(echo "$query_output" | grep NUM_OF_VFS | awk '{print $(NF-1)}')
-        local pf_num_of_vf_valid=$(echo "$query_output" | grep PF_NUM_OF_VF_VALID | awk '{print $(NF-1)}')
-
-        if [ "$sriov_en" != "True(1)" ] || [ "$current_vfs" -le 0 ] || [ "$pf_num_of_vf_valid" == "True(1)" ]; then
-            log "INFO: Caught Condition, Resetting DPU using NVConfig"
-            run_mstconfig -d ${dev} -y reset
-            run_mstconfig -d ${dev} -y set SRIOV_EN=1 NUM_OF_VFS=1 PF_NUM_OF_VF_VALID=0
+        if [ "$NVCONFIG_NUM_OF_VFS" -ne "$dpuflavor_vfs" ]; then
+            log "INFO: Setting NUM_OF_VFS=${dpuflavor_vfs} on dev ${dev} (current: ${NVCONFIG_NUM_OF_VFS})"
+            run_mstconfig -d "${dev}" -y set NUM_OF_VFS="${dpuflavor_vfs}"
             NVCONFIG_CHANGED=true
         else
-            log "INFO: NVConfig on dev ${dev} already correct, skipping"
+            log "INFO: NVConfig on dev ${dev} already correct (NUM_OF_VFS=${NVCONFIG_NUM_OF_VFS})"
         fi
     done
     log "INFO: Finished setting nvconfig parameters"
@@ -228,11 +251,12 @@ log "INFO: Installation complete."
 dpu_agent update-time
 
 log "INFO: Waiting for DPU phase to reach 'DPU Config'..."
+
 until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
     sleep 5
 done
-
 wait_for_host_reboot_if_required
+
 
 log "INFO: Waiting for 10 seconds before rebooting"
 sleep 10

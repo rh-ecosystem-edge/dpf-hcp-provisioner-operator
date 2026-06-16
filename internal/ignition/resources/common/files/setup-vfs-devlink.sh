@@ -20,8 +20,8 @@ check_timeout() {
   fi
 }
 
-get_connectx_devices() {
-  lspci -Dd 15b3: | grep ConnectX | awk '{print $1}'
+get_lspci_devlist() {
+    lspci -Dd 15b3: | grep ConnectX | awk '{print $1}'
 }
 
 get_steering_mode() {
@@ -37,7 +37,7 @@ set_steering_mode() {
 
 # Returns 0 if all ConnectX devices are in switchdev mode, 1 otherwise.
 verify_switchdev() {
-  for dev in $(get_connectx_devices); do
+  for dev in $(get_lspci_devlist); do
     mode=$(devlink dev eswitch show "pci/${dev}" 2>/dev/null | awk '{print $3}')
     if [ "$mode" != "switchdev" ]; then
       LAST_ERROR="pci/${dev} not in switchdev mode (mode=${mode})"
@@ -50,7 +50,7 @@ verify_switchdev() {
 
 do_switchdev() {
   echo "INFO: Configuring steering mode before switchdev..."
-  for dev in $(get_connectx_devices); do
+  for dev in $(get_lspci_devlist); do
     steering=$(get_steering_mode "$dev")
     if [ "$steering" = "dmfs" ]; then
       echo "INFO: pci/${dev} steering mode is dmfs, setting to smfs..."
@@ -69,7 +69,7 @@ do_switchdev() {
   while ! verify_switchdev; do
     check_timeout
 
-    for dev in $(get_connectx_devices); do
+    for dev in $(get_lspci_devlist); do
       if ! devlink dev eswitch set "pci/${dev}" mode switchdev; then
         LAST_ERROR="devlink switchdev on ${dev} failed"
         echo "WARN: ${LAST_ERROR}"
@@ -84,31 +84,33 @@ do_switchdev() {
 
 do_create_vfs() {
   echo "INFO: Verifying switchdev mode and creating VFs..."
+  if ! verify_switchdev; then
+    echo "ERROR: Failed to verify switchdev mode"
+    exit 1
+  fi
+
   while true; do
     check_timeout
-
-    if ! verify_switchdev; then
-      sleep 5
-      continue
-    fi
-    echo "INFO: All devices in switchdev mode"
+    LAST_ERROR=""
 
     if ! /usr/local/bin/dpuagent-client.py configure-host-vfs; then
       LAST_ERROR="configure-host-vfs failed"
       echo "WARN: ${LAST_ERROR}"
-      sleep 5
-      continue
+    else
+      echo "INFO: configure-host-vfs succeeded"
     fi
-    echo "INFO: configure-host-vfs succeeded"
 
     vf_count=$(devlink port show 2>/dev/null | grep -c "flavour pcivf")
     if [ "$vf_count" -gt 0 ]; then
       echo "INFO: Found $vf_count VFs"
       break
     fi
-    LAST_ERROR="no VFs found after configure-host-vfs"
-    echo "WARN: ${LAST_ERROR}"
-    sleep 5
+
+    if [ -n "$LAST_ERROR" ]; then
+      LAST_ERROR="no VFs found after configure-host-vfs"
+      echo "WARN: ${LAST_ERROR}"
+    fi
+    sleep 30
   done
 
   echo "INFO: Waiting for default route..."

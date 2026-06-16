@@ -69,11 +69,14 @@ def get_dpu_phase():
 
 
 def configure_host_vfs():
-    return base_request("POST", "/configure-host-vfs", {
+    payload = {
         "dpuName": DPU_NAME,
         "dpuNamespace": DPU_NAMESPACE,
         "dpuUID": DPU_UID,
-    })
+    }
+    if len(sys.argv) > 2:
+        payload["vfCount"] = int(sys.argv[2])
+    return base_request("POST", "/configure-host-vfs", payload)
 
 
 def update_reboot_method_discovery():
@@ -163,7 +166,8 @@ def send_error(reason, message):
 def update_pf_status():
     """Report PF link status. Args: pf_label (PF0|PF1), status (up|down), interface name, detail message."""
     if len(sys.argv) < 5:
-        print("Error: update-pf-status requires at least 3 arguments: pf_label status iface [message]", file=sys.stderr)
+        print(
+            "Error: update-pf-status requires at least 3 arguments: pf_label status iface [message]", file=sys.stderr)
         sys.exit(1)
     pf_label = sys.argv[2]   # "PF0" or "PF1"
     link_status = sys.argv[3]  # "up" or "down"
