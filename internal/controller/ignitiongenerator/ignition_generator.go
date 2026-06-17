@@ -457,7 +457,10 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	}
 
 	// Add templated dpu-agent.service unit (ZT mode adds extra flags)
-	unitName, unitContents := target.DPUAgentServiceUnit(zeroTrust)
+	unitName, unitContents, err := target.RenderDPUAgentServiceUnit(zeroTrust)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render dpu-agent.service: %w", err)
+	}
 	targetIgnition.Systemd.Units = append(targetIgnition.Systemd.Units, igntypes.Unit{
 		Name:     unitName,
 		Enabled:  ignition.Ptr(true),

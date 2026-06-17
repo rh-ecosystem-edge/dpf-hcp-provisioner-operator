@@ -1,7 +1,10 @@
 package target
 
 import (
+	"bytes"
 	"embed"
+	"fmt"
+	"text/template"
 
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/content"
 )
@@ -121,46 +124,18 @@ func NewProvider() *content.EmbeddedProvider {
 	}
 }
 
-func DPUAgentServiceUnit(zeroTrust bool) (string, string) {
-	extraArgs := ""
-	if zeroTrust {
-		extraArgs = " \\\n" +
-			"  --zero-trust-mode \\\n" +
-			"  --bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig"
+func RenderDPUAgentServiceUnit(zeroTrust bool) (string, string, error) {
+	tmplBytes := content.EmbedFile(filesFS, "files/dpu-agent.service.tmpl")
+	tmpl, err := template.New("dpu-agent.service").Parse(string(tmplBytes))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse dpu-agent.service template: %w", err)
 	}
 
-	contents := "[Unit]\n" +
-		"Description=DPF DPU Agent - Provisioning and Configuration\n" +
-		"After=tmfifo-agent-link.service install-dpu-agent.service dpu-fw-upgrade.service\n" +
-		"Before=nodeip-configuration.service kubelet-dependencies.target ovs-configuration.service\n" +
-		"Requires=tmfifo-agent-link.service\n" +
-		"Wants=install-dpu-agent.service dpu-fw-upgrade.service\n" +
-		"ConditionPathExists=/etc/mlnx-release\n" +
-		"ConditionPathExists=/usr/local/bin/dpu-agent\n" +
-		"\n" +
-		"[Service]\n" +
-		"Type=simple\n" +
-		"EnvironmentFile=/etc/dpf/environment\n" +
-		"ExecStart=/usr/local/bin/dpu-agent \\\n" +
-		"  --dpu-name $DPUName \\\n" +
-		"  --dpu-namespace $DPUNamespace \\\n" +
-		"  --dpu-uid $DPUUID \\\n" +
-		"  --dpuflavor /etc/dpf/dpuflavor.yaml \\\n" +
-		"  --skip-containerd-config \\\n" +
-		"  --skip-dns-config \\\n" +
-		"  --skip-kernel-cmd-line \\\n" +
-		"  --skip-network-config \\\n" +
-		"  --skip-remove-builtin-kubelet \\\n" +
-		"  --skip-configure-kubelet \\\n" +
-		"  --skip-start-kubelet \\\n" +
-		"  --skip-ovs-raw-script \\\n" +
-		"  --kubeadm-secret-name=unused" +
-		extraArgs + "\n" +
-		"Restart=on-failure\n" +
-		"RestartSec=5\n" +
-		"\n" +
-		"[Install]\n" +
-		"WantedBy=multi-user.target\n"
+	data := struct{ ZeroTrust bool }{ZeroTrust: zeroTrust}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", "", fmt.Errorf("failed to render dpu-agent.service template: %w", err)
+	}
 
-	return "dpu-agent.service", contents
+	return "dpu-agent.service", buf.String(), nil
 }
