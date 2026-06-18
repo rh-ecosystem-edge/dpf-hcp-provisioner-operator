@@ -1,0 +1,713 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: dast-oobtkube-dpf-hcp-provisioner
+spec:
+  params:
+    - name: SNAPSHOT
+      type: string
+      description: Konflux application snapshot (JSON). Used to extract the operator image to install.
+    - name: OOBTKUBE_PORT
+      type: string
+      default: "34568"
+      description: Port the oobtkube listener binds to on the cluster node.
+    - name: OOBTKUBE_TIMEOUT
+      type: string
+      default: "300"
+      description: Seconds oobtkube waits for an OOB connection after applying all CR variants.
+    - name: OCP_VERSION_PREFIX
+      type: string
+      default: "4.21."
+      description: OpenShift version prefix for the ephemeral cluster.
+    - name: GCS_KEY_SECRET
+      type: string
+      default: gcs-key
+      description: |
+        Name of the Konflux-namespace secret containing the GCS service account key
+        (key: gcs-key.json). Used to upload SARIF results to secaut-bucket.
+        Create with: kubectl create secret generic gcs-key \
+          --from-file=gcs-key.json=/path/to/key.json \
+          -n dpu-kit-for-nvidia-operator-tenant
+  results:
+    - name: TEST_OUTPUT
+      description: Tekton integration test result (SUCCESS / FAILURE / ERROR).
+      value: $(tasks.dast-scan.results.TEST_OUTPUT)
+    - name: SCAN_OUTPUT
+      description: Vulnerability counts from oobtkube SARIF output.
+      value: $(tasks.dast-scan.results.SCAN_OUTPUT)
+  tasks:
+    # ── 0. Check event type — skip all steps on pull-request builds ───────────
+    - name: check-event-type
+      taskSpec:
+        results:
+          - name: should-run
+            description: "'true' for push events, 'false' for pull requests."
+        steps:
+          - name: check
+            image: quay.io/konflux-ci/konflux-test:latest
+            env:
+              - name: EVENT_TYPE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
+            script: |
+              #!/bin/bash
+              echo "Event type: ${EVENT_TYPE}"
+              if [[ "${EVENT_TYPE}" == "push" || "${EVENT_TYPE}" == "Push" ]]; then
+                echo -n "true" | tee "$(results.should-run.path)"
+              else
+                echo -n "false" | tee "$(results.should-run.path)"
+                echo "Skipping DAST: not a push event (got: ${EVENT_TYPE})."
+              fi
+
+    # ── 1. Provision EaaS space ──────────────────────────────────────────────
+    - name: provision-env
+      runAfter:
+        - check-event-type
+      when:
+        - input: "$(tasks.check-event-type.results.should-run)"
+          operator: in
+          values: ["true"]
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/build-definitions.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+      params:
+        - name: ownerKind
+          value: PipelineRun
+        - name: ownerName
+          value: $(context.pipelineRun.name)
+        - name: ownerUid
+          value: $(context.pipelineRun.uid)
+
+    # ── 2b. Provision ephemeral OCP cluster ──────────────────────────────────
+    - name: provision-cluster
+      runAfter:
+        - provision-env
+      when:
+        - input: "$(tasks.check-event-type.results.should-run)"
+          operator: in
+          values: ["true"]
+      taskSpec:
+        results:
+          - name: clusterName
+            value: "$(steps.create-cluster.results.clusterName)"
+        steps:
+          - name: get-supported-versions
+            ref:
+              resolver: git
+              params:
+                - name: url
+                  value: https://github.com/konflux-ci/build-definitions.git
+                - name: revision
+                  value: main
+                - name: pathInRepo
+                  value: stepactions/eaas-get-supported-ephemeral-cluster-versions/0.1/eaas-get-supported-ephemeral-cluster-versions.yaml
+            params:
+              - name: eaasSpaceSecretRef
+                value: $(tasks.provision-env.results.secretRef)
+
+          - name: pick-version
+            ref:
+              resolver: git
+              params:
+                - name: url
+                  value: https://github.com/konflux-ci/build-definitions.git
+                - name: revision
+                  value: main
+                - name: pathInRepo
+                  value: stepactions/eaas-get-latest-openshift-version-by-prefix/0.1/eaas-get-latest-openshift-version-by-prefix.yaml
+            params:
+              - name: prefix
+                value: $(params.OCP_VERSION_PREFIX)
+
+          - name: create-cluster
+            ref:
+              resolver: git
+              params:
+                - name: url
+                  value: https://github.com/konflux-ci/build-definitions.git
+                - name: revision
+                  value: main
+                - name: pathInRepo
+                  value: stepactions/eaas-create-ephemeral-cluster-hypershift-aws/0.1/eaas-create-ephemeral-cluster-hypershift-aws.yaml
+            params:
+              - name: eaasSpaceSecretRef
+                value: $(tasks.provision-env.results.secretRef)
+              - name: version
+                value: $(steps.pick-version.results.version)
+              - name: instanceType
+                value: m5.xlarge
+              - name: timeout
+                value: 40m
+
+    # ── 3. Install the operator on the ephemeral cluster ────────────────────
+    - name: install-operator
+      runAfter:
+        - provision-cluster
+      when:
+        - input: "$(tasks.check-event-type.results.should-run)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+        - name: eaasSpaceSecretRef
+          value: $(tasks.provision-env.results.secretRef)
+        - name: clusterName
+          value: $(tasks.provision-cluster.results.clusterName)
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: eaasSpaceSecretRef
+            type: string
+          - name: clusterName
+            type: string
+        volumes:
+          - name: credentials
+            emptyDir: {}
+          - name: source
+            emptyDir: {}
+        steps:
+          - name: clone-repo
+            image: quay.io/konflux-ci/konflux-test:latest
+            volumeMounts:
+              - name: source
+                mountPath: /tmp/source
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              git clone https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator.git \
+                --branch main --depth 1 /tmp/source
+              echo "Repository cloned to /tmp/source"
+
+          - name: get-kubeconfig
+            ref:
+              resolver: git
+              params:
+                - name: url
+                  value: https://github.com/konflux-ci/build-definitions.git
+                - name: revision
+                  value: main
+                - name: pathInRepo
+                  value: stepactions/eaas-get-ephemeral-cluster-credentials/0.1/eaas-get-ephemeral-cluster-credentials.yaml
+            params:
+              - name: eaasSpaceSecretRef
+                value: $(params.eaasSpaceSecretRef)
+              - name: clusterName
+                value: $(params.clusterName)
+              - name: credentials
+                value: credentials
+
+          - name: install-crds
+            image: golang:1.25
+            env:
+              - name: KUBECONFIG
+                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+            volumeMounts:
+              - name: credentials
+                mountPath: /credentials
+              - name: source
+                mountPath: /tmp/source
+            workingDir: /tmp/source
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              # Install controller-gen (pinned to project version)
+              GOBIN=/tmp/gobin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0
+              export PATH="/tmp/gobin:$PATH"
+
+              # Generate DPF CRDs from vendored nvidia/doca-platform types
+              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
+                controller-gen crd paths="github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." \
+                output:crd:dir=test/e2e/testdata/crds
+              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
+                controller-gen crd paths="github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." \
+                output:crd:dir=test/e2e/testdata/crds
+              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
+                controller-gen crd paths="github.com/nvidia/doca-platform/api/operator/v1alpha1/..." \
+                output:crd:dir=test/e2e/testdata/crds
+
+              # Download kubectl (latest stable)
+              curl -sSL "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+                -o /tmp/gobin/kubectl && chmod +x /tmp/gobin/kubectl
+
+              # Generate Hypershift CRDs from vendored openshift/hypershift types
+              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
+                controller-gen crd paths="github.com/openshift/hypershift/api/hypershift/v1beta1/..." \
+                output:crd:dir=test/dast/crds
+
+              # Apply DPF CRDs
+              kubectl apply -f test/e2e/testdata/crds/
+              kubectl wait --for=condition=Established -f test/e2e/testdata/crds/ --timeout=60s
+              # Apply HyperShift CRDs (server-side apply required — CRDs exceed 262144-byte annotation limit)
+              kubectl apply --server-side -f test/dast/crds/
+              kubectl wait --for=condition=Established -f test/dast/crds/ --timeout=60s
+              echo "All prerequisite CRDs installed."
+
+          - name: helm-install
+            image: quay.io/konflux-ci/konflux-test:latest
+            env:
+              - name: KUBECONFIG
+                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+              - name: SNAPSHOT
+                value: $(params.SNAPSHOT)
+            volumeMounts:
+              - name: credentials
+                mountPath: /credentials
+              - name: source
+                mountPath: /tmp/source
+            workingDir: /tmp/source
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              curl -sSL "https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz" \
+                | tar xz -C /tmp --strip-components=1 linux-amd64/helm
+              export PATH="/tmp:$PATH"
+
+              IMAGE=$(echo "$SNAPSHOT" | jq -r \
+                '.components[] | select(.name == "dpf-hcp-provisioner-rhel10-operator") | .containerImage')
+              if [[ -z "$IMAGE" ]]; then
+                echo "ERROR: could not find dpf-hcp-provisioner-rhel10-operator in SNAPSHOT"
+                exit 1
+              fi
+              echo "Installing operator image: $IMAGE"
+
+              REPO=$(echo "$IMAGE" | sed 's/@sha256:.*//' | sed 's/:[^/]*$//')
+              ARGS=(upgrade --install dpf-hcp-provisioner-operator helm/dpf-hcp-provisioner-operator
+                --create-namespace --namespace dpf-hcp-provisioner-system
+                --set image.repository="$REPO"
+                --set logLevel=debug
+                --set provisionerConfig.disableMetalLB=true
+                --set placement.target=worker
+                --wait --timeout 5m)
+
+              if echo "$IMAGE" | grep -q "@"; then
+                ARGS+=(--set image.digest="$(echo "$IMAGE" | sed 's/.*@//')")
+              else
+                ARGS+=(--set image.tag="$(echo "$IMAGE" | sed 's/.*://')")
+              fi
+
+              helm "${ARGS[@]}"
+              echo "Operator installed successfully."
+
+    # ── 4. Run oobtkube DAST scan + parse results ────────────────────────────
+    - name: dast-scan
+      runAfter:
+        - install-operator
+      when:
+        - input: "$(tasks.check-event-type.results.should-run)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: PORT
+          value: $(params.OOBTKUBE_PORT)
+        - name: TIMEOUT
+          value: $(params.OOBTKUBE_TIMEOUT)
+        - name: eaasSpaceSecretRef
+          value: $(tasks.provision-env.results.secretRef)
+        - name: clusterName
+          value: $(tasks.provision-cluster.results.clusterName)
+        - name: GCS_KEY_SECRET
+          value: $(params.GCS_KEY_SECRET)
+      taskSpec:
+        params:
+          - name: PORT
+            type: string
+          - name: TIMEOUT
+            type: string
+          - name: eaasSpaceSecretRef
+            type: string
+          - name: clusterName
+            type: string
+          - name: GCS_KEY_SECRET
+            type: string
+        results:
+          - name: TEST_OUTPUT
+            description: Tekton integration test result.
+          - name: SCAN_OUTPUT
+            description: Vulnerability counts from oobtkube SARIF.
+        volumes:
+          - name: credentials
+            emptyDir: {}
+          - name: scan-results
+            emptyDir: {}
+          - name: gcs-key
+            secret:
+              secretName: $(params.GCS_KEY_SECRET)
+        steps:
+          - name: get-kubeconfig
+            ref:
+              resolver: git
+              params:
+                - name: url
+                  value: https://github.com/konflux-ci/build-definitions.git
+                - name: revision
+                  value: main
+                - name: pathInRepo
+                  value: stepactions/eaas-get-ephemeral-cluster-credentials/0.1/eaas-get-ephemeral-cluster-credentials.yaml
+            params:
+              - name: eaasSpaceSecretRef
+                value: $(params.eaasSpaceSecretRef)
+              - name: clusterName
+                value: $(params.clusterName)
+              - name: credentials
+                value: credentials
+
+          - name: setup
+            image: quay.io/konflux-ci/konflux-test:latest
+            env:
+              - name: KUBECONFIG
+                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+            volumeMounts:
+              - name: credentials
+                mountPath: /credentials
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              curl -sSL "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+                -o /tmp/kubectl && chmod +x /tmp/kubectl
+              export PATH="/tmp:$PATH"
+
+              kubectl create namespace clusters --dry-run=client -o yaml | kubectl apply -f -
+
+              kubectl apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: oobtkube-dast-sa
+                namespace: default
+              EOF
+
+              kubectl apply -f - <<'EOF'
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: oobtkube-dast-role
+              rules:
+              - apiGroups: ["provisioning.dpu.hcp.io"]
+                resources: ["dpfhcpprovisioners", "dpfhcpprovisionerconfigs"]
+                verbs: ["get", "list", "create", "update", "patch", "delete"]
+              EOF
+
+              kubectl apply -f - <<'EOF'
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: oobtkube-dast-rolebinding
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: ClusterRole
+                name: oobtkube-dast-role
+              subjects:
+              - kind: ServiceAccount
+                name: oobtkube-dast-sa
+                namespace: default
+              EOF
+
+              cat > /tmp/cr.yaml <<'CR'
+              apiVersion: provisioning.dpu.hcp.io/v1alpha1
+              kind: DPFHCPProvisioner
+              metadata:
+                name: doca-oobtest
+                namespace: clusters
+              spec:
+                baseDomain: okoyl.xyz
+                controlPlaneAvailabilityPolicy: SingleReplica
+                dpuClusterRef:
+                  name: doca
+                  namespace: dpf-operator-system
+                dpuDeploymentRef:
+                  name: dpudeployment
+                  namespace: dpf-operator-system
+                etcdStorageClass: lvms-vg1
+                machineOSURL: quay.io/eelgaev/bluefield-ocp:4.21.0_3.4.0-beta
+                nodeSelector:
+                  node-role.kubernetes.io/worker: ""
+                ocpReleaseImage: quay.io/openshift-release-dev/ocp-release:4.22.0-ec.5-multi
+                pullSecretRef:
+                  name: my-pull-secret
+                sshKeySecretRef:
+                  name: my-ssh-key
+                virtualIP: 10.6.135.42
+              CR
+
+              # DPFHCPProvisionerConfig CR template — oobtkube will fuzz blueFieldOCPLayerRepo.
+              # When a config variant is applied, the operator re-reconciles all DPFHCPProvisioner
+              # CRs and calls lookupBlueFieldOCPLayerImage, which queries blueFieldOCPLayerRepo
+              # as a registry — the SSRF-sensitive code path.
+              cat > /tmp/config-cr.yaml <<'CR'
+              apiVersion: provisioning.dpu.hcp.io/v1alpha1
+              kind: DPFHCPProvisionerConfig
+              metadata:
+                name: default
+              spec:
+                blueFieldOCPLayerRepo: quay.io/eelgaev/rhcos-bfb
+                disableMetalLB: true
+              CR
+
+              kubectl create configmap oobtkube-dast-cr \
+                --from-file=cr.yaml=/tmp/cr.yaml \
+                --from-file=config-cr.yaml=/tmp/config-cr.yaml \
+                -n default \
+                --dry-run=client -o yaml | kubectl apply -f -
+
+              # Grant privileged SCC so the oobtkube pod can use hostNetwork and run as root
+              kubectl create clusterrolebinding oobtkube-dast-scc \
+                --clusterrole=system:openshift:scc:privileged \
+                --serviceaccount=default:oobtkube-dast-sa \
+                --dry-run=client -o yaml | kubectl apply -f -
+
+              echo "Setup complete."
+
+          - name: run-oobtkube
+            image: quay.io/konflux-ci/konflux-test:latest
+            env:
+              - name: KUBECONFIG
+                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+              - name: PORT
+                value: $(params.PORT)
+              - name: TIMEOUT
+                value: $(params.TIMEOUT)
+            volumeMounts:
+              - name: credentials
+                mountPath: /credentials
+              - name: scan-results
+                mountPath: /scan-results
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              curl -sSL "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+                -o /tmp/kubectl && chmod +x /tmp/kubectl
+              export PATH="/tmp:$PATH"
+
+              kubectl apply -f - <<EOF
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: oobtkube-dast
+                namespace: default
+              spec:
+                hostNetwork: true
+                restartPolicy: Never
+                serviceAccountName: oobtkube-dast-sa
+                volumes:
+                - name: cr
+                  configMap:
+                    name: oobtkube-dast-cr
+                containers:
+                - name: oobtkube
+                  image: quay.io/redhatproductsecurity/rapidast:latest
+                  command: ["/bin/sh", "-c"]
+                  env:
+                  - name: MY_NODE_IP
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: status.hostIP
+                  args:
+                  - |
+                    curl -sLO https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl &&
+                    chmod +x kubectl && mv kubectl /usr/local/bin/
+                    OOBTKUBE=\$(find / -name oobtkube.py 2>/dev/null | head -1)
+
+                    echo "=== Phase 1: fuzzing DPFHCPProvisioner CR fields ==="
+                    python3 "\$OOBTKUBE" \
+                      -d ${TIMEOUT} \
+                      -p ${PORT} \
+                      -i \$MY_NODE_IP \
+                      -f /cr/cr.yaml \
+                      --log-level info
+
+                    echo "=== Phase 2: fuzzing DPFHCPProvisionerConfig CR fields ==="
+                    # The DPFHCPProvisioner CR from Phase 1 is still in the cluster — no need to
+                    # re-apply. When oobtkube applies a DPFHCPProvisionerConfig variant the operator
+                    # re-reconciles it and calls lookupBlueFieldOCPLayerImage with the fuzzed repo.
+                    python3 "\$OOBTKUBE" \
+                      -d ${TIMEOUT} \
+                      -p ${PORT} \
+                      -i \$MY_NODE_IP \
+                      -f /cr/config-cr.yaml \
+                      --log-level info
+                  volumeMounts:
+                  - name: cr
+                    mountPath: /cr
+                  securityContext:
+                    runAsNonRoot: false
+                    runAsUser: 0
+                tolerations:
+                - operator: Exists
+              EOF
+
+              echo "Waiting for oobtkube pod to become Ready..."
+              if ! kubectl wait pod/oobtkube-dast -n default --for=condition=Ready --timeout=120s; then
+                echo "=== Pod not Ready after 120s — current state ==="
+                kubectl get pod oobtkube-dast -n default -o wide || true
+                kubectl describe pod oobtkube-dast -n default || true
+                kubectl get events -n default --sort-by='.lastTimestamp' | grep -i oobtkube || true
+              fi
+
+              WAIT_SECS=$(( TIMEOUT * 2 + 120 ))
+              END=$(( SECONDS + WAIT_SECS ))
+              while [ $SECONDS -lt $END ]; do
+                PHASE=$(kubectl get pod oobtkube-dast -n default \
+                  -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
+                echo "Pod phase: $PHASE"
+                if [[ "$PHASE" == "Succeeded" || "$PHASE" == "Failed" ]]; then
+                  break
+                fi
+                sleep 10
+              done
+
+              kubectl logs oobtkube-dast -n default > /scan-results/oobtkube-output.txt 2>&1
+              echo "--- oobtkube output ---"
+              cat /scan-results/oobtkube-output.txt
+
+          - name: post-process
+            image: quay.io/konflux-ci/konflux-test:latest
+            volumeMounts:
+              - name: scan-results
+                mountPath: /scan-results
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              source /utils.sh
+              trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
+
+              # Collect all SARIF lines — one per oobtkube run (Phase 1 + Phase 2).
+              grep '"$schema"' /scan-results/oobtkube-output.txt \
+                | sed 's/^[^{]*//' > /scan-results/all-sarifs.jsonl || true
+
+              if [[ ! -s /scan-results/all-sarifs.jsonl ]]; then
+                note="DAST scan failed: no SARIF output found in oobtkube pod logs."
+                TEST_OUTPUT=$(make_result_json -r "ERROR" -t "$note")
+                echo "${TEST_OUTPUT}" | tee "$(results.TEST_OUTPUT.path)"
+                echo '{"vulnerabilities":{"critical":0,"high":0,"medium":0,"low":0,"unknown":0}}' \
+                  | tee "$(results.SCAN_OUTPUT.path)"
+                exit 0
+              fi
+
+              # Store first SARIF for GCS upload (when enabled).
+              head -1 /scan-results/all-sarifs.jsonl > /scan-results/rapidast-scan-results.sarif
+
+              # Aggregate vulnerability counts across all runs (slurp reads each line as array element).
+              result=$(jq -rcs '
+                [.[].runs[0].results[]?] |
+                {vulnerabilities:{
+                  critical: ([.[] | select(.level == "error")]   | length),
+                  high:     ([.[] | select(.level == "warning")] | length),
+                  medium:   ([.[] | select(.level == "note")]    | length),
+                  low:      ([.[] | select(.level == "none")]    | length),
+                  unknown:  ([.[] | select(.level == "unknown")] | length)
+                }}' /scan-results/all-sarifs.jsonl)
+
+              echo "$result" | tee "$(results.SCAN_OUTPUT.path)"
+
+              CRITICAL=$(echo "$result" | jq '.vulnerabilities.critical')
+              if [[ "$CRITICAL" -gt 0 ]]; then
+                note="DAST FAILED: oobtkube detected ${CRITICAL} OOB vulnerability(ies) in dpf-hcp-provisioner CR fields."
+                TEST_OUTPUT=$(make_result_json -r "FAILURE" -t "$note")
+              else
+                note="Task $(context.task.name) completed: Refer to Tekton task result SCAN_OUTPUT for vulnerabilities scanned by RapiDAST."
+                TEST_OUTPUT=$(make_result_json -r "SUCCESS" -t "$note")
+              fi
+              echo "${TEST_OUTPUT}" | tee "$(results.TEST_OUTPUT.path)"
+
+          - name: upload-to-gcs
+            image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+            env:
+              - name: PIPELINERUN_NAME
+                value: $(context.pipelineRun.name)
+            volumeMounts:
+              - name: scan-results
+                mountPath: /scan-results
+              - name: gcs-key
+                mountPath: /gcs-key
+                readOnly: true
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              RESULTS=/scan-results/all-sarifs.jsonl
+              if [[ ! -s "$RESULTS" ]]; then
+                echo "No scan results to upload (oobtkube produced no SARIF output). Skipping GCS export."
+                exit 0
+              fi
+
+              gcloud auth activate-service-account \
+                --key-file=/gcs-key/gcs-key.json 2>&1
+
+              GCS_PATH="gs://secaut-bucket/dpu-kit-for-nvidia-operator/${PIPELINERUN_NAME}/rapidast-scan-results.jsonl"
+              gsutil cp "$RESULTS" "$GCS_PATH"
+              echo "Scan results uploaded to $GCS_PATH"
+
+  # ── Finally: clean up test resources (EaaS deprovisions the cluster itself) ─
+  finally:
+    - name: cleanup
+      when:
+        - input: "$(tasks.check-event-type.results.should-run)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: eaasSpaceSecretRef
+          value: $(tasks.provision-env.results.secretRef)
+        - name: clusterName
+          value: $(tasks.provision-cluster.results.clusterName)
+      taskSpec:
+        params:
+          - name: eaasSpaceSecretRef
+            type: string
+          - name: clusterName
+            type: string
+        volumes:
+          - name: credentials
+            emptyDir: {}
+        steps:
+          - name: get-kubeconfig
+            ref:
+              resolver: git
+              params:
+                - name: url
+                  value: https://github.com/konflux-ci/build-definitions.git
+                - name: revision
+                  value: main
+                - name: pathInRepo
+                  value: stepactions/eaas-get-ephemeral-cluster-credentials/0.1/eaas-get-ephemeral-cluster-credentials.yaml
+            params:
+              - name: eaasSpaceSecretRef
+                value: $(params.eaasSpaceSecretRef)
+              - name: clusterName
+                value: $(params.clusterName)
+              - name: credentials
+                value: credentials
+
+          - name: delete-test-resources
+            image: quay.io/konflux-ci/konflux-test:latest
+            env:
+              - name: KUBECONFIG
+                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+            volumeMounts:
+              - name: credentials
+                mountPath: /credentials
+            script: |
+              #!/bin/bash
+              curl -sSL "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+                -o /tmp/kubectl && chmod +x /tmp/kubectl
+              export PATH="/tmp:$PATH"
+              kubectl delete pod oobtkube-dast -n default --ignore-not-found=true
+              kubectl delete configmap oobtkube-dast-cr -n default --ignore-not-found=true
+              kubectl delete dpfhcpprovisioner doca-oobtest -n clusters --ignore-not-found=true
+              kubectl delete dpfhcpprovisionerconfig default --ignore-not-found=true
+              kubectl delete clusterrolebinding oobtkube-dast-rolebinding --ignore-not-found=true
+              kubectl delete clusterrole oobtkube-dast-role --ignore-not-found=true
+              kubectl delete serviceaccount oobtkube-dast-sa -n default --ignore-not-found=true
+              echo "Cleanup complete. EaaS will deprovision the ephemeral cluster."

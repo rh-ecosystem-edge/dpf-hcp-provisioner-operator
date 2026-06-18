@@ -1,0 +1,44 @@
+# Manual PipelineRun for the DAST oobtkube integration test.
+#
+# Use this when you want to trigger the DAST pipeline directly on the Konflux
+# cluster without waiting for a push/PR to kick off the IntegrationTestScenario
+# automatically. Useful for iterating on the pipeline or debugging failures.
+#
+# Before applying:
+#   1. Build and push your operator image to a registry you have access to.
+#   2. Set containerImage below to that image reference.
+#
+# Apply with:
+#   kubectl apply -f .tekton/integration-tests/pipelines/dpf-hcp-provisioner/dast-oobtkube-pipelinerun.yaml \
+#     -n dpu-kit-for-nvidia-operator-tenant
+#
+# Watch progress in the Konflux UI or with:
+#   kubectl get pipelinerun -n dpu-kit-for-nvidia-operator-tenant -w
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: dast-oobtkube-dpf-hcp-provisioner-run
+spec:
+  pipelineRef:
+    resolver: git
+    params:
+      # To test a branch before merging, point revision at your branch name.
+      - name: url
+        value: https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: .tekton/integration-tests/pipelines/dpf-hcp-provisioner/dast-oobtkube-pipeline.yaml
+  params:
+    # Replace containerImage with the operator image you built and pushed in advance.
+    - name: SNAPSHOT
+      value: |
+        {
+          "application": "dpf-hcp-provisioner-operator",
+          "components": [
+            {
+              "name": "dpf-hcp-provisioner-rhel10-operator",
+              "containerImage": "<your-operator-image-here, e.g. quay.io/youruser/dpf-hcp-provisioner-operator:latest>"
+            }
+          ]
+        }

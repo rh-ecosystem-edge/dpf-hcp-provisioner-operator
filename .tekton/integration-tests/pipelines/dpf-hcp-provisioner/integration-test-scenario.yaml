@@ -1,0 +1,37 @@
+# Konflux IntegrationTestScenario for oobtkube DAST
+#
+# Apply this to the Konflux workspace cluster (not the target/test cluster):
+#
+#   kubectl apply -f .tekton/integration-tests/pipelines/dpf-hcp-provisioner/integration-test-scenario.yaml \
+#     -n dpu-kit-for-nvidia-operator-tenant
+#
+# This tells Konflux to run the DAST pipeline after every successful build.
+# The pipeline provisions an ephemeral OCP cluster via EaaS — no static
+# kubeconfig secret required.
+apiVersion: appstudio.redhat.com/v1beta2
+kind: IntegrationTestScenario
+metadata:
+  name: dast-oobtkube
+  namespace: dpu-kit-for-nvidia-operator-tenant
+spec:
+  application: dpf-hcp-provisioner-operator
+  contexts:
+    - description: Run DAST only when dpf-hcp-provisioner-rhel10-operator is built
+      name: component_dpf-hcp-provisioner-rhel10-operator
+  resolverRef:
+    resolver: git
+    resourceKind: pipeline
+    params:
+      - name: url
+        value: https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: .tekton/integration-tests/pipelines/dpf-hcp-provisioner/dast-oobtkube-pipeline.yaml
+  params:
+    - name: OOBTKUBE_PORT
+      value: "34568"
+    - name: OOBTKUBE_TIMEOUT
+      value: "300"
+    - name: GCS_KEY_SECRET
+      value: gcs-key

@@ -26,8 +26,9 @@ go.work
 *.swo
 *~
 
-# Generated DPF CRDs for e2e tests (from vendored nvidia/doca-platform types)
+# Generated CRDs (from vendored types — never commit, regenerate with make targets)
 test/e2e/testdata/crds/
+test/dast/crds/
 
 # claude agents, skills and outputs
 .claude
