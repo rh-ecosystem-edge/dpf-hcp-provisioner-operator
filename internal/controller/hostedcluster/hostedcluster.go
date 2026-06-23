@@ -19,6 +19,7 @@ package hostedcluster
 import (
 	"context"
 	"fmt"
+	"time"
 
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"github.com/openshift/hypershift/api/util/ipnet"
@@ -74,10 +75,29 @@ func (hm *HostedClusterManager) CreateOrUpdateHostedCluster(ctx context.Context,
 	if err == nil {
 		// HostedCluster exists - verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingHC, cr) {
-			log.V(1).Info("HostedCluster already exists and is owned by this DPFHCPProvisioner, adopting",
+			// Check if release image needs to be updated (upgrade scenario)
+			if existingHC.Spec.Release.Image != cr.Spec.OCPReleaseImage {
+				log.Info("Updating HostedCluster release image for upgrade",
+					"hostedCluster", hcName,
+					"oldImage", existingHC.Spec.Release.Image,
+					"newImage", cr.Spec.OCPReleaseImage)
+
+				existingHC.Spec.Release.Image = cr.Spec.OCPReleaseImage
+				if err := hm.Update(ctx, existingHC); err != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to update HostedCluster release image: %w", err)
+				}
+
+				// Clear the cached BlueField OCP layer image since it corresponds to the old OCP version.
+				// The lookup will re-run in the IgnitionGenerating phase for the new version.
+				cr.Status.BlueFieldOCPLayerImage = ""
+
+				// Requeue to let the HC upgrade proceed before running ignition generation
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			}
+
+			log.V(1).Info("HostedCluster already exists and is owned by this DPFHCPProvisioner, no update needed",
 				"hostedCluster", hcName,
 				"namespace", hcNamespace)
-			// TODO: If the DPFHCPProvisioner is updated, check whether the hc spec needs to be updated here
 			return ctrl.Result{}, nil
 		}
 

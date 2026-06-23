@@ -449,6 +449,7 @@ spec:
                 enum:
                 - Pending
                 - Provisioning
+                - Upgrading
                 - IgnitionGenerating
                 - Ready
                 - Failed

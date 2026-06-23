@@ -17,10 +17,16 @@ limitations under the License.
 package hostedcluster
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
@@ -84,5 +90,114 @@ var _ = Describe("NodePool Builder", func() {
 
 			Expect(np.Spec.Management.UpgradeType).To(Equal(hyperv1.UpgradeTypeReplace))
 		})
+	})
+})
+
+var _ = Describe("NodePool Upgrade", func() {
+	const (
+		oldImage = "quay.io/openshift-release-dev/ocp-release:4.18.0-multi"
+		newImage = "quay.io/openshift-release-dev/ocp-release:4.19.0-multi"
+	)
+
+	var (
+		ctx    context.Context
+		scheme *runtime.Scheme
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		scheme = runtime.NewScheme()
+		Expect(provisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
+	})
+
+	It("should update NodePool release image when spec changes", func() {
+		cr := &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-provisioner",
+				Namespace: "default",
+				UID:       "test-uid",
+			},
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+				OCPReleaseImage: newImage,
+			},
+		}
+
+		existingNP := &hyperv1.NodePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-provisioner",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion:         "provisioning.dpu.hcp.io/v1alpha1",
+					Kind:               "DPFHCPProvisioner",
+					Name:               "test-provisioner",
+					UID:                "test-uid",
+					Controller:         ptr.To(true),
+					BlockOwnerDeletion: ptr.To(true),
+				}},
+			},
+			Spec: hyperv1.NodePoolSpec{
+				Release: hyperv1.Release{Image: oldImage},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(existingNP).
+			Build()
+
+		npm := NewNodePoolManager(fakeClient, scheme)
+		result, err := npm.CreateNodePool(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		updatedNP := &hyperv1.NodePool{}
+		Expect(fakeClient.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: "default"}, updatedNP)).To(Succeed())
+		Expect(updatedNP.Spec.Release.Image).To(Equal(newImage))
+	})
+
+	It("should not update NodePool when release image is unchanged", func() {
+		cr := &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-provisioner",
+				Namespace: "default",
+				UID:       "test-uid",
+			},
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+				OCPReleaseImage: oldImage,
+			},
+		}
+
+		existingNP := &hyperv1.NodePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-provisioner",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion:         "provisioning.dpu.hcp.io/v1alpha1",
+					Kind:               "DPFHCPProvisioner",
+					Name:               "test-provisioner",
+					UID:                "test-uid",
+					Controller:         ptr.To(true),
+					BlockOwnerDeletion: ptr.To(true),
+				}},
+			},
+			Spec: hyperv1.NodePoolSpec{
+				Release: hyperv1.Release{Image: oldImage},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(existingNP).
+			Build()
+
+		npm := NewNodePoolManager(fakeClient, scheme)
+		result, err := npm.CreateNodePool(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		unchangedNP := &hyperv1.NodePool{}
+		Expect(fakeClient.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: "default"}, unchangedNP)).To(Succeed())
+		Expect(unchangedNP.Spec.Release.Image).To(Equal(oldImage))
 	})
 })

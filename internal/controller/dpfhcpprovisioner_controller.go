@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -208,30 +209,18 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		log.V(1).Info("Skipping secret management - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
 	}
 
-	// Feature: HostedCluster & NodePool Creation
-	// Only run during Pending phase (all validations must pass first)
-	// Note: We only check for Pending (not Failed) to prevent creation when validations fail
-	// If user fixes validation issues, phase will transition back to Pending and creation will proceed
-	if cr.Status.Phase == provisioningv1alpha1.PhasePending {
-		log.V(1).Info("Creating HostedCluster and NodePool")
+	// Feature: Upgrade Detection and Handling
+	// Detects release image changes, sets HostedClusterUpgrading condition,
+	// deletes stale ignition, and manages the upgrade lifecycle.
+	// This MUST run BEFORE reconcileHostedClusterAndNodePool so conditions are set
+	// before the HC/NP images are updated.
+	if result, err := r.handleUpgrade(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+		return result, err
+	}
 
-		// Create or update HostedCluster
-		if result, err := r.HostedClusterManager.CreateOrUpdateHostedCluster(ctx, &cr); err != nil || result.RequeueAfter > 0 {
-			if err != nil {
-				log.Error(err, "HostedCluster creation failed")
-			}
-			return result, err
-		}
-
-		// Create NodePool
-		if result, err := r.NodePoolManager.CreateNodePool(ctx, &cr); err != nil || result.RequeueAfter > 0 {
-			if err != nil {
-				log.Error(err, "NodePool creation failed")
-			}
-			return result, err
-		}
-	} else {
-		log.V(1).Info("Skipping HostedCluster/NodePool creation - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
+	// Feature: HostedCluster & NodePool Creation and Upgrade
+	if result, err := r.reconcileHostedClusterAndNodePool(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+		return result, err
 	}
 
 	// Set hostedClusterRef if HostedCluster exists and is owned by this CR
@@ -285,11 +274,6 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return result, err
 	}
 
-	// Feature: Ignition Generation
-	if result, err := r.generateIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
-		return result, err
-	}
-
 	// Verify ignition ConfigMap still exists (self-heal on external deletion).
 	// If the ConfigMap was deleted, persist the updated status immediately and
 	// requeue so the next reconcile regenerates it.
@@ -301,6 +285,11 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Feature: Ignition Generation
+	if result, err := r.generateIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+		return result, err
 	}
 
 	// Compute Ready condition based on all operational requirements
@@ -777,6 +766,9 @@ func (r *DPFHCPProvisionerReconciler) dpuDeploymentChanged(ctx context.Context, 
 	return false
 }
 
+// deleteStaleIgnitionConfigMap deletes the ignition ConfigMap when it was generated for an older
+// spec version (e.g., after a release image upgrade). This prevents DPUs from being provisioned
+// with stale ignition during an upgrade. The deletion is idempotent -- it runs on every reconcile
 // verifyIgnitionConfigMap checks that the ignition ConfigMap still exists when IgnitionConfigured=True.
 // If the ConfigMap was deleted externally, this clears IgnitionConfigured so the reconciler
 // re-enters the IgnitionGenerating phase and re-creates it.
@@ -968,7 +960,20 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		}
 	}
 
-	// Requirement 2: HostedCluster must be available
+	// Requirement 2: HostedCluster must not be upgrading
+	hcUpgrading := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+	if hcUpgrading != nil && hcUpgrading.Status == metav1.ConditionTrue {
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:    provisioningv1alpha1.Ready,
+			Status:  metav1.ConditionFalse,
+			Reason:  provisioningv1alpha1.ReasonHostedClusterNotReady,
+			Message: "HostedCluster upgrade in progress",
+		})
+		log.V(1).Info("Not ready: HostedCluster upgrade in progress")
+		return
+	}
+
+	// Requirement 3: HostedCluster must be available
 	// This is set by the StatusSyncer after mirroring HostedCluster status
 	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
 	if hcAvailable == nil || hcAvailable.Status != metav1.ConditionTrue {
@@ -982,7 +987,7 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	// Requirement 3: Kubeconfig must be injected
+	// Requirement 4: Kubeconfig must be injected
 	// This is set by the KubeconfigInjector after successful injection
 	kubeconfigInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 	if kubeconfigInjected == nil || kubeconfigInjected.Status != metav1.ConditionTrue {
@@ -1078,14 +1083,23 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
-	// Check if ignition generation is required
+	// Check if ignition generation is required.
+	// Transition to IgnitionGenerating when HC is available, not upgrading, and ignition is stale/missing.
 	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
 	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+	hcUpgrading := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
 	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
 		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
+		(hcUpgrading == nil || hcUpgrading.Status != metav1.ConditionTrue) &&
 		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
 			ignConfigured.ObservedGeneration != cr.Generation) {
 		cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
+		return
+	}
+
+	// Check if upgrade is in progress
+	if hcUpgrading != nil && hcUpgrading.Status == metav1.ConditionTrue {
+		cr.Status.Phase = provisioningv1alpha1.PhaseUpgrading
 		return
 	}
 
@@ -1097,6 +1111,162 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 
 	// All validations passed, waiting for provisioning to start
 	cr.Status.Phase = provisioningv1alpha1.PhasePending
+}
+
+// reconcileHostedClusterAndNodePool creates or updates the HostedCluster and NodePool resources.
+// During Pending phase: creates HC and NP for the first time (initial provisioning).
+// After provisioning (hostedClusterRef is set): checks for release image changes to support upgrades.
+// If an upgrade is triggered, persists status and returns RequeueAfter to let the HC upgrade
+// proceed before running ignition generation.
+func (r *DPFHCPProvisionerReconciler) reconcileHostedClusterAndNodePool(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	if cr.Status.Phase == provisioningv1alpha1.PhasePending {
+		log.V(1).Info("Creating HostedCluster and NodePool")
+
+		if result, err := r.HostedClusterManager.CreateOrUpdateHostedCluster(ctx, cr); err != nil || result.RequeueAfter > 0 {
+			if err != nil {
+				log.Error(err, "HostedCluster creation failed")
+			}
+			return result, err
+		}
+
+		if result, err := r.NodePoolManager.CreateNodePool(ctx, cr); err != nil || result.RequeueAfter > 0 {
+			if err != nil {
+				log.Error(err, "NodePool creation failed")
+			}
+			return result, err
+		}
+
+		return ctrl.Result{}, nil
+	}
+
+	if cr.Status.HostedClusterRef != nil {
+		log.V(1).Info("Checking HostedCluster and NodePool for release image updates")
+
+		if result, err := r.HostedClusterManager.CreateOrUpdateHostedCluster(ctx, cr); err != nil || result.RequeueAfter > 0 {
+			if err != nil {
+				log.Error(err, "HostedCluster update failed")
+			}
+			return result, err
+		}
+
+		if result, err := r.NodePoolManager.CreateNodePool(ctx, cr); err != nil || result.RequeueAfter > 0 {
+			if err != nil {
+				log.Error(err, "NodePool update failed")
+			}
+			return result, err
+		}
+	} else {
+		log.V(1).Info("Skipping HostedCluster/NodePool operations - not in applicable phase", "phase", cr.Status.Phase)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// handleUpgrade detects and manages the HostedCluster upgrade lifecycle.
+// When the user updates spec.ocpReleaseImage, this function:
+//  1. Detects the upgrade by comparing the HC release image with the CR spec
+//  2. Sets HostedClusterUpgrading=True and IgnitionConfigured=False
+//  3. Deletes the stale ignition ConfigMap
+//  4. Persists status and requeues
+//
+// On subsequent reconciles while HostedClusterUpgrading=True:
+//   - The HostedClusterUpgrading condition blocks Ready (via computeReadyCondition)
+//   - The HostedClusterUpgrading condition blocks IgnitionGenerating (via updatePhaseFromConditions)
+//   - Phase stays Provisioning until the upgrade is marked complete
+//
+// The upgrade is marked complete when HostedClusterUpgrading=True but the HC release image
+// matches the CR spec (HC was already updated by CreateOrUpdateHostedCluster).
+// At that point, HostedClusterUpgrading is set to False, allowing the phase machine
+// to transition to IgnitionGenerating → Ready.
+func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	if cr.Status.HostedClusterRef == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// Fetch current HC to compare release images
+	hc := &hyperv1.HostedCluster{}
+	hcKey := types.NamespacedName{Name: cr.Status.HostedClusterRef.Name, Namespace: cr.Status.HostedClusterRef.Namespace}
+	if err := r.Get(ctx, hcKey, hc); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	upgrading := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+
+	// Case 1: Upgrade in progress — check if HC has been updated to the target image
+	if upgrading != nil && upgrading.Status == metav1.ConditionTrue {
+		if hc.Spec.Release.Image == cr.Spec.OCPReleaseImage {
+			log.Info("Upgrade propagation complete, HC release image updated",
+				"releaseImage", cr.Spec.OCPReleaseImage)
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.HostedClusterUpgrading,
+				Status:             metav1.ConditionFalse,
+				Reason:             provisioningv1alpha1.ReasonUpgradeComplete,
+				Message:            fmt.Sprintf("Upgrade to %s complete, awaiting ignition regeneration", cr.Spec.OCPReleaseImage),
+				ObservedGeneration: cr.Generation,
+			})
+			r.Recorder.Event(cr, corev1.EventTypeNormal, provisioningv1alpha1.ReasonUpgradeComplete,
+				fmt.Sprintf("HostedCluster upgrade to %s completed", cr.Spec.OCPReleaseImage))
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Case 2: No upgrade in progress — check if one is needed
+	if hc.Spec.Release.Image == cr.Spec.OCPReleaseImage {
+		return ctrl.Result{}, nil
+	}
+
+	// Upgrade detected: HC release image differs from CR spec
+	log.Info("Upgrade detected",
+		"currentImage", hc.Spec.Release.Image,
+		"targetImage", cr.Spec.OCPReleaseImage)
+
+	// Set HostedClusterUpgrading=True
+	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		Type:               provisioningv1alpha1.HostedClusterUpgrading,
+		Status:             metav1.ConditionTrue,
+		Reason:             provisioningv1alpha1.ReasonUpgradeInProgress,
+		Message:            fmt.Sprintf("Upgrading from %s to %s", hc.Spec.Release.Image, cr.Spec.OCPReleaseImage),
+		ObservedGeneration: cr.Generation,
+	})
+
+	// Set IgnitionConfigured=False (stale for old version)
+	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		Type:               provisioningv1alpha1.IgnitionConfigured,
+		Status:             metav1.ConditionFalse,
+		Reason:             "ReleaseImageUpdated",
+		Message:            "Ignition invalidated due to release image upgrade, will regenerate after upgrade completes",
+		ObservedGeneration: cr.Generation,
+	})
+
+	// Delete stale ignition ConfigMap (separate API call, not affected by status conflicts)
+	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
+	cmNamespace := cr.Spec.DPUClusterRef.Namespace
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNamespace}, cm); err == nil {
+		if err := r.Delete(ctx, cm); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to delete stale ignition ConfigMap %s/%s: %w", cmNamespace, cmName, err)
+		}
+		log.Info("Deleted stale ignition ConfigMap", "configmap", cmName, "namespace", cmNamespace)
+	}
+
+	// Clear cached BlueField OCP layer image (stale for old version)
+	cr.Status.BlueFieldOCPLayerImage = ""
+
+	// Persist status and requeue
+	r.computeReadyCondition(ctx, cr)
+	r.updatePhaseFromConditions(cr)
+	if err := r.Status().Update(ctx, cr); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	r.Recorder.Event(cr, corev1.EventTypeNormal, provisioningv1alpha1.ReasonUpgradeInProgress,
+		fmt.Sprintf("Upgrade started: %s → %s", hc.Spec.Release.Image, cr.Spec.OCPReleaseImage))
+
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
 // handleDeletion handles the deletion of a DPFHCPProvisioner CR by running finalizer cleanup
