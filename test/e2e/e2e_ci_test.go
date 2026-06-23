@@ -411,6 +411,111 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 		})
 	})
 
+	Context("HostedCluster Upgrade", func() {
+		It("should upgrade HostedCluster when ocpReleaseImage is updated", func() {
+			upgradeImage := getUpgradeOCPReleaseImage()
+			if upgradeImage == "" {
+				Skip("Skipping upgrade test - UPGRADE_OCP_RELEASE_IMAGE not set")
+			}
+
+			if getCRPhase(provisionerName) != "Ready" {
+				Skip("Skipping upgrade test - CR not in Ready state")
+			}
+
+			ctx := context.Background()
+
+			By("recording the original release image")
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: ciNamespace,
+				Name:      provisionerName,
+			}, provisioner)
+			Expect(err).NotTo(HaveOccurred())
+			originalImage := provisioner.Spec.OCPReleaseImage
+			hcName := provisioner.Status.HostedClusterRef.Name
+			originalBFImage := provisioner.Status.BlueFieldOCPLayerImage
+
+			_, _ = fmt.Fprintf(GinkgoWriter,
+				"Upgrading from %s to %s\n", originalImage, upgradeImage)
+
+			By("updating DPFHCPProvisioner ocpReleaseImage")
+			updateDPFHCPProvisionerReleaseImage(ciNamespace, provisionerName, upgradeImage)
+
+			By("verifying HostedCluster release image is updated")
+			Eventually(func(g Gomega) {
+				image := getHostedClusterReleaseImage(ciNamespace, hcName)
+				g.Expect(image).To(Equal(upgradeImage),
+					"HostedCluster release image should be updated")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("verifying NodePool release image is updated")
+			Eventually(func(g Gomega) {
+				image := getNodePoolReleaseImage(ciNamespace, hcName)
+				g.Expect(image).To(Equal(upgradeImage),
+					"NodePool release image should be updated")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for HostedCluster to become available after upgrade")
+			Eventually(func(g Gomega) {
+				hc := &hyperv1.HostedCluster{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Namespace: ciNamespace,
+					Name:      hcName,
+				}, hc)
+				g.Expect(err).NotTo(HaveOccurred())
+
+				available := false
+				for _, cond := range hc.Status.Conditions {
+					if cond.Type == string(hyperv1.HostedClusterAvailable) && cond.Status == metav1.ConditionTrue {
+						available = true
+						break
+					}
+				}
+				g.Expect(available).To(BeTrue(), "HostedCluster not yet available after upgrade")
+			}, upgradeTimeout, pollingInterval).Should(Succeed())
+
+			By("waiting for CR to return to Ready state")
+			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)
+
+			By("verifying BlueFieldOCPLayerImage reflects the new version")
+			if originalBFImage != "" {
+				Eventually(func(g Gomega) {
+					bfImage := getBlueFieldOCPLayerImage(ciNamespace, provisionerName)
+					g.Expect(bfImage).NotTo(BeEmpty(),
+						"BlueFieldOCPLayerImage should be set after upgrade")
+					g.Expect(bfImage).NotTo(Equal(originalBFImage),
+						"BlueFieldOCPLayerImage should differ from original after upgrade")
+				}, 5*time.Minute, pollingInterval).Should(Succeed())
+			}
+
+			By("verifying ignition ConfigMap was regenerated")
+			ignitionCMName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+			cm := &corev1.ConfigMap{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: dpuClusterNS,
+				Name:      ignitionCMName,
+			}, cm)
+			Expect(err).NotTo(HaveOccurred(), "Ignition ConfigMap should exist after upgrade")
+			Expect(cm.Data["BF_CFG_TEMPLATE"]).NotTo(BeEmpty(),
+				"Ignition ConfigMap should have data after upgrade")
+
+			By("verifying final status conditions are healthy")
+			conditions := getCRConditions(ciNamespace, provisionerName)
+			Expect(conditions).NotTo(BeEmpty(), "No conditions found")
+
+			condMap := make(map[string]metav1.ConditionStatus)
+			for _, c := range conditions {
+				condMap[c.Type] = c.Status
+			}
+			Expect(condMap["HostedClusterAvailable"]).To(Equal(metav1.ConditionTrue),
+				"HostedClusterAvailable should be True after upgrade")
+			Expect(condMap["Ready"]).To(Equal(metav1.ConditionTrue),
+				"Ready should be True after upgrade")
+			Expect(condMap["IgnitionConfigured"]).To(Equal(metav1.ConditionTrue),
+				"IgnitionConfigured should be True after upgrade")
+		})
+	})
+
 	Context("CSR Auto-Approval", func() {
 		const testDPUHostname = "e2e-test-dpu-node"
 

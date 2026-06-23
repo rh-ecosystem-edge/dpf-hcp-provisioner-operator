@@ -513,6 +513,92 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			}, timeout, interval).Should(BeTrue())
 		})
 
+		It("should not transition to IgnitionGenerating while HostedClusterUpgrading is True", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-upgrading",
+					Namespace:  testNamespace,
+					Generation: 2,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-upgrading",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterAvailable,
+				Status: metav1.ConditionTrue,
+				Reason: "Available",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterUpgrading,
+				Status: metav1.ConditionTrue,
+				Reason: provisioningv1alpha1.ReasonUpgradeInProgress,
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.KubeConfigInjected,
+				Status: metav1.ConditionTrue,
+				Reason: provisioningv1alpha1.ReasonKubeConfigInjected,
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionFalse,
+				Reason:             "ReleaseImageUpdated",
+				ObservedGeneration: 2,
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseUpgrading),
+				"should be Upgrading while HostedClusterUpgrading=True")
+		})
+
+		It("should transition to IgnitionGenerating when HostedClusterUpgrading is False", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-upgrade-done",
+					Namespace:  testNamespace,
+					Generation: 2,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-upgrade-done",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterAvailable,
+				Status: metav1.ConditionTrue,
+				Reason: "Available",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterUpgrading,
+				Status: metav1.ConditionFalse,
+				Reason: provisioningv1alpha1.ReasonUpgradeComplete,
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.KubeConfigInjected,
+				Status: metav1.ConditionTrue,
+				Reason: provisioningv1alpha1.ReasonKubeConfigInjected,
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionFalse,
+				Reason:             "ReleaseImageUpdated",
+				ObservedGeneration: 2,
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseIgnitionGenerating),
+				"should transition to IgnitionGenerating when upgrade is complete")
+		})
+
 		It("should transition to Failed when ignition generation fails (IgnitionConfigured=False)", func() {
 			// Create DPFHCPProvisioner
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
