@@ -147,7 +147,8 @@ run_mstconfig() {
 # Usage: query_nvconfig <dev> <PARAM1> [PARAM2 ...]
 # Sets NVCONFIG_<PARAM> variables in the caller's scope.
 query_nvconfig() {
-    local dev=$1; shift
+    local dev=$1
+    shift
     local query_output
     if ! query_output=$(mstconfig -d ${dev} -e q "$@" 2>&1); then
         error "NVConfig" "Failed to query NVConfig on dev ${dev}"
@@ -248,6 +249,8 @@ sync
 
 log "INFO: Installation complete."
 
+/usr/local/bin/bfupsignal.sh
+
 dpu_agent update-time
 
 log "INFO: Waiting for DPU phase to reach 'DPU Config'..."
@@ -256,7 +259,6 @@ until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
     sleep 5
 done
 wait_for_host_reboot_if_required
-
 
 log "INFO: Waiting for 10 seconds before rebooting"
 sleep 10
