@@ -40,6 +40,8 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpuservicetemplate"
 )
 
+const testOperatorNamespace = "dpf-hcp-provisioner-system"
+
 type fakeReleaseImageReader struct {
 	image     string
 	err       error
@@ -170,7 +172,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.EnsureTemplates(ctx, targetNamespace)
 				Expect(err).NotTo(HaveOccurred())
@@ -234,7 +236,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				// First call resolves from release payload
 				err := manager.EnsureTemplates(ctx, targetNamespace)
@@ -259,7 +261,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				// First call creates templates
 				err := manager.EnsureTemplates(ctx, targetNamespace)
@@ -310,7 +312,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 
 				newArm64Image := "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:ddd444"
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				// First call creates templates
 				err := manager.EnsureTemplates(ctx, targetNamespace)
@@ -371,7 +373,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.EnsureTemplates(ctx, targetNamespace)
 				Expect(err).To(HaveOccurred())
@@ -394,7 +396,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.EnsureTemplates(ctx, targetNamespace)
 				Expect(err).To(HaveOccurred())
@@ -416,7 +418,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.EnsureTemplates(ctx, targetNamespace)
 				Expect(err).To(HaveOccurred())
@@ -436,7 +438,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 				reader := &fakeReleaseImageReader{
 					err: fmt.Errorf("unable to pull release image"),
 				}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.EnsureTemplates(ctx, targetNamespace)
 				Expect(err).To(HaveOccurred())
@@ -472,7 +474,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.EnsureTemplates(ctx, targetNamespace)
 				Expect(err).NotTo(HaveOccurred())
@@ -536,7 +538,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.DeleteTemplates(ctx, targetNamespace)
 				Expect(err).NotTo(HaveOccurred())
@@ -559,7 +561,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 					Build()
 
 				reader := &fakeReleaseImageReader{image: arm64OVNImage}
-				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, reader)
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.DeleteTemplates(ctx, targetNamespace)
 				Expect(err).NotTo(HaveOccurred())

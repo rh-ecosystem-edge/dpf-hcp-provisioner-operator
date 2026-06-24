@@ -67,14 +67,18 @@ var ServiceNames = []string{"ovn", "doca-telemetry-service", "hbn"}
 // DPUServiceTemplateManager handles DPUServiceTemplate resource creation and deletion.
 type DPUServiceTemplateManager struct {
 	client             client.Client
+	apiReader          client.Reader
 	ReleaseImageReader ReleaseImageReader
+	OperatorNamespace  string
 }
 
 // NewDPUServiceTemplateManager creates a new DPUServiceTemplate manager
-func NewDPUServiceTemplateManager(c client.Client, reader ReleaseImageReader) *DPUServiceTemplateManager {
+func NewDPUServiceTemplateManager(c client.Client, apiReader client.Reader, reader ReleaseImageReader, operatorNamespace string) *DPUServiceTemplateManager {
 	return &DPUServiceTemplateManager{
 		client:             c,
+		apiReader:          apiReader,
 		ReleaseImageReader: reader,
+		OperatorNamespace:  operatorNamespace,
 	}
 }
 
@@ -90,9 +94,18 @@ func (m *DPUServiceTemplateManager) EnsureTemplates(ctx context.Context, namespa
 		return fmt.Errorf("determining DPF version: %w", err)
 	}
 
-	dpuServiceTemplateValues, err := DPUServiceTemplateValuesForVersion(dpfVersion)
+	majorVersion := strings.TrimPrefix(dpfVersion, "v")
+	if idx := strings.Index(majorVersion, "."); idx > 0 {
+		majorVersion = majorVersion[:idx]
+	}
+
+	dpuServiceTemplateValues, err := DPUServiceTemplateValuesForVersion(majorVersion)
 	if err != nil {
 		return fmt.Errorf("unsupported DPF version %q: %w", dpfVersion, err)
+	}
+
+	if err := applyOverridesFromConfigMap(ctx, m.apiReader, m.OperatorNamespace, majorVersion, dpuServiceTemplateValues); err != nil {
+		return fmt.Errorf("applying overrides from configmap: %w", err)
 	}
 
 	ovnImageRepo, ovnImageTag, sourceImage, err := m.resolveOVNImageIfChanged(ctx, namespace)

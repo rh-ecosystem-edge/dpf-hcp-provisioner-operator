@@ -215,9 +215,14 @@ func main() {
 		Cache: cache.Options{
 			ByObject: map[crclient.Object]cache.ByObject{
 				&corev1.ConfigMap{}: {
-					Label: labels.SelectorFromSet(labels.Set{
-						ignitiongenerator.BfcfgTemplateLabel: "true",
-					}),
+					Namespaces: map[string]cache.Config{
+						cache.AllNamespaces: {
+							LabelSelector: labels.SelectorFromSet(labels.Set{
+								ignitiongenerator.BfcfgTemplateLabel: "true",
+							}),
+						},
+						controller.OperatorNamespace: {},
+					},
 				},
 			},
 		},
@@ -328,7 +333,9 @@ func main() {
 		Client: client,
 		Scheme: scheme,
 		Manager: dpuservicetemplate.NewDPUServiceTemplateManager(client,
-			&dpuservicetemplate.RemoteReleaseImageReader{}),
+			mgr.GetAPIReader(),
+			&dpuservicetemplate.RemoteReleaseImageReader{},
+			controller.OperatorNamespace),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DPUServiceTemplate")
 		os.Exit(1)

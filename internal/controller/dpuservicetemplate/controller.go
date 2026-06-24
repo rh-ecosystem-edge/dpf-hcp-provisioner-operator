@@ -20,6 +20,7 @@ import (
 	"context"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -120,6 +121,11 @@ func (r *DPUServiceTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			// Avoids status update reconciliations
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.overridesConfigMapToNamespaces),
+			builder.WithPredicates(overridesConfigMapPredicate(r.Manager.OperatorNamespace)),
+		).
 		Complete(r)
 }
 
@@ -171,6 +177,30 @@ func (r *DPUServiceTemplateReconciler) allActiveNamespaces(ctx context.Context) 
 	}
 
 	return requests
+}
+
+// overridesConfigMapToNamespaces enqueues reconcile requests for all active DPUCluster namespaces
+// when the overrides ConfigMap changes.
+func (r *DPUServiceTemplateReconciler) overridesConfigMapToNamespaces(ctx context.Context, _ client.Object) []reconcile.Request {
+	return r.allActiveNamespaces(ctx)
+}
+
+func overridesConfigMapPredicate(operatorNamespace string) predicate.Predicate {
+	isOverridesConfigMap := func(obj client.Object) bool {
+		return obj.GetName() == overridesConfigMapName &&
+			obj.GetNamespace() == operatorNamespace
+	}
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return isOverridesConfigMap(e.Object)
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return isOverridesConfigMap(e.ObjectNew)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return isOverridesConfigMap(e.Object)
+		},
+	}
 }
 
 func ovnDaemonSetPredicate() predicate.Predicate {
