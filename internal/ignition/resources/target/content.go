@@ -1,7 +1,10 @@
 package target
 
 import (
+	"bytes"
 	"embed"
+	"fmt"
+	"text/template"
 
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/content"
 )
@@ -119,4 +122,20 @@ func NewProvider() *content.EmbeddedProvider {
 		},
 		SystemdFS: &systemdFS,
 	}
+}
+
+func RenderDPUAgentServiceUnit(zeroTrust bool) (string, string, error) {
+	tmplBytes := content.EmbedFile(filesFS, "files/dpu-agent.service.tmpl")
+	tmpl, err := template.New("dpu-agent.service").Parse(string(tmplBytes))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse dpu-agent.service template: %w", err)
+	}
+
+	data := struct{ ZeroTrust bool }{ZeroTrust: zeroTrust}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", "", fmt.Errorf("failed to render dpu-agent.service template: %w", err)
+	}
+
+	return "dpu-agent.service", buf.String(), nil
 }
