@@ -38,86 +38,36 @@ func (f *fakeImageChecker) CheckTag(ctx context.Context, ref name.Reference, key
 const testRepository = "quay.io/test-org/bluefield-os"
 
 var _ = Describe("BlueField OCP Layer Image Lookup", func() {
-	Describe("OCP Version Extraction", func() {
-		Context("When extracting version with -multi suffix", func() {
-			It("should strip the -multi suffix", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-multi"
-				version, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(Equal("4.19.0-ec.5"))
-			})
+	Describe("OCP Version Extraction from Tag", func() {
+		It("should strip -multi suffix", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:4.19.0-ec.5-multi")).To(Equal("4.19.0-ec.5"))
 		})
-
-		Context("When extracting version with -x86_64 suffix", func() {
-			It("should strip the -x86_64 suffix", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:4.18.2-rc.1-x86_64"
-				version, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(Equal("4.18.2-rc.1"))
-			})
+		It("should strip -x86_64 suffix", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:4.18.2-rc.1-x86_64")).To(Equal("4.18.2-rc.1"))
 		})
-
-		Context("When extracting version with -amd64 suffix", func() {
-			It("should strip the -amd64 suffix", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-amd64"
-				version, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(Equal("4.19.0-ec.5"))
-			})
+		It("should strip -amd64 suffix", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:4.19.0-ec.5-amd64")).To(Equal("4.19.0-ec.5"))
 		})
-
-		Context("When extracting version with -arm64 suffix", func() {
-			It("should strip the -arm64 suffix", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-arm64"
-				version, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(Equal("4.19.0-ec.5"))
-			})
+		It("should strip -arm64 suffix", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:4.19.0-ec.5-arm64")).To(Equal("4.19.0-ec.5"))
 		})
-
-		Context("When extracting version with -ppc64le suffix", func() {
-			It("should strip the -ppc64le suffix", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-ppc64le"
-				version, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(Equal("4.19.0-ec.5"))
-			})
+		It("should strip -ppc64le suffix", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:4.19.0-ec.5-ppc64le")).To(Equal("4.19.0-ec.5"))
 		})
-
-		Context("When extracting version with -s390x suffix", func() {
-			It("should strip the -s390x suffix", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-s390x"
-				version, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(Equal("4.19.0-ec.5"))
-			})
+		It("should strip -s390x suffix", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:4.19.0-ec.5-s390x")).To(Equal("4.19.0-ec.5"))
 		})
-
-		Context("When extracting version without any suffix", func() {
-			It("should return the version as-is", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5"
-				version, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(version).To(Equal("4.19.0-ec.5"))
-			})
+		It("should return version as-is when no arch suffix", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:4.19.0-ec.5")).To(Equal("4.19.0-ec.5"))
 		})
-
-		Context("When image URL has no tag separator", func() {
-			It("should return an error", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release"
-				_, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("missing tag separator"))
-			})
+		It("should return empty for digest images", func() {
+			Expect(extractVersionFromTag("registry.ci/release@sha256:abc123")).To(BeEmpty())
 		})
-
-		Context("When image URL has empty tag", func() {
-			It("should return an error", func() {
-				ocpReleaseImage := "quay.io/openshift-release-dev/ocp-release:"
-				_, err := extractOCPVersion(ocpReleaseImage)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("empty tag"))
-			})
+		It("should return empty for missing tag", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release")).To(BeEmpty())
+		})
+		It("should return empty for empty tag", func() {
+			Expect(extractVersionFromTag("quay.io/ocp-release:")).To(BeEmpty())
 		})
 	})
 

@@ -1048,15 +1048,16 @@ func getNodePoolReleaseImage(ns, name string) string {
 	return np.Spec.Release.Image
 }
 
-// getBlueFieldOCPLayerImage returns the BlueFieldOCPLayerImage from the DPFHCPProvisioner status.
-func getBlueFieldOCPLayerImage(ns, name string) string {
+// getIgnitionConfigMap returns the ignition ConfigMap for the test DPUCluster, or nil if not found.
+func getIgnitionConfigMap() *corev1.ConfigMap {
 	ctx := context.Background()
-	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
-	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
+	cm := &corev1.ConfigMap{}
+	cmName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: dpuClusterNS}, cm)
 	if err != nil {
-		return ""
+		return nil
 	}
-	return provisioner.Status.BlueFieldOCPLayerImage
+	return cm
 }
 
 // decodeTargetIgnition extracts and decodes the target ignition from a live

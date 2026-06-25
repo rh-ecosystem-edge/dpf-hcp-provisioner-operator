@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -597,6 +598,156 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			reconciler.updatePhaseFromConditions(provisioner)
 			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseIgnitionGenerating),
 				"should transition to IgnitionGenerating when upgrade is complete")
+		})
+
+		It("should transition to Upgrading when HostedClusterUpgrading=True and ignition is stale", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-upgrading-phase",
+					Namespace:  testNamespace,
+					Generation: 3,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-upgrading-phase",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterAvailable,
+				Status: metav1.ConditionTrue,
+				Reason: "Available",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterUpgrading,
+				Status: metav1.ConditionTrue,
+				Reason: provisioningv1alpha1.ReasonUpgradeInProgress,
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionFalse,
+				Reason:             "ReleaseImageUpdated",
+				ObservedGeneration: 3,
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseUpgrading),
+				"should be Upgrading when HostedClusterUpgrading=True")
+		})
+
+		It("isUpgrading should return true when HostedClusterUpgrading=True", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterUpgrading,
+				Status: metav1.ConditionTrue,
+				Reason: provisioningv1alpha1.ReasonUpgradeInProgress,
+			})
+			Expect(isUpgrading(provisioner)).To(BeTrue())
+		})
+
+		It("isUpgrading should return false when HostedClusterUpgrading=False", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.HostedClusterUpgrading,
+				Status: metav1.ConditionFalse,
+				Reason: provisioningv1alpha1.ReasonUpgradeComplete,
+			})
+			Expect(isUpgrading(provisioner)).To(BeFalse())
+		})
+
+		It("isUpgrading should return false when condition is not set", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			Expect(isUpgrading(provisioner)).To(BeFalse())
+		})
+
+		It("isHostedClusterVersionReady should return true when version matches and state is Completed", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			hc := &hyperv1.HostedCluster{
+				Status: hyperv1.HostedClusterStatus{
+					Version: &hyperv1.ClusterVersionStatus{
+						History: []configv1.UpdateHistory{
+							{Version: "4.22.1", State: configv1.CompletedUpdate},
+						},
+					},
+				},
+			}
+			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeTrue())
+		})
+
+		It("isHostedClusterVersionReady should return true when version matches and state is Partial", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			hc := &hyperv1.HostedCluster{
+				Status: hyperv1.HostedClusterStatus{
+					Version: &hyperv1.ClusterVersionStatus{
+						History: []configv1.UpdateHistory{
+							{Version: "4.22.1", State: configv1.PartialUpdate},
+						},
+					},
+				},
+			}
+			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeTrue())
+		})
+
+		It("isHostedClusterVersionReady should return false when version does not match", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			hc := &hyperv1.HostedCluster{
+				Status: hyperv1.HostedClusterStatus{
+					Version: &hyperv1.ClusterVersionStatus{
+						History: []configv1.UpdateHistory{
+							{Version: "4.22.0", State: configv1.CompletedUpdate},
+						},
+					},
+				},
+			}
+			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeFalse())
+		})
+
+		It("isHostedClusterVersionReady should return false when version history is empty", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			hc := &hyperv1.HostedCluster{
+				Status: hyperv1.HostedClusterStatus{
+					Version: &hyperv1.ClusterVersionStatus{},
+				},
+			}
+			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeFalse())
+		})
+
+		It("isHostedClusterVersionReady should return false when version is nil", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			hc := &hyperv1.HostedCluster{}
+			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeFalse())
+		})
+
+		It("isHostedClusterVersionReady should return true for digest images when image matches and Completed", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			digestImage := "registry.ci.openshift.org/ci-op/release@sha256:abc123def456"
+			hc := &hyperv1.HostedCluster{
+				Status: hyperv1.HostedClusterStatus{
+					Version: &hyperv1.ClusterVersionStatus{
+						History: []configv1.UpdateHistory{
+							{Version: "4.22.0", Image: digestImage, State: configv1.CompletedUpdate},
+						},
+					},
+				},
+			}
+			Expect(reconciler.isHostedClusterVersionReady(hc, digestImage)).To(BeTrue())
+		})
+
+		It("isHostedClusterVersionReady should return false for digest images when image does not match", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			hc := &hyperv1.HostedCluster{
+				Status: hyperv1.HostedClusterStatus{
+					Version: &hyperv1.ClusterVersionStatus{
+						History: []configv1.UpdateHistory{
+							{Version: "4.22.0", Image: "registry.ci/release@sha256:old", State: configv1.CompletedUpdate},
+						},
+					},
+				},
+			}
+			Expect(reconciler.isHostedClusterVersionReady(hc, "registry.ci/release@sha256:new")).To(BeFalse())
 		})
 
 		It("should transition to Failed when ignition generation fails (IgnitionConfigured=False)", func() {
