@@ -569,6 +569,24 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 		})
 	})
 
+	Describe("OVNDaemonsetVersionForOCP", func() {
+		DescribeTable("should return the correct daemonset version",
+			func(ocpVersion, expected string) {
+				Expect(dpuservicetemplate.OVNDaemonsetVersionForOCP(ocpVersion)).To(Equal(expected))
+			},
+			Entry("old OCP", "4.18.0", "1.1.0"),
+			Entry("just before 4.21.9", "4.21.8", "1.1.0"),
+			Entry("4.21.9 boundary", "4.21.9", "1.2.0"),
+			Entry("4.21.z after", "4.21.15", "1.2.0"),
+			Entry("4.22.0", "4.22.0", "1.2.0"),
+			Entry("4.22.1 boundary", "4.22.1", "1.3.0"),
+			Entry("4.22.z after", "4.22.5", "1.3.0"),
+			Entry("future 4.23", "4.23.0", "1.3.0"),
+			Entry("pre-release", "4.22.1-rc.1", "1.3.0"),
+			Entry("garbage", "not-a-version", "1.1.0"),
+		)
+	})
+
 	Describe("GetDefaultsForVersion", func() {
 		It("should return defaults for supported version", func() {
 			defaults, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("26")

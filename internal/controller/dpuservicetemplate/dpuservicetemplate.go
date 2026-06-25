@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"strings"
 
+	"sort"
+
+	"github.com/blang/semver/v4"
 	"github.com/go-logr/logr"
 	"github.com/google/go-containerregistry/pkg/authn"
 	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
@@ -108,12 +111,17 @@ func (m *DPUServiceTemplateManager) EnsureTemplates(ctx context.Context, namespa
 		return fmt.Errorf("applying overrides from configmap: %w", err)
 	}
 
+	ocpVersion, err := m.getOCPVersion(ctx)
+	if err != nil {
+		return fmt.Errorf("determining OCP version: %w", err)
+	}
+
 	ovnImageRepo, ovnImageTag, sourceImage, err := m.resolveOVNImageIfChanged(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("resolving OVN kubernetes image: %w", err)
 	}
 
-	if err := m.ensureOVNTemplate(ctx, namespace, dpuServiceTemplateValues, ovnImageRepo, ovnImageTag, sourceImage); err != nil {
+	if err := m.ensureOVNTemplate(ctx, namespace, dpuServiceTemplateValues, ovnImageRepo, ovnImageTag, sourceImage, ocpVersion); err != nil {
 		return fmt.Errorf("ensuring OVN template: %w", err)
 	}
 
@@ -271,6 +279,72 @@ func daemonSetRolloutComplete(ds *appsv1.DaemonSet) bool {
 		ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled
 }
 
+// ovnDaemonsetVersionEntry maps a minimum OCP version to the OVN daemonset version
+// that was introduced at that release. Entries are sorted ascending by version at init.
+type ovnDaemonsetVersionEntry struct {
+	minVersion       semver.Version
+	daemonsetVersion string
+}
+
+// ovnDaemonsetVersionTable lists the OCP versions where OVN_DAEMONSET_VERSION changed.
+// Each stream (4.21, 4.22, …) can have independent entries because OCP backports
+// newer OVN builds into older minor releases at arbitrary z-stream versions.
+var ovnDaemonsetVersionTable []ovnDaemonsetVersionEntry
+
+func init() {
+	raw := []struct {
+		v  string
+		dv string
+	}{
+		{"4.21.9", "1.2.0"},
+		{"4.22.0", "1.2.0"},
+		{"4.22.1", "1.3.0"},
+	}
+	for _, e := range raw {
+		ovnDaemonsetVersionTable = append(ovnDaemonsetVersionTable, ovnDaemonsetVersionEntry{
+			minVersion:       semver.MustParse(e.v),
+			daemonsetVersion: e.dv,
+		})
+	}
+	sort.Slice(ovnDaemonsetVersionTable, func(i, j int) bool {
+		return ovnDaemonsetVersionTable[i].minVersion.LT(ovnDaemonsetVersionTable[j].minVersion)
+	})
+}
+
+// OVNDaemonsetVersionForOCP returns the OVN_DAEMONSET_VERSION value for a given
+// OCP version string. It walks the table in reverse and returns the daemonset
+// version from the highest entry whose minVersion <= ocpVersion.
+func OVNDaemonsetVersionForOCP(ocpVersion string) string {
+	const defaultVersion = "1.1.0"
+
+	v, err := semver.ParseTolerant(ocpVersion)
+	if err != nil {
+		return defaultVersion
+	}
+	// Strip pre-release so that e.g. "4.22.1-rc.1" matches >= 4.22.1
+	v.Pre = nil
+
+	result := defaultVersion
+	for _, e := range ovnDaemonsetVersionTable {
+		if v.GTE(e.minVersion) {
+			result = e.daemonsetVersion
+		}
+	}
+	return result
+}
+
+// getOCPVersion reads the OCP version from ClusterVersion.
+func (m *DPUServiceTemplateManager) getOCPVersion(ctx context.Context) (string, error) {
+	var cv configv1.ClusterVersion
+	if err := m.client.Get(ctx, types.NamespacedName{Name: clusterVersionName}, &cv); err != nil {
+		return "", fmt.Errorf("getting ClusterVersion: %w", err)
+	}
+	if cv.Status.Desired.Version == "" {
+		return "", fmt.Errorf("ClusterVersion status.desired.version is empty")
+	}
+	return cv.Status.Desired.Version, nil
+}
+
 // resolveARM64OVNImage reads the ClusterVersion to determine the OCP release,
 // then extracts the aarch64 ovn-kubernetes image from the release payload.
 func (m *DPUServiceTemplateManager) resolveARM64OVNImage(ctx context.Context) (repo, tag string, err error) {
@@ -296,6 +370,7 @@ func (m *DPUServiceTemplateManager) resolveARM64OVNImage(ctx context.Context) (r
 		registry = registry[:idx]
 	}
 	aarch64Ref := fmt.Sprintf("%s:%s-aarch64", registry, version)
+
 
 	keychain, err := m.getClusterPullSecretKeychain(ctx)
 	if err != nil {
@@ -328,8 +403,11 @@ func (m *DPUServiceTemplateManager) getClusterPullSecretKeychain(ctx context.Con
 	return bfocplookup.NewKeychainFromDockerConfig(dockerConfigJSON)
 }
 
-func (m *DPUServiceTemplateManager) ensureOVNTemplate(ctx context.Context, namespace string, defaults *DPUServiceTemplateValues, ovnImageRepo, ovnImageTag, sourceImage string) error {
+func (m *DPUServiceTemplateManager) ensureOVNTemplate(ctx context.Context, namespace string, defaults *DPUServiceTemplateValues, ovnImageRepo, ovnImageTag, sourceImage, ocpVersion string) error {
 	log := logf.FromContext(ctx)
+
+	daemonsetVersion := OVNDaemonsetVersionForOCP(ocpVersion)
+	log.Info("Setting OVN daemonset version", "ocpVersion", ocpVersion, "ovnDaemonsetVersion", daemonsetVersion)
 
 	values := map[string]any{
 		"commonManifests": map[string]any{"enabled": true},
@@ -342,8 +420,9 @@ func (m *DPUServiceTemplateManager) ensureOVNTemplate(ctx context.Context, names
 			"cniBinDir":  "/var/lib/cni/bin/",
 			"cniConfDir": "/run/multus/cni/net.d",
 		},
-		"leaseNamespace": "openshift-ovn-kubernetes",
-		"gatewayOpts":    "--gateway-interface=br-dpu",
+		"ovnDaemonsetVersion": daemonsetVersion,
+		"leaseNamespace":      "openshift-ovn-kubernetes",
+		"gatewayOpts":         "--gateway-interface=br-dpu",
 	}
 
 	annotations := map[string]string{
