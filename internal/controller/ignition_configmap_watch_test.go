@@ -421,6 +421,10 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ignitiongenerator.ConfigMapName("cluster"),
 					Namespace: "dpu-system",
+					Labels:    map[string]string{ignitiongenerator.BfcfgTemplateLabel: "true"},
+					Annotations: map[string]string{
+						ignitiongenerator.BfcfgTemplateClusterNameAnnotation: "cluster",
+					},
 				},
 			}
 
@@ -486,8 +490,8 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 			// Verify an event was recorded
 			Eventually(recorder.Events).Should(Receive(ContainSubstring("IgnitionConfigMapDeleted")))
 
-			// Verify condition message references the ConfigMap name
-			Expect(cond.Message).To(ContainSubstring(ignitiongenerator.ConfigMapName("cluster")))
+			// Verify condition message indicates ConfigMap was deleted
+			Expect(cond.Message).To(ContainSubstring("deleted"))
 		})
 
 		It("should preserve ObservedGeneration from the CR when clearing condition", func() {

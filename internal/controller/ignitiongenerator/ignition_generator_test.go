@@ -691,12 +691,12 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL, "4.19.0")).To(Succeed())
 
 		// Verify ConfigMap was created
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
@@ -716,7 +716,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 	})
 
 	It("should update an existing ConfigMap", func() {
-		cmName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
+		cmName := ConfigMapName(cr.Spec.DPUClusterRef.Name)
 		existingCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      cmName,
@@ -731,7 +731,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL, "4.19.0")).To(Succeed())
 
 		// Verify data was updated
 		cm := &corev1.ConfigMap{}
@@ -760,11 +760,11 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL, "4.19.0")).To(Succeed())
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
@@ -778,11 +778,11 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL, "4.19.0")).To(Succeed())
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
@@ -795,11 +795,11 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		ig := NewIgnitionGenerator(fakeClient, scheme, record.NewFakeRecorder(10))
 
 		liveIgnition := ignition.NewEmptyIgnition(testIgnitionVersion)
-		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL)).To(Succeed())
+		Expect(ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, cr.Spec.MachineOSURL, "4.19.0")).To(Succeed())
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())

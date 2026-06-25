@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -274,21 +275,10 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return result, err
 	}
 
-	// Verify ignition ConfigMap still exists (self-heal on external deletion).
-	// If the ConfigMap was deleted, persist the updated status immediately and
-	// requeue so the next reconcile regenerates it.
-	if configMapDeleted := r.verifyIgnitionConfigMap(ctx, &cr); configMapDeleted {
-		r.computeReadyCondition(ctx, &cr)
-		r.updatePhaseFromConditions(&cr)
-		if err := r.Status().Update(ctx, &cr); err != nil {
-			log.Error(err, "Failed to update status after ignition ConfigMap deletion")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	// Feature: Ignition Generation
-	if result, err := r.generateIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
+	// Feature: Ignition lifecycle (verify + generate)
+	// Skipped while upgrade is in progress — CM was deleted by handleUpgrade
+	// and will be regenerated after upgrade completes.
+	if result, err := r.reconcileIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 		return result, err
 	}
 
@@ -686,15 +676,8 @@ func (r *DPFHCPProvisionerReconciler) handleDPUDeploymentChange(ctx context.Cont
 	log := logf.FromContext(ctx)
 	log.Info("DPUDeployment Flavor changed, deleting stale ignition ConfigMap and regenerating")
 
-	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
-	staleCM := &corev1.ConfigMap{}
-	cmKey := types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}
-	if err := r.Get(ctx, cmKey, staleCM); err == nil {
-		if err := r.Delete(ctx, staleCM); err != nil {
-			log.Error(err, "Failed to delete stale ignition ConfigMap", "configmap", cmName)
-			return true, ctrl.Result{}, fmt.Errorf("failed to delete stale ignition ConfigMap: %w", err)
-		}
-		log.Info("Deleted stale ignition ConfigMap", "configmap", cmName)
+	if _, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+		return true, ctrl.Result{}, err
 	}
 
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
@@ -741,11 +724,9 @@ func (r *DPFHCPProvisionerReconciler) dpuDeploymentChanged(ctx context.Context, 
 		return false
 	}
 
-	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
-	cm := &corev1.ConfigMap{}
-	cmKey := types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}
-	if err := r.Get(ctx, cmKey, cm); err != nil {
-		log.V(1).Info("Cannot fetch ignition ConfigMap for change detection, skipping", "error", err)
+	cm := r.getIgnitionConfigMap(ctx, cr)
+	if cm == nil {
+		log.V(1).Info("Cannot find ignition ConfigMap for change detection, skipping")
 		return false
 	}
 
@@ -769,6 +750,63 @@ func (r *DPFHCPProvisionerReconciler) dpuDeploymentChanged(ctx context.Context, 
 // deleteStaleIgnitionConfigMap deletes the ignition ConfigMap when it was generated for an older
 // spec version (e.g., after a release image upgrade). This prevents DPUs from being provisioned
 // with stale ignition during an upgrade. The deletion is idempotent -- it runs on every reconcile
+// getIgnitionConfigMap returns the ignition ConfigMap for a DPUCluster by name, or nil if not found.
+func (r *DPFHCPProvisionerReconciler) getIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) *corev1.ConfigMap {
+	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}, cm); err != nil {
+		return nil
+	}
+	return cm
+}
+
+// deleteIgnitionConfigMap deletes the ignition ConfigMap for a DPUCluster.
+// Returns true if a ConfigMap was deleted.
+func (r *DPFHCPProvisionerReconciler) deleteIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, error) {
+	cm := r.getIgnitionConfigMap(ctx, cr)
+	if cm == nil {
+		return false, nil
+	}
+	if err := r.Delete(ctx, cm); err != nil {
+		return false, fmt.Errorf("failed to delete ignition ConfigMap %s/%s: %w", cm.Namespace, cm.Name, err)
+	}
+	return true, nil
+}
+
+// isUpgrading returns true if a HostedCluster upgrade is currently in progress.
+func isUpgrading(cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
+	cond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+	return cond != nil && cond.Status == metav1.ConditionTrue
+}
+
+// reconcileIgnition handles the ignition ConfigMap lifecycle: verification and generation.
+// Skipped entirely while HostedClusterUpgrading=True — the CM was deleted by handleUpgrade
+// and must not be regenerated until the upgrade completes.
+func (r *DPFHCPProvisionerReconciler) reconcileIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	if isUpgrading(cr) {
+		log.V(1).Info("Skipping ignition operations - upgrade in progress")
+		return ctrl.Result{}, nil
+	}
+
+	if configMapDeleted := r.verifyIgnitionConfigMap(ctx, cr); configMapDeleted {
+		r.computeReadyCondition(ctx, cr)
+		r.updatePhaseFromConditions(cr)
+		if err := r.Status().Update(ctx, cr); err != nil {
+			log.Error(err, "Failed to update status after ignition ConfigMap deletion")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	if result, err := r.generateIgnition(ctx, cr); err != nil || result.RequeueAfter > 0 {
+		return result, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
 // verifyIgnitionConfigMap checks that the ignition ConfigMap still exists when IgnitionConfigured=True.
 // If the ConfigMap was deleted externally, this clears IgnitionConfigured so the reconciler
 // re-enters the IgnitionGenerating phase and re-creates it.
@@ -781,30 +819,20 @@ func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Contex
 		return false
 	}
 
-	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
-	cmNamespace := cr.Spec.DPUClusterRef.Namespace
-
-	cm := &corev1.ConfigMap{}
-	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNamespace}, cm)
-	if err == nil {
-		return false
-	}
-	if client.IgnoreNotFound(err) != nil {
-		log.Error(err, "Failed to verify ignition ConfigMap existence", "configmap", cmName, "namespace", cmNamespace)
+	if cm := r.getIgnitionConfigMap(ctx, cr); cm != nil {
 		return false
 	}
 
-	log.Info("Ignition ConfigMap was deleted externally, clearing IgnitionConfigured condition",
-		"configmap", cmName, "namespace", cmNamespace)
+	log.Info("Ignition ConfigMap was deleted externally, clearing IgnitionConfigured condition")
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionFalse,
 		Reason:             "ConfigMapDeleted",
-		Message:            fmt.Sprintf("Ignition ConfigMap %s was deleted, will regenerate", cmName),
+		Message:            "Ignition ConfigMap was deleted, will regenerate",
 		ObservedGeneration: cr.Generation,
 	})
 	r.Recorder.Event(cr, corev1.EventTypeWarning, "IgnitionConfigMapDeleted",
-		fmt.Sprintf("Ignition ConfigMap %s/%s was deleted externally, triggering regeneration", cmNamespace, cmName))
+		"Ignition ConfigMap was deleted externally, triggering regeneration")
 	return true
 }
 
@@ -943,7 +971,7 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) {
 	log := logf.FromContext(ctx)
 
-	// Requirement 1: MetalLB must be configured (if required)
+	// MetalLB must be configured (if required)
 	// This is only required when exposing services through LoadBalancer
 	// Checked first because MetalLB configuration happens before HostedCluster creation
 	if cr.ShouldExposeThroughLoadBalancer() {
@@ -960,9 +988,8 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		}
 	}
 
-	// Requirement 2: HostedCluster must not be upgrading
-	hcUpgrading := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
-	if hcUpgrading != nil && hcUpgrading.Status == metav1.ConditionTrue {
+	// HostedCluster must not be upgrading
+	if isUpgrading(cr) {
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:    provisioningv1alpha1.Ready,
 			Status:  metav1.ConditionFalse,
@@ -973,7 +1000,7 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	// Requirement 3: HostedCluster must be available
+	// HostedCluster must be available
 	// This is set by the StatusSyncer after mirroring HostedCluster status
 	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
 	if hcAvailable == nil || hcAvailable.Status != metav1.ConditionTrue {
@@ -987,7 +1014,7 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	// Requirement 4: Kubeconfig must be injected
+	// Kubeconfig must be injected
 	// This is set by the KubeconfigInjector after successful injection
 	kubeconfigInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
 	if kubeconfigInjected == nil || kubeconfigInjected.Status != metav1.ConditionTrue {
@@ -1001,7 +1028,7 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	// Requirement 4: Ignition must be configured
+	// Ignition must be configured
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
 		ignConfigured.ObservedGeneration != cr.Generation {
@@ -1083,23 +1110,21 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
-	// Check if ignition generation is required.
-	// Transition to IgnitionGenerating when HC is available, not upgrading, and ignition is stale/missing.
-	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
-	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
-	hcUpgrading := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
-	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
-		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
-		(hcUpgrading == nil || hcUpgrading.Status != metav1.ConditionTrue) &&
-		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
-			ignConfigured.ObservedGeneration != cr.Generation) {
-		cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
+	// Check if upgrade is in progress
+	if isUpgrading(cr) {
+		cr.Status.Phase = provisioningv1alpha1.PhaseUpgrading
 		return
 	}
 
-	// Check if upgrade is in progress
-	if hcUpgrading != nil && hcUpgrading.Status == metav1.ConditionTrue {
-		cr.Status.Phase = provisioningv1alpha1.PhaseUpgrading
+	// Check if ignition generation is required.
+	// Transition to IgnitionGenerating when HC is available and ignition is stale/missing.
+	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
+	kcInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
+	if hcAvailable != nil && hcAvailable.Status == metav1.ConditionTrue &&
+		kcInjected != nil && kcInjected.Status == metav1.ConditionTrue &&
+		(ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue ||
+			ignConfigured.ObservedGeneration != cr.Generation) {
+		cr.Status.Phase = provisioningv1alpha1.PhaseIgnitionGenerating
 		return
 	}
 
@@ -1187,6 +1212,12 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 		return ctrl.Result{}, nil
 	}
 
+	// Only run upgrade logic when the CR is Ready or already Upgrading.
+	// Skip during initial installation (Pending, Provisioning, IgnitionGenerating, Failed).
+	if cr.Status.Phase != provisioningv1alpha1.PhaseReady && cr.Status.Phase != provisioningv1alpha1.PhaseUpgrading {
+		return ctrl.Result{}, nil
+	}
+
 	// Fetch current HC to compare release images
 	hc := &hyperv1.HostedCluster{}
 	hcKey := types.NamespacedName{Name: cr.Status.HostedClusterRef.Name, Namespace: cr.Status.HostedClusterRef.Namespace}
@@ -1194,18 +1225,17 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	upgrading := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
-
-	// Case 1: Upgrade in progress — check if HC has been updated to the target image
-	if upgrading != nil && upgrading.Status == metav1.ConditionTrue {
-		if hc.Spec.Release.Image == cr.Spec.OCPReleaseImage {
-			log.Info("Upgrade propagation complete, HC release image updated",
+	// Case 1: Upgrade in progress — check if the HC has finished upgrading
+	// by verifying the version history shows the target version as Completed.
+	if isUpgrading(cr) {
+		if r.isHostedClusterVersionCompleted(hc, cr.Spec.OCPReleaseImage) {
+			log.Info("HostedCluster upgrade completed",
 				"releaseImage", cr.Spec.OCPReleaseImage)
 			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 				Type:               provisioningv1alpha1.HostedClusterUpgrading,
 				Status:             metav1.ConditionFalse,
 				Reason:             provisioningv1alpha1.ReasonUpgradeComplete,
-				Message:            fmt.Sprintf("Upgrade to %s complete, awaiting ignition regeneration", cr.Spec.OCPReleaseImage),
+				Message:            fmt.Sprintf("Upgrade to %s complete", cr.Spec.OCPReleaseImage),
 				ObservedGeneration: cr.Generation,
 			})
 			r.Recorder.Event(cr, corev1.EventTypeNormal, provisioningv1alpha1.ReasonUpgradeComplete,
@@ -1214,12 +1244,24 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 		return ctrl.Result{}, nil
 	}
 
-	// Case 2: No upgrade in progress — check if one is needed
+	// Case 2: HC spec already matches — check if an upgrade is still in progress
+	// (handles recovery after operator restart or previous image that didn't set the condition)
 	if hc.Spec.Release.Image == cr.Spec.OCPReleaseImage {
+		if !r.isHostedClusterVersionCompleted(hc, cr.Spec.OCPReleaseImage) {
+			log.Info("HC spec matches but version not yet Completed, marking upgrade in progress",
+				"releaseImage", cr.Spec.OCPReleaseImage)
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.HostedClusterUpgrading,
+				Status:             metav1.ConditionTrue,
+				Reason:             provisioningv1alpha1.ReasonUpgradeInProgress,
+				Message:            fmt.Sprintf("Upgrade to %s in progress", cr.Spec.OCPReleaseImage),
+				ObservedGeneration: cr.Generation,
+			})
+		}
 		return ctrl.Result{}, nil
 	}
 
-	// Upgrade detected: HC release image differs from CR spec
+	// Case 3: Upgrade detected — HC release image differs from CR spec
 	log.Info("Upgrade detected",
 		"currentImage", hc.Spec.Release.Image,
 		"targetImage", cr.Spec.OCPReleaseImage)
@@ -1242,15 +1284,11 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 		ObservedGeneration: cr.Generation,
 	})
 
-	// Delete stale ignition ConfigMap (separate API call, not affected by status conflicts)
-	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
-	cmNamespace := cr.Spec.DPUClusterRef.Namespace
-	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNamespace}, cm); err == nil {
-		if err := r.Delete(ctx, cm); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to delete stale ignition ConfigMap %s/%s: %w", cmNamespace, cmName, err)
-		}
-		log.Info("Deleted stale ignition ConfigMap", "configmap", cmName, "namespace", cmNamespace)
+	// Delete stale ignition ConfigMap by label+annotation (separate API call, not affected by status conflicts)
+	if deleted, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+		return ctrl.Result{}, err
+	} else if deleted {
+		log.Info("Deleted stale ignition ConfigMap")
 	}
 
 	// Clear cached BlueField OCP layer image (stale for old version)
@@ -1267,6 +1305,24 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 		fmt.Sprintf("Upgrade started: %s → %s", hc.Spec.Release.Image, cr.Spec.OCPReleaseImage))
 
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+}
+
+// isHostedClusterVersionCompleted checks if the HostedCluster has finished upgrading to the
+// target release image by inspecting the version history. Returns true only when the most
+// recent history entry version matches the target OCP version and has state Completed.
+// Note: the history stores images as digests (sha256), so we compare by extracted version string.
+func (r *DPFHCPProvisionerReconciler) isHostedClusterVersionCompleted(hc *hyperv1.HostedCluster, targetReleaseImage string) bool {
+	if hc.Status.Version == nil || len(hc.Status.Version.History) == 0 {
+		return false
+	}
+
+	targetVersion, err := bfocplookup.ExtractOCPVersion(targetReleaseImage)
+	if err != nil {
+		return false
+	}
+
+	latest := hc.Status.Version.History[0]
+	return latest.Version == targetVersion && latest.State == configv1.CompletedUpdate
 }
 
 // handleDeletion handles the deletion of a DPFHCPProvisioner CR by running finalizer cleanup

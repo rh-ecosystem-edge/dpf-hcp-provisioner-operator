@@ -99,7 +99,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 
 	// Step 2: Parse OCP version from image URL
 	logger.V(1).Info("Extracting OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
-	version, err := extractOCPVersion(ocpReleaseImage)
+	version, err := ExtractOCPVersion(ocpReleaseImage)
 	if err != nil {
 		logger.Error(err, "Failed to parse OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
 		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
@@ -151,10 +151,9 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 	return r.updateStatusOnSuccess(ctx, cr, blueFieldOCPLayerImage, version)
 }
 
-// extractOCPVersion extracts the OCP version from the ocpReleaseImage URL.
+// ExtractOCPVersion extracts the OCP version from the ocpReleaseImage URL.
 // It strips architecture suffixes like -multi, -amd64, etc.
-// Exported for testing.
-func extractOCPVersion(ocpReleaseImage string) (string, error) {
+func ExtractOCPVersion(ocpReleaseImage string) (string, error) {
 	// Extract tag (everything after last ':')
 	parts := strings.Split(ocpReleaseImage, ":")
 	if len(parts) < 2 {

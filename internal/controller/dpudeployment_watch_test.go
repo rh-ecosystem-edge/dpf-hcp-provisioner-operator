@@ -289,7 +289,9 @@ var _ = Describe("DPUDeployment Watch", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ignitiongenerator.ConfigMapName("cluster"),
 					Namespace: "dpu-system",
+					Labels:    map[string]string{ignitiongenerator.BfcfgTemplateLabel: "true"},
 					Annotations: map[string]string{
+						ignitiongenerator.BfcfgTemplateClusterNameAnnotation:   "cluster",
 						ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation: "my-flavor",
 					},
 				},
@@ -348,7 +350,9 @@ var _ = Describe("DPUDeployment Watch", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ignitiongenerator.ConfigMapName("cluster"),
 					Namespace: "dpu-system",
+					Labels:    map[string]string{ignitiongenerator.BfcfgTemplateLabel: "true"},
 					Annotations: map[string]string{
+						ignitiongenerator.BfcfgTemplateClusterNameAnnotation:   "cluster",
 						ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation: "old-flavor",
 					},
 				},
@@ -407,6 +411,10 @@ var _ = Describe("DPUDeployment Watch", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ignitiongenerator.ConfigMapName("cluster"),
 					Namespace: "dpu-system",
+					Labels:    map[string]string{ignitiongenerator.BfcfgTemplateLabel: "true"},
+					Annotations: map[string]string{
+						ignitiongenerator.BfcfgTemplateClusterNameAnnotation: "cluster",
+					},
 				},
 			}
 

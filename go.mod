@@ -9,6 +9,7 @@ require (
 	github.com/nvidia/doca-platform v0.0.0-20260507043605-b1192d60f2cc
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
+	github.com/openshift/api v0.0.0-20251204193610-68ce3d906ec8
 	github.com/openshift/hypershift v0.1.71
 	github.com/openshift/hypershift/api v0.0.0-20251229083354-c1d28e31a05d
 	go.universe.tf/metallb v0.15.3
@@ -68,7 +69,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
-	github.com/openshift/api v0.0.0-20251204193610-68ce3d906ec8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
