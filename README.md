@@ -227,8 +227,8 @@ make manifests
 make generate
 
 # Package and push Helm chart
-make helm-package
-make helm-push
+make helm-package HELM_CHART_DIR=dpu-worker-config
+make helm-push HELM_CHART_DIR=dpu-worker-config HELM_CHART_REGISTRY=oci://quay.io/myorg/charts/dpu-worker-config
 ```
 
 ### Development Environment with openshift-dpf

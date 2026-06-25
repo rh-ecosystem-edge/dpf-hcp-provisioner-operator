@@ -195,26 +195,26 @@ docker-push: container-push ## Alias for container-push.
 
 ##@ Helm
 
-# Helm chart configuration
-HELM_CHART_DIR ?= helm/dpf-hcp-provisioner-operator
-HELM_CHART_NAME ?= dpf-hcp-provisioner-operator
-HELM_CHART_REGISTRY ?= oci://quay.io/lhadad/charts
-
-ifeq ($(origin HELM_CHART_VERSION), command line)
-  # HELM_CHART_VERSION was set on the CLI, do not override
-else
-  HELM_CHART_VERSION ?= $(shell grep '^version:' $(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
-endif
-
-HELM_CHART_VERSION ?= $(shell grep '^version:' $(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
+# Helm chart configuration — all vars must be provided by the caller.
+# HELM_CHART_DIR     : chart name under helm/ in this repo (e.g. dpu-worker-config).
+# HELM_CHART_REGISTRY: full OCI destination including the chart name
+#                      (e.g. oci://quay.io/myorg/charts/dpu-worker-config).
+#                      Helm appends the chart name automatically, so the last path segment
+#                      is stripped before invoking helm push.
+HELM_CHART_DIR ?=
+HELM_CHART_REGISTRY ?=
+HELM_CHART_VERSION ?= $(shell test -n "$(HELM_CHART_DIR)" && grep '^version:' helm/$(HELM_CHART_DIR)/Chart.yaml | awk '{print $$2}')
 
 .PHONY: helm-package
-helm-package: manifests ## Package the Helm chart.
-	helm package $(HELM_CHART_DIR) --version $(HELM_CHART_VERSION)
+helm-package: ## Package a Helm chart. Requires: HELM_CHART_DIR (chart name under helm/).
+	@test -n "$(HELM_CHART_DIR)" || (echo "ERROR: HELM_CHART_DIR is not set."; exit 1)
+	@test -n "$(HELM_CHART_VERSION)" || (echo "ERROR: Failed to resolve HELM_CHART_VERSION from helm/$(HELM_CHART_DIR)/Chart.yaml"; exit 1)
+	helm package helm/$(HELM_CHART_DIR) --version $(HELM_CHART_VERSION)
 
 .PHONY: helm-push
-helm-push: helm-package ## Push the Helm chart to an OCI registry.
-	helm push $(HELM_CHART_NAME)-$(HELM_CHART_VERSION).tgz $(HELM_CHART_REGISTRY)
+helm-push: helm-package ## Package and push a Helm chart. Requires: HELM_CHART_DIR, HELM_CHART_REGISTRY (full OCI path).
+	@test -n "$(HELM_CHART_REGISTRY)" || (echo "ERROR: HELM_CHART_REGISTRY is not set."; exit 1)
+	helm push $(HELM_CHART_DIR)-$(HELM_CHART_VERSION).tgz $$(dirname $(HELM_CHART_REGISTRY))
 
 .PHONY: build-installer
 build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
