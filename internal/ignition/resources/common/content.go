@@ -12,8 +12,13 @@ var filesFS embed.FS
 //go:embed systemd/*
 var systemdFS embed.FS
 
-func NewProvider() *content.EmbeddedProvider {
+func NewProvider(isZeroTrust bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
+
+	oobNetFile := "oob_net0.nmconnection"
+	if isZeroTrust {
+		oobNetFile = "oob_net0_zt.nmconnection"
+	}
 
 	return &content.EmbeddedProvider{
 		Files: []content.FileDefinition{
@@ -35,7 +40,7 @@ func NewProvider() *content.EmbeddedProvider {
 			{
 				Path:          "/etc/NetworkManager/system-connections/oob_net0.nmconnection",
 				Mode:          0600,
-				ContentSource: f("oob_net0.nmconnection"),
+				ContentSource: f(oobNetFile),
 			},
 			{
 				Path:          "/usr/local/bin/dpuagent-client.py",
