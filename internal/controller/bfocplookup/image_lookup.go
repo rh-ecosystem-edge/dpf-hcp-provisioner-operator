@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 )
 
 const (
@@ -99,7 +100,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 
 	// Step 2: Parse OCP version from image URL
 	logger.V(1).Info("Extracting OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
-	version, err := extractOCPVersion(ocpReleaseImage)
+	version, err := common.ExtractOCPVersion(ocpReleaseImage)
 	if err != nil {
 		logger.Error(err, "Failed to parse OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
 		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
@@ -149,35 +150,6 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 		"version", version,
 		"blueFieldOCPLayerImage", blueFieldOCPLayerImage)
 	return r.updateStatusOnSuccess(ctx, cr, blueFieldOCPLayerImage, version)
-}
-
-// extractOCPVersion extracts the OCP version from the ocpReleaseImage URL.
-// It strips architecture suffixes like -multi, -amd64, etc.
-// Exported for testing.
-func extractOCPVersion(ocpReleaseImage string) (string, error) {
-	// Extract tag (everything after last ':')
-	parts := strings.Split(ocpReleaseImage, ":")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("missing tag separator ':' in image URL")
-	}
-	tag := parts[len(parts)-1]
-
-	if tag == "" {
-		return "", fmt.Errorf("empty tag in image URL")
-	}
-
-	// Strip known architecture suffixes
-	suffixes := []string{"-multi", "-amd64", "-arm64", "-ppc64le", "-s390x", "-x86_64"}
-	version := tag
-	for _, suffix := range suffixes {
-		version = strings.TrimSuffix(version, suffix)
-	}
-
-	if version == "" {
-		return "", fmt.Errorf("extracted version is empty after processing tag: %s", tag)
-	}
-
-	return version, nil
 }
 
 // getKeychain returns an authn.Keychain for authenticating to the container registry.

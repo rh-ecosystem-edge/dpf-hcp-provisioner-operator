@@ -47,7 +47,7 @@ logLevel: info
 # DPFHCPProvisionerConfig CR (operator-wide configuration)
 # The config CR is deployed by the chart with defaults (validation enabled, default registry).
 # Users can patch the CR to customize, or delete it to make the operator idle.
-provisionerConfig: {}
+provisionerConfig:
   # Example overrides (uncomment to customize):
   # blueFieldOCPLayerRepo: "quay.io/eelgaev/rhcos-bfb"
   # disableMetalLB: true  # Set to true for cloud platforms (AWS, Azure, GCP) with native LoadBalancer support
