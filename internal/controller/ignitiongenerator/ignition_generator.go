@@ -47,6 +47,7 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/bfocplookup"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition"
 	igncontent "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/content"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/resources/common"
@@ -91,6 +92,9 @@ func ConfigMapName(dpuClusterName string) string {
 	return fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, dpuClusterName)
 }
 
+// BfcfgTemplateOCPVersionAnnotation is the annotation specifying the OCP version used for this ignition.
+const BfcfgTemplateOCPVersionAnnotation = dpuProvisioningPrefix + "bfcfg-template-ocp-version"
+
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
 type IgnitionGenerator struct {
 	Client   client.Client
@@ -133,12 +137,14 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// Success
+	// Success - extract version for status message
+	cmName := ConfigMapName(cr.Spec.DPUClusterRef.Name)
+
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionTrue,
 		Reason:             provisioningv1alpha1.ReasonIgnitionGenerated,
-		Message:            fmt.Sprintf("Ignition ConfigMap %s-%s.cfg created and DPFOperatorConfig updated successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+		Message:            fmt.Sprintf("Ignition ConfigMap %s created successfully", cmName),
 		ObservedGeneration: cr.Generation,
 	})
 
@@ -149,7 +155,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	}
 
 	ig.Recorder.Event(cr, corev1.EventTypeNormal, "IgnitionConfigured",
-		fmt.Sprintf("Ignition ConfigMap %s-%s.cfg configured successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name))
+		fmt.Sprintf("Ignition ConfigMap %s configured successfully", cmName))
 
 	log.Info("Ignition generation completed successfully")
 	return ctrl.Result{}, nil
@@ -261,9 +267,15 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	// ignition (validated above) is the structurally important config — it's what actually
 	// boots the DPU. The live ignition is just a delivery wrapper with templates.
 
+	// Extract OCP version for ConfigMap naming
+	ocpVersion, err := bfocplookup.ExtractOCPVersion(cr.Spec.OCPReleaseImage)
+	if err != nil {
+		return fmt.Errorf("failed to extract OCP version from release image: %w", err)
+	}
+
 	// Create/Update ConfigMap
 	log.V(1).Info("Creating/Updating ConfigMap")
-	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, machineOSURL); err != nil {
+	if err := ig.createOrUpdateConfigMap(ctx, cr, liveIgnition, machineOSURL, ocpVersion); err != nil {
 		return fmt.Errorf("failed to create/update ConfigMap: %w", err)
 	}
 
@@ -545,7 +557,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 }
 
 // createOrUpdateConfigMap creates or updates the ignition ConfigMap in DPUCluster namespace
-func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *igntypes.Config, machineOSURL string) error {
+func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, liveIgnition *igntypes.Config, machineOSURL, ocpVersion string) error {
 	log := logf.FromContext(ctx)
 
 	// Marshal live ignition to JSON
@@ -565,6 +577,7 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 		BfcfgTemplateClusterNameAnnotation:      cr.Spec.DPUClusterRef.Name,
 		BfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
 		bfcfgTemplateMachineOSURLAnnotation:     machineOSURL,
+		BfcfgTemplateOCPVersionAnnotation:       ocpVersion,
 	}
 	if cr.Spec.DPUDeploymentRef != nil {
 		dpuDeployment, err := ig.getDPUDeployment(ctx, cr)

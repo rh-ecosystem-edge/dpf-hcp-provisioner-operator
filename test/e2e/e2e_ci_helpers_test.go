@@ -73,6 +73,7 @@ const (
 	crReadyTimeout            = 35 * time.Minute
 	cleanupTimeout            = 10 * time.Minute
 	csrApprovalTimeout        = 2 * time.Minute
+	upgradeTimeout            = 45 * time.Minute
 	pollingInterval           = 10 * time.Second
 )
 
@@ -1009,6 +1010,54 @@ func dumpProvisionerStatus(ns, name string) {
 		output, _ := json.MarshalIndent(provisioner, "", "  ")
 		_, _ = fmt.Fprintf(GinkgoWriter, "DPFHCPProvisioner status:\n%s\n", string(output))
 	}
+}
+
+// getUpgradeOCPReleaseImage returns the upgrade target OCP release image from env var.
+// Returns empty string if not set (caller should skip the test).
+func getUpgradeOCPReleaseImage() string {
+	return os.Getenv("UPGRADE_OCP_RELEASE_IMAGE")
+}
+
+// updateDPFHCPProvisionerReleaseImage patches the DPFHCPProvisioner CR with a new ocpReleaseImage.
+func updateDPFHCPProvisionerReleaseImage(ns, name, newImage string) {
+	ctx := context.Background()
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, provisioner)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get DPFHCPProvisioner for upgrade")
+
+	provisioner.Spec.OCPReleaseImage = newImage
+	err = k8sClient.Update(ctx, provisioner)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to update DPFHCPProvisioner release image")
+}
+
+// getHostedClusterReleaseImage returns the current release image from the HostedCluster spec.
+func getHostedClusterReleaseImage(ns, name string) string {
+	ctx := context.Background()
+	hc := &hyperv1.HostedCluster{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, hc)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get HostedCluster")
+	return hc.Spec.Release.Image
+}
+
+// getNodePoolReleaseImage returns the current release image from the NodePool spec.
+func getNodePoolReleaseImage(ns, name string) string {
+	ctx := context.Background()
+	np := &hyperv1.NodePool{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: name}, np)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get NodePool")
+	return np.Spec.Release.Image
+}
+
+// getIgnitionConfigMap returns the ignition ConfigMap for the test DPUCluster, or nil if not found.
+func getIgnitionConfigMap() *corev1.ConfigMap {
+	ctx := context.Background()
+	cm := &corev1.ConfigMap{}
+	cmName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: dpuClusterNS}, cm)
+	if err != nil {
+		return nil
+	}
+	return cm
 }
 
 // decodeTargetIgnition extracts and decodes the target ignition from a live

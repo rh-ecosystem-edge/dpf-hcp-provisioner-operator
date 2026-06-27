@@ -160,7 +160,8 @@ var _ = Describe("generateIgnition integration", func() {
 					Name:      "my-deployment",
 					Namespace: "dpf-operator-system",
 				},
-				MachineOSURL: "https://registry.example.com/rhcos-bf:4.17",
+				OCPReleaseImage: "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+				MachineOSURL:    "https://registry.example.com/rhcos-bf:4.17",
 			},
 			Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 				HostedClusterRef: &corev1.ObjectReference{
