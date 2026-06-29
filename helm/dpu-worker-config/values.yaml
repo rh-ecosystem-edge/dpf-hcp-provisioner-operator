@@ -1,0 +1,18 @@
+# Default values for dpu-worker-config
+
+# Override the chart name used in app.kubernetes.io/name labels
+nameOverride: ""
+
+# Override the full name used in resource names
+fullnameOverride: ""
+
+# MTU for the br-dpu bridge on DPU worker nodes.
+# Leave empty (default) to inherit MTU from the physical interface (standard 1500 networks).
+# Set to "9000" for jumbo frame networks.
+networkMTU: ""
+
+# Additional labels to apply to all resources
+commonLabels: {}
+
+# Additional annotations to apply to all resources
+commonAnnotations: {}
