@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -291,30 +292,36 @@ func (a *CSRApprover) approveCSR(ctx context.Context, hcClient *kubernetes.Clien
 	return err
 }
 
-// setCondition updates the CSRAutoApprovalActive condition
+// setCondition updates the CSRAutoApprovalActive condition, retrying on conflict.
+// It re-fetches the CR on each attempt so the update always uses the latest resourceVersion,
+// avoiding conflicts with the main DPFHCPProvisioner controller running concurrently.
 func (a *CSRApprover) setCondition(ctx context.Context, dpfhcp *provisioningv1alpha1.DPFHCPProvisioner, status metav1.ConditionStatus, reason, message string) error {
-	condition := metav1.Condition{
-		Type:               provisioningv1alpha1.CSRAutoApprovalActive,
-		Status:             status,
-		Reason:             reason,
-		Message:            message,
-		ObservedGeneration: dpfhcp.Generation,
-	}
+	key := client.ObjectKeyFromObject(dpfhcp)
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := a.mgmtClient.Get(ctx, key, dpfhcp); err != nil {
+			return err
+		}
 
-	// This handles finding/updating/appending the condition correctly
-	if changed := meta.SetStatusCondition(&dpfhcp.Status.Conditions, condition); changed {
-		// Persist status update first; only emit event on success
+		condition := metav1.Condition{
+			Type:    provisioningv1alpha1.CSRAutoApprovalActive,
+			Status:  status,
+			Reason:  reason,
+			Message: message,
+		}
+
+		if changed := meta.SetStatusCondition(&dpfhcp.Status.Conditions, condition); !changed {
+			return nil
+		}
+
 		if err := a.mgmtClient.Status().Update(ctx, dpfhcp); err != nil {
 			return err
 		}
 
-		// Emit event only when condition changed and persisted successfully (avoid spam and ghost events)
 		eventType := corev1.EventTypeNormal
 		if status == metav1.ConditionFalse {
 			eventType = corev1.EventTypeWarning
 		}
 		a.recorder.Event(dpfhcp, eventType, reason, message)
-	}
-
-	return nil
+		return nil
+	})
 }
