@@ -315,6 +315,46 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			}, 2*time.Minute, pollingInterval).Should(Succeed())
 		})
 
+		It("should update ConfigMap BFB annotation when DPUDeployment BFB changes", func() {
+			ctx := context.Background()
+			newBFBName := "e2e-bfb-v2"
+
+			By("verifying CR is Ready")
+			Expect(getCRPhase(provisionerName)).To(Equal("Ready"))
+
+			By("recording the current ConfigMap BFB annotation")
+			cm := getIgnitionConfigMap()
+			Expect(cm).NotTo(BeNil())
+			oldBFB := cm.Annotations["provisioning.dpu.nvidia.com/bfcfg-template-bfb-name"]
+
+			By("updating DPUDeployment BFB reference")
+			dpuDeployment := &dpuservicev1.DPUDeployment{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Name:      dpuDeploymentName,
+				Namespace: dpuClusterNS,
+			}, dpuDeployment)
+			Expect(err).NotTo(HaveOccurred())
+			dpuDeployment.Spec.DPUs.BFB = newBFBName
+			err = k8sClient.Update(ctx, dpuDeployment)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("waiting for ConfigMap BFB annotation to be updated")
+			Eventually(func(g Gomega) {
+				cm := getIgnitionConfigMap()
+				g.Expect(cm).NotTo(BeNil())
+				g.Expect(cm.Annotations["provisioning.dpu.nvidia.com/bfcfg-template-bfb-name"]).
+					To(Equal(newBFBName), "BFB annotation should be updated to new BFB")
+				g.Expect(cm.Annotations["provisioning.dpu.nvidia.com/bfcfg-template-bfb-name"]).
+					NotTo(Equal(oldBFB), "BFB annotation should differ from original")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("verifying CR stays Ready (no ignition regeneration needed)")
+			Expect(getCRPhase(provisionerName)).To(Equal("Ready"))
+			Expect(getConditionStatus(ciNamespace, provisionerName, "IgnitionConfigured")).
+				To(Equal(string(metav1.ConditionTrue)),
+					"IgnitionConfigured should stay True - BFB change doesn't require regeneration")
+		})
+
 		It("should have injected kubeconfig into DPUCluster namespace", func() {
 			ctx := context.Background()
 			kubeconfigSecretName := fmt.Sprintf("%s-admin-kubeconfig", provisionerName)

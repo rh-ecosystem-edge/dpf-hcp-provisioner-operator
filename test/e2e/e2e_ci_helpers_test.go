@@ -1054,9 +1054,10 @@ func getIgnitionConfigMap() *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{}
 	cmName := fmt.Sprintf("bfcfg-%s.cfg", dpuClusterName)
 	err := k8sClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: dpuClusterNS}, cm)
-	if err != nil {
+	if apierrors.IsNotFound(err) {
 		return nil
 	}
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to get ignition ConfigMap")
 	return cm
 }
 

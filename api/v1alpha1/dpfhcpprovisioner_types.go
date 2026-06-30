@@ -277,7 +277,7 @@ const (
 
 	// HostedClusterUpgrading indicates whether a HostedCluster release image upgrade is in progress.
 	// True when the user updates spec.ocpReleaseImage and the operator is propagating the change.
-	// False when the upgrade is complete and ignition has been regenerated.
+	// False when the HostedCluster upgrade is complete and ignition regeneration may proceed.
 	HostedClusterUpgrading string = "HostedClusterUpgrading"
 
 	// MetalLBConfigured indicates whether MetalLB resources (IPAddressPool and L2Advertisement)
@@ -334,7 +334,7 @@ const (
 	// ReasonUpgradeInProgress indicates a release image upgrade is in progress.
 	ReasonUpgradeInProgress string = "UpgradeInProgress"
 
-	// ReasonUpgradeComplete indicates the upgrade completed and ignition was regenerated.
+	// ReasonUpgradeComplete indicates the HostedCluster upgrade completed and ignition regeneration may proceed.
 	ReasonUpgradeComplete string = "UpgradeComplete"
 )
 

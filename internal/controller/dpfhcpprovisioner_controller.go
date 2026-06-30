@@ -23,6 +23,7 @@ import (
 	"time"
 
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -669,49 +670,14 @@ func (r *DPFHCPProvisionerReconciler) dpuDeploymentToRequests(ctx context.Contex
 // provisioning controller does not use outdated configuration while we regenerate.
 // Returns (true, result, err) if a change was handled, (false, _, nil) otherwise.
 func (r *DPFHCPProvisionerReconciler) handleDPUDeploymentChange(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, ctrl.Result, error) {
-	if !r.dpuDeploymentChanged(ctx, cr) {
-		return false, ctrl.Result{}, nil
-	}
-
-	log := logf.FromContext(ctx)
-	log.Info("DPUDeployment Flavor changed, deleting stale ignition ConfigMap and regenerating")
-
-	if _, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
-		return true, ctrl.Result{}, err
-	}
-
-	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
-		Type:               provisioningv1alpha1.IgnitionConfigured,
-		Status:             metav1.ConditionFalse,
-		Reason:             provisioningv1alpha1.ReasonDPUDeploymentChanged,
-		Message:            "DPUDeployment Flavor changed, regenerating ignition configuration",
-		ObservedGeneration: cr.Generation,
-	})
-	r.Recorder.Event(cr, corev1.EventTypeNormal, "DPUDeploymentChanged",
-		"DPUDeployment Flavor changed, triggering ignition regeneration")
-	r.computeReadyCondition(ctx, cr)
-	r.updatePhaseFromConditions(cr)
-	if err := r.Status().Update(ctx, cr); err != nil {
-		log.Error(err, "Failed to update status after DPUDeployment change detection")
-		return true, ctrl.Result{}, err
-	}
-	return true, ctrl.Result{Requeue: true}, nil
-}
-
-// dpuDeploymentChanged checks whether the DPUDeployment's Flavor has changed since
-// the last ignition generation by comparing the current DPUDeployment spec with the
-// annotations stored on the ignition ConfigMap.
-// Returns true if a change is detected and ignition needs to be regenerated.
-func (r *DPFHCPProvisionerReconciler) dpuDeploymentChanged(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
 	log := logf.FromContext(ctx)
 
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue {
-		return false
+		return false, ctrl.Result{}, nil
 	}
-
 	if cr.Spec.DPUDeploymentRef == nil {
-		return false
+		return false, ctrl.Result{}, nil
 	}
 
 	dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
@@ -721,49 +687,97 @@ func (r *DPFHCPProvisionerReconciler) dpuDeploymentChanged(ctx context.Context, 
 	}
 	if err := r.Get(ctx, key, dpuDeployment); err != nil {
 		log.V(1).Info("Cannot fetch DPUDeployment for change detection, skipping", "error", err)
-		return false
+		return false, ctrl.Result{}, nil
 	}
 
-	cm := r.getIgnitionConfigMap(ctx, cr)
+	cm, err := r.getIgnitionConfigMap(ctx, cr)
+	if err != nil {
+		return false, ctrl.Result{}, err
+	}
 	if cm == nil {
-		log.V(1).Info("Cannot find ignition ConfigMap for change detection, skipping")
-		return false
+		return false, ctrl.Result{}, nil
 	}
 
-	annotations := cm.Annotations
-	if annotations == nil {
-		return true
+	if cm.Annotations == nil {
+		cm.Annotations = map[string]string{}
 	}
+	annotations := cm.Annotations
 
 	currentFlavor := dpuDeployment.Spec.DPUs.Flavor
 	storedFlavor := annotations[ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation]
+	currentBFB := dpuDeployment.Spec.DPUs.BFB
+	storedBFB := annotations[ignitiongenerator.BfcfgTemplateBFBNameAnnotation]
 
+	// Flavor changed → delete CM and regenerate ignition (content depends on flavor)
 	if currentFlavor != storedFlavor {
-		log.Info("DPUDeployment Flavor change detected",
+		log.Info("DPUDeployment Flavor changed, deleting stale ignition ConfigMap and regenerating",
 			"currentFlavor", currentFlavor, "storedFlavor", storedFlavor)
-		return true
+
+		if _, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+			return true, ctrl.Result{}, err
+		}
+
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:               provisioningv1alpha1.IgnitionConfigured,
+			Status:             metav1.ConditionFalse,
+			Reason:             provisioningv1alpha1.ReasonDPUDeploymentChanged,
+			Message:            "DPUDeployment Flavor changed, regenerating ignition configuration",
+			ObservedGeneration: cr.Generation,
+		})
+		r.Recorder.Event(cr, corev1.EventTypeNormal, "DPUDeploymentChanged",
+			"DPUDeployment Flavor changed, triggering ignition regeneration")
+		r.computeReadyCondition(ctx, cr)
+		r.updatePhaseFromConditions(cr)
+		if err := r.Status().Update(ctx, cr); err != nil {
+			log.Error(err, "Failed to update status after DPUDeployment Flavor change")
+			return true, ctrl.Result{}, err
+		}
+		return true, ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	return false
+	// BFB changed → update CM annotation only (ignition content doesn't depend on BFB name)
+	if currentBFB != storedBFB {
+		log.Info("DPUDeployment BFB changed, updating ConfigMap annotation",
+			"currentBFB", currentBFB, "storedBFB", storedBFB)
+
+		cm.Annotations[ignitiongenerator.BfcfgTemplateBFBNameAnnotation] = currentBFB
+		if err := r.Update(ctx, cm); err != nil {
+			log.Error(err, "Failed to update ignition ConfigMap BFB annotation")
+			return true, ctrl.Result{}, err
+		}
+		r.Recorder.Event(cr, corev1.EventTypeNormal, "BFBAnnotationUpdated",
+			fmt.Sprintf("Ignition ConfigMap BFB annotation updated to %s", currentBFB))
+		return true, ctrl.Result{}, nil
+	}
+
+	return false, ctrl.Result{}, nil
 }
 
 // deleteStaleIgnitionConfigMap deletes the ignition ConfigMap when it was generated for an older
 // spec version (e.g., after a release image upgrade). This prevents DPUs from being provisioned
 // with stale ignition during an upgrade. The deletion is idempotent -- it runs on every reconcile
-// getIgnitionConfigMap returns the ignition ConfigMap for a DPUCluster by name, or nil if not found.
-func (r *DPFHCPProvisionerReconciler) getIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) *corev1.ConfigMap {
+// getIgnitionConfigMap returns the ignition ConfigMap for a DPUCluster by name.
+// Returns (nil, nil) if not found, or (nil, err) for other errors.
+func (r *DPFHCPProvisionerReconciler) getIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (*corev1.ConfigMap, error) {
 	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
 	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}, cm); err != nil {
-		return nil
+	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cr.Spec.DPUClusterRef.Namespace}, cm)
+	if apierrors.IsNotFound(err) {
+		return nil, nil
 	}
-	return cm
+	if err != nil {
+		return nil, err
+	}
+	return cm, nil
 }
 
 // deleteIgnitionConfigMap deletes the ignition ConfigMap for a DPUCluster.
 // Returns true if a ConfigMap was deleted.
 func (r *DPFHCPProvisionerReconciler) deleteIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, error) {
-	cm := r.getIgnitionConfigMap(ctx, cr)
+	cm, err := r.getIgnitionConfigMap(ctx, cr)
+	if err != nil {
+		return false, err
+	}
 	if cm == nil {
 		return false, nil
 	}
@@ -819,7 +833,12 @@ func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Contex
 		return false
 	}
 
-	if cm := r.getIgnitionConfigMap(ctx, cr); cm != nil {
+	cm, err := r.getIgnitionConfigMap(ctx, cr)
+	if err != nil {
+		log.Error(err, "Failed to verify ignition ConfigMap existence")
+		return false
+	}
+	if cm != nil {
 		return false
 	}
 
@@ -1245,10 +1264,12 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 	}
 
 	// Case 2: HC spec already matches — check if an upgrade is still in progress
-	// (handles recovery after operator restart or previous image that didn't set the condition)
+	// (handles recovery after operator restart or previous image that didn't set the condition).
+	// Only triggers if HostedClusterUpgrading condition was previously set.
+	upgradingCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
 	if hc.Spec.Release.Image == cr.Spec.OCPReleaseImage {
-		if !r.isHostedClusterVersionReady(hc, cr.Spec.OCPReleaseImage) {
-			log.Info("HC spec matches but version not yet Completed, marking upgrade in progress",
+		if upgradingCond != nil && !r.isHostedClusterVersionReady(hc, cr.Spec.OCPReleaseImage) {
+			log.Info("HC spec matches but version not yet ready, performing upgrade invalidation",
 				"releaseImage", cr.Spec.OCPReleaseImage)
 			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 				Type:               provisioningv1alpha1.HostedClusterUpgrading,
@@ -1257,6 +1278,19 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 				Message:            fmt.Sprintf("Upgrade to %s in progress", cr.Spec.OCPReleaseImage),
 				ObservedGeneration: cr.Generation,
 			})
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionFalse,
+				Reason:             "ReleaseImageUpdated",
+				Message:            "Ignition invalidated due to release image upgrade recovery",
+				ObservedGeneration: cr.Generation,
+			})
+			if deleted, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+				return ctrl.Result{}, err
+			} else if deleted {
+				log.Info("Deleted stale ignition ConfigMap during recovery")
+			}
+			cr.Status.BlueFieldOCPLayerImage = ""
 		}
 		return ctrl.Result{}, nil
 	}

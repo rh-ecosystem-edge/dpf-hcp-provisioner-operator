@@ -115,9 +115,19 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 
 	// Extract OCP version (tag parsing first, then registry label for digest images)
 	logger.V(1).Info("Extracting OCP version", "ocpReleaseImage", ocpReleaseImage)
-	version, err := ExtractOCPVersionFromRegistry(ctx, ocpReleaseImage, keychain)
+	version, err := ExtractOCPVersion(ctx, ocpReleaseImage, keychain)
 	if err != nil {
 		logger.Error(err, "Failed to extract OCP version", "ocpReleaseImage", ocpReleaseImage)
+		if isAuthError(err) {
+			return r.handlePermanentError(ctx, cr, &RegistryAuthError{
+				Repository: ocpReleaseImage,
+				Err:        err,
+			}, "")
+		}
+		// Transient registry errors should be retried
+		if strings.Contains(err.Error(), "failed to fetch") || strings.Contains(err.Error(), "failed to get") {
+			return r.handleTransientError(ctx, cr, err)
+		}
 		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
 			Message: err.Error(),
 			URL:     ocpReleaseImage,
@@ -157,14 +167,15 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 // extractVersionFromTag is an internal helper that extracts OCP version from a tagged image URL.
 // Returns empty string if not parseable (digest images, missing tag, etc.).
 func extractVersionFromTag(imageURL string) string {
-	if strings.Contains(imageURL, "@sha256:") {
+	if strings.Contains(imageURL, "@") {
 		return ""
 	}
-	parts := strings.Split(imageURL, ":")
-	if len(parts) < 2 {
+	lastSlash := strings.LastIndex(imageURL, "/")
+	lastColon := strings.LastIndex(imageURL, ":")
+	if lastColon <= lastSlash {
 		return ""
 	}
-	tag := parts[len(parts)-1]
+	tag := imageURL[lastColon+1:]
 	if tag == "" {
 		return ""
 	}
@@ -176,10 +187,10 @@ func extractVersionFromTag(imageURL string) string {
 	return version
 }
 
-// ExtractOCPVersionFromRegistry resolves the OCP version from a release image by reading
-// the io.openshift.release label from the image config. This works for both tagged and
-// digest-based images. Falls back to tag parsing if the registry is not accessible.
-func ExtractOCPVersionFromRegistry(ctx context.Context, releaseImage string, keychain authn.Keychain) (string, error) {
+// ExtractOCPVersion resolves the OCP version from a release image.
+// For tagged images, parses the version from the tag (no registry call).
+// For digest images, reads the io.openshift.release label from the image config via registry.
+func ExtractOCPVersion(ctx context.Context, releaseImage string, keychain authn.Keychain) (string, error) {
 	// Try tag-based extraction first (fast, no registry call)
 	if version := extractVersionFromTag(releaseImage); version != "" {
 		return version, nil
