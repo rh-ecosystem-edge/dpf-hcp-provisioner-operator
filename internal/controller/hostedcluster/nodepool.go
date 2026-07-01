@@ -70,9 +70,22 @@ func (nm *NodePoolManager) CreateNodePool(ctx context.Context, cr *provisioningv
 	if err == nil {
 		// NodePool exists - verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingNP, cr) {
-			log.V(1).Info("NodePool already exists and is owned by this DPFHCPProvisioner",
-				"nodePool", npName,
-				"namespace", npNamespace)
+			// Check if release image needs to be updated (upgrade scenario)
+			if existingNP.Spec.Release.Image != cr.Spec.OCPReleaseImage {
+				log.Info("Updating NodePool release image for upgrade",
+					"nodePool", npName,
+					"oldImage", existingNP.Spec.Release.Image,
+					"newImage", cr.Spec.OCPReleaseImage)
+
+				existingNP.Spec.Release.Image = cr.Spec.OCPReleaseImage
+				if err := nm.Update(ctx, existingNP); err != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to update NodePool release image: %w", err)
+				}
+			} else {
+				log.V(1).Info("NodePool already exists and is owned by this DPFHCPProvisioner, no update needed",
+					"nodePool", npName,
+					"namespace", npNamespace)
+			}
 			return ctrl.Result{}, nil
 		}
 

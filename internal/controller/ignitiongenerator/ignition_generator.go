@@ -91,6 +91,9 @@ func ConfigMapName(dpuClusterName string) string {
 	return fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, dpuClusterName)
 }
 
+// BfcfgTemplateOCPReleaseImageAnnotation is the annotation specifying the OCP release image used for this ignition.
+const BfcfgTemplateOCPReleaseImageAnnotation = dpuProvisioningPrefix + "bfcfg-template-ocp-release-image"
+
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
 type IgnitionGenerator struct {
 	Client   client.Client
@@ -133,12 +136,14 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// Success
+	// Success - extract version for status message
+	cmName := ConfigMapName(cr.Spec.DPUClusterRef.Name)
+
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionTrue,
 		Reason:             provisioningv1alpha1.ReasonIgnitionGenerated,
-		Message:            fmt.Sprintf("Ignition ConfigMap %s-%s.cfg created and DPFOperatorConfig updated successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+		Message:            fmt.Sprintf("Ignition ConfigMap %s created successfully", cmName),
 		ObservedGeneration: cr.Generation,
 	})
 
@@ -149,7 +154,7 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 	}
 
 	ig.Recorder.Event(cr, corev1.EventTypeNormal, "IgnitionConfigured",
-		fmt.Sprintf("Ignition ConfigMap %s-%s.cfg configured successfully", configMapNamePrefix, cr.Spec.DPUClusterRef.Name))
+		fmt.Sprintf("Ignition ConfigMap %s configured successfully", cmName))
 
 	log.Info("Ignition generation completed successfully")
 	return ctrl.Result{}, nil
@@ -565,6 +570,7 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 		BfcfgTemplateClusterNameAnnotation:      cr.Spec.DPUClusterRef.Name,
 		BfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
 		bfcfgTemplateMachineOSURLAnnotation:     machineOSURL,
+		BfcfgTemplateOCPReleaseImageAnnotation:  cr.Spec.OCPReleaseImage,
 	}
 	if cr.Spec.DPUDeploymentRef != nil {
 		dpuDeployment, err := ig.getDPUDeployment(ctx, cr)

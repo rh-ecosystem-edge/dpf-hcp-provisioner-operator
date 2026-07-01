@@ -38,6 +38,9 @@ import (
 )
 
 const (
+	// OCPReleaseLabel is the image label that contains the OCP version string.
+	OCPReleaseLabel = "io.openshift.release"
+
 	// Reason codes
 	reasonImageFound                  = "ImageFound"
 	reasonRegistryAccessError         = "RegistryAccessError"
@@ -86,7 +89,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 	logger := log.FromContext(ctx)
 	logger = logger.WithValues("feature", "bluefield-ocp-layer-lookup")
 
-	// Step 1: Read ocpReleaseImage from spec
+	// Read ocpReleaseImage from spec
 	ocpReleaseImage := cr.Spec.OCPReleaseImage
 	if ocpReleaseImage == "" {
 		err := fmt.Errorf("ocpReleaseImage is required but empty")
@@ -97,11 +100,34 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 		})
 	}
 
-	// Step 2: Parse OCP version from image URL
-	logger.V(1).Info("Extracting OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
-	version, err := extractOCPVersion(ocpReleaseImage)
+	// Use the repository from operator config
+	repository := r.Repository
+
+	// Get authentication keychain from the CR's pullSecretRef
+	keychain, err := r.getKeychain(ctx, cr)
 	if err != nil {
-		logger.Error(err, "Failed to parse OCP version from image URL", "ocpReleaseImage", ocpReleaseImage)
+		logger.Error(err, "Failed to get registry credentials")
+		return r.handlePermanentError(ctx, cr, &RegistryAuthError{
+			Repository: repository,
+			Err:        err,
+		}, "")
+	}
+
+	// Extract OCP version (tag parsing first, then registry label for digest images)
+	logger.V(1).Info("Extracting OCP version", "ocpReleaseImage", ocpReleaseImage)
+	version, err := ExtractOCPVersion(ctx, ocpReleaseImage, keychain)
+	if err != nil {
+		logger.Error(err, "Failed to extract OCP version", "ocpReleaseImage", ocpReleaseImage)
+		if isAuthError(err) {
+			return r.handlePermanentError(ctx, cr, &RegistryAuthError{
+				Repository: ocpReleaseImage,
+				Err:        err,
+			}, "")
+		}
+		// Transient registry errors should be retried
+		if strings.Contains(err.Error(), "failed to fetch") || strings.Contains(err.Error(), "failed to get") {
+			return r.handleTransientError(ctx, cr, err)
+		}
 		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
 			Message: err.Error(),
 			URL:     ocpReleaseImage,
@@ -109,20 +135,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 	}
 	logger.V(1).Info("Extracted OCP version", "version", version)
 
-	// Step 3: Use the repository from operator config
-	repository := r.Repository
-
-	// Step 4: Get authentication keychain from the CR's pullSecretRef
-	keychain, err := r.getKeychain(ctx, cr)
-	if err != nil {
-		logger.Error(err, "Failed to get registry credentials")
-		return r.handlePermanentError(ctx, cr, &RegistryAuthError{
-			Repository: repository,
-			Err:        err,
-		}, version)
-	}
-
-	// Step 5: Query registry for matching tag
+	// Query registry for matching tag
 	logger.V(1).Info("Querying registry for BlueField OCP layer image", "repository", repository, "version", version)
 	blueFieldOCPLayerImage, err := r.validateTagExists(ctx, repository, version, keychain)
 	if err != nil {
@@ -137,44 +150,76 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 		}
 	}
 
-	// Step 6: Validate the found image URL
+	// Validate the found image URL
 	logger.V(1).Info("Validating BlueField OCP layer image URL", "blueFieldOCPLayerImage", blueFieldOCPLayerImage)
 	if err := validateBlueFieldOCPLayerImageURL(blueFieldOCPLayerImage, version); err != nil {
 		logger.Error(err, "BlueField OCP layer image URL validation failed", "blueFieldOCPLayerImage", blueFieldOCPLayerImage)
 		return r.handlePermanentError(ctx, cr, err, version)
 	}
 
-	// Step 7: Update status on success
+	// Update status on success
 	logger.Info("BlueField OCP layer image found successfully",
 		"version", version,
 		"blueFieldOCPLayerImage", blueFieldOCPLayerImage)
 	return r.updateStatusOnSuccess(ctx, cr, blueFieldOCPLayerImage, version)
 }
 
-// extractOCPVersion extracts the OCP version from the ocpReleaseImage URL.
-// It strips architecture suffixes like -multi, -amd64, etc.
-// Exported for testing.
-func extractOCPVersion(ocpReleaseImage string) (string, error) {
-	// Extract tag (everything after last ':')
-	parts := strings.Split(ocpReleaseImage, ":")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("missing tag separator ':' in image URL")
+// extractVersionFromTag is an internal helper that extracts OCP version from a tagged image URL.
+// Returns empty string if not parseable (digest images, missing tag, etc.).
+func extractVersionFromTag(imageURL string) string {
+	if strings.Contains(imageURL, "@") {
+		return ""
 	}
-	tag := parts[len(parts)-1]
-
+	lastSlash := strings.LastIndex(imageURL, "/")
+	lastColon := strings.LastIndex(imageURL, ":")
+	if lastColon <= lastSlash {
+		return ""
+	}
+	tag := imageURL[lastColon+1:]
 	if tag == "" {
-		return "", fmt.Errorf("empty tag in image URL")
+		return ""
 	}
-
-	// Strip known architecture suffixes
 	suffixes := []string{"-multi", "-amd64", "-arm64", "-ppc64le", "-s390x", "-x86_64"}
 	version := tag
 	for _, suffix := range suffixes {
 		version = strings.TrimSuffix(version, suffix)
 	}
+	return version
+}
 
-	if version == "" {
-		return "", fmt.Errorf("extracted version is empty after processing tag: %s", tag)
+// ExtractOCPVersion resolves the OCP version from a release image.
+// For tagged images, parses the version from the tag (no registry call).
+// For digest images, reads the io.openshift.release label from the image config via registry.
+func ExtractOCPVersion(ctx context.Context, releaseImage string, keychain authn.Keychain) (string, error) {
+	// Try tag-based extraction first (fast, no registry call)
+	if version := extractVersionFromTag(releaseImage); version != "" {
+		return version, nil
+	}
+
+	// Digest image: fetch the image config from the registry
+	ref, err := name.ParseReference(releaseImage)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse image reference %s: %w", releaseImage, err)
+	}
+
+	desc, err := remote.Get(ref, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch image descriptor for %s: %w", releaseImage, err)
+	}
+
+	img, err := desc.Image()
+	if err != nil {
+		return "", fmt.Errorf("failed to get image from descriptor for %s: %w", releaseImage, err)
+	}
+
+	cfg, err := img.ConfigFile()
+	if err != nil {
+		return "", fmt.Errorf("failed to get config file for %s: %w", releaseImage, err)
+	}
+
+	version, ok := cfg.Config.Labels[OCPReleaseLabel]
+	if !ok || version == "" {
+		return "", fmt.Errorf("image %s does not have label %s", releaseImage, OCPReleaseLabel)
 	}
 
 	return version, nil

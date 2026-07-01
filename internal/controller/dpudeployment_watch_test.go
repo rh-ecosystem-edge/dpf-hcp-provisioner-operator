@@ -191,7 +191,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 		})
 	})
 
-	Describe("dpuDeploymentChanged", func() {
+	Describe("handleDPUDeploymentChange", func() {
 		It("should return false when IgnitionConfigured is not True", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
@@ -211,8 +211,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 			}
 
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
-			Expect(r.dpuDeploymentChanged(context.TODO(), provisioner)).To(BeFalse())
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+			Expect(func() bool {
+				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				return changed
+			}()).To(BeFalse())
 		})
 
 		It("should return false when DPUDeploymentRef is nil", func() {
@@ -240,8 +244,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 			}
 
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
-			Expect(r.dpuDeploymentChanged(context.TODO(), provisioner)).To(BeFalse())
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+			Expect(func() bool {
+				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				return changed
+			}()).To(BeFalse())
 		})
 
 		It("should return false when Flavor matches ConfigMap annotation", func() {
@@ -289,8 +297,11 @@ var _ = Describe("DPUDeployment Watch", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ignitiongenerator.ConfigMapName("cluster"),
 					Namespace: "dpu-system",
+					Labels:    map[string]string{ignitiongenerator.BfcfgTemplateLabel: "true"},
 					Annotations: map[string]string{
+						ignitiongenerator.BfcfgTemplateClusterNameAnnotation:   "cluster",
 						ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation: "my-flavor",
+						ignitiongenerator.BfcfgTemplateBFBNameAnnotation:       "my-bfb",
 					},
 				},
 			}
@@ -299,8 +310,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 				WithScheme(scheme).
 				WithObjects(dd, cm).
 				Build()
-			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
-			Expect(r.dpuDeploymentChanged(context.TODO(), provisioner)).To(BeFalse())
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+			Expect(func() bool {
+				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				return changed
+			}()).To(BeFalse())
 		})
 
 		It("should return true when Flavor changed", func() {
@@ -348,18 +363,26 @@ var _ = Describe("DPUDeployment Watch", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ignitiongenerator.ConfigMapName("cluster"),
 					Namespace: "dpu-system",
+					Labels:    map[string]string{ignitiongenerator.BfcfgTemplateLabel: "true"},
 					Annotations: map[string]string{
+						ignitiongenerator.BfcfgTemplateClusterNameAnnotation:   "cluster",
 						ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation: "old-flavor",
+						ignitiongenerator.BfcfgTemplateBFBNameAnnotation:       "my-bfb",
 					},
 				},
 			}
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(dd, cm).
+				WithObjects(provisioner, dd, cm).
+				WithStatusSubresource(provisioner).
 				Build()
-			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
-			Expect(r.dpuDeploymentChanged(context.TODO(), provisioner)).To(BeTrue())
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+			Expect(func() bool {
+				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				return changed
+			}()).To(BeTrue())
 		})
 
 		It("should return true when ConfigMap has nil annotations", func() {
@@ -407,15 +430,24 @@ var _ = Describe("DPUDeployment Watch", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ignitiongenerator.ConfigMapName("cluster"),
 					Namespace: "dpu-system",
+					Labels:    map[string]string{ignitiongenerator.BfcfgTemplateLabel: "true"},
+					Annotations: map[string]string{
+						ignitiongenerator.BfcfgTemplateClusterNameAnnotation: "cluster",
+					},
 				},
 			}
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(dd, cm).
+				WithObjects(provisioner, dd, cm).
+				WithStatusSubresource(provisioner).
 				Build()
-			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
-			Expect(r.dpuDeploymentChanged(context.TODO(), provisioner)).To(BeTrue())
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+			Expect(func() bool {
+				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				return changed
+			}()).To(BeTrue())
 		})
 
 		It("should return false when DPUDeployment is not found", func() {
@@ -447,8 +479,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 			}
 
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
-			Expect(r.dpuDeploymentChanged(context.TODO(), provisioner)).To(BeFalse())
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+			Expect(func() bool {
+				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				return changed
+			}()).To(BeFalse())
 		})
 
 		It("should return false when ConfigMap is not found", func() {
@@ -496,8 +532,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 				WithScheme(scheme).
 				WithObjects(dd).
 				Build()
-			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
-			Expect(r.dpuDeploymentChanged(context.TODO(), provisioner)).To(BeFalse())
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+			Expect(func() bool {
+				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				Expect(err).NotTo(HaveOccurred())
+				return changed
+			}()).To(BeFalse())
 		})
 	})
 

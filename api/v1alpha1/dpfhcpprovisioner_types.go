@@ -192,7 +192,7 @@ type DPFHCPProvisionerSpec struct {
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
-// +kubebuilder:validation:Enum=Pending;Provisioning;IgnitionGenerating;Ready;Failed;Deleting
+// +kubebuilder:validation:Enum=Pending;Provisioning;Upgrading;IgnitionGenerating;Ready;Failed;Deleting
 type DPFHCPProvisionerPhase string
 
 const (
@@ -201,6 +201,9 @@ const (
 
 	// PhaseProvisioning indicates HostedCluster and related resources are being created
 	PhaseProvisioning DPFHCPProvisionerPhase = "Provisioning"
+
+	// PhaseUpgrading indicates a HostedCluster release image upgrade is in progress
+	PhaseUpgrading DPFHCPProvisionerPhase = "Upgrading"
 
 	// PhaseIgnitionGenerating indicates ignition generation is in progress
 	PhaseIgnitionGenerating DPFHCPProvisionerPhase = "IgnitionGenerating"
@@ -272,6 +275,11 @@ const (
 	// DPUClusterInUse indicates whether the DPUCluster is already in use by another DPFHCPProvisioner.
 	DPUClusterInUse string = "DPUClusterInUse"
 
+	// HostedClusterUpgrading indicates whether a HostedCluster release image upgrade is in progress.
+	// True when the user updates spec.ocpReleaseImage and the operator is propagating the change.
+	// False when the HostedCluster upgrade is complete and ignition regeneration may proceed.
+	HostedClusterUpgrading string = "HostedClusterUpgrading"
+
 	// MetalLBConfigured indicates whether MetalLB resources (IPAddressPool and L2Advertisement)
 	// have been successfully created and are in sync with the DPFHCPProvisioner spec.
 	MetalLBConfigured string = "MetalLBConfigured"
@@ -319,6 +327,15 @@ const (
 
 	// ReasonHostedClusterNotReachable indicates the hosted cluster is not reachable
 	ReasonHostedClusterNotReachable string = "HostedClusterNotReachable"
+)
+
+// Condition reasons for DPFHCPProvisioner HostedClusterUpgrading status.
+const (
+	// ReasonUpgradeInProgress indicates a release image upgrade is in progress.
+	ReasonUpgradeInProgress string = "UpgradeInProgress"
+
+	// ReasonUpgradeComplete indicates the HostedCluster upgrade completed and ignition regeneration may proceed.
+	ReasonUpgradeComplete string = "UpgradeComplete"
 )
 
 // Condition reasons for DPFHCPProvisioner IgnitionConfigured status.

@@ -696,7 +696,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		// Verify ConfigMap was created
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
@@ -716,7 +716,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 	})
 
 	It("should update an existing ConfigMap", func() {
-		cmName := fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name)
+		cmName := ConfigMapName(cr.Spec.DPUClusterRef.Name)
 		existingCM := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      cmName,
@@ -764,7 +764,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
@@ -782,7 +782,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
@@ -799,7 +799,7 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 
 		cm := &corev1.ConfigMap{}
 		cmKey := types.NamespacedName{
-			Name:      fmt.Sprintf("%s-%s.cfg", configMapNamePrefix, cr.Spec.DPUClusterRef.Name),
+			Name:      ConfigMapName(cr.Spec.DPUClusterRef.Name),
 			Namespace: cr.Spec.DPUClusterRef.Namespace,
 		}
 		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
