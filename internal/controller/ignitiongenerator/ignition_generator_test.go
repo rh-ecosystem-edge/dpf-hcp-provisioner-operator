@@ -508,7 +508,7 @@ var _ = Describe("buildTargetIgnition", func() {
 			},
 		}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500)
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).NotTo(BeNil())
 
@@ -553,14 +553,14 @@ var _ = Describe("buildTargetIgnition", func() {
 		data, _ := json.Marshal(ign)
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 
-		result, err := ig.buildTargetIgnition(data, flavor, "https://new-image.example.com", 1500)
+		result, err := ig.buildTargetIgnition(data, flavor, "https://new-image.example.com", 1500, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Ignition.Version).To(Equal("3.2.0"))
 	})
 
 	It("should return error for invalid JSON", func() {
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
-		_, err := ig.buildTargetIgnition([]byte("not-json"), flavor, "https://example.com", 1500)
+		_, err := ig.buildTargetIgnition([]byte("not-json"), flavor, "https://example.com", 1500, false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to parse HCP ignition"))
 	})
@@ -569,7 +569,7 @@ var _ = Describe("buildTargetIgnition", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 1500)
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 1500, false)
 		Expect(err).NotTo(HaveOccurred())
 
 		// No p0/p1/pf0hpf/pf1hpf NM connections should be added
@@ -582,7 +582,7 @@ var _ = Describe("buildTargetIgnition", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 9000)
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 9000, false)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Should have p0 NM connection with MTU
@@ -594,6 +594,87 @@ var _ = Describe("buildTargetIgnition", func() {
 			}
 		}
 		Expect(hasP0).To(BeTrue())
+	})
+
+	It("should exclude pf-monitor.service from systemd units in zero-trust mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, u := range result.Systemd.Units {
+			Expect(u.Name).NotTo(Equal("pf-monitor.service"))
+		}
+	})
+
+	It("should exclude pf-monitor.sh file in zero-trust mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, f := range result.Storage.Files {
+			Expect(f.Path).NotTo(Equal("/usr/local/bin/pf-monitor.sh"))
+		}
+	})
+
+	It("should include pf-monitor in non-zero-trust mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false)
+		Expect(err).NotTo(HaveOccurred())
+
+		var hasPfMonitorUnit, hasPfMonitorFile bool
+		for _, u := range result.Systemd.Units {
+			if u.Name == "pf-monitor.service" {
+				hasPfMonitorUnit = true
+			}
+		}
+		for _, f := range result.Storage.Files {
+			if f.Path == "/usr/local/bin/pf-monitor.sh" {
+				hasPfMonitorFile = true
+			}
+		}
+		Expect(hasPfMonitorUnit).To(BeTrue())
+		Expect(hasPfMonitorFile).To(BeTrue())
+	})
+
+	It("should keep other systemd units in zero-trust mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		unitNames := make(map[string]bool)
+		for _, u := range result.Systemd.Units {
+			unitNames[u.Name] = true
+		}
+		Expect(unitNames).To(HaveKey("tmfifo-agent-link.service"))
+		Expect(unitNames).To(HaveKey("setup-vfs-devlink.service"))
+		Expect(unitNames).To(HaveKey("dpf-ovs.service"))
 	})
 })
 

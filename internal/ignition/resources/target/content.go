@@ -1,7 +1,10 @@
 package target
 
 import (
+	"bytes"
 	"embed"
+	"fmt"
+	"text/template"
 
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/content"
 )
@@ -12,10 +15,10 @@ var filesFS embed.FS
 //go:embed systemd/*
 var systemdFS embed.FS
 
-func NewProvider() *content.EmbeddedProvider {
+func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
 
-	return &content.EmbeddedProvider{
+	p := &content.EmbeddedProvider{
 		Files: []content.FileDefinition{
 			{
 				Path:          "/etc/mellanox/mlnx-bf.conf",
@@ -119,4 +122,33 @@ func NewProvider() *content.EmbeddedProvider {
 		},
 		SystemdFS: &systemdFS,
 	}
+
+	if zeroTrust {
+		p.SkipUnits = []string{"pf-monitor.service"}
+		filtered := make([]content.FileDefinition, 0, len(p.Files))
+		for _, f := range p.Files {
+			if f.Path != "/usr/local/bin/pf-monitor.sh" {
+				filtered = append(filtered, f)
+			}
+		}
+		p.Files = filtered
+	}
+
+	return p
+}
+
+func RenderDPUAgentServiceUnit(zeroTrust bool) (string, string, error) {
+	tmplBytes := content.EmbedFile(filesFS, "files/dpu-agent.service.tmpl")
+	tmpl, err := template.New("dpu-agent.service").Parse(string(tmplBytes))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse dpu-agent.service template: %w", err)
+	}
+
+	data := struct{ ZeroTrust bool }{ZeroTrust: zeroTrust}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", "", fmt.Errorf("failed to render dpu-agent.service template: %w", err)
+	}
+
+	return "dpu-agent.service", buf.String(), nil
 }
