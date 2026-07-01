@@ -1,5 +1,7 @@
 #!/bin/bash
 
+is_zero_trust() { [ "$DPUMode" = "zero-trust" ]; }
+
 TIMEOUT=1800
 START_TIME=$(date +%s)
 LAST_ERROR=""
@@ -12,7 +14,7 @@ elapsed() {
 check_timeout() {
   if [ "$(elapsed)" -ge "$TIMEOUT" ]; then
     echo "ERROR: setup-vfs-devlink ($ACTION) timed out after ${TIMEOUT}s: ${LAST_ERROR}"
-    if [ "$ACTION" = "create-vfs" ]; then
+    if [ "$ACTION" = "create-vfs" ] && ! is_zero_trust; then
       /usr/local/bin/dpuagent-client.py send-error "VFSetupTimedOut" \
         "setup-vfs-devlink ($ACTION) failed after ${TIMEOUT}s: ${LAST_ERROR}"
     fi
@@ -92,6 +94,11 @@ do_create_vfs() {
   while true; do
     check_timeout
     LAST_ERROR=""
+
+    if is_zero_trust; then
+      echo "INFO: Zero-trust mode, skipping configure-host-vfs and VF check"
+      break
+    fi
 
     if ! /usr/local/bin/dpuagent-client.py configure-host-vfs; then
       LAST_ERROR="configure-host-vfs failed"

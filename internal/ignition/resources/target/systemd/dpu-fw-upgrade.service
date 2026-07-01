@@ -8,6 +8,7 @@ ConditionPathExists=/etc/mlnx-release
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+EnvironmentFile=/etc/dpf/environment
 ExecStart=/usr/local/bin/dpu-fw-upgrade.sh
 
 [Install]

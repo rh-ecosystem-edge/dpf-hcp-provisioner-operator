@@ -2,6 +2,8 @@
 
 exec > >(tee >(while read -r line; do /usr/local/bin/bflog.sh "$line"; done)) 2>&1
 
+is_zero_trust() { [ "$DPUMode" = "zero-trust" ]; }
+
 LOG="/tmp/dpu-fw-upgrade.log"
 rshimlog=$(which bfrshlog 2>/dev/null || true)
 
@@ -48,7 +50,7 @@ source /opt/mellanox/bfb/nic-fw
 
 fw_error() {
     log "ERROR: $1"
-    /usr/local/bin/dpuagent-client.py send-error "FirmwareUpgradeFailed" "$1"
+    is_zero_trust || /usr/local/bin/dpuagent-client.py send-error "FirmwareUpgradeFailed" "$1"
     exit 1
 }
 

@@ -2,6 +2,11 @@
 
 exec > >(tee >(while read -r line; do /usr/local/bin/bflog.sh "$line"; done)) 2>&1
 
+if [ "$DPUMode" = "zero-trust" ]; then
+    echo "INFO: Zero-trust mode, skipping tmfifo host agent wait"
+    exit 0
+fi
+
 TIMEOUT=900
 START=$(date +%s)
 
