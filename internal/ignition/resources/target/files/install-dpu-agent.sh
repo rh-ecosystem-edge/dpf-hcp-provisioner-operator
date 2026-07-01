@@ -9,14 +9,56 @@ fi
 
 echo "Installing dpu-agent..."
 
+is_zero_trust() { [ "$DPUMode" = "zero-trust" ]; }
+
 install_error() {
     echo "ERROR: $1"
-    /usr/local/bin/dpuagent-client.py send-error "DPUAgentInstallFailed" "$1"
+    is_zero_trust || /usr/local/bin/dpuagent-client.py send-error "DPUAgentInstallFailed" "$1"
     exit 1
 }
 
-cd /tmp
-dnf download dpu-agent --disablerepo=* --enablerepo=agentrepo || install_error "dnf download dpu-agent failed"
+if is_zero_trust; then
+    echo "Zero-trust mode: downloading dpu-agent from bfb-registry at $BFBRegistryURL"
+
+    if [ -z "$BFBRegistryURL" ]; then
+        install_error "Zero-trust mode requires BFBRegistryURL"
+    fi
+
+    TIMEOUT=300
+    START=$(date +%s)
+    while true; do
+        if curl -sf --max-time 5 "$BFBRegistryURL/rpm/repodata/repomd.xml" >/dev/null 2>&1; then
+            break
+        fi
+        ELAPSED=$(($(date +%s) - START))
+        if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+            install_error "Timed out waiting for bfb-registry at $BFBRegistryURL"
+        fi
+        echo "Waiting for bfb-registry connectivity... (${ELAPSED}s/${TIMEOUT}s)"
+        sleep 5
+    done
+
+    cd /tmp
+    dnf download dpu-agent --disablerepo=* --repofrompath=zt-agentrepo,"$BFBRegistryURL/rpm/" || install_error "dnf download dpu-agent from bfb-registry failed"
+else
+    TIMEOUT=900
+    START=$(date +%s)
+    while true; do
+        if ping -6 -c1 -W1 fe80::1%tmfifo_net0 &>/dev/null; then
+            break
+        fi
+        ELAPSED=$(($(date +%s) - START))
+        if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+            install_error "Timed out waiting for connectivity to host agent via tmfifo_net0"
+        fi
+        echo "Waiting for connectivity to host agent via tmfifo_net0... (${ELAPSED}s/${TIMEOUT}s)"
+        sleep 1
+    done
+
+    cd /tmp
+    dnf download dpu-agent --disablerepo=* --enablerepo=agentrepo || install_error "dnf download dpu-agent failed"
+fi
+
 rpm2cpio dpu-agent*.rpm | cpio -idm --no-absolute-filenames
 [ -f opt/dpf/dpuagent ] || install_error "Failed to extract dpu-agent package"
 mv opt/dpf/dpuagent /usr/local/bin/dpu-agent || install_error "Failed to move dpu-agent binary"

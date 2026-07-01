@@ -21,13 +21,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	"encoding/json"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +42,7 @@ import (
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
+	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
@@ -191,12 +191,9 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		"mode", dpuMode,
 		"description", GetModeDescription(dpuMode),
 		"dpuFlavor", dpuFlavor.Name,
-		"isZeroTrust", IsZeroTrustMode(dpuMode))
+		"zeroTrust", IsZeroTrustMode(dpuMode))
 
-	// Build target ignition (HCP + DPF modifications)
-	// NOTE: For now, we just detect and log the mode. In the future, we'll pass
-	// the mode to buildTargetIgnition() and buildLiveIgnition() to generate
-	// mode-specific content.
+	// Step 3: Build target ignition (HCP + DPF modifications)
 	log.V(1).Info("Building target ignition")
 
 	dpfOperatorConfig, err := operatorcommon.GetSingletonDPFOperatorConfig(ctx, ig.Client)
@@ -222,7 +219,18 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
 	}
 
-	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, IsZeroTrustMode(dpuMode))
+	zeroTrust := IsZeroTrustMode(dpuMode)
+
+	var bfbRegistryURL string
+	if zeroTrust {
+		bfbRegistryURL, err = ig.resolveBFBRegistryURL(ctx, dpfOperatorConfig)
+		if err != nil {
+			return fmt.Errorf("failed to resolve bfb-registry URL for zero-trust mode: %w", err)
+		}
+		log.Info("Resolved bfb-registry URL for zero-trust mode", "url", bfbRegistryURL)
+	}
+
+	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, zeroTrust, bfbRegistryURL)
 	if err != nil {
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
@@ -242,7 +250,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	log.V(1).Info("Building live ignition")
 	// We are adding DPU Flavor in JSON format for early setup tasks, such as nvconfig parameters setup.
 	// JSON is easier to parse with the tooling we have in Live RHCOS install media.
-	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, IsZeroTrustMode(dpuMode))
+	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, zeroTrust)
 	if err != nil {
 		return fmt.Errorf("failed to build live ignition: %w", err)
 	}
@@ -431,7 +439,7 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications
-func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, zeroTrust bool) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, zeroTrust bool, bfbRegistryURL string) (*igntypes.Config, error) {
 	// Parse HCP ignition
 	targetIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, targetIgnition); err != nil {
@@ -461,7 +469,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	})
 
 	// Add common content files and systemd units
-	commonProvider := common.NewProvider()
+	commonProvider := common.NewProvider(zeroTrust)
 	if err := igncontent.AddContent(targetIgnition, commonProvider); err != nil {
 		return nil, fmt.Errorf("failed to add common content: %w", err)
 	}
@@ -470,8 +478,6 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	ignition.AddFlavorOVSScript(targetIgnition, &dpuFlavor.Spec)
 
 	// Merge DPUFlavor config files into the target ignition.
-	// This must run after all default files are added so that flavor files
-	// can override defaults at conflicting paths (e.g. /etc/mellanox/mlnx-bf.conf).
 	if err := ignition.MergeFlavorConfigFiles(targetIgnition, &dpuFlavor.Spec); err != nil {
 		return nil, fmt.Errorf("failed to merge flavor config files: %w", err)
 	}
@@ -483,6 +489,22 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 
 	if mtu != 1500 {
 		ignition.EnableMTU(targetIgnition, mtu)
+	}
+
+	if bfbRegistryURL != "" {
+		source := fmt.Sprintf("data:,BFBRegistryURL=%s%%0A", bfbRegistryURL)
+		targetIgnition.Storage.Files = append(targetIgnition.Storage.Files, igntypes.File{
+			Node: igntypes.Node{
+				Path:      "/etc/dpf/bfb-registry",
+				Overwrite: ignition.Ptr(true),
+			},
+			FileEmbedded1: igntypes.FileEmbedded1{
+				Mode: ignition.Ptr(0644),
+				Contents: igntypes.Resource{
+					Source: &source,
+				},
+			},
+		})
 	}
 
 	return targetIgnition, nil
@@ -511,7 +533,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 	}
 
 	// Add common content files and systemd units
-	commonProvider := common.NewProvider()
+	commonProvider := common.NewProvider(zeroTrust)
 	if err := igncontent.AddContent(liveIgnition, commonProvider); err != nil {
 		return nil, fmt.Errorf("failed to add common content: %w", err)
 	}
@@ -628,4 +650,69 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 
 	log.Info("Updated ignition ConfigMap", "name", cmName, "namespace", cmNamespace)
 	return nil
+}
+
+// resolveBFBRegistryURL resolves the bfb-registry URL for zero-trust mode.
+// It checks the DPFOperatorConfig registry configuration first, then falls back
+// to discovering the bfb-registry NodePort service.
+func (ig *IgnitionGenerator) resolveBFBRegistryURL(ctx context.Context, dpfOperatorConfig *operatorv1alpha1.DPFOperatorConfig) (string, error) {
+	log := logf.FromContext(ctx)
+
+	if reg := dpfOperatorConfig.Spec.ProvisioningController.Registry; reg != nil {
+		if reg.LoadBalancerAddress != nil && *reg.LoadBalancerAddress != "" {
+			log.V(1).Info("Using LoadBalancerAddress from DPFOperatorConfig", "address", *reg.LoadBalancerAddress)
+			return strings.TrimRight(*reg.LoadBalancerAddress, "/"), nil
+		}
+		if reg.Address != nil && *reg.Address != "" {
+			log.V(1).Info("Using Address from DPFOperatorConfig", "address", *reg.Address)
+			return strings.TrimRight(*reg.Address, "/"), nil
+		}
+	}
+
+	log.V(1).Info("No registry address configured, discovering bfb-registry NodePort service")
+
+	svc := &corev1.Service{}
+	svcKey := types.NamespacedName{
+		Name:      operatorv1alpha1.BFBRegistryName.String(),
+		Namespace: dpfOperatorConfig.Namespace,
+	}
+	if err := ig.Client.Get(ctx, svcKey, svc); err != nil {
+		return "", fmt.Errorf("failed to get bfb-registry service %s: %w", svcKey, err)
+	}
+
+	var nodePort int32
+	for _, port := range svc.Spec.Ports {
+		if port.NodePort != 0 {
+			nodePort = port.NodePort
+			break
+		}
+	}
+	if nodePort == 0 {
+		return "", fmt.Errorf("bfb-registry service %s has no NodePort", svcKey)
+	}
+
+	nodeList := &corev1.NodeList{}
+	if err := ig.Client.List(ctx, nodeList); err != nil {
+		return "", fmt.Errorf("failed to list nodes: %w", err)
+	}
+
+	var nodeIP string
+	for i := range nodeList.Items {
+		for _, addr := range nodeList.Items[i].Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP {
+				nodeIP = addr.Address
+				break
+			}
+		}
+		if nodeIP != "" {
+			break
+		}
+	}
+	if nodeIP == "" {
+		return "", fmt.Errorf("no node with InternalIP found")
+	}
+
+	url := fmt.Sprintf("http://%s:%d", nodeIP, nodePort)
+	log.Info("Discovered bfb-registry via NodePort", "url", url, "service", svcKey)
+	return url, nil
 }
