@@ -17,6 +17,11 @@ const nl = "%0A" // URL-encoded newline for data URIs
 func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
 
+	dpuMode := "trusted"
+	if zeroTrust {
+		dpuMode = "zero-trust"
+	}
+
 	files := []content.FileDefinition{
 		{
 			// Trick DPF checking for the existence of these strings in /etc/bf.env
@@ -35,7 +40,8 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 			ContentSource: "data:," +
 				"DPUName={{.DPUName}}" + nl +
 				"DPUNamespace={{.DPUNamespace}}" + nl +
-				"DPUUID={{.DPUUID}}" + nl,
+				"DPUUID={{.DPUUID}}" + nl +
+				"DPUMode=" + dpuMode + nl,
 		},
 		{
 			Path:          "/usr/local/bin/install-rhcos-dpf.sh",
