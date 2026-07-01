@@ -48,6 +48,7 @@ type ContentProvider interface {
 type EmbeddedProvider struct {
 	Files     []FileDefinition
 	SystemdFS *embed.FS // nil if this provider has no systemd units
+	SkipUnits []string  // unit names to exclude from systemd loading
 }
 
 func (p *EmbeddedProvider) GetFiles() []FileDefinition {
@@ -58,7 +59,24 @@ func (p *EmbeddedProvider) GetSystemdUnits() ([]SystemdUnitDefinition, error) {
 	if p.SystemdFS == nil {
 		return nil, nil
 	}
-	return LoadSystemdUnits(*p.SystemdFS, "systemd")
+	units, err := LoadSystemdUnits(*p.SystemdFS, "systemd")
+	if err != nil {
+		return nil, err
+	}
+	if len(p.SkipUnits) == 0 {
+		return units, nil
+	}
+	skip := make(map[string]bool, len(p.SkipUnits))
+	for _, name := range p.SkipUnits {
+		skip[name] = true
+	}
+	filtered := make([]SystemdUnitDefinition, 0, len(units))
+	for _, u := range units {
+		if !skip[u.Name] {
+			filtered = append(filtered, u)
+		}
+	}
+	return filtered, nil
 }
 
 // LoadSystemdUnits reads all systemd unit files from an embedded filesystem directory.

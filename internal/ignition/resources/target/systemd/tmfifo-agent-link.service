@@ -7,6 +7,7 @@ Wants=sys-subsystem-net-devices-tmfifo_net0.device
 Type=oneshot
 EnvironmentFile=/etc/dpf/environment
 RemainAfterExit=yes
+EnvironmentFile=/etc/dpf/environment
 ExecStart=/usr/local/bin/tmfifo-agent-link.sh
 
 [Install]
