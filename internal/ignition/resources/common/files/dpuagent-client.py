@@ -192,6 +192,27 @@ def update_pf_status():
     })
 
 
+def update_condition():
+    """Set a DPU condition. Args: type status reason message."""
+    if len(sys.argv) < 6:
+        print("Error: update-condition requires 4 arguments: type status reason message", file=sys.stderr)
+        sys.exit(1)
+    return base_request("POST", "/update-status", {
+        "dpuName": DPU_NAME,
+        "dpuNamespace": DPU_NAMESPACE,
+        "dpuUID": DPU_UID,
+        "agentStatus": {
+            "conditions": [{
+                "type": sys.argv[2],
+                "status": sys.argv[3],
+                "reason": sys.argv[4],
+                "message": sys.argv[5][:4096],
+                "lastTransitionTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            }],
+        },
+    })
+
+
 COMMANDS = {
     "get-dpu-phase": get_dpu_phase,
     "configure-host-vfs": configure_host_vfs,
@@ -202,6 +223,7 @@ COMMANDS = {
     "update-time": update_time,
     "send-error": lambda: send_error(sys.argv[2], sys.argv[3]),
     "update-pf-status": update_pf_status,
+    "update-condition": update_condition,
 }
 
 if __name__ == "__main__":
