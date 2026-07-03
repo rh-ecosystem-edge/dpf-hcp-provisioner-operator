@@ -20,7 +20,10 @@ linters:
     - revive
     - staticcheck
     - unconvert
-    - unparam
+    # unparam: disabled because it flags params that always receive the same
+    # value, even when the function can't access that value directly (e.g.
+    # consts scoped inside Ginkgo Describe blocks).
+    # - unparam
     - unused
   settings:
     gocyclo:

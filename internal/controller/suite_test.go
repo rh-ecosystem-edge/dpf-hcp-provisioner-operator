@@ -95,6 +95,9 @@ var _ = BeforeSuite(func() {
 	err = hyperv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = dpuservicev1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:scheme
 
 	By("bootstrapping test environment")
@@ -133,6 +136,15 @@ var _ = BeforeSuite(func() {
 		},
 	}
 	err = k8sClient.Create(ctx, clustersNs)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("creating dpf-operator-system namespace")
+	dpfNs := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dpf-operator-system",
+		},
+	}
+	err = k8sClient.Create(ctx, dpfNs)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("creating DPFHCPProvisionerConfig CR")

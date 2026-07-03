@@ -38,6 +38,22 @@ type DPFHCPProvisionerConfigSpec struct {
 	// +kubebuilder:default=false
 	// +optional
 	DisableMetalLB bool `json:"disableMetalLB,omitempty"`
+
+	// TODO(NVIDIA-849): Remove this field and always enable DPUServiceTemplate management.
+
+	// ManageDPUServiceTemplates controls whether the operator creates and manages
+	// DPUServiceTemplate resources (OVN, DTS, HBN) in the DPUCluster namespace.
+	// Deprecated: This field will be removed in a future release, at which point
+	// DPUServiceTemplate management will always be enabled.
+	// +kubebuilder:default=false
+	// +optional
+	ManageDPUServiceTemplates bool `json:"manageDPUServiceTemplates,omitempty"`
+
+	// DPUServicesImagePullSecret is the name of the image pull secret to inject into
+	// DPUServiceTemplates that require pull credentials (DTS, HBN).
+	// When empty, no imagePullSecrets section is added to the templates.
+	// +optional
+	DPUServicesImagePullSecret string `json:"dpuServicesImagePullSecret,omitempty"`
 }
 
 // +kubebuilder:object:root=true

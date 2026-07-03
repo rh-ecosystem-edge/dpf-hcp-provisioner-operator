@@ -54,8 +54,9 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 		By("creating DPUCluster stub CR")
 		createDPUClusterStub(dpuClusterNS, dpuClusterName)
 
-		By("creating DPFOperatorConfig in DPUCluster namespace")
-		createDPFOperatorConfig(dpuClusterNS)
+		By("creating DPFOperatorConfig singleton")
+		createNamespace(dpfOperatorConfigNamespace)
+		createDPFOperatorConfig()
 
 		By("creating DPUFlavor stub")
 		createDPUFlavorStub(dpuClusterNS, dpuFlavorName)
@@ -604,9 +605,6 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 
 			By("creating cleanup test DPUCluster stub")
 			createDPUClusterStub(cleanupDPUClusterNS, cleanupDPUClusterName)
-
-			By("creating DPFOperatorConfig in cleanup test DPUCluster namespace")
-			createDPFOperatorConfig(cleanupDPUClusterNS)
 
 			By("creating cleanup test DPUFlavor stub")
 			createDPUFlavorStub(cleanupDPUClusterNS, cleanupDPUFlavorName)
