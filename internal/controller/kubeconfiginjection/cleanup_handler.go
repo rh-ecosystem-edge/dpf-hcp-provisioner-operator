@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -68,7 +69,7 @@ func (h *CleanupHandler) Name() string {
 // Returns:
 // - nil if cleanup succeeded or secrets are already gone
 // - error if cleanup failed and should be retried
-func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
+func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues(
 		"handler", h.Name(),
 		common.DPFHCPProvisionerName, fmt.Sprintf("%s/%s", cr.Namespace, cr.Name),
@@ -85,12 +86,12 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 		})
 	if err != nil {
 		log.Error(err, "Failed to list kubeconfig secrets")
-		return fmt.Errorf("failed to list kubeconfig secrets: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to list kubeconfig secrets: %w", err)
 	}
 
 	if len(secretList.Items) == 0 {
 		log.Info("No kubeconfig secrets found, nothing to clean up")
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	// Delete found secrets (ownership verified via label selector above)
@@ -112,7 +113,7 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 			log.Error(err, "Failed to delete kubeconfig secret",
 				"secretName", secret.Name,
 				"namespace", secret.Namespace)
-			return fmt.Errorf("failed to delete kubeconfig secret %s/%s: %w", secret.Namespace, secret.Name, err)
+			return ctrl.Result{}, fmt.Errorf("failed to delete kubeconfig secret %s/%s: %w", secret.Namespace, secret.Name, err)
 		}
 
 		deletedCount++
@@ -126,5 +127,5 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	h.recorder.Eventf(cr, "Normal", "KubeconfigCleanupSucceeded",
 		"Deleted %d kubeconfig secret(s)", deletedCount)
 
-	return nil
+	return ctrl.Result{}, nil
 }
