@@ -393,7 +393,7 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 			Expect(cond.Reason).To(Equal("IgnitionGenerationFailed"))
 		})
 
-		It("should return false when ConfigMap exists", func() {
+		It("should return false when ConfigMap exists and ignition already reconciled", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -433,8 +433,9 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				WithObjects(cm).
 				Build()
 			r := &DPFHCPProvisionerReconciler{
-				Client:   fakeClient,
-				Recorder: record.NewFakeRecorder(10),
+				Client:             fakeClient,
+				Recorder:           record.NewFakeRecorder(10),
+				ignitionReconciled: true,
 			}
 			deleted := r.verifyIgnitionConfigMap(context.TODO(), provisioner)
 			Expect(deleted).To(BeFalse())
