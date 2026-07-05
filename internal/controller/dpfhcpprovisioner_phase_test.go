@@ -667,8 +667,8 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			hc := &hyperv1.HostedCluster{
 				Status: hyperv1.HostedClusterStatus{
-					Version: &hyperv1.ClusterVersionStatus{
-						History: []configv1.UpdateHistory{
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{
+						History: []hyperv1.ControlPlaneUpdateHistory{
 							{Version: "4.22.1", State: configv1.CompletedUpdate},
 						},
 					},
@@ -677,26 +677,26 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeTrue())
 		})
 
-		It("isHostedClusterVersionReady should return true when version matches and state is Partial", func() {
+		It("isHostedClusterVersionReady should return false when version matches but state is Partial", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			hc := &hyperv1.HostedCluster{
 				Status: hyperv1.HostedClusterStatus{
-					Version: &hyperv1.ClusterVersionStatus{
-						History: []configv1.UpdateHistory{
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{
+						History: []hyperv1.ControlPlaneUpdateHistory{
 							{Version: "4.22.1", State: configv1.PartialUpdate},
 						},
 					},
 				},
 			}
-			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeTrue())
+			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeFalse())
 		})
 
 		It("isHostedClusterVersionReady should return false when version does not match", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			hc := &hyperv1.HostedCluster{
 				Status: hyperv1.HostedClusterStatus{
-					Version: &hyperv1.ClusterVersionStatus{
-						History: []configv1.UpdateHistory{
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{
+						History: []hyperv1.ControlPlaneUpdateHistory{
 							{Version: "4.22.0", State: configv1.CompletedUpdate},
 						},
 					},
@@ -709,13 +709,13 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			hc := &hyperv1.HostedCluster{
 				Status: hyperv1.HostedClusterStatus{
-					Version: &hyperv1.ClusterVersionStatus{},
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{},
 				},
 			}
 			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeFalse())
 		})
 
-		It("isHostedClusterVersionReady should return false when version is nil", func() {
+		It("isHostedClusterVersionReady should return false when ControlPlaneVersion has no history", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			hc := &hyperv1.HostedCluster{}
 			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeFalse())
@@ -726,8 +726,8 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			digestImage := "registry.ci.openshift.org/ci-op/release@sha256:abc123def456"
 			hc := &hyperv1.HostedCluster{
 				Status: hyperv1.HostedClusterStatus{
-					Version: &hyperv1.ClusterVersionStatus{
-						History: []configv1.UpdateHistory{
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{
+						History: []hyperv1.ControlPlaneUpdateHistory{
 							{Version: "4.22.0", Image: digestImage, State: configv1.CompletedUpdate},
 						},
 					},
@@ -740,8 +740,8 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			hc := &hyperv1.HostedCluster{
 				Status: hyperv1.HostedClusterStatus{
-					Version: &hyperv1.ClusterVersionStatus{
-						History: []configv1.UpdateHistory{
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{
+						History: []hyperv1.ControlPlaneUpdateHistory{
 							{Version: "4.22.0", Image: "registry.ci/release@sha256:old", State: configv1.CompletedUpdate},
 						},
 					},
