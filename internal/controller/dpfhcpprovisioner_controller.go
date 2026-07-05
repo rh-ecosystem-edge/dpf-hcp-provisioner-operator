@@ -211,9 +211,6 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		log.V(1).Info("Skipping secret management - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
 	}
 
-	// Feature: Upgrade Detection and Handling
-	// Detects release image changes, sets HostedClusterUpgrading condition,
-	// deletes stale ignition, and manages the upgrade lifecycle.
 	// This MUST run BEFORE reconcileHostedClusterAndNodePool so conditions are set
 	// before the HC/NP images are updated.
 	if result, err := r.handleUpgrade(ctx, &cr); err != nil || result.RequeueAfter > 0 {
@@ -787,6 +784,18 @@ func (r *DPFHCPProvisionerReconciler) deleteIgnitionConfigMap(ctx context.Contex
 	return true, nil
 }
 
+// invalidateIgnitionState deletes the stale ignition ConfigMap and clears the cached
+// BlueField OCP layer image. Used when release image changes make existing ignition invalid.
+func (r *DPFHCPProvisionerReconciler) invalidateIgnitionState(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
+	if deleted, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+		return err
+	} else if deleted {
+		logf.FromContext(ctx).Info("Deleted stale ignition ConfigMap")
+	}
+	cr.Status.BlueFieldOCPLayerImage = ""
+	return nil
+}
+
 // isUpgrading returns true if a HostedCluster upgrade is currently in progress.
 func isUpgrading(cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
 	cond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
@@ -1285,12 +1294,11 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 				Message:            "Ignition invalidated due to release image upgrade recovery",
 				ObservedGeneration: cr.Generation,
 			})
-			if deleted, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+			// The release image changed while HostedClusterUpgrading was set, so the previously
+			// generated ignition config is invalid for the new release image.
+			if err := r.invalidateIgnitionState(ctx, cr); err != nil {
 				return ctrl.Result{}, err
-			} else if deleted {
-				log.Info("Deleted stale ignition ConfigMap during recovery")
 			}
-			cr.Status.BlueFieldOCPLayerImage = ""
 		}
 		return ctrl.Result{}, nil
 	}
@@ -1318,15 +1326,9 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 		ObservedGeneration: cr.Generation,
 	})
 
-	// Delete stale ignition ConfigMap by label+annotation (separate API call, not affected by status conflicts)
-	if deleted, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+	if err := r.invalidateIgnitionState(ctx, cr); err != nil {
 		return ctrl.Result{}, err
-	} else if deleted {
-		log.Info("Deleted stale ignition ConfigMap")
 	}
-
-	// Clear cached BlueField OCP layer image (stale for old version)
-	cr.Status.BlueFieldOCPLayerImage = ""
 
 	// Persist status and requeue
 	r.computeReadyCondition(ctx, cr)
