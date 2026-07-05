@@ -225,7 +225,11 @@ type HostedControlPlaneSpec struct {
 	// +optional
 	Autoscaling ClusterAutoscaling `json:"autoscaling,omitempty"`
 
-	// autoNode specifies the configuration for the autoNode feature.
+	// autoNode specifies the configuration for automatic node provisioning
+	// and lifecycle management. When set, nodes are automatically provisioned
+	// using the specified provisioner (e.g. Karpenter) instead of requiring
+	// manual NodePool management.
+	//
 	// +openshift:enable:FeatureGate=AutoNodeKarpenter
 	// +optional
 	AutoNode *AutoNode `json:"autoNode,omitempty"`
@@ -348,6 +352,12 @@ type HostedControlPlaneStatus struct {
 	// +optional
 	// +kubebuilder:validation:MaxLength=255
 	OAuthCallbackURLTemplate string `json:"oauthCallbackURLTemplate,omitempty"`
+
+	// controlPlaneVersion tracks the rollout status of the control plane
+	// components running on the management cluster, independently from
+	// the data-plane version reported in the version field.
+	// +optional
+	ControlPlaneVersion ControlPlaneVersionStatus `json:"controlPlaneVersion,omitzero"`
 
 	// versionStatus is the status of the release version applied by the
 	// hosted control plane operator.
