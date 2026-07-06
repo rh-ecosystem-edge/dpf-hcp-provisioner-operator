@@ -19,11 +19,13 @@ package metallb
 import (
 	"context"
 	"fmt"
+	"time"
 
 	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -64,7 +66,7 @@ func (h *CleanupHandler) Name() string {
 // 2. Wait for IPAddressPool to be fully deleted
 // 3. Delete L2Advertisement if it exists
 // 4. Wait for L2Advertisement to be fully deleted
-func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
+func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues(
 		"handler", h.Name(),
 		common.DPFHCPProvisionerName, fmt.Sprintf("%s/%s", cr.Namespace, cr.Name),
@@ -86,7 +88,7 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 			log.V(1).Info("IPAddressPool CRD not installed, treating as deleted")
 		} else {
 			log.Error(err, "Failed to get IPAddressPool")
-			return fmt.Errorf("getting IPAddressPool: %w", err)
+			return ctrl.Result{}, fmt.Errorf("getting IPAddressPool: %w", err)
 		}
 	} else {
 		// Verify ownership via labels before deleting
@@ -103,12 +105,12 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 			if err := h.client.Delete(ctx, pool); err != nil {
 				if !apierrors.IsNotFound(err) {
 					log.Error(err, "Failed to delete IPAddressPool")
-					return fmt.Errorf("deleting IPAddressPool: %w", err)
+					return ctrl.Result{}, fmt.Errorf("deleting IPAddressPool: %w", err)
 				}
 			}
 
 			log.V(1).Info("Waiting for IPAddressPool deletion to complete")
-			return fmt.Errorf("waiting for IPAddressPool deletion")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 	}
 
@@ -126,7 +128,7 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 			log.V(1).Info("L2Advertisement CRD not installed, treating as deleted")
 		} else {
 			log.Error(err, "Failed to get L2Advertisement")
-			return fmt.Errorf("getting L2Advertisement: %w", err)
+			return ctrl.Result{}, fmt.Errorf("getting L2Advertisement: %w", err)
 		}
 	} else {
 		// Verify ownership via labels before deleting
@@ -142,12 +144,12 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 			if err := h.client.Delete(ctx, advert); err != nil {
 				if !apierrors.IsNotFound(err) {
 					log.Error(err, "Failed to delete L2Advertisement")
-					return fmt.Errorf("deleting L2Advertisement: %w", err)
+					return ctrl.Result{}, fmt.Errorf("deleting L2Advertisement: %w", err)
 				}
 			}
 
 			log.V(1).Info("Waiting for L2Advertisement deletion to complete")
-			return fmt.Errorf("waiting for L2Advertisement deletion")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 	}
 
@@ -155,5 +157,5 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	log.Info("MetalLB cleanup completed successfully")
 	h.recorder.Event(cr, "Normal", "MetalLBCleanupComplete", "MetalLB resources cleaned up successfully")
 
-	return nil
+	return ctrl.Result{}, nil
 }

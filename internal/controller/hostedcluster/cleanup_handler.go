@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -81,7 +82,7 @@ func (h *CleanupHandler) Name() string {
 //
 // Note: This handler does NOT enforce timeout. The finalizer manager
 // is responsible for timeout handling if needed.
-func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error {
+func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx).WithValues(
 		"handler", h.Name(),
 		"dpfhcpprovisioner", fmt.Sprintf("%s/%s", cr.Namespace, cr.Name),
@@ -92,13 +93,12 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	hcDeleted, err := h.deleteResource(ctx, cr, &hyperv1.HostedCluster{}, "HostedCluster")
 	if err != nil {
 		log.Error(err, "Failed to delete HostedCluster")
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if !hcDeleted {
-		// HostedCluster still exists, return error to trigger requeue
 		log.Info("HostedCluster deletion in progress, will retry")
-		return fmt.Errorf("waiting for HostedCluster deletion")
+		return ctrl.Result{RequeueAfter: DeletionRequeueInterval}, nil
 	}
 
 	// Step 2: Delete NodePool and wait for it to be fully removed
@@ -106,27 +106,26 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	npDeleted, err := h.deleteResource(ctx, cr, &hyperv1.NodePool{}, "NodePool")
 	if err != nil {
 		log.Error(err, "Failed to delete NodePool")
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if !npDeleted {
-		// NodePool still exists, return error to trigger requeue
 		log.Info("NodePool deletion in progress, will retry")
-		return fmt.Errorf("waiting for NodePool deletion")
+		return ctrl.Result{RequeueAfter: DeletionRequeueInterval}, nil
 	}
 
 	// Step 3: Delete secrets
 	log.Info("NodePool deleted, deleting secrets")
 	if err := h.deleteSecrets(ctx, cr); err != nil {
 		log.Error(err, "Failed to delete secrets")
-		return err
+		return ctrl.Result{}, err
 	}
 
 	log.Info("HostedCluster cleanup completed successfully")
 	h.recorder.Event(cr, "Normal", "HostedClusterCleanupSucceeded",
 		"HostedCluster, NodePool, and secrets deleted successfully")
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // deleteResource is a generic function to delete a Kubernetes resource and wait for deletion

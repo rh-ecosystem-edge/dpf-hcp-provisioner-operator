@@ -19,6 +19,8 @@ package finalizer
 import (
 	"context"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
@@ -37,10 +39,11 @@ type CleanupHandler interface {
 	// It should clean up all resources created by the corresponding feature.
 	//
 	// Returns:
-	// - nil if cleanup succeeded or resources are already gone
-	// - error if cleanup failed and should be retried
+	// - (ctrl.Result{}, nil) if cleanup succeeded or resources are already gone
+	// - (ctrl.Result{RequeueAfter: d}, nil) if cleanup is in progress and should be retried after d
+	// - (ctrl.Result{}, err) if cleanup failed unexpectedly and should be retried with backoff
 	//
 	// The handler should be idempotent - calling Cleanup multiple times should
 	// be safe and result in the same final state.
-	Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) error
+	Cleanup(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error)
 }

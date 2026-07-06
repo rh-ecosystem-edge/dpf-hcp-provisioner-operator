@@ -488,24 +488,25 @@ var _ = Describe("MetalLB Manager", func() {
 				handler := metallb.NewCleanupHandler(fakeClient, recorder)
 
 				// When: Cleanup is called first time
-				err := handler.Cleanup(ctx, provisioner)
+				result, err := handler.Cleanup(ctx, provisioner)
 
-				// Then: Returns error because it initiated IPAddressPool deletion
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("waiting for IPAddressPool deletion"))
+				// Then: Requeues because it initiated IPAddressPool deletion
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
 				// When: Cleanup is called second time (IPAddressPool deleted, now deletes L2Advertisement)
-				err = handler.Cleanup(ctx, provisioner)
+				result, err = handler.Cleanup(ctx, provisioner)
 
-				// Then: Returns error because it initiated L2Advertisement deletion
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("waiting for L2Advertisement deletion"))
+				// Then: Requeues because it initiated L2Advertisement deletion
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
 				// When: Cleanup is called third time (all resources deleted)
-				err = handler.Cleanup(ctx, provisioner)
+				result, err = handler.Cleanup(ctx, provisioner)
 
 				// Then: Success - all resources gone
 				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeZero())
 
 				// Event emitted
 				Eventually(recorder.Events).Should(Receive(ContainSubstring("MetalLBCleanupComplete")))
@@ -530,10 +531,11 @@ var _ = Describe("MetalLB Manager", func() {
 				handler := metallb.NewCleanupHandler(fakeClient, recorder)
 
 				// When: Cleanup is called
-				err := handler.Cleanup(ctx, provisioner)
+				result, err := handler.Cleanup(ctx, provisioner)
 
 				// Then: Success (idempotent)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeZero())
 			})
 		})
 
@@ -566,17 +568,18 @@ var _ = Describe("MetalLB Manager", func() {
 				handler := metallb.NewCleanupHandler(fakeClient, recorder)
 
 				// When: Cleanup is called first time
-				err := handler.Cleanup(ctx, provisioner)
+				result, err := handler.Cleanup(ctx, provisioner)
 
-				// Then: Returns error (waiting for deletion)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("waiting for IPAddressPool deletion"))
+				// Then: Requeues (waiting for deletion)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
 				// When: Called again (fake client already deleted the resource)
-				err = handler.Cleanup(ctx, provisioner)
+				result, err = handler.Cleanup(ctx, provisioner)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeZero())
 			})
 		})
 
@@ -609,17 +612,18 @@ var _ = Describe("MetalLB Manager", func() {
 				handler := metallb.NewCleanupHandler(fakeClient, recorder)
 
 				// When: Cleanup is called first time
-				err := handler.Cleanup(ctx, provisioner)
+				result, err := handler.Cleanup(ctx, provisioner)
 
-				// Then: Returns error (waiting for deletion)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("waiting for L2Advertisement deletion"))
+				// Then: Requeues (waiting for deletion)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
 				// When: Called again (fake client already deleted the resource)
-				err = handler.Cleanup(ctx, provisioner)
+				result, err = handler.Cleanup(ctx, provisioner)
 
 				// Then: Success
 				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeZero())
 			})
 		})
 
@@ -641,13 +645,13 @@ var _ = Describe("MetalLB Manager", func() {
 				handler := metallb.NewCleanupHandler(fakeClient, recorder)
 
 				// When: Cleanup is called multiple times
-				err := handler.Cleanup(ctx, provisioner)
+				_, err := handler.Cleanup(ctx, provisioner)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = handler.Cleanup(ctx, provisioner)
+				_, err = handler.Cleanup(ctx, provisioner)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = handler.Cleanup(ctx, provisioner)
+				_, err = handler.Cleanup(ctx, provisioner)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Then: All succeed (idempotent)

@@ -79,13 +79,20 @@ func (m *Manager) HandleFinalizerCleanup(ctx context.Context, cr *provisioningv1
 		handlerLog.Info("Executing cleanup handler")
 
 		// Execute handler cleanup
-		if err := handler.Cleanup(ctx, cr); err != nil {
+		result, err := handler.Cleanup(ctx, cr)
+		if err != nil {
 			handlerLog.Error(err, "Cleanup handler failed")
 			m.recorder.Eventf(cr, "Warning", "CleanupHandlerFailed",
 				"Cleanup handler '%s' failed: %v", handler.Name(), err)
 
 			// Return error to trigger requeue with exponential backoff
 			return ctrl.Result{}, err
+		}
+
+		// Handler signalled it needs more time (e.g. waiting for a resource to be deleted)
+		if result.RequeueAfter > 0 {
+			handlerLog.Info("Cleanup handler still in progress, will requeue", "requeueAfter", result.RequeueAfter)
+			return result, nil
 		}
 
 		handlerLog.Info("Cleanup handler completed successfully")
