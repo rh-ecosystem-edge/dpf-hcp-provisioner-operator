@@ -443,6 +443,8 @@ spec:
 
                               Cannot be specified when tenancy is set to "host" as Dedicated Hosts
                               do not support Capacity Reservations. Compatible with "default" and "dedicated" tenancy.
+
+                              Required when marketType is "CapacityBlocks".
                             properties:
                               id:
                                 description: |-
@@ -462,11 +464,14 @@ spec:
                                   rule: self.matches('^cr-[a-f0-9]{17}$')
                               marketType:
                                 description: |-
-                                  marketType specifies the market type of the CapacityReservation for the EC2 instances. Valid values are OnDemand, CapacityBlocks and omitted:
+                                  marketType specifies the market type of the CapacityReservation for the EC2 instances.
+
+                                  Deprecated: Use placement.marketType instead. This field is maintained for backward compatibility.
+                                  When both placement.marketType and capacityReservation.marketType are set, placement.marketType takes precedence.
+
+                                  Valid values are OnDemand, CapacityBlocks and omitted:
                                   - "OnDemand": EC2 instances run as standard On-Demand instances.
-                                  - "CapacityBlocks": scheduled pre-purchased compute capacity. Capacity Blocks is recommended when GPUs are needed to support ML workloads.
-                                  When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
-                                  The current default value is CapacityBlocks.
+                                  - "CapacityBlocks": scheduled pre-purchased compute capacity. Recommended for GPU/ML workloads.
 
                                   When set to 'CapacityBlocks', a specific Capacity Reservation ID must be provided.
                                 enum:
@@ -500,6 +505,46 @@ spec:
                                 requires a Capacity Reservation ID
                               rule: 'has(self.marketType) && self.marketType == ''CapacityBlocks''
                                 ? has(self.id) : true'
+                          marketType:
+                            description: |-
+                              marketType specifies the EC2 instance purchasing model.
+                              Supported values are "OnDemand" for standard on-demand instances,
+                              "Spot" for spot instances that use spare EC2 capacity at reduced prices
+                              but may be interrupted (optionally accepts spot options and requires
+                              terminationHandlerQueueURL on the HostedCluster), and "CapacityBlocks" for scheduled pre-purchased
+                              compute capacity recommended for GPU/ML workloads (requires
+                              capacityReservation with a specific reservation ID).
+                              When omitted, the default is "OnDemand".
+                            enum:
+                            - ""
+                            - OnDemand
+                            - Spot
+                            - CapacityBlocks
+                            type: string
+                          spot:
+                            description: |-
+                              spot configures optional Spot instance overrides.
+                              When omitted, Spot instances use AWS defaults.
+
+                              Spot instances use spare EC2 capacity at reduced prices but may be interrupted
+                              with a 2-minute warning. Requires terminationHandlerQueueURL to be set on the
+                              HostedCluster's AWS platform spec for graceful handling of interruptions.
+                            properties:
+                              maxPrice:
+                                description: |-
+                                  maxPrice defines the maximum price the user is willing to pay for Spot instances.
+                                  If not specified, the on-demand price is used as the maximum (you pay the actual spot price).
+                                  The value should be a decimal number representing the price per hour in USD.
+                                  For example, "0.50" means 50 cents per hour.
+
+                                  Note: AWS recommends NOT setting maxPrice to reduce interruption frequency.
+                                  When omitted, you pay the current Spot price (capped at On-Demand price).
+                                  AWS minimum allowed value is $0.001.
+                                maxLength: 20
+                                minLength: 1
+                                pattern: ^[0-9]+(\.[0-9]+)?$
+                                type: string
+                            type: object
                           tenancy:
                             description: |-
                               tenancy indicates if instance should run on shared or single-tenant hardware.
@@ -522,6 +567,21 @@ spec:
                             Hosts (tenancy 'host')
                           rule: 'has(self.tenancy) && self.tenancy == ''host'' ? !has(self.capacityReservation)
                             : true'
+                        - message: Spot instances cannot be combined with Capacity
+                            Reservations
+                          rule: '!has(self.marketType) || self.marketType != ''Spot''
+                            || !has(self.capacityReservation)'
+                        - message: Spot instances require default tenancy or unset
+                          rule: '!has(self.marketType) || self.marketType != ''Spot''
+                            || !has(self.tenancy) || self.tenancy == ''default'''
+                        - message: CapacityBlocks market type requires capacityReservation
+                            to be specified
+                          rule: '!has(self.marketType) || self.marketType != ''CapacityBlocks''
+                            || has(self.capacityReservation)'
+                        - message: spot options can only be specified when marketType
+                            is 'Spot'
+                          rule: '!has(self.spot) || (has(self.marketType) && self.marketType
+                            == ''Spot'')'
                       resourceTags:
                         description: |-
                           resourceTags is an optional list of additional tags to apply to AWS node
@@ -703,19 +763,14 @@ spec:
                           If not specified, then Boot diagnostics will be disabled.
                         properties:
                           storageAccountType:
-                            allOf:
-                            - enum:
-                              - Managed
-                              - UserManaged
-                              - Disabled
-                            - enum:
-                              - Managed
-                              - UserManaged
-                              - Disabled
                             default: Disabled
                             description: |-
                               storageAccountType determines if the storage account for storing the diagnostics data
                               should be disabled (Disabled), provisioned by Azure (Managed) or by the user (UserManaged).
+                            enum:
+                            - Managed
+                            - UserManaged
+                            - Disabled
                             type: string
                           userManaged:
                             description: userManaged specifies the diagnostics settings
@@ -871,8 +926,9 @@ spec:
                           diskStorageAccountType:
                             description: |-
                               diskStorageAccountType is the disk storage account type to use.
-                              Valid values are Premium_LRS, PremiumV2_LRS, Standard_LRS, StandardSSD_LRS, UltraSSD_LRS.
+                              Valid values are Premium_LRS, PremiumV2_LRS, Standard_LRS, StandardSSD_LRS.
                               Note that Standard means a HDD.
+                              UltraSSD_LRS is not supported for OS disks (see https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types#disk-type-comparison).
                               The disk performance is tied to the disk type, please refer to the Azure documentation for further details
                               https://docs.microsoft.com/en-us/azure/virtual-machines/disks-types#disk-type-comparison.
                               When omitted this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
@@ -882,7 +938,6 @@ spec:
                             - PremiumV2_LRS
                             - Standard_LRS
                             - StandardSSD_LRS
-                            - UltraSSD_LRS
                             type: string
                           encryptionSetID:
                             description: |-
@@ -932,19 +987,14 @@ spec:
                           sizeGiB:
                             description: |-
                               sizeGiB is the size in GiB (1024^3 bytes) to assign to the OS disk.
-                              This should be between 16 and 65,536 when using the UltraSSD_LRS storage account type and between 16 and 32,767 when using any other storage account type.
+                              This should be between 16 and 32,767.
                               When not set, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.
                               The current default is 30.
                             format: int32
-                            maximum: 65536
+                            maximum: 32767
                             minimum: 16
                             type: integer
                         type: object
-                        x-kubernetes-validations:
-                        - message: When not using diskStorageAccountType UltraSSD_LRS,
-                            the SizeGB value must be less than or equal to 32,767
-                          rule: '!has(self.diskStorageAccountType) || self.diskStorageAccountType
-                            != ''UltraSSD_LRS'' || self.sizeGiB <= 32767'
                       subnetID:
                         description: |-
                           subnetID is the subnet ID of an existing subnet where the nodes in the nodepool will be created. This can be a
@@ -1008,6 +1058,273 @@ spec:
                     - subnetID
                     - vmSize
                     type: object
+                  gcp:
+                    description: gcp specifies the configuration used when operating
+                      on GCP.
+                    properties:
+                      bootDisk:
+                        description: bootDisk specifies the configuration for the
+                          boot disk of node instances.
+                        properties:
+                          diskSizeGB:
+                            default: 64
+                            description: |-
+                              diskSizeGB specifies the size of the boot disk in gigabytes.
+                              Must be at least 20 GB for RHCOS images.
+                            format: int64
+                            maximum: 65536
+                            minimum: 20
+                            type: integer
+                          diskType:
+                            default: pd-balanced
+                            description: |-
+                              diskType specifies the disk type for the boot disk.
+                              Valid values include:
+                                - "pd-standard" - Standard persistent disk (magnetic)
+                                - "pd-ssd" - SSD persistent disk
+                                - "pd-balanced" - Balanced persistent disk (recommended)
+                              If not specified, defaults to "pd-balanced".
+                            enum:
+                            - pd-standard
+                            - pd-ssd
+                            - pd-balanced
+                            type: string
+                          encryptionKey:
+                            description: |-
+                              encryptionKey specifies customer-managed encryption key (CMEK) configuration.
+                              If not specified, Google-managed encryption keys are used.
+                            properties:
+                              kmsKeyName:
+                                description: |-
+                                  kmsKeyName is the resource name of the Cloud KMS key used for disk encryption.
+                                  Format: projects/{project}/locations/{location}/keyRings/{keyRing}/cryptoKeys/{key}
+                                maxLength: 2048
+                                minLength: 1
+                                type: string
+                                x-kubernetes-validations:
+                                - message: kmsKeyName must be in the format projects/{project}/locations/{location}/keyRings/{keyRing}/cryptoKeys/{key}
+                                  rule: self.matches('^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/locations/[a-z0-9-]+/keyRings/[a-zA-Z0-9_-]+/cryptoKeys/[a-zA-Z0-9_-]+$')
+                            required:
+                            - kmsKeyName
+                            type: object
+                        type: object
+                      image:
+                        description: |-
+                          image specifies the boot image for node instances.
+                          If unspecified, the default RHCOS image will be used based on the NodePool release payload.
+                          Can be:
+                            - A family name: projects/rhel-cloud/global/images/family/rhel-8
+                            - A specific image: projects/rhel-cloud/global/images/rhel-8-v20231010
+                            - A full resource URL: https://www.googleapis.com/compute/v1/projects/rhel-cloud/global/images/rhel-8-v20231010
+                        maxLength: 2048
+                        minLength: 1
+                        type: string
+                      machineType:
+                        description: |-
+                          machineType is the GCP machine type for node instances (e.g. n2-standard-4).
+                          Must follow GCP machine type naming conventions as documented at:
+                          https://cloud.google.com/compute/docs/machine-resource#machine_type_comparison
+
+                          Valid machine type formats:
+                            - predefined: n1-standard-1, n2-highmem-4, c2-standard-8, etc.
+                            - custom: custom-{cpus}-{memory} (e.g. custom-4-8192)
+                            - custom with extended memory: custom-{cpus}-{memory}-ext (e.g. custom-2-13312-ext)
+                        maxLength: 255
+                        minLength: 1
+                        type: string
+                        x-kubernetes-validations:
+                        - message: machineType must start and end with a lowercase
+                            letter or digit, and contain only lowercase letters, digits,
+                            and hyphens
+                          rule: self.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+                      networkTags:
+                        description: |-
+                          networkTags is an optional list of network tags to apply to node instances.
+                          These tags are used by GCP firewall rules to control network access.
+                          Tags must conform to GCP naming conventions:
+                            - 1-63 characters
+                            - Lowercase letters, numbers, and hyphens only
+                            - Must start with lowercase letter
+                            - Cannot end with hyphen
+                        items:
+                          description: |-
+                            GCPResourceName is the name of a GCP resource following RFC 1035 naming conventions.
+                            Must start with a lowercase letter, contain only lowercase letters, digits, and hyphens,
+                            must not end with a hyphen, and be 1-63 characters long.
+                            See https://cloud.google.com/compute/docs/naming-resources for details.
+                          maxLength: 63
+                          minLength: 1
+                          type: string
+                          x-kubernetes-validations:
+                          - message: must start with a lowercase letter, contain only
+                              lowercase letters, digits, or hyphens, and not end with
+                              a hyphen
+                            rule: self.matches('^[a-z]([-a-z0-9]*[a-z0-9])?$')
+                        maxItems: 64
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-type: set
+                      onHostMaintenance:
+                        description: |-
+                          onHostMaintenance specifies the behavior when host maintenance occurs.
+                          For Spot and Preemptible instances, this must be "TERMINATE".
+                          For Standard instances, can be "MIGRATE" (live migrate) or "TERMINATE".
+                          If not specified, defaults to "MIGRATE" for Standard instances and "TERMINATE" for Spot/Preemptible.
+                        enum:
+                        - MIGRATE
+                        - TERMINATE
+                        type: string
+                      provisioningModel:
+                        default: Standard
+                        description: |-
+                          provisioningModel specifies the provisioning model for node instances.
+                          Spot and Preemptible instances cost less but can be terminated by GCP with 30 seconds notice.
+                          Spot instances are recommended over Preemptible as they have no maximum runtime limit.
+                          Standard instances are regular VMs that run until explicitly stopped.
+                          If not specified, defaults to "Standard".
+                        enum:
+                        - Standard
+                        - Spot
+                        - Preemptible
+                        type: string
+                      resourceLabels:
+                        description: |-
+                          resourceLabels is an optional list of additional labels to apply to GCP node
+                          instances and their associated resources (disks, etc.).
+                          Labels will be merged with cluster-level resource labels, with NodePool labels
+                          taking precedence in case of conflicts.
+
+                          Keys and values must conform to GCP labeling requirements:
+                            - Keys: 1–63 chars, must start with a lowercase letter; allowed [a-z0-9_-]
+                            - Values: empty or 1–63 chars; allowed [a-z0-9_-]
+                            - Maximum 60 user labels per resource (GCP limit is 64 total, with ~4 reserved)
+                        items:
+                          description: |-
+                            GCPResourceLabel is a label to apply to GCP resources created for the cluster.
+                            Labels are key-value pairs used for organizing and managing GCP resources.
+                            See https://cloud.google.com/compute/docs/labeling-resources for GCP labeling guidance.
+                          properties:
+                            key:
+                              description: |-
+                                key is the key part of the label. A label key can have a maximum of 63 characters and cannot be empty.
+                                For Compute Engine resources (VMs, disks, networks created by CAPG), keys must:
+                                - Start with a lowercase letter
+                                - Contain only lowercase letters, digits, underscores, or hyphens
+                                - End with a lowercase letter or digit (not a hyphen or underscore)
+                                - Be 1-63 characters long
+                                GCP reserves the 'goog' prefix for system labels.
+                                See https://cloud.google.com/compute/docs/labeling-resources for Compute Engine label requirements.
+                              maxLength: 63
+                              minLength: 1
+                              type: string
+                              x-kubernetes-validations:
+                              - message: key must start with a lowercase letter, contain
+                                  only lowercase letters, digits, underscores, or
+                                  hyphens, and end with a letter or digit
+                                rule: self.matches('^[a-z]([_a-z0-9-]{0,61}[a-z0-9])?$')
+                              - message: Label keys starting with the reserved 'goog'
+                                  prefix are not allowed
+                                rule: '!self.startsWith(''goog'')'
+                            value:
+                              description: |-
+                                value is the value part of the label. A label value can have a maximum of 63 characters.
+                                Empty values are allowed by GCP. If non-empty, it must start with a lowercase letter,
+                                contain only lowercase letters, digits, underscores, or hyphens, and end with a lowercase letter or digit.
+                                See https://cloud.google.com/compute/docs/labeling-resources for Compute Engine label requirements.
+                              maxLength: 63
+                              minLength: 0
+                              type: string
+                              x-kubernetes-validations:
+                              - message: value must be empty or start with a lowercase
+                                  letter, contain only lowercase letters, digits,
+                                  underscores, or hyphens, and end with a letter or
+                                  digit
+                                rule: self.matches('^$|^[a-z]([_a-z0-9-]{0,61}[a-z0-9])?$')
+                          required:
+                          - key
+                          - value
+                          type: object
+                        maxItems: 60
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - key
+                        x-kubernetes-list-type: map
+                      serviceAccount:
+                        description: |-
+                          serviceAccount configures the Google Service Account attached to node instances.
+                          If not specified, uses the default compute service account for the project.
+                        properties:
+                          email:
+                            description: |-
+                              email specifies the email address of the Google Service Account to use for node instances.
+                              If not specified, uses the default compute service account for the project.
+                              The service account must have the necessary permissions for the node to function:
+                                - Logging writer
+                                - Monitoring metric writer
+                                - Storage object viewer (for pulling container images)
+                            maxLength: 85
+                            minLength: 37
+                            type: string
+                            x-kubernetes-validations:
+                            - message: 'email must be a valid GCP service account
+                                email (format: name@project.iam.gserviceaccount.com)'
+                              rule: self.matches('^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\\.iam\\.gserviceaccount\\.com$')
+                          scopes:
+                            description: |-
+                              scopes specifies the access scopes for the service account.
+                              If not specified, defaults to standard compute scopes.
+                              Common scopes include:
+                                - "https://www.googleapis.com/auth/devstorage.read_only" - Storage read-only
+                                - "https://www.googleapis.com/auth/logging.write" - Logging write
+                                - "https://www.googleapis.com/auth/monitoring.write" - Monitoring write
+                                - "https://www.googleapis.com/auth/cloud-platform" - Full access (use with caution)
+                            items:
+                              maxLength: 512
+                              type: string
+                            maxItems: 50
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: set
+                        type: object
+                      subnet:
+                        description: |-
+                          subnet is the name of the subnet where node instances will be created.
+                          Must be a subnet within the VPC network specified in the HostedCluster's
+                          networkConfig and located in the same region as the zone.
+                          The subnet must have enough IP addresses available for the expected number of nodes.
+                        maxLength: 63
+                        minLength: 1
+                        type: string
+                        x-kubernetes-validations:
+                        - message: must start with a lowercase letter, contain only
+                            lowercase letters, digits, or hyphens, and not end with
+                            a hyphen
+                          rule: self.matches('^[a-z]([-a-z0-9]*[a-z0-9])?$')
+                      zone:
+                        description: |-
+                          zone is the GCP zone where node instances will be created.
+                          Must be a valid zone within the cluster's region.
+                          Format: {region}-{zone} (e.g. us-central1-a, europe-west2-b)
+                          See https://cloud.google.com/compute/docs/regions-zones for available zones.
+                        maxLength: 63
+                        minLength: 1
+                        type: string
+                        x-kubernetes-validations:
+                        - message: zone must be in the form of region-zone (e.g.,
+                            us-central1-a)
+                          rule: self.matches('^[a-z]+(?:-[a-z0-9]+)*-[a-z]$')
+                    required:
+                    - machineType
+                    - subnet
+                    - zone
+                    type: object
+                    x-kubernetes-validations:
+                    - message: onHostMaintenance must be TERMINATE when provisioningModel
+                        is Spot or Preemptible
+                      rule: '!has(self.onHostMaintenance) || !has(self.provisioningModel)
+                        || self.provisioningModel == ''Standard'' || self.onHostMaintenance
+                        == ''TERMINATE'''
                   ibmcloud:
                     description: ibmcloud defines IBMCloud specific settings for components
                     properties:
@@ -1633,10 +1950,11 @@ spec:
             x-kubernetes-validations:
             - message: Arch is required once set
               rule: '!has(oldSelf.arch) || has(self.arch)'
-            - message: Setting Arch to arm64 is only supported for AWS, Azure, Agent
-                and None
+            - message: Setting Arch to arm64 is only supported for AWS, Azure, Agent,
+                GCP and None
               rule: self.arch != 'arm64' || has(self.platform.aws) || has(self.platform.azure)
-                || has(self.platform.agent) || self.platform.type == 'None'
+                || has(self.platform.agent) || self.platform.type == 'GCP' || self.platform.type
+                == 'None'
             - message: Both replicas or autoScaling should not be set
               rule: '!has(self.replicas) || !has(self.autoScaling)'
             - message: s390x is only supported on KubeVirt platform
@@ -1711,6 +2029,70 @@ spec:
                   type: object
                 maxItems: 100
                 type: array
+              nodesInfo:
+                description: |-
+                  nodesInfo contains aggregated information observed from nodes belonging
+                  to this NodePool.
+                properties:
+                  nodeVersions:
+                    description: |-
+                      nodeVersions summarizes the versions and health of nodes belonging
+                      to this NodePool. Each entry represents a distinct version combination
+                      and the number of ready/unready nodes running it.
+                    items:
+                      description: NodeVersion represents a version combination and
+                        the count of ready and unready nodes running it.
+                      properties:
+                        kubeletVersion:
+                          description: |-
+                            kubeletVersion is the kubelet version reported by the node, as observed
+                            from Machine.Status.NodeInfo.KubeletVersion.
+                          maxLength: 64
+                          minLength: 1
+                          type: string
+                          x-kubernetes-validations:
+                          - message: kubeletVersion must start with semantic version
+                              prefix x.y.z (optional leading 'v')
+                            rule: self.matches('^v?\\d+\\.\\d+\\.\\d+.*$')
+                        ocpVersion:
+                          description: |-
+                            ocpVersion is the OpenShift release version this node was provisioned
+                            or upgraded with.
+                          maxLength: 64
+                          minLength: 1
+                          type: string
+                          x-kubernetes-validations:
+                          - message: ocpVersion must start with semantic version prefix
+                              x.y.z
+                            rule: self.matches('^\\d+\\.\\d+\\.\\d+.*$')
+                        readyNodeCount:
+                          description: |-
+                            readyNodeCount is the number of nodes running this version where the
+                            CAPI NodeHealthy condition is True.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        unreadyNodeCount:
+                          description: |-
+                            unreadyNodeCount is the number of nodes running this version where the
+                            CAPI NodeHealthy condition is not True. Useful for tracking upgrade
+                            progress and detecting stuck nodes.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                      required:
+                      - kubeletVersion
+                      - ocpVersion
+                      - readyNodeCount
+                      - unreadyNodeCount
+                      type: object
+                    maxItems: 100
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: atomic
+                required:
+                - nodeVersions
+                type: object
               platform:
                 description: platform holds the specific statuses
                 properties:
