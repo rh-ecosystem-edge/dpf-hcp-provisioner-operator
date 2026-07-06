@@ -351,6 +351,42 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 			})
 		})
 
+		Context("when DPU is in Node Effect Removal phase", func() {
+			It("should approve serving CSR", func() {
+				dpu := &dpuprovisioningv1alpha1.DPU{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testHostname,
+						Namespace: dpuNamespace,
+					},
+					Spec: dpuprovisioningv1alpha1.DPUSpec{
+						DPUNodeName:   "node-1",
+						DPUDeviceName: "device-1",
+						BFB:           "bfb-1",
+						SerialNumber:  "SN123456",
+					},
+					Status: dpuprovisioningv1alpha1.DPUStatus{
+						Phase: dpuprovisioningv1alpha1.DPUNodeEffectRemoval,
+					},
+				}
+				Expect(mgmtClient.Create(ctx, dpu)).To(Succeed())
+				DeferCleanup(mgmtClient.Delete, ctx, dpu)
+
+				// Create fake node in hosted cluster to pass node existence check
+				fakeNode := createFakeNode(testHostname)
+				_, err := fakeClientset.CoreV1().Nodes().Create(ctx, fakeNode, metav1.CreateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				DeferCleanup(func() {
+					_ = fakeClientset.CoreV1().Nodes().Delete(ctx, testHostname, metav1.DeleteOptions{})
+				})
+
+				validator := NewValidator(mgmtClient, fakeClientset, dpuNamespace)
+				result, err := validator.ValidateCSROwner(ctx, testHostname, false /* isBootstrapCSR */)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Valid).To(BeTrue())
+				Expect(result.Reason).To(ContainSubstring("node exists"))
+			})
+		})
+
 		Context("when DPU is in Initializing phase", func() {
 			It("should reject serving CSR", func() {
 				dpu := &dpuprovisioningv1alpha1.DPU{
