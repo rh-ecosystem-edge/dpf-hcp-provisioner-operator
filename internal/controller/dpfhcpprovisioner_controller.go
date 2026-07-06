@@ -71,6 +71,8 @@ type DPFHCPProvisionerReconciler struct {
 	StatusSyncer         *hostedcluster.StatusSyncer
 	KubeconfigInjector   *kubeconfiginjection.KubeconfigInjector
 	IgnitionGenerator    *ignitiongenerator.IgnitionGenerator
+
+	ignitionReconciled bool
 }
 
 const (
@@ -818,13 +820,15 @@ func (r *DPFHCPProvisionerReconciler) reconcileIgnition(ctx context.Context, cr 
 		return result, err
 	}
 
+	r.ignitionReconciled = true
 	return ctrl.Result{}, nil
 }
 
-// verifyIgnitionConfigMap checks that the ignition ConfigMap still exists when IgnitionConfigured=True.
-// If the ConfigMap was deleted externally, this clears IgnitionConfigured so the reconciler
-// re-enters the IgnitionGenerating phase and re-creates it.
-// Returns true if the ConfigMap was found missing and the condition was cleared.
+// verifyIgnitionConfigMap checks the ignition ConfigMap when IgnitionConfigured=True.
+// Clears IgnitionConfigured to trigger regeneration if the ConfigMap was deleted or
+// if this is the first reconcile after operator startup (ensures bug fixes in embedded
+// ignition content are applied when the operator image is updated).
+// Returns true if regeneration was triggered.
 func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
 	log := logf.FromContext(ctx)
 
@@ -838,21 +842,39 @@ func (r *DPFHCPProvisionerReconciler) verifyIgnitionConfigMap(ctx context.Contex
 		log.Error(err, "Failed to verify ignition ConfigMap existence")
 		return false
 	}
-	if cm != nil {
-		return false
+
+	reason := ""
+	message := ""
+	eventType := corev1.EventTypeNormal
+	eventReason := ""
+
+	if cm == nil {
+		reason = "ConfigMapDeleted"
+		message = "Ignition ConfigMap was deleted, will regenerate"
+		eventType = corev1.EventTypeWarning
+		eventReason = "IgnitionConfigMapDeleted"
+	} else if !r.ignitionReconciled {
+		reason = "OperatorRestarted"
+		message = "Operator restarted, regenerating ignition to apply any updates"
+		eventReason = "IgnitionRegeneration"
 	}
 
-	log.Info("Ignition ConfigMap was deleted externally, clearing IgnitionConfigured condition")
-	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
-		Type:               provisioningv1alpha1.IgnitionConfigured,
-		Status:             metav1.ConditionFalse,
-		Reason:             "ConfigMapDeleted",
-		Message:            "Ignition ConfigMap was deleted, will regenerate",
-		ObservedGeneration: cr.Generation,
-	})
-	r.Recorder.Event(cr, corev1.EventTypeWarning, "IgnitionConfigMapDeleted",
-		"Ignition ConfigMap was deleted externally, triggering regeneration")
-	return true
+	if reason != "" {
+		log.Info("Triggering ignition regeneration", "reason", reason)
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:               provisioningv1alpha1.IgnitionConfigured,
+			Status:             metav1.ConditionFalse,
+			Reason:             reason,
+			Message:            message,
+			ObservedGeneration: cr.Generation,
+		})
+		r.Recorder.Event(cr, eventType, eventReason, message)
+		r.ignitionReconciled = true
+		return true
+	}
+
+	r.ignitionReconciled = true
+	return false
 }
 
 // conditionsEqual compares two condition slices for equality
@@ -935,14 +957,20 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 
 	// Run ignition generation when:
 	// 1. Phase is IgnitionGenerating (normal path), OR
-	// 2. Phase is Failed AND the failure was caused by ignition generation (retry path)
+	// 2. Phase is Failed AND the failure was caused by ignition generation (retry path), OR
+	// 3. IgnitionConfigured was cleared due to operator restart or ConfigMap deletion
 	shouldGenerate := cr.Status.Phase == provisioningv1alpha1.PhaseIgnitionGenerating
-	if !shouldGenerate && cr.Status.Phase == provisioningv1alpha1.PhaseFailed {
+	if !shouldGenerate {
 		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
-		if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse &&
-			ignConfigured.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed {
-			shouldGenerate = true
-			log.Info("Retrying ignition generation after transient failure")
+		if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse {
+			switch ignConfigured.Reason {
+			case provisioningv1alpha1.ReasonIgnitionGenerationFailed:
+				shouldGenerate = true
+				log.Info("Retrying ignition generation after transient failure")
+			case "OperatorRestarted", "ConfigMapDeleted":
+				shouldGenerate = true
+				log.Info("Regenerating ignition", "reason", ignConfigured.Reason)
+			}
 		}
 	}
 	if !shouldGenerate {

@@ -2,35 +2,23 @@
 
 exec > >(tee >(while read -r line; do /usr/local/bin/bflog.sh "$line"; done)) 2>&1
 
-TIMEOUT=900
 START=$(date +%s)
 
 echo "INFO: Waiting for IPv6 connectivity to host agent via tmfifo_net0..."
-while true; do
-    if ping -6 -c1 -W1 fe80::1%tmfifo_net0 &>/dev/null; then
-        break
-    fi
-    ELAPSED=$(($(date +%s) - START))
-    if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-        echo "ERROR: Timed out waiting for connectivity to host agent via tmfifo_net0"
-        /usr/local/bin/dpuagent-client.py send-error "HostAgentUnreachable" "Timed out after ${TIMEOUT}s waiting for tmfifo_net0 connectivity"
-        exit 1
-    fi
-    sleep 1
+while ! ping -6 -c1 -W1 fe80::1%tmfifo_net0 &>/dev/null; do
+    ELAPSED=$(( $(date +%s) - START ))
+    echo "INFO: Still waiting for tmfifo_net0 connectivity (elapsed ${ELAPSED}s)..."
+    sleep 5
 done
 echo "INFO: IPv6 connectivity established."
 
 echo "INFO: Waiting for host agent HTTP server..."
-while true; do
-    if curl -s -o /dev/null --connect-timeout 5 --max-time 10 "http://[fe80::1%25tmfifo_net0]:11029/"; then
-        break
-    fi
-    ELAPSED=$(($(date +%s) - START))
-    if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-        echo "ERROR: Timed out waiting for host agent HTTP server"
-        /usr/local/bin/dpuagent-client.py send-error "HostAgentUnreachable" "Timed out after ${TIMEOUT}s waiting for host agent HTTP"
-        exit 1
-    fi
-    sleep 1
+while ! curl -s -o /dev/null --connect-timeout 5 --max-time 10 "http://[fe80::1%25tmfifo_net0]:11029/"; do
+    ELAPSED=$(( $(date +%s) - START ))
+    echo "INFO: Still waiting for host agent HTTP server (elapsed ${ELAPSED}s)..."
+    sleep 5
 done
 echo "INFO: Host agent is reachable."
+
+/usr/local/bin/dpuagent-client.py update-condition \
+  HostAgentConnected True Connected "Host agent reachable via tmfifo_net0" || true
