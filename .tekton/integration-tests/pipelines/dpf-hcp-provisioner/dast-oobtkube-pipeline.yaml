@@ -206,7 +206,7 @@ spec:
                 value: credentials
 
           - name: install-crds
-            image: golang:1.25
+            image: golang:1.26
             env:
               - name: KUBECONFIG
                 value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
