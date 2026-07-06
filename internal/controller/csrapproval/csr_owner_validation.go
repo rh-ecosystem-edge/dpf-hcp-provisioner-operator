@@ -53,7 +53,7 @@ func NewValidator(mgmtClient client.Client, hostedClient kubernetes.Interface, d
 // 1. DPU object with matching hostname exists in management cluster (ownership check)
 // 2. DPU is in the correct phase for CSR approval (security check - time-limited window)
 // 3. For bootstrap CSRs: DPU must be in "DPU Cluster Config" phase (joining cluster)
-// 4. For serving CSRs: DPU must be in "DPU Cluster Config" OR "Ready" phase.
+// 4. For serving CSRs: DPU must be in "DPU Cluster Config", "Ready", or "Node Effect Removal" phase.
 func (v *Validator) ValidateCSROwner(ctx context.Context, hostname string, isBootstrapCSR bool) (*ValidationResult, error) {
 	// Check if DPU exists and get its phase
 	dpu, err := v.getDPU(ctx, hostname)
@@ -84,11 +84,18 @@ func (v *Validator) ValidateCSROwner(ctx context.Context, hostname string, isBoo
 		}, nil
 	}
 
-	// Serving CSR: Allow in "DPU Cluster Config" or "Ready"
-	if dpu.Status.Phase != dpuprovisioningv1alpha1.DPUClusterConfig && dpu.Status.Phase != dpuprovisioningv1alpha1.DPUReady {
+	// Serving CSR: Allow in "DPU Cluster Config", "Ready", or "Node Effect Removal"
+	// Node Effect Removal phase still requires a valid serving certificate for node
+	// operations like log access, metrics, and exec.
+	allowedServingPhases := map[dpuprovisioningv1alpha1.DPUPhase]bool{
+		dpuprovisioningv1alpha1.DPUClusterConfig:     true,
+		dpuprovisioningv1alpha1.DPUReady:             true,
+		dpuprovisioningv1alpha1.DPUNodeEffectRemoval: true,
+	}
+	if !allowedServingPhases[dpu.Status.Phase] {
 		return &ValidationResult{
 			Valid:  false,
-			Reason: fmt.Sprintf("DPU %s is in phase %s, serving CSRs only approved in phases %s or %s", hostname, dpu.Status.Phase, dpuprovisioningv1alpha1.DPUClusterConfig, dpuprovisioningv1alpha1.DPUReady),
+			Reason: fmt.Sprintf("DPU %s is in phase %s, serving CSRs only approved in phases %s, %s, or %s", hostname, dpu.Status.Phase, dpuprovisioningv1alpha1.DPUClusterConfig, dpuprovisioningv1alpha1.DPUReady, dpuprovisioningv1alpha1.DPUNodeEffectRemoval),
 		}, nil
 	}
 
