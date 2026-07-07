@@ -22,6 +22,10 @@ spec:
       jsonPath: .status.version.history[?(@.state=="Completed")].version
       name: Version
       type: string
+    - description: Control Plane Version
+      jsonPath: .status.controlPlaneVersion.history[?(@.state=="Completed")].version
+      name: CP Version
+      type: string
     - description: KubeConfig Secret
       jsonPath: .status.kubeconfig.name
       name: KubeConfig
@@ -41,6 +45,16 @@ spec:
     - description: Message
       jsonPath: .status.conditions[?(@.type=="Available")].message
       name: Message
+      type: string
+    - description: Control Plane Progress
+      jsonPath: .status.controlPlaneVersion.history[0].state
+      name: CP Progress
+      priority: 1
+      type: string
+    - description: Data Plane Progress
+      jsonPath: .status.version.history[0].state
+      name: DP Progress
+      priority: 1
       type: string
     name: v1beta1
     schema:
@@ -112,12 +126,13 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               autoNode:
-                description: autoNode specifies the configuration for the autoNode
-                  feature.
+                description: |-
+                  autoNode specifies the configuration for automatic node provisioning and lifecycle management.
+                  When set, the provisioner(e.g. Karpenter) will be used to provision nodes for targeted workloads.
                 properties:
                   provisionerConfig:
-                    description: provisionerConfig is the implementation used for
-                      Node auto provisioning.
+                    description: provisionerConfig specifies the provisioner used
+                      for automatic node management.
                     properties:
                       karpenter:
                         description: karpenter specifies the configuration for the
@@ -128,33 +143,121 @@ spec:
                               for Karpenter.
                             properties:
                               roleARN:
-                                description: roleARN specifies the ARN of the Karpenter
-                                  provisioner.
-                                maxLength: 255
+                                description: "roleARN specifies the ARN of the IAM
+                                  role that Karpenter assumes to provision\nand manage
+                                  EC2 instances in the hosted cluster's AWS account.\n\nThe
+                                  referenced role must have a trust relationship that
+                                  allows it to be assumed\nby the karpenter service
+                                  account in the hosted cluster via OIDC.\nExample:\n{\n\t\"Version\":
+                                  \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Principal\": {\n\t\t\t\t\"Federated\":
+                                  \"<oidc-provider-arn>\"\n\t\t\t},\n\t\t\t\"Action\":
+                                  \"sts:AssumeRoleWithWebIdentity\",\n\t\t\t\"Condition\":
+                                  {\n\t\t\t\t\"StringEquals\": {\n\t\t\t\t\t\"<oidc-provider-name>:sub\":
+                                  \"system:serviceaccount:kube-system:karpenter\"\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t]\n}\n\nThe
+                                  following is an example of the policy document for
+                                  this role.\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                                  [\n\t\t{\n\t\t\t\"Sid\": \"AllowScopedEC2InstanceAccessActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": [\n\t\t\t\t\"arn:*:ec2:*::image/*\",\n\t\t\t\t\"arn:*:ec2:*::snapshot/*\",\n\t\t\t\t\"arn:*:ec2:*:*:security-group/*\",\n\t\t\t\t\"arn:*:ec2:*:*:subnet/*\"\n\t\t\t],\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"ec2:RunInstances\",\n\t\t\t\t\"ec2:CreateFleet\"\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedEC2LaunchTemplateAccessActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"arn:*:ec2:*:*:launch-template/*\",\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"ec2:RunInstances\",\n\t\t\t\t\"ec2:CreateFleet\"\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedEC2InstanceActionsWithTags\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": [\n\t\t\t\t\"arn:*:ec2:*:*:fleet/*\",\n\t\t\t\t\"arn:*:ec2:*:*:instance/*\",\n\t\t\t\t\"arn:*:ec2:*:*:volume/*\",\n\t\t\t\t\"arn:*:ec2:*:*:network-interface/*\",\n\t\t\t\t\"arn:*:ec2:*:*:launch-template/*\",\n\t\t\t\t\"arn:*:ec2:*:*:spot-instances-request/*\"\n\t\t\t],\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"ec2:RunInstances\",\n\t\t\t\t\"ec2:CreateFleet\",\n\t\t\t\t\"ec2:CreateLaunchTemplate\"\n\t\t\t],\n\t\t\t\"Condition\":
+                                  {\n\t\t\t\t\"StringLike\": {\n\t\t\t\t\t\"aws:RequestTag/karpenter.sh/nodepool\":
+                                  \"*\"\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedResourceCreationTagging\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": [\n\t\t\t\t\"arn:*:ec2:*:*:fleet/*\",\n\t\t\t\t\"arn:*:ec2:*:*:instance/*\",\n\t\t\t\t\"arn:*:ec2:*:*:volume/*\",\n\t\t\t\t\"arn:*:ec2:*:*:network-interface/*\",\n\t\t\t\t\"arn:*:ec2:*:*:launch-template/*\",\n\t\t\t\t\"arn:*:ec2:*:*:spot-instances-request/*\"\n\t\t\t],\n\t\t\t\"Action\":
+                                  \"ec2:CreateTags\",\n\t\t\t\"Condition\": {\n\t\t\t\t\"StringEquals\":
+                                  {\n\t\t\t\t\t\"ec2:CreateAction\": [\n\t\t\t\t\t\t\"RunInstances\",\n\t\t\t\t\t\t\"CreateFleet\",\n\t\t\t\t\t\t\"CreateLaunchTemplate\"\n\t\t\t\t\t]\n\t\t\t\t},\n\t\t\t\t\"StringLike\":
+                                  {\n\t\t\t\t\t\"aws:RequestTag/karpenter.sh/nodepool\":
+                                  \"*\"\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedResourceTagging\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"arn:*:ec2:*:*:instance/*\",\n\t\t\t\"Action\":
+                                  \"ec2:CreateTags\",\n\t\t\t\"Condition\": {\n\t\t\t\t\"StringLike\":
+                                  {\n\t\t\t\t\t\"aws:ResourceTag/karpenter.sh/nodepool\":
+                                  \"*\"\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedDeletion\",\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Resource\":
+                                  [\n\t\t\t\t\"arn:*:ec2:*:*:instance/*\",\n\t\t\t\t\"arn:*:ec2:*:*:launch-template/*\"\n\t\t\t],\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"ec2:TerminateInstances\",\n\t\t\t\t\"ec2:DeleteLaunchTemplate\"\n\t\t\t],\n\t\t\t\"Condition\":
+                                  {\n\t\t\t\t\"StringLike\": {\n\t\t\t\t\t\"aws:ResourceTag/karpenter.sh/nodepool\":
+                                  \"*\"\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowRegionalReadActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"*\",\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"ec2:DescribeImages\",\n\t\t\t\t\"ec2:DescribeInstances\",\n\t\t\t\t\"ec2:DescribeInstanceTypeOfferings\",\n\t\t\t\t\"ec2:DescribeInstanceTypes\",\n\t\t\t\t\"ec2:DescribeLaunchTemplates\",\n\t\t\t\t\"ec2:DescribeSecurityGroups\",\n\t\t\t\t\"ec2:DescribeSpotPriceHistory\",\n\t\t\t\t\"ec2:DescribeSubnets\"\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowSSMReadActions\",\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Resource\":
+                                  \"arn:*:ssm:*::parameter/aws/service/*\",\n\t\t\t\"Action\":
+                                  \"ssm:GetParameter\"\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowPricingReadActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"*\",\n\t\t\t\"Action\":
+                                  \"pricing:GetProducts\"\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowInterruptionQueueActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"*\",\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"sqs:DeleteMessage\",\n\t\t\t\t\"sqs:GetQueueUrl\",\n\t\t\t\t\"sqs:ReceiveMessage\"\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowPassingInstanceRole\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"arn:*:iam::*:role/*\",\n\t\t\t\"Action\":
+                                  \"iam:PassRole\",\n\t\t\t\"Condition\": {\n\t\t\t\t\"StringEquals\":
+                                  {\n\t\t\t\t\t\"iam:PassedToService\": [\n\t\t\t\t\t\t\"ec2.amazonaws.com\",\n\t\t\t\t\t\t\"ec2.amazonaws.com.cn\"\n\t\t\t\t\t]\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedInstanceProfileCreationActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"arn:*:iam::*:instance-profile/*\",\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"iam:CreateInstanceProfile\"\n\t\t\t],\n\t\t\t\"Condition\":
+                                  {\n\t\t\t\t\"StringLike\": {\n\t\t\t\t\t\"aws:RequestTag/karpenter.k8s.aws/ec2nodeclass\":
+                                  \"*\"\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedInstanceProfileTagActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"arn:*:iam::*:instance-profile/*\",\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"iam:TagInstanceProfile\"\n\t\t\t],\n\t\t\t\"Condition\":
+                                  {\n\t\t\t\t\"StringLike\": {\n\t\t\t\t\t\"aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass\":
+                                  \"*\",\n\t\t\t\t\t\"aws:RequestTag/karpenter.k8s.aws/ec2nodeclass\":
+                                  \"*\"\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowScopedInstanceProfileActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"arn:*:iam::*:instance-profile/*\",\n\t\t\t\"Action\":
+                                  [\n\t\t\t\t\"iam:AddRoleToInstanceProfile\",\n\t\t\t\t\"iam:RemoveRoleFromInstanceProfile\",\n\t\t\t\t\"iam:DeleteInstanceProfile\"\n\t\t\t],\n\t\t\t\"Condition\":
+                                  {\n\t\t\t\t\"StringLike\": {\n\t\t\t\t\t\"aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass\":
+                                  \"*\"\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowInstanceProfileReadActions\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"arn:*:iam::*:instance-profile/*\",\n\t\t\t\"Action\":
+                                  \"iam:GetInstanceProfile\"\n\t\t},\n\t\t{\n\t\t\t\"Sid\":
+                                  \"AllowUnscopedInstanceProfileListAction\",\n\t\t\t\"Effect\":
+                                  \"Allow\",\n\t\t\t\"Resource\": \"*\",\n\t\t\t\"Action\":
+                                  \"iam:ListInstanceProfiles\"\n\t\t}\n\t]\n}"
+                                maxLength: 2048
                                 type: string
+                                x-kubernetes-validations:
+                                - message: roleARN must be a valid AWS IAM role ARN
+                                    (e.g. arn:aws:iam::123456789012:role/MyRole)
+                                  rule: self.matches('^arn:(aws|aws-cn|aws-us-gov):iam::[0-9]{12}:role/.+$')
                             required:
                             - roleARN
                             type: object
                           platform:
-                            description: platform specifies the platform-specific
-                              configuration for Karpenter.
+                            description: platform specifies the infrastructure platform
+                              that Karpenter should provision nodes on.
+                            enum:
+                            - AWS
                             maxLength: 100
                             type: string
                         required:
                         - platform
                         type: object
+                        x-kubernetes-validations:
+                        - message: aws is required when platform is AWS, and forbidden
+                            otherwise
+                          rule: 'self.platform == ''AWS'' ? has(self.aws) : !has(self.aws)'
                       name:
-                        allOf:
-                        - enum:
-                          - Karpenter
-                        - enum:
-                          - Karpenter
                         description: name specifies the name of the provisioner to
-                          use.
+                          use for automatic node management.
+                        enum:
+                        - Karpenter
                         type: string
                     required:
                     - name
                     type: object
+                    x-kubernetes-validations:
+                    - message: karpenter is required when name is Karpenter, and forbidden
+                        otherwise
+                      rule: 'self.name == ''Karpenter'' ? has(self.karpenter) : !has(self.karpenter)'
                 required:
                 - provisionerConfig
                 type: object
@@ -677,17 +780,12 @@ spec:
                               profile as invalid configurations can be catastrophic. An example custom profile
                               looks like this:
 
-                                ciphers:
-
-                                  - ECDHE-ECDSA-CHACHA20-POLY1305
-
-                                  - ECDHE-RSA-CHACHA20-POLY1305
-
-                                  - ECDHE-RSA-AES128-GCM-SHA256
-
-                                  - ECDHE-ECDSA-AES128-GCM-SHA256
-
                                 minTLSVersion: VersionTLS11
+                                ciphers:
+                                  - ECDHE-ECDSA-CHACHA20-POLY1305
+                                  - ECDHE-RSA-CHACHA20-POLY1305
+                                  - ECDHE-RSA-AES128-GCM-SHA256
+                                  - ECDHE-ECDSA-AES128-GCM-SHA256
                             nullable: true
                             properties:
                               ciphers:
@@ -709,8 +807,6 @@ spec:
                                   versions 1.1, 1.2 and 1.3 (yaml):
 
                                     minTLSVersion: VersionTLS11
-
-                                  NOTE: currently the highest minTLSVersion allowed is VersionTLS12
                                 enum:
                                 - VersionTLS10
                                 - VersionTLS11
@@ -720,143 +816,96 @@ spec:
                             type: object
                           intermediate:
                             description: |-
-                              intermediate is a TLS security profile based on:
+                              intermediate is a TLS profile for use when you do not need compatibility with
+                              legacy clients and want to remain highly secure while being compatible with
+                              most clients currently in use.
 
-                              https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
+                              The cipher list includes TLS 1.3 ciphers for forward compatibility, followed
+                              by the "intermediate" profile ciphers.
 
-                              and looks like this (yaml):
-
-                                ciphers:
-
-                                  - TLS_AES_128_GCM_SHA256
-
-                                  - TLS_AES_256_GCM_SHA384
-
-                                  - TLS_CHACHA20_POLY1305_SHA256
-
-                                  - ECDHE-ECDSA-AES128-GCM-SHA256
-
-                                  - ECDHE-RSA-AES128-GCM-SHA256
-
-                                  - ECDHE-ECDSA-AES256-GCM-SHA384
-
-                                  - ECDHE-RSA-AES256-GCM-SHA384
-
-                                  - ECDHE-ECDSA-CHACHA20-POLY1305
-
-                                  - ECDHE-RSA-CHACHA20-POLY1305
-
-                                  - DHE-RSA-AES128-GCM-SHA256
-
-                                  - DHE-RSA-AES256-GCM-SHA384
-
+                              This profile is equivalent to a Custom profile specified as:
                                 minTLSVersion: VersionTLS12
+                                ciphers:
+                                  - TLS_AES_128_GCM_SHA256
+                                  - TLS_AES_256_GCM_SHA384
+                                  - TLS_CHACHA20_POLY1305_SHA256
+                                  - ECDHE-ECDSA-AES128-GCM-SHA256
+                                  - ECDHE-RSA-AES128-GCM-SHA256
+                                  - ECDHE-ECDSA-AES256-GCM-SHA384
+                                  - ECDHE-RSA-AES256-GCM-SHA384
+                                  - ECDHE-ECDSA-CHACHA20-POLY1305
+                                  - ECDHE-RSA-CHACHA20-POLY1305
+                                  - DHE-RSA-AES128-GCM-SHA256
+                                  - DHE-RSA-AES256-GCM-SHA384
                             nullable: true
                             type: object
                           modern:
                             description: |-
-                              modern is a TLS security profile based on:
+                              modern is a TLS security profile for use with clients that support TLS 1.3 and
+                              do not need backward compatibility for older clients.
 
-                              https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
-
-                              and looks like this (yaml):
-
-                                ciphers:
-
-                                  - TLS_AES_128_GCM_SHA256
-
-                                  - TLS_AES_256_GCM_SHA384
-
-                                  - TLS_CHACHA20_POLY1305_SHA256
-
+                              This profile is equivalent to a Custom profile specified as:
                                 minTLSVersion: VersionTLS13
+                                ciphers:
+                                  - TLS_AES_128_GCM_SHA256
+                                  - TLS_AES_256_GCM_SHA384
+                                  - TLS_CHACHA20_POLY1305_SHA256
                             nullable: true
                             type: object
                           old:
                             description: |-
-                              old is a TLS security profile based on:
+                              old is a TLS profile for use when services need to be accessed by very old
+                              clients or libraries and should be used only as a last resort.
 
-                              https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility
+                              The cipher list includes TLS 1.3 ciphers for forward compatibility, followed
+                              by the "old" profile ciphers.
 
-                              and looks like this (yaml):
-
-                                ciphers:
-
-                                  - TLS_AES_128_GCM_SHA256
-
-                                  - TLS_AES_256_GCM_SHA384
-
-                                  - TLS_CHACHA20_POLY1305_SHA256
-
-                                  - ECDHE-ECDSA-AES128-GCM-SHA256
-
-                                  - ECDHE-RSA-AES128-GCM-SHA256
-
-                                  - ECDHE-ECDSA-AES256-GCM-SHA384
-
-                                  - ECDHE-RSA-AES256-GCM-SHA384
-
-                                  - ECDHE-ECDSA-CHACHA20-POLY1305
-
-                                  - ECDHE-RSA-CHACHA20-POLY1305
-
-                                  - DHE-RSA-AES128-GCM-SHA256
-
-                                  - DHE-RSA-AES256-GCM-SHA384
-
-                                  - DHE-RSA-CHACHA20-POLY1305
-
-                                  - ECDHE-ECDSA-AES128-SHA256
-
-                                  - ECDHE-RSA-AES128-SHA256
-
-                                  - ECDHE-ECDSA-AES128-SHA
-
-                                  - ECDHE-RSA-AES128-SHA
-
-                                  - ECDHE-ECDSA-AES256-SHA384
-
-                                  - ECDHE-RSA-AES256-SHA384
-
-                                  - ECDHE-ECDSA-AES256-SHA
-
-                                  - ECDHE-RSA-AES256-SHA
-
-                                  - DHE-RSA-AES128-SHA256
-
-                                  - DHE-RSA-AES256-SHA256
-
-                                  - AES128-GCM-SHA256
-
-                                  - AES256-GCM-SHA384
-
-                                  - AES128-SHA256
-
-                                  - AES256-SHA256
-
-                                  - AES128-SHA
-
-                                  - AES256-SHA
-
-                                  - DES-CBC3-SHA
-
+                              This profile is equivalent to a Custom profile specified as:
                                 minTLSVersion: VersionTLS10
+                                ciphers:
+                                  - TLS_AES_128_GCM_SHA256
+                                  - TLS_AES_256_GCM_SHA384
+                                  - TLS_CHACHA20_POLY1305_SHA256
+                                  - ECDHE-ECDSA-AES128-GCM-SHA256
+                                  - ECDHE-RSA-AES128-GCM-SHA256
+                                  - ECDHE-ECDSA-AES256-GCM-SHA384
+                                  - ECDHE-RSA-AES256-GCM-SHA384
+                                  - ECDHE-ECDSA-CHACHA20-POLY1305
+                                  - ECDHE-RSA-CHACHA20-POLY1305
+                                  - DHE-RSA-AES128-GCM-SHA256
+                                  - DHE-RSA-AES256-GCM-SHA384
+                                  - DHE-RSA-CHACHA20-POLY1305
+                                  - ECDHE-ECDSA-AES128-SHA256
+                                  - ECDHE-RSA-AES128-SHA256
+                                  - ECDHE-ECDSA-AES128-SHA
+                                  - ECDHE-RSA-AES128-SHA
+                                  - ECDHE-ECDSA-AES256-SHA384
+                                  - ECDHE-RSA-AES256-SHA384
+                                  - ECDHE-ECDSA-AES256-SHA
+                                  - ECDHE-RSA-AES256-SHA
+                                  - DHE-RSA-AES128-SHA256
+                                  - DHE-RSA-AES256-SHA256
+                                  - AES128-GCM-SHA256
+                                  - AES256-GCM-SHA384
+                                  - AES128-SHA256
+                                  - AES256-SHA256
+                                  - AES128-SHA
+                                  - AES256-SHA
+                                  - DES-CBC3-SHA
                             nullable: true
                             type: object
                           type:
                             description: |-
-                              type is one of Old, Intermediate, Modern or Custom. Custom provides
-                              the ability to specify individual TLS security profile parameters.
-                              Old, Intermediate and Modern are TLS security profiles based on:
+                              type is one of Old, Intermediate, Modern or Custom. Custom provides the
+                              ability to specify individual TLS security profile parameters.
 
-                              https://wiki.mozilla.org/Security/Server_Side_TLS#Recommended_configurations
+                              The profiles are currently based on version 5.0 of the Mozilla Server Side TLS
+                              configuration guidelines (released 2019-06-28) with TLS 1.3 ciphers added for
+                              forward compatibility. See: https://ssl-config.mozilla.org/guidelines/5.0.json
 
-                              The profiles are intent based, so they may change over time as new ciphers are developed and existing ciphers
-                              are found to be insecure.  Depending on precisely which ciphers are available to a process, the list may be
-                              reduced.
-
-                              Note that the Modern profile is currently not supported because it is not
-                              yet well adopted by common software libraries.
+                              The profiles are intent based, so they may change over time as new ciphers are
+                              developed and existing ciphers are found to be insecure. Depending on
+                              precisely which ciphers are available to a process, the list may be reduced.
                             enum:
                             - Old
                             - Intermediate
@@ -1174,12 +1223,42 @@ spec:
 
                                 Validation rules are joined via an AND operation.
                               items:
+                                description: |-
+                                  TokenClaimValidationRule represents a validation rule based on token claims.
+                                  If type is RequiredClaim, requiredClaim must be set.
+                                  If Type is CEL, CEL must be set and RequiredClaim must be omitted.
                                 properties:
+                                  cel:
+                                    description: |-
+                                      cel holds the CEL expression and message for validation.
+                                      Must be set when Type is "CEL", and forbidden otherwise.
+                                    properties:
+                                      expression:
+                                        description: |-
+                                          expression is a CEL expression evaluated against token claims.
+                                          expression is required, must be at least 1 character in length and must not exceed 1024 characters.
+                                          The expression must return a boolean value where 'true' signals a valid token and 'false' an invalid one.
+                                        maxLength: 1024
+                                        minLength: 1
+                                        type: string
+                                      message:
+                                        description: |-
+                                          message is a required human-readable message to be logged by the Kubernetes API server
+                                          if the CEL expression defined in 'expression' fails.
+                                          message must be at least 1 character in length and must not exceed 256 characters.
+                                        maxLength: 256
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - expression
+                                    - message
+                                    type: object
                                   requiredClaim:
                                     description: |-
-                                      requiredClaim is an optional field that configures the required claim
-                                      and value that the Kubernetes API server will use to validate if an incoming
-                                      JWT is valid for this identity provider.
+                                      requiredClaim allows configuring a required claim name and its expected value.
+                                      This field is required when `type` is set to RequiredClaim, and must be omitted
+                                      when `type` is set to any other value. The Kubernetes API server uses this field
+                                      to validate if an incoming JWT is valid for this identity provider.
                                     properties:
                                       claim:
                                         description: |-
@@ -1204,22 +1283,26 @@ spec:
                                     - requiredValue
                                     type: object
                                   type:
-                                    default: RequiredClaim
                                     description: |-
                                       type is an optional field that configures the type of the validation rule.
 
-                                      Allowed values are 'RequiredClaim' and omitted (not provided or an empty string).
+                                      Allowed values are "RequiredClaim" and "CEL".
 
-                                      When set to 'RequiredClaim', the Kubernetes API server
-                                      will be configured to validate that the incoming JWT
-                                      contains the required claim and that its value matches
-                                      the required value.
+                                      When set to 'RequiredClaim', the Kubernetes API server will be configured
+                                      to validate that the incoming JWT contains the required claim and that its
+                                      value matches the required value.
 
-                                      Defaults to 'RequiredClaim'.
-                                    enum:
-                                    - RequiredClaim
+                                      When set to 'CEL', the Kubernetes API server will be configured
+                                      to validate the incoming JWT against the configured CEL expression.
                                     type: string
+                                required:
+                                - type
                                 type: object
+                                x-kubernetes-validations:
+                                - message: requiredClaim must be set when type is
+                                    'RequiredClaim', and forbidden otherwise
+                                  rule: 'has(self.type) && self.type == ''RequiredClaim''
+                                    ? has(self.requiredClaim) : !has(self.requiredClaim)'
                               type: array
                               x-kubernetes-list-type: atomic
                             issuer:
@@ -1242,6 +1325,29 @@ spec:
                                   minItems: 1
                                   type: array
                                   x-kubernetes-list-type: set
+                                discoveryURL:
+                                  description: |-
+                                    discoveryURL is an optional field that, if specified, overrides the default discovery endpoint
+                                    used to retrieve OIDC configuration metadata. By default, the discovery URL is derived from `issuerURL`
+                                    as "{issuerURL}/.well-known/openid-configuration".
+
+                                    The discoveryURL must be a valid absolute HTTPS URL. It must not contain query
+                                    parameters, user information, or fragments. Additionally, it must differ from the value of `url` (ignoring trailing slashes).
+                                    The discoveryURL value must be at least 1 character long and no longer than 2048 characters.
+                                  maxLength: 2048
+                                  minLength: 1
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: discoveryURL must be a valid URL
+                                    rule: isURL(self)
+                                  - message: discoveryURL must be a valid https URL
+                                    rule: url(self).getScheme() == 'https'
+                                  - message: discoveryURL must not contain query parameters
+                                    rule: url(self).getQuery().size() == 0
+                                  - message: discoveryURL must not contain fragments
+                                    rule: self.matches('^[^#]*$')
+                                  - message: discoveryURL must not contain user info
+                                    rule: '!self.matches(''^https://.+:.+@.+/.*$'')'
                                 issuerCertificateAuthority:
                                   description: |-
                                     issuerCertificateAuthority is an optional field that configures the
@@ -1388,6 +1494,48 @@ spec:
                               - componentNamespace
                               - componentName
                               x-kubernetes-list-type: map
+                            userValidationRules:
+                              description: |-
+                                userValidationRules is an optional field that configures the set of rules
+                                used to validate the cluster user identity that was constructed via
+                                mapping token claims to user identity attributes.
+                                Rules are CEL expressions that must evaluate to 'true' for authentication to succeed.
+                                If any rule in the chain of rules evaluates to 'false', authentication will fail.
+                                When specified, at least one rule must be specified and no more than 64 rules may be specified.
+                              items:
+                                description: |-
+                                  TokenUserValidationRule provides a CEL-based rule used to validate a token subject.
+                                  Each rule contains a CEL expression that is evaluated against the token’s claims.
+                                properties:
+                                  expression:
+                                    description: |-
+                                      expression is a required CEL expression that performs a validation
+                                      on cluster user identity attributes like username, groups, etc.
+                                      The expression must evaluate to a boolean value.
+                                      When the expression evaluates to 'true', the cluster user identity is considered valid.
+                                      When the expression evaluates to 'false', the cluster user identity is not considered valid.
+                                      expression must be at least 1 character in length and must not exceed 1024 characters.
+                                    maxLength: 1024
+                                    minLength: 1
+                                    type: string
+                                  message:
+                                    description: |-
+                                      message is a required human-readable message to be logged by the Kubernetes API server
+                                      if the CEL expression defined in 'expression' fails.
+                                      message must be at least 1 character in length and must not exceed 256 characters.
+                                    maxLength: 256
+                                    minLength: 1
+                                    type: string
+                                required:
+                                - expression
+                                - message
+                                type: object
+                              maxItems: 64
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - expression
+                              x-kubernetes-list-type: map
                           required:
                           - claimMappings
                           - issuer
@@ -1515,6 +1663,7 @@ spec:
                         - CustomNoUpgrade
                         - DevPreviewNoUpgrade
                         - TechPreviewNoUpgrade
+                        - OKD
                         - ""
                         type: string
                         x-kubernetes-validations:
@@ -1527,6 +1676,8 @@ spec:
                         - message: DevPreviewNoUpgrade may not be changed
                           rule: 'oldSelf == ''DevPreviewNoUpgrade'' ? self == ''DevPreviewNoUpgrade''
                             : true'
+                        - message: OKD cannot transition to Default
+                          rule: 'oldSelf == ''OKD'' ? self != '''' : true'
                     type: object
                   image:
                     description: |-
@@ -3157,6 +3308,71 @@ spec:
                     description: managed specifies the behavior of an etcd cluster
                       managed by HyperShift.
                     properties:
+                      backup:
+                        description: |-
+                          backup defines the backup configuration for managed etcd, including
+                          optional KMS key settings for artifact encryption in cloud storage.
+                          This configuration is only used when an HCPEtcdBackup CR exists.
+                        properties:
+                          aws:
+                            description: |-
+                              aws contains AWS-specific backup encryption configuration.
+                              Required when platform is "AWS", and forbidden otherwise.
+                            properties:
+                              kmsKeyARN:
+                                description: |-
+                                  kmsKeyARN is the ARN of the AWS KMS key to use for encrypting etcd backup artifacts in S3.
+                                  Must be a valid AWS KMS key ARN in the format
+                                  "arn:<partition>:kms:<region>:<account-id>:key/<key-id>"
+                                  where partition is one of aws, aws-cn, or aws-us-gov.
+                                maxLength: 256
+                                minLength: 1
+                                type: string
+                                x-kubernetes-validations:
+                                - message: kmsKeyARN must be a valid AWS KMS key ARN
+                                    (arn:<partition>:kms:<region>:<account-id>:key/<key-id>)
+                                  rule: self.matches('^arn:(aws|aws-cn|aws-us-gov):kms:[a-z0-9-]+:[0-9]{12}:key/[a-zA-Z0-9-]+$')
+                            required:
+                            - kmsKeyARN
+                            type: object
+                          azure:
+                            description: |-
+                              azure contains Azure-specific backup encryption configuration.
+                              Required when platform is "Azure", and forbidden otherwise.
+                            properties:
+                              encryptionKeyURL:
+                                description: |-
+                                  encryptionKeyURL is the URL of the Azure Key Vault key to use for encrypting etcd backup artifacts.
+                                  Must be a valid Azure Key Vault key URL in the format
+                                  "https://<vault-name>.vault.azure.net/keys/<key-name>[/<key-version>]".
+                                maxLength: 210
+                                minLength: 1
+                                type: string
+                                x-kubernetes-validations:
+                                - message: encryptionKeyURL must be a valid Azure
+                                    Key Vault HTTPS URL (https://<vault>.vault.azure.net/keys/<key-name>[/<key-version>])
+                                  rule: self.matches('^https://[a-zA-Z0-9-]+\\.vault\\.azure\\.net/keys/[a-zA-Z0-9-]+(/[a-zA-Z0-9]+)?$')
+                            required:
+                            - encryptionKeyURL
+                            type: object
+                          platform:
+                            description: |-
+                              platform specifies the cloud platform for backup encryption configuration.
+                              Valid values are "AWS" for AWS KMS encryption and "Azure" for Azure Key Vault encryption.
+                            enum:
+                            - AWS
+                            - Azure
+                            type: string
+                        required:
+                        - platform
+                        type: object
+                        x-kubernetes-validations:
+                        - message: aws configuration is required when platform is
+                            AWS, and forbidden otherwise
+                          rule: 'self.platform == ''AWS'' ? has(self.aws) : !has(self.aws)'
+                        - message: azure configuration is required when platform is
+                            Azure, and forbidden otherwise
+                          rule: 'self.platform == ''Azure'' ? has(self.azure) : !has(self.azure)'
                       storage:
                         description: storage specifies how etcd data is persisted.
                         properties:
@@ -4911,6 +5127,21 @@ spec:
                         - localZoneID
                         - rolesRef
                         type: object
+                      terminationHandlerQueueURL:
+                        description: |-
+                          terminationHandlerQueueURL specifies the SQS queue URL for EC2 spot interruption events.
+                          This is required when using spot instances (marketType: Spot) in NodePools to enable
+                          graceful handling of spot instance terminations.
+
+                          The queue should be configured to receive EC2 Spot Instance Interruption Warnings
+                          and EC2 Instance Rebalance Recommendations via EventBridge rules.
+                          The AWS Node Termination Handler will poll this queue and cordon/drain nodes
+                          before they are terminated, providing a best effort for graceful shutdown.
+
+                          Supports both standard and FIFO queues (FIFO queues end with .fifo suffix).
+                        maxLength: 512
+                        pattern: ^https://sqs\.[a-z0-9-]+\.amazonaws\.com/[0-9]{12}/[a-zA-Z0-9_-]+(\.fifo)?$
+                        type: string
                     required:
                     - region
                     - rolesRef
@@ -4978,16 +5209,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -4998,6 +5219,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5037,16 +5262,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -5057,6 +5272,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5095,16 +5314,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -5115,6 +5324,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5153,16 +5366,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -5173,6 +5376,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5211,16 +5418,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -5231,6 +5428,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5269,16 +5470,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -5289,6 +5480,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5351,16 +5546,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -5371,6 +5556,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5410,16 +5599,6 @@ spec:
                                         pattern: ^[a-zA-Z0-9-]+$
                                         type: string
                                       objectEncoding:
-                                        allOf:
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        - enum:
-                                          - utf-8
-                                          - hex
-                                          - base64
-                                        default: utf-8
                                         description: |-
                                           objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                           the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -5430,6 +5609,10 @@ spec:
                                           The default value is utf-8.
 
                                           See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                        enum:
+                                        - utf-8
+                                        - hex
+                                        - base64
                                         type: string
                                     required:
                                     - credentialsSecretName
@@ -5810,8 +5993,12 @@ spec:
                                   See https://cloud.google.com/compute/docs/naming-resources for details.
                                 maxLength: 63
                                 minLength: 1
-                                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
                                 type: string
+                                x-kubernetes-validations:
+                                - message: must start with a lowercase letter, contain
+                                    only lowercase letters, digits, or hyphens, and
+                                    not end with a hyphen
+                                  rule: self.matches('^[a-z]([-a-z0-9]*[a-z0-9])?$')
                             required:
                             - name
                             type: object
@@ -5831,8 +6018,12 @@ spec:
                                   See https://cloud.google.com/compute/docs/naming-resources for details.
                                 maxLength: 63
                                 minLength: 1
-                                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
                                 type: string
+                                x-kubernetes-validations:
+                                - message: must start with a lowercase letter, contain
+                                    only lowercase letters, digits, or hyphens, and
+                                    not end with a hyphen
+                                  rule: self.matches('^[a-z]([-a-z0-9]*[a-z0-9])?$')
                             required:
                             - name
                             type: object
@@ -5851,27 +6042,29 @@ spec:
                             characters: Only lowercase letters (`a-z`), digits (`0-9`), and hyphens (`-`) are allowed
                             start and end: Must begin with a lowercase letter and must not end with a hyphen
                             valid examples: "my-project", "my-project-1", "my-project-123".
+                          See https://cloud.google.com/resource-manager/docs/creating-managing-projects for project ID naming rules.
                         maxLength: 30
                         minLength: 6
-                        pattern: ^[a-z]([a-z0-9-]{4,28}[a-z0-9])$
                         type: string
                         x-kubernetes-validations:
+                        - message: project must start with a lowercase letter, contain
+                            only lowercase letters, digits, or hyphens, and end with
+                            a letter or digit
+                          rule: self.matches('^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
                         - message: Project is immutable
                           rule: self == oldSelf
                       region:
                         description: |-
-                          region is the GCP region in which the cluster resides.
-                          Must be in the form of <geographic-area>-<location><number> (e.g., us-central1, europe-west12).
-                          Must contain exactly one hyphen separating the geographic area from the location.
-                          Must end with one or more digits.
-                          Valid examples: "us-central1", "europe-west2", "europe-west12", "northamerica-northeast1"
-                          Invalid examples: "us1" (no hyphen), "us-central" (no trailing digits), "us-central1-a" (zone suffix)
+                          region is the GCP region in which the cluster resides (e.g., us-central1, europe-west2).
+                          Must start with lowercase letters, contain exactly one hyphen, and end with digits.
                           For a full list of valid regions, see: https://cloud.google.com/compute/docs/regions-zones.
                         maxLength: 63
                         minLength: 1
-                        pattern: ^[a-z]+-[a-z]+[0-9]+$
                         type: string
                         x-kubernetes-validations:
+                        - message: region must be a valid GCP region (e.g., us-central1,
+                            europe-west2)
+                          rule: self.matches('^[a-z]+-[a-z]+[0-9]+$')
                         - message: Region is immutable
                           rule: self == oldSelf
                       resourceLabels:
@@ -5892,16 +6085,19 @@ spec:
                                 key is the key part of the label. A label key can have a maximum of 63 characters and cannot be empty.
                                 For Compute Engine resources (VMs, disks, networks created by CAPG), keys must:
                                 - Start with a lowercase letter
-                                - Contain only lowercase letters, digits, or hyphens
-                                - End with a lowercase letter or digit (not a hyphen)
+                                - Contain only lowercase letters, digits, underscores, or hyphens
+                                - End with a lowercase letter or digit (not a hyphen or underscore)
                                 - Be 1-63 characters long
                                 GCP reserves the 'goog' prefix for system labels.
                                 See https://cloud.google.com/compute/docs/labeling-resources for Compute Engine label requirements.
                               maxLength: 63
                               minLength: 1
-                              pattern: ^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$
                               type: string
                               x-kubernetes-validations:
+                              - message: key must start with a lowercase letter, contain
+                                  only lowercase letters, digits, underscores, or
+                                  hyphens, and end with a letter or digit
+                                rule: self.matches('^[a-z]([_a-z0-9-]{0,61}[a-z0-9])?$')
                               - message: Label keys starting with the reserved 'goog'
                                   prefix are not allowed
                                 rule: '!self.startsWith(''goog'')'
@@ -5909,16 +6105,23 @@ spec:
                               description: |-
                                 value is the value part of the label. A label value can have a maximum of 63 characters.
                                 Empty values are allowed by GCP. If non-empty, it must start with a lowercase letter,
-                                contain only lowercase letters, digits, or hyphens, and end with a lowercase letter or digit.
+                                contain only lowercase letters, digits, underscores, or hyphens, and end with a lowercase letter or digit.
                                 See https://cloud.google.com/compute/docs/labeling-resources for Compute Engine label requirements.
                               maxLength: 63
                               minLength: 0
-                              pattern: ^$|^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$
                               type: string
+                              x-kubernetes-validations:
+                              - message: value must be empty or start with a lowercase
+                                  letter, contain only lowercase letters, digits,
+                                  underscores, or hyphens, and end with a letter or
+                                  digit
+                                rule: self.matches('^$|^[a-z]([_a-z0-9-]{0,61}[a-z0-9])?$')
                           required:
                           - key
+                          - value
                           type: object
                         maxItems: 60
+                        minItems: 1
                         type: array
                         x-kubernetes-list-map-keys:
                         - key
@@ -5945,15 +6148,19 @@ spec:
                               Allowed characters: lowercase letters (a-z), digits (0-9), hyphens (-).
                               Cannot start or end with a hyphen.
                               The prefix "gcp-" is reserved by Google and cannot be used.
+                              See https://cloud.google.com/iam/docs/manage-workload-identity-pools-providers for naming rules.
 
                               This is a user-provided value referencing a pre-created Workload Identity Pool.
                               Typically obtained from the output of `hypershift infra create gcp` which creates
                               the WIF infrastructure and generates appropriate pool IDs.
                             maxLength: 32
                             minLength: 4
-                            pattern: ^[a-z]([a-z0-9-]{2,30}[a-z0-9])$
                             type: string
                             x-kubernetes-validations:
+                            - message: poolID must start with a lowercase letter,
+                                contain only lowercase letters, digits, or hyphens,
+                                and end with a letter or digit
+                              rule: self.matches('^[a-z][a-z0-9-]{2,30}[a-z0-9]$')
                             - message: Pool ID cannot start with reserved prefix 'gcp-'
                               rule: '!self.startsWith(''gcp-'')'
                             - message: Pool ID is immutable
@@ -5963,14 +6170,16 @@ spec:
                               projectNumber is the numeric GCP project identifier for WIF configuration.
                               This differs from the project ID and is required for workload identity pools.
                               Must be a numeric string representing the GCP project number.
+                              See https://cloud.google.com/resource-manager/docs/creating-managing-projects for project number details.
 
                               This is a user-provided value obtained from GCP (found in GCP Console or via `gcloud projects describe PROJECT_ID`).
                               Also available in the output of `hypershift infra create gcp`.
                             maxLength: 25
                             minLength: 1
-                            pattern: ^[0-9]+$
                             type: string
                             x-kubernetes-validations:
+                            - message: projectNumber must contain only digits
+                              rule: self.matches('^[0-9]+$')
                             - message: Project number is immutable
                               rule: self == oldSelf
                           providerID:
@@ -5981,14 +6190,18 @@ spec:
                               Allowed characters: lowercase letters (a-z), digits (0-9), hyphens (-).
                               Cannot start or end with a hyphen.
                               The prefix "gcp-" is reserved by Google and cannot be used.
+                              See https://cloud.google.com/iam/docs/manage-workload-identity-pools-providers for naming rules.
 
                               This is a user-provided value referencing a pre-created OIDC Provider within the WIF Pool.
                               Typically obtained from the output of `hypershift infra create gcp`.
                             maxLength: 32
                             minLength: 4
-                            pattern: ^[a-z]([a-z0-9-]{2,30}[a-z0-9])$
                             type: string
                             x-kubernetes-validations:
+                            - message: providerID must start with a lowercase letter,
+                                contain only lowercase letters, digits, or hyphens,
+                                and end with a letter or digit
+                              rule: self.matches('^[a-z][a-z0-9-]{2,30}[a-z0-9]$')
                             - message: Provider ID cannot start with reserved prefix
                                 'gcp-'
                               rule: '!self.startsWith(''gcp-'')'
@@ -6000,26 +6213,73 @@ spec:
                               required to enable integrations for different controllers and operators.
                               This follows the AWS pattern of having different roles for different purposes.
                             properties:
-                              controlPlane:
+                              cloudController:
                                 description: |-
-                                  controlPlane is the Google Service Account email for the Control Plane Operator
-                                  that manages control plane infrastructure and resources.
+                                  cloudController is the Google Service Account email for the Cloud Controller Manager
+                                  that manages LoadBalancer services and node lifecycle in the hosted cluster.
                                   This GSA requires the following IAM roles:
-                                  - roles/storage.admin (Storage Admin)
-                                  - roles/iam.serviceAccountUser (Service Account User)
+                                  - roles/compute.loadBalancerAdmin (Load Balancer Admin - for provisioning GCP load balancers)
+                                  - roles/compute.securityAdmin (Security Admin - for managing firewall rules)
+                                  - roles/compute.viewer (Compute Viewer - for reading instance metadata for node management)
                                   See cmd/infra/gcp/iam-bindings.json for the authoritative role definitions.
                                   Format: service-account-name@project-id.iam.gserviceaccount.com
 
                                   This is a user-provided value referencing a pre-created Google Service Account.
                                   Typically obtained from the output of `hypershift infra create gcp` which creates
                                   the required service accounts with appropriate IAM roles and WIF bindings.
-                                maxLength: 100
-                                minLength: 38
-                                pattern: ^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com$
+                                maxLength: 85
+                                minLength: 37
+                                type: string
+                                x-kubernetes-validations:
+                                - message: CloudController is immutable
+                                  rule: self == oldSelf
+                                - message: 'email must be a valid GCP service account
+                                    email (format: name@project.iam.gserviceaccount.com)'
+                                  rule: self.matches('^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\\.iam\\.gserviceaccount\\.com$')
+                              controlPlane:
+                                description: |-
+                                  controlPlane is the Google Service Account email for the Control Plane Operator
+                                  that manages control plane infrastructure and resources.
+                                  This GSA requires the following IAM roles:
+                                  - roles/dns.admin (DNS Admin - for managing DNS records)
+                                  - roles/compute.networkAdmin (Compute Network Admin - for network management)
+                                  - roles/compute.viewer (Compute Viewer - for CCM to read instance metadata)
+                                  See cmd/infra/gcp/iam-bindings.json for the authoritative role definitions.
+                                  Format: service-account-name@project-id.iam.gserviceaccount.com
+
+                                  This is a user-provided value referencing a pre-created Google Service Account.
+                                  Typically obtained from the output of `hypershift infra create gcp` which creates
+                                  the required service accounts with appropriate IAM roles and WIF bindings.
+                                maxLength: 85
+                                minLength: 37
                                 type: string
                                 x-kubernetes-validations:
                                 - message: ControlPlane is immutable
                                   rule: self == oldSelf
+                                - message: 'email must be a valid GCP service account
+                                    email (format: name@project.iam.gserviceaccount.com)'
+                                  rule: self.matches('^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\\.iam\\.gserviceaccount\\.com$')
+                              imageRegistry:
+                                description: |-
+                                  imageRegistry is the Google Service Account email for the Image Registry Operator
+                                  that manages GCS storage for the internal container image registry.
+                                  This GSA requires the following IAM roles:
+                                  - roles/storage.admin (Storage Admin - for creating and managing GCS buckets and objects)
+                                  See cmd/infra/gcp/iam-bindings.json for the authoritative role definitions.
+                                  Format: service-account-name@project-id.iam.gserviceaccount.com
+
+                                  This is a user-provided value referencing a pre-created Google Service Account.
+                                  Typically obtained from the output of `hypershift infra create gcp` which creates
+                                  the required service accounts with appropriate IAM roles and WIF bindings.
+                                maxLength: 85
+                                minLength: 37
+                                type: string
+                                x-kubernetes-validations:
+                                - message: ImageRegistry is immutable
+                                  rule: self == oldSelf
+                                - message: 'email must be a valid GCP service account
+                                    email (format: name@project.iam.gserviceaccount.com)'
+                                  rule: self.matches('^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\\.iam\\.gserviceaccount\\.com$')
                               nodePool:
                                 description: |-
                                   nodePool is the Google Service Account email for CAPG controllers
@@ -6027,22 +6287,52 @@ spec:
                                   This GSA requires the following IAM roles:
                                   - roles/compute.instanceAdmin.v1 (Compute Instance Admin v1)
                                   - roles/compute.networkAdmin (Compute Network Admin)
+                                  - roles/iam.serviceAccountUser (Service Account User - to attach service accounts to VMs)
                                   See cmd/infra/gcp/iam-bindings.json for the authoritative role definitions.
                                   Format: service-account-name@project-id.iam.gserviceaccount.com
 
                                   This is a user-provided value referencing a pre-created Google Service Account.
                                   Typically obtained from the output of `hypershift infra create gcp` which creates
                                   the required service accounts with appropriate IAM roles and WIF bindings.
-                                maxLength: 100
-                                minLength: 38
-                                pattern: ^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com$
+                                maxLength: 85
+                                minLength: 37
                                 type: string
                                 x-kubernetes-validations:
                                 - message: NodePool is immutable
                                   rule: self == oldSelf
+                                - message: 'email must be a valid GCP service account
+                                    email (format: name@project.iam.gserviceaccount.com)'
+                                  rule: self.matches('^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\\.iam\\.gserviceaccount\\.com$')
+                              storage:
+                                description: |-
+                                  storage is the Google Service Account email for the GCP PD CSI Driver
+                                  that manages Persistent Disk storage operations (create, attach, delete volumes).
+                                  This GSA requires the following IAM roles:
+                                  - roles/compute.storageAdmin (Compute Storage Admin - for managing persistent disks)
+                                  - roles/compute.instanceAdmin.v1 (Compute Instance Admin - for attaching disks to VMs)
+                                  - roles/iam.serviceAccountUser (Service Account User - for impersonation)
+                                  - roles/resourcemanager.tagUser (Tag User - for applying resource tags to disks)
+                                  See cmd/infra/gcp/iam-bindings.json for the authoritative role definitions.
+                                  Format: service-account-name@project-id.iam.gserviceaccount.com
+
+                                  This is a user-provided value referencing a pre-created Google Service Account.
+                                  Typically obtained from the output of `hypershift infra create gcp` which creates
+                                  the required service accounts with appropriate IAM roles and WIF bindings.
+                                maxLength: 85
+                                minLength: 37
+                                type: string
+                                x-kubernetes-validations:
+                                - message: Storage is immutable
+                                  rule: self == oldSelf
+                                - message: 'email must be a valid GCP service account
+                                    email (format: name@project.iam.gserviceaccount.com)'
+                                  rule: self.matches('^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\\.iam\\.gserviceaccount\\.com$')
                             required:
+                            - cloudController
                             - controlPlane
+                            - imageRegistry
                             - nodePool
+                            - storage
                             type: object
                         required:
                         - poolID
@@ -6068,6 +6358,20 @@ spec:
                     - message: nodePool service account must belong to the same project
                       rule: self.workloadIdentity.serviceAccountsEmails.nodePool.contains('@')
                         && self.workloadIdentity.serviceAccountsEmails.nodePool.endsWith('@'
+                        + self.project + '.iam.gserviceaccount.com')
+                    - message: cloudController service account must belong to the
+                        same project
+                      rule: self.workloadIdentity.serviceAccountsEmails.cloudController.contains('@')
+                        && self.workloadIdentity.serviceAccountsEmails.cloudController.endsWith('@'
+                        + self.project + '.iam.gserviceaccount.com')
+                    - message: storage service account must belong to the same project
+                      rule: self.workloadIdentity.serviceAccountsEmails.storage.contains('@')
+                        && self.workloadIdentity.serviceAccountsEmails.storage.endsWith('@'
+                        + self.project + '.iam.gserviceaccount.com')
+                    - message: imageRegistry service account must belong to the same
+                        project
+                      rule: self.workloadIdentity.serviceAccountsEmails.imageRegistry.contains('@')
+                        && self.workloadIdentity.serviceAccountsEmails.imageRegistry.endsWith('@'
                         + self.project + '.iam.gserviceaccount.com')
                   ibmcloud:
                     description: ibmcloud defines IBMCloud specific settings for components
@@ -6806,25 +7110,38 @@ spec:
                   powervs:
                     description: |-
                       powervs specifies configuration for clusters running on IBMCloud Power VS Service.
-                      This field is immutable. Once set, It can't be changed.
+                      This field is immutable. Once set, it cannot be changed.
                     properties:
                       accountID:
                         description: |-
                           accountID is the IBMCloud account id.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         maxLength: 255
                         type: string
                       cisInstanceCRN:
                         description: |-
                           cisInstanceCRN is the IBMCloud CIS Service Instance's Cloud Resource Name
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         maxLength: 255
                         pattern: '^crn:'
                         type: string
                       imageRegistryOperatorCloudCreds:
                         description: |-
-                          imageRegistryOperatorCloudCreds is a reference to a secret containing ibm cloud
-                          credentials for image registry operator to get authenticated with ibm cloud.
+                          imageRegistryOperatorCloudCreds is a reference to a secret containing IBM Cloud
+                          credentials for the image registry operator to get authenticated with IBM Cloud.
+                          This field is immutable. Once set, it cannot be changed.
+
+                          The secret must contain the key `ibmcloud_api_key` whose value is
+                          an IBM Cloud API key with the following IAM policies:
+
+                          1. Cloud Object Storage: Administrator (platform) and Manager (service) roles
+                             - Attribute: serviceName=cloud-object-storage
+                             - Roles: crn:v1:bluemix:public:iam::::role:Administrator,
+                               crn:v1:bluemix:public:iam::::serviceRole:Manager
+
+                          2. Resource Group: Viewer role
+                             - Attribute: resourceType=resource-group
+                             - Role: crn:v1:bluemix:public:iam::::role:Viewer
                         properties:
                           name:
                             default: ""
@@ -6839,8 +7156,17 @@ spec:
                         x-kubernetes-map-type: atomic
                       ingressOperatorCloudCreds:
                         description: |-
-                          ingressOperatorCloudCreds is a reference to a secret containing ibm cloud
-                          credentials for ingress operator to get authenticated with ibm cloud.
+                          ingressOperatorCloudCreds is a reference to a secret containing IBM Cloud
+                          credentials for the ingress operator to get authenticated with IBM Cloud.
+                          This field is immutable. Once set, it cannot be changed.
+
+                          The secret must contain the key `ibmcloud_api_key` whose value is
+                          an IBM Cloud API key with the following IAM policies:
+
+                          1. Internet Services (CIS): Manager service role and Editor role
+                             - Attribute: serviceName=internet-svcs
+                             - Roles: crn:v1:bluemix:public:iam::::serviceRole:Manager,
+                               crn:v1:bluemix:public:iam::::role:Editor
                         properties:
                           name:
                             default: ""
@@ -6854,10 +7180,31 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       kubeCloudControllerCreds:
-                        description: |
+                        description: |-
                           kubeCloudControllerCreds is a reference to a secret containing cloud
                           credentials with permissions matching the cloud controller policy.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
+
+                          The secret must contain the key `ibmcloud_api_key` whose value is
+                          an IBM Cloud API key with the following IAM policies:
+
+                          1. Resource Group: Viewer role
+                             - Attribute: resourceType=resource-group
+                             - Role: crn:v1:bluemix:public:iam::::role:Viewer
+
+                          2. VPC Infrastructure Services: Editor, Operator, and Viewer roles
+                             - Attribute: serviceName=is
+                             - Roles: crn:v1:bluemix:public:iam::::role:Editor,
+                               crn:v1:bluemix:public:iam::::role:Operator,
+                               crn:v1:bluemix:public:iam::::role:Viewer
+
+                          3. Power Virtual Server (PowerVS): Viewer role, Reader and Manager service roles
+                             (scoped to the PowerVS service instance identified by `serviceInstanceID`)
+                             - Attributes: serviceName=power-iaas,
+                               serviceInstance={serviceInstanceID}
+                             - Roles: crn:v1:bluemix:public:iam::::role:Viewer,
+                               crn:v1:bluemix:public:iam::::serviceRole:Reader,
+                               crn:v1:bluemix:public:iam::::serviceRole:Manager
                         properties:
                           name:
                             default: ""
@@ -6871,10 +7218,20 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       nodePoolManagementCreds:
-                        description: |
+                        description: |-
                           nodePoolManagementCreds is a reference to a secret containing cloud
                           credentials with permissions matching the node pool management policy.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
+
+                          The secret must contain the key `ibmcloud_api_key` whose value is
+                          an IBM Cloud API key with the following IAM policies:
+
+                          1. Power Virtual Server (PowerVS): Manager service role and Editor role
+                             (scoped to the PowerVS service instance identified by `serviceInstanceID`)
+                             - Attributes: serviceName=power-iaas,
+                               serviceInstance={serviceInstanceID}
+                             - Roles: crn:v1:bluemix:public:iam::::serviceRole:Manager,
+                               crn:v1:bluemix:public:iam::::role:Editor
                         properties:
                           name:
                             default: ""
@@ -6892,13 +7249,13 @@ spec:
                           region is the IBMCloud region in which the cluster resides. This configures the
                           OCP control plane cloud integrations, and is used by NodePool to resolve
                           the correct boot image for a given release.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         maxLength: 255
                         type: string
                       resourceGroup:
                         description: |-
                           resourceGroup is the IBMCloud Resource Group in which the cluster resides.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         maxLength: 255
                         type: string
                       serviceInstanceID:
@@ -6911,13 +7268,28 @@ spec:
                           More detail about Power VS service instance.
                           https://cloud.ibm.com/docs/power-iaas?topic=power-iaas-creating-power-virtual-server
 
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         maxLength: 255
                         type: string
                       storageOperatorCloudCreds:
                         description: |-
-                          storageOperatorCloudCreds is a reference to a secret containing ibm cloud
-                          credentials for storage operator to get authenticated with ibm cloud.
+                          storageOperatorCloudCreds is a reference to a secret containing IBM Cloud
+                          credentials for the storage operator to get authenticated with IBM Cloud.
+                          This field is immutable. Once set, it cannot be changed.
+
+                          The secret must contain the key `ibmcloud_api_key` whose value is
+                          an IBM Cloud API key with the following IAM policies:
+
+                          1. Power Virtual Server (PowerVS): Manager service role and Editor role
+                             (scoped to the PowerVS service instance identified by `serviceInstanceID`)
+                             - Attributes: serviceName=power-iaas,
+                               serviceInstance={serviceInstanceID}
+                             - Roles: crn:v1:bluemix:public:iam::::serviceRole:Manager,
+                               crn:v1:bluemix:public:iam::::role:Editor
+
+                          2. Resource Group: Viewer role
+                             - Attribute: resourceType=resource-group
+                             - Role: crn:v1:bluemix:public:iam::::role:Viewer
                         properties:
                           name:
                             default: ""
@@ -6933,7 +7305,7 @@ spec:
                       subnet:
                         description: |-
                           subnet is the subnet to use for control plane cloud resources.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         properties:
                           id:
                             description: id of resource
@@ -6948,32 +7320,32 @@ spec:
                         description: |-
                           vpc specifies IBM Cloud PowerVS Load Balancing configuration for the control
                           plane.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         properties:
                           name:
                             description: |-
                               name for VPC to used for all the service load balancer.
-                              This field is immutable. Once set, It can't be changed.
+                              This field is immutable. Once set, it cannot be changed.
                             maxLength: 255
                             type: string
                           region:
                             description: |-
                               region is the IBMCloud region in which VPC gets created, this VPC used for all the ingress traffic
                               into the OCP cluster.
-                              This field is immutable. Once set, It can't be changed.
+                              This field is immutable. Once set, it cannot be changed.
                             maxLength: 255
                             type: string
                           subnet:
                             description: |-
                               subnet is the subnet to use for load balancer.
-                              This field is immutable. Once set, It can't be changed.
+                              This field is immutable. Once set, it cannot be changed.
                             maxLength: 255
                             type: string
                           zone:
                             description: |-
                               zone is the availability zone where load balancer cloud resources are
                               created.
-                              This field is immutable. Once set, It can't be changed.
+                              This field is immutable. Once set, it cannot be changed.
                             maxLength: 255
                             type: string
                         required:
@@ -6984,7 +7356,7 @@ spec:
                         description: |-
                           zone is the availability zone where control plane cloud resources are
                           created.
-                          This field is immutable. Once set, It can't be changed.
+                          This field is immutable. Once set, it cannot be changed.
                         maxLength: 255
                         type: string
                     required:
@@ -7219,6 +7591,17 @@ spec:
                             - keyVaultName
                             - keyVersion
                             type: object
+                          keyVaultAccess:
+                            description: |-
+                              keyVaultAccess specifies how the Key Vault should be accessed.
+                              When set to "Private", the control plane routes Key Vault traffic through
+                              the private router to reach the Key Vault's private endpoint in the customer VNet.
+                              When set to "Public" or omitted, the Key Vault is accessed via its public endpoint.
+                            enum:
+                            - Public
+                            - Private
+                            - ""
+                            type: string
                           kms:
                             description: kms is a pre-existing managed identity used
                               to authenticate with Azure KMS.
@@ -7251,16 +7634,6 @@ spec:
                                 pattern: ^[a-zA-Z0-9-]+$
                                 type: string
                               objectEncoding:
-                                allOf:
-                                - enum:
-                                  - utf-8
-                                  - hex
-                                  - base64
-                                - enum:
-                                  - utf-8
-                                  - hex
-                                  - base64
-                                default: utf-8
                                 description: |-
                                   objectEncoding represents the encoding for the Azure Key Vault secret containing the certificate related to
                                   the managed identity. objectEncoding needs to match the encoding format used when the certificate was stored in the
@@ -7271,6 +7644,10 @@ spec:
                                   The default value is utf-8.
 
                                   See this for more info - https://github.com/Azure/secrets-store-csi-driver-provider-azure/blob/master/website/content/en/getting-started/usage/_index.md
+                                enum:
+                                - utf-8
+                                - hex
+                                - base64
                                 type: string
                             required:
                             - credentialsSecretName
@@ -7280,6 +7657,11 @@ spec:
                         - activeKey
                         - kms
                         type: object
+                        x-kubernetes-validations:
+                        - message: backupKey.keyVaultName must match activeKey.keyVaultName;
+                            both keys must reside in the same Key Vault
+                          rule: '!has(self.backupKey) || self.backupKey.keyVaultName
+                            == self.activeKey.keyVaultName'
                       ibmcloud:
                         description: ibmcloud defines metadata for the IBM Cloud KMS
                           encryption strategy
@@ -7406,6 +7788,10 @@ spec:
                   be generated automatically for the cluster.
                   When specifying a service account signing key, an IssuerURL must also be specified.
                   If the reference is set but none of the above requirements are met, the HostedCluster will enter a degraded state.
+
+                  For key rotation, the secret may optionally contain an "old-key.pub" key whose content is the PEM-encoded
+                  public key of the previous signing key. When present, the kube-apiserver will accept tokens signed by
+                  both the current and previous keys, allowing for graceful key rotation without invalidating existing tokens.
                 properties:
                   name:
                     default: ""
@@ -7957,6 +8343,128 @@ spec:
                 - host
                 - port
                 type: object
+              controlPlaneVersion:
+                description: |-
+                  controlPlaneVersion tracks the rollout status of the control plane
+                  components running on the management cluster, independently from
+                  the data-plane version reported in the version field.
+                properties:
+                  desired:
+                    description: |-
+                      desired is the release version that the control plane is reconciling towards.
+                      It is derived from the HostedControlPlane release image fields.
+                    properties:
+                      architecture:
+                        description: |-
+                          architecture is an optional field that indicates the
+                          value of the cluster architecture. In this context cluster
+                          architecture means either a single architecture or a multi
+                          architecture.
+                          Valid values are 'Multi' and empty.
+                        enum:
+                        - Multi
+                        - ""
+                        type: string
+                      channels:
+                        description: |-
+                          channels is the set of Cincinnati channels to which the release
+                          currently belongs.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
+                      image:
+                        description: |-
+                          image is a container image location that contains the update. When this
+                          field is part of spec, image is optional if version is specified and the
+                          availableUpdates field contains a matching version.
+                        type: string
+                      url:
+                        description: |-
+                          url contains information about this release. This URL is set by
+                          the 'url' metadata property on a release or the metadata returned by
+                          the update API and should be displayed as a link in user
+                          interfaces. The URL field may not be set for test or nightly
+                          releases.
+                        type: string
+                      version:
+                        description: |-
+                          version is a semantic version identifying the update version. When this
+                          field is part of spec, version is optional if image is specified.
+                        type: string
+                    required:
+                    - image
+                    - version
+                    type: object
+                  history:
+                    description: |-
+                      history contains a list of versions applied to management-side control plane components. The newest entry is
+                      first in the list. Entries have state Completed when all ControlPlaneComponent resources report the target
+                      version with RolloutComplete=True. Entries have state Partial when the rollout is in progress or has failed.
+                    items:
+                      description: |-
+                        ControlPlaneUpdateHistory is a record of a single version transition for management-side
+                        control plane components. Each entry captures the target version, its release image, when
+                        the rollout started, and when (or whether) it completed.
+                      properties:
+                        completionTime:
+                          description: |-
+                            completionTime is the time at which the update completed. It is set
+                            when all management-side components have reached the target version.
+                            It is not set while the update is in progress.
+                          format: date-time
+                          type: string
+                        image:
+                          description: image is the release image pullspec used for
+                            this update.
+                          maxLength: 447
+                          minLength: 1
+                          type: string
+                        startedTime:
+                          description: startedTime is the time at which the update
+                            was started.
+                          format: date-time
+                          type: string
+                        state:
+                          description: |-
+                            state reflects whether the update was fully applied. The Partial state
+                            indicates the update is not fully applied, while the Completed state
+                            indicates the update was successfully rolled out.
+                          enum:
+                          - Completed
+                          - Partial
+                          type: string
+                        version:
+                          description: |-
+                            version is a semantic version string identifying the update version
+                            (e.g. "4.20.1").
+                          maxLength: 64
+                          minLength: 1
+                          type: string
+                          x-kubernetes-validations:
+                          - message: version must start with semantic version prefix
+                              x.y.z
+                            rule: self.matches('^\\d+\\.\\d+\\.\\d+.*')
+                      required:
+                      - image
+                      - startedTime
+                      - state
+                      - version
+                      type: object
+                    maxItems: 100
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  observedGeneration:
+                    description: observedGeneration reports which generation of the
+                      HostedControlPlane spec is being synced.
+                    format: int64
+                    maximum: 9007199254740992
+                    minimum: 1
+                    type: integer
+                required:
+                - desired
+                type: object
               customKubeconfig:
                 description: |-
                   customKubeconfig is a local secret reference to the external custom kubeconfig.
@@ -8231,6 +8739,21 @@ spec:
                           - image
                           - version
                           type: object
+                        riskNames:
+                          description: |-
+                            riskNames represents the set of the names of conditionalUpdateRisks that are relevant to this update for some clusters.
+                            The Applies condition of each conditionalUpdateRisks entry declares if that risk applies to this cluster.
+                            A conditional update is accepted only if each of its risks either does not apply to the cluster or is considered acceptable by the cluster administrator.
+                            The latter means that the risk names are included in value of the spec.desiredUpdate.acceptRisks field.
+                            Entries must be unique and must not exceed 256 characters.
+                            riskNames must not contain more than 500 entries.
+                          items:
+                            maxLength: 256
+                            type: string
+                          maxItems: 500
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: set
                         risks:
                           description: |-
                             risks represents the range of issues associated with
@@ -8243,6 +8766,78 @@ spec:
                               ConditionalUpdateRisk represents a reason and cluster-state
                               for not recommending a conditional update.
                             properties:
+                              conditions:
+                                description: |-
+                                  conditions represents the observations of the conditional update
+                                  risk's current status. Known types are:
+                                  * Applies, for whether the risk applies to the current cluster.
+                                  The condition's types in the list must be unique.
+                                  conditions must not contain more than one entry.
+                                items:
+                                  description: Condition contains details for one
+                                    aspect of the current state of this API Resource.
+                                  properties:
+                                    lastTransitionTime:
+                                      description: |-
+                                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                                      format: date-time
+                                      type: string
+                                    message:
+                                      description: |-
+                                        message is a human readable message indicating details about the transition.
+                                        This may be an empty string.
+                                      maxLength: 32768
+                                      type: string
+                                    observedGeneration:
+                                      description: |-
+                                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                                        with respect to the current state of the instance.
+                                      format: int64
+                                      minimum: 0
+                                      type: integer
+                                    reason:
+                                      description: |-
+                                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                                        Producers of specific condition types may define expected values and meanings for this field,
+                                        and whether the values are considered a guaranteed API.
+                                        The value should be a CamelCase string.
+                                        This field may not be empty.
+                                      maxLength: 1024
+                                      minLength: 1
+                                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                                      type: string
+                                    status:
+                                      description: status of the condition, one of
+                                        True, False, Unknown.
+                                      enum:
+                                      - "True"
+                                      - "False"
+                                      - Unknown
+                                      type: string
+                                    type:
+                                      description: type of condition in CamelCase
+                                        or in foo.example.com/CamelCase.
+                                      maxLength: 316
+                                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                                      type: string
+                                  required:
+                                  - lastTransitionTime
+                                  - message
+                                  - reason
+                                  - status
+                                  - type
+                                  type: object
+                                maxItems: 8
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - type
+                                x-kubernetes-list-type: map
+                                x-kubernetes-validations:
+                                - message: must contain a condition of type 'Applies'
+                                  rule: self.exists_one(x, x.type == 'Applies')
                               matchingRules:
                                 description: |-
                                   matchingRules is a slice of conditions for deciding which
@@ -8314,6 +8909,7 @@ spec:
                             - name
                             - url
                             type: object
+                          maxItems: 200
                           minItems: 1
                           type: array
                           x-kubernetes-list-map-keys:
@@ -8390,7 +8986,7 @@ spec:
                         acceptedRisks:
                           description: |-
                             acceptedRisks records risks which were accepted to initiate the update.
-                            For example, it may menition an Upgradeable=False or missing signature
+                            For example, it may mention an Upgradeable=False or missing signature
                             that was overridden via desiredUpdate.force, or an update that was
                             initiated despite not being in the availableUpdates set of recommended
                             update targets.

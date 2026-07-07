@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -1369,15 +1370,21 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
-// isHostedClusterVersionReady checks if the HostedCluster has accepted the target release image
-// by inspecting the version history. Returns true when the most recent history entry
-// matches the target (Partial or Completed — both mean the ignition server is serving new content).
+// isHostedClusterVersionReady checks if the control plane has completed rolling out the target
+// release image by inspecting ControlPlaneVersion.History. Returns true only when the most
+// recent history entry matches the target and has State == Completed, which means all
+// management-side control plane components have reached the new version and the ignition
+// server is serving content for it.
 func (r *DPFHCPProvisionerReconciler) isHostedClusterVersionReady(hc *hyperv1.HostedCluster, targetReleaseImage string) bool {
-	if hc.Status.Version == nil || len(hc.Status.Version.History) == 0 {
+	if len(hc.Status.ControlPlaneVersion.History) == 0 {
 		return false
 	}
 
-	latest := hc.Status.Version.History[0]
+	latest := hc.Status.ControlPlaneVersion.History[0]
+
+	if latest.State != configv1.CompletedUpdate {
+		return false
+	}
 
 	// Compare by version string if the target has a tag (e.g. :4.22.1-multi → "4.22.1")
 	if strings.Contains(targetReleaseImage, ":") && !strings.Contains(targetReleaseImage, "@sha256:") {
