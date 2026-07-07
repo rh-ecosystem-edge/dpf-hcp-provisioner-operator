@@ -58,6 +58,7 @@ type DPFHCPProvisionerConfigSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,shortName=dpfhcpconfig
+// +kubebuilder:metadata:annotations=helm.sh/resource-policy=keep
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'default'",message="DPFHCPProvisionerConfig must be named 'default'"
 // +kubebuilder:printcolumn:name="BlueFieldOCPLayerRepo",type=string,JSONPath=`.spec.blueFieldOCPLayerRepo`
 // +kubebuilder:printcolumn:name="DisableMetalLB",type=boolean,JSONPath=`.spec.disableMetalLB`
