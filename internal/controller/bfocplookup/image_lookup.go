@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	// OCPReleaseLabel is the image label that contains the OCP version string.
+	// OCPReleaseLabel is the OCI image label that contains the OCP version string on an OCP release image
 	OCPReleaseLabel = "io.openshift.release"
 
 	// Reason codes
@@ -124,7 +124,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 				Err:        err,
 			}, "")
 		}
-		// Transient registry errors should be retried
+		// Transient registry errors — return error to trigger controller-runtime backoff requeue
 		if strings.Contains(err.Error(), "failed to fetch") || strings.Contains(err.Error(), "failed to get") {
 			return r.handleTransientError(ctx, cr, err)
 		}
@@ -189,7 +189,7 @@ func extractVersionFromTag(imageURL string) string {
 
 // ExtractOCPVersion resolves the OCP version from a release image.
 // For tagged images, parses the version from the tag (no registry call).
-// For digest images, reads the io.openshift.release label from the image config via registry.
+// For digest images, reads the [OCPReleaseLabel] label from the image config via registry.
 func ExtractOCPVersion(ctx context.Context, releaseImage string, keychain authn.Keychain) (string, error) {
 	// Try tag-based extraction first (fast, no registry call)
 	if version := extractVersionFromTag(releaseImage); version != "" {
