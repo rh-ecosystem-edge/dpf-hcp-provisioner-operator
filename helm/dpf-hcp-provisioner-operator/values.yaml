@@ -45,8 +45,7 @@ resources:
 logLevel: info
 
 # DPFHCPProvisionerConfig CR (operator-wide configuration)
-# The config CR is deployed by the chart with defaults (validation enabled, default registry).
-# Users can patch the CR to customize, or delete it to make the operator idle.
+# Created as a post-install/post-upgrade helm hook after CRDs are established.
 provisionerConfig: {}
   # Example overrides (uncomment to customize):
   # blueFieldOCPLayerRepo: "quay.io/eelgaev/rhcos-bfb"
