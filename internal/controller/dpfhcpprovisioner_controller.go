@@ -271,8 +271,8 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		log.V(1).Info("Skipping kubeconfig injection - HostedCluster not created yet")
 	}
 
-	// Detect DPUDeployment Flavor changes and invalidate ignition if needed.
-	if changed, result, err := r.handleDPUDeploymentChange(ctx, &cr); changed || err != nil {
+	// Detect DPUDeployment/DPUFlavor changes or deletions and invalidate ignition if needed.
+	if changed, result, err := r.handleDependencyChanges(ctx, &cr); changed || err != nil {
 		return result, err
 	}
 
@@ -344,6 +344,11 @@ func (r *DPFHCPProvisionerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&dpuservicev1alpha1.DPUDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.dpuDeploymentToRequests),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
+		).
+		Watches(
+			&dpuprovisioningv1alpha1.DPUFlavor{},
+			handler.EnqueueRequestsFromMapFunc(r.dpuFlavorToRequests),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
 		Named("dpfhcpprovisioner").
@@ -665,11 +670,57 @@ func (r *DPFHCPProvisionerReconciler) dpuDeploymentToRequests(ctx context.Contex
 	return requests
 }
 
-// handleDPUDeploymentChange detects DPUDeployment Flavor changes and invalidates
-// the ignition ConfigMap. Deletes the stale ConfigMap immediately so the DPF
-// provisioning controller does not use outdated configuration while we regenerate.
+// dpuFlavorToRequests maps DPUFlavor events to reconcile requests for DPFHCPProvisioner CRs
+// that use the affected DPUFlavor via their DPUDeployment reference.
+func (r *DPFHCPProvisionerReconciler) dpuFlavorToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logf.FromContext(ctx)
+
+	var provisionerList provisioningv1alpha1.DPFHCPProvisionerList
+	if err := r.List(ctx, &provisionerList); err != nil {
+		log.Error(err, "Failed to list DPFHCPProvisioner CRs for DPUFlavor watch")
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, provisioner := range provisionerList.Items {
+		if provisioner.Spec.DPUDeploymentRef == nil ||
+			provisioner.Spec.DPUDeploymentRef.Namespace != obj.GetNamespace() {
+			continue
+		}
+
+		dd := &dpuservicev1alpha1.DPUDeployment{}
+		key := types.NamespacedName{
+			Name:      provisioner.Spec.DPUDeploymentRef.Name,
+			Namespace: provisioner.Spec.DPUDeploymentRef.Namespace,
+		}
+		if err := r.Get(ctx, key, dd); err != nil {
+			continue
+		}
+		if dd.Spec.DPUs.Flavor == obj.GetName() {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      provisioner.Name,
+					Namespace: provisioner.Namespace,
+				},
+			})
+		}
+	}
+
+	if len(requests) > 0 {
+		log.Info("DPUFlavor changed, reconciling DPFHCPProvisioner CRs",
+			"dpuFlavor", obj.GetName(),
+			"dpuFlavorNamespace", obj.GetNamespace(),
+			"affectedCRs", len(requests))
+	}
+
+	return requests
+}
+
+// handleDependencyChanges detects DPUDeployment or DPUFlavor changes/deletions and
+// invalidates the ignition ConfigMap. Covers three cases: DPUDeployment deleted,
+// DPUFlavor deleted, or DPUDeployment flavor/BFB reference changed.
 // Returns (true, result, err) if a change was handled, (false, _, nil) otherwise.
-func (r *DPFHCPProvisionerReconciler) handleDPUDeploymentChange(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, ctrl.Result, error) {
+func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
@@ -686,8 +737,30 @@ func (r *DPFHCPProvisionerReconciler) handleDPUDeploymentChange(ctx context.Cont
 		Namespace: cr.Spec.DPUDeploymentRef.Namespace,
 	}
 	if err := r.Get(ctx, key, dpuDeployment); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("DPUDeployment deleted, deleting stale ignition ConfigMap")
+			return r.invalidateIgnitionForDependencyDeletion(ctx, cr, "DPUDeployment deleted, removing ignition ConfigMap")
+		}
 		log.V(1).Info("Cannot fetch DPUDeployment for change detection, skipping", "error", err)
 		return false, ctrl.Result{}, nil
+	}
+
+	// Check DPUFlavor still exists — no flavor means no valid ignition.
+	flavorName := dpuDeployment.Spec.DPUs.Flavor
+	if flavorName != "" {
+		dpuFlavor := &dpuprovisioningv1alpha1.DPUFlavor{}
+		flavorKey := types.NamespacedName{
+			Name:      flavorName,
+			Namespace: cr.Spec.DPUDeploymentRef.Namespace,
+		}
+		if err := r.Get(ctx, flavorKey, dpuFlavor); err != nil {
+			if apierrors.IsNotFound(err) {
+				log.Info("DPUFlavor deleted, deleting stale ignition ConfigMap", "dpuFlavor", flavorName)
+				return r.invalidateIgnitionForDependencyDeletion(ctx, cr,
+					fmt.Sprintf("DPUFlavor %s deleted, removing ignition ConfigMap", flavorName))
+			}
+			log.V(1).Info("Cannot fetch DPUFlavor for change detection, skipping", "error", err)
+		}
 	}
 
 	cm, err := r.getIgnitionConfigMap(ctx, cr)
@@ -751,6 +824,32 @@ func (r *DPFHCPProvisionerReconciler) handleDPUDeploymentChange(ctx context.Cont
 	}
 
 	return false, ctrl.Result{}, nil
+}
+
+// invalidateIgnitionForDependencyDeletion deletes the ignition ConfigMap and sets
+// IgnitionConfigured=False when a required dependency (DPUDeployment or DPUFlavor) is deleted.
+func (r *DPFHCPProvisionerReconciler) invalidateIgnitionForDependencyDeletion(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, message string) (bool, ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	if _, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
+		return true, ctrl.Result{}, err
+	}
+
+	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		Type:               provisioningv1alpha1.IgnitionConfigured,
+		Status:             metav1.ConditionFalse,
+		Reason:             provisioningv1alpha1.ReasonDependencyDeleted,
+		Message:            message,
+		ObservedGeneration: cr.Generation,
+	})
+	r.Recorder.Event(cr, corev1.EventTypeWarning, "DependencyDeleted", message)
+	r.computeReadyCondition(ctx, cr)
+	r.updatePhaseFromConditions(cr)
+	if err := r.Status().Update(ctx, cr); err != nil {
+		log.Error(err, "Failed to update status after dependency deletion")
+		return true, ctrl.Result{}, err
+	}
+	return true, ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
 // deleteStaleIgnitionConfigMap deletes the ignition ConfigMap when it was generated for an older
