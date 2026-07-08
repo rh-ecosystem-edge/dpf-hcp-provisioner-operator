@@ -387,15 +387,6 @@ func (m *DPUServiceTemplateManager) ensureOVNTemplate(ctx context.Context, names
 		return fmt.Errorf("reading OVN DaemonSet: %w", err)
 	}
 
-	if !daemonSetRolloutComplete(managementWorkerOVNKDaemonSet) {
-		// We technically could still be reconciling the template while the
-		// daemonset rolls out as user could change override values that need
-		// reconciling, but it's safer to wait out the rollout before messing
-		// with the template values and causing a mess
-		log.Info("OVN DaemonSet rollout in progress, skipping template update")
-		return nil
-	}
-
 	currentOVNKImage, err := ovnkImageFromDaemonSet(managementWorkerOVNKDaemonSet)
 	if err != nil {
 		return fmt.Errorf("reading current OVN image: %w", err)
@@ -410,12 +401,24 @@ func (m *DPUServiceTemplateManager) ensureOVNTemplate(ctx context.Context, names
 	// We don't return early because we still want to reconcile other changes,
 	// such as user overrides.
 	existing := &dpuservicev1alpha1.DPUServiceTemplate{}
+	templateExists := false
 	CNOOVNKDaemonSetImageChanged := true
-	if err := m.client.Get(ctx, client.ObjectKey{Name: templateNameOVNK, Namespace: namespace}, existing); err == nil {
+	switch err := m.client.Get(ctx, client.ObjectKey{Name: templateNameOVNK, Namespace: namespace}, existing); {
+	case err == nil:
+		templateExists = true
 		lastUpdatedOVNKImage := existing.Annotations[AnnotationSourceOVNImage]
 		CNOOVNKDaemonSetImageChanged = (lastUpdatedOVNKImage != currentOVNKImage)
-	} else if !apierrors.IsNotFound(err) {
+	case !apierrors.IsNotFound(err):
 		return fmt.Errorf("getting existing OVN template: %w", err)
+	}
+
+	// Gate DaemonSet rollout check only for updates to existing templates to avoid races.
+	// On first creation, proceed immediately to break the bootstrap deadlock where
+	// DPU CRs can't be created without the template, and the template can't be created
+	// because DPU pods (which provide SR-IOV VFs) haven't scheduled yet.
+	if templateExists && !daemonSetRolloutComplete(managementWorkerOVNKDaemonSet) {
+		log.Info("OVN DaemonSet rollout in progress, skipping template update")
+		return nil
 	}
 
 	ocpVersion, releaseImage, err := m.getOCPVersionFromClusterVersion(ctx)
