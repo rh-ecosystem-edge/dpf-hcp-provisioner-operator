@@ -298,6 +298,39 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 			})
 		})
 
+		Context("on fresh install when DaemonSet pods are pending (bootstrap deadlock)", func() {
+			It("should create the OVN template even though rollout is not complete", func() {
+				// Simulate: DaemonSet exists (created by CNO) but pods are Pending because
+				// SR-IOV VF resources aren't advertised yet (no DPU CRs exist yet).
+				// With the old unconditional gate this would loop forever and never create
+				// the template, blocking DPUDeployment prereq check → DPUSet → DPU CRs.
+				ds := newOVNDaemonSet(x86OVNImage)
+				ds.Generation = 1
+				ds.Status.ObservedGeneration = 1
+				ds.Status.DesiredNumberScheduled = 3
+				ds.Status.UpdatedNumberScheduled = 0
+				ds.Status.NumberAvailable = 0
+
+				dpfConfig := newDPFOperatorConfig("26.4.0-f314aa17")
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(dpfConfig, newClusterVersion("quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5"), newPullSecret(), ds).
+					WithStatusSubresource(dpfConfig).
+					Build()
+
+				reader := &fakeReleaseImageReader{image: arm64OVNImage}
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
+
+				err := manager.EnsureTemplates(ctx, targetNamespace, &common.OperatorConfig{})
+				Expect(err).NotTo(HaveOccurred())
+
+				ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+				err = fakeClient.Get(ctx, types.NamespacedName{Name: "ovn", Namespace: targetNamespace}, ovnTemplate)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(ovnTemplate.Spec.DeploymentServiceName).To(Equal("ovn"))
+			})
+		})
+
 		Context("when OVN DaemonSet image changed but rollout is not complete", func() {
 			It("should keep current template values and not pull release payload", func() {
 				prereqs := allPrereqs(x86OVNImage)
