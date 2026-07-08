@@ -191,7 +191,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 		})
 	})
 
-	Describe("handleDPUDeploymentChange", func() {
+	Describe("handleDependencyChanges", func() {
 		It("should return false when IgnitionConfigured is not True", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
@@ -213,7 +213,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
-				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
 				Expect(err).NotTo(HaveOccurred())
 				return changed
 			}()).To(BeFalse())
@@ -246,7 +246,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
-				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
 				Expect(err).NotTo(HaveOccurred())
 				return changed
 			}()).To(BeFalse())
@@ -312,7 +312,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
-				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
 				Expect(err).NotTo(HaveOccurred())
 				return changed
 			}()).To(BeFalse())
@@ -379,7 +379,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
-				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
 				Expect(err).NotTo(HaveOccurred())
 				return changed
 			}()).To(BeTrue())
@@ -444,13 +444,13 @@ var _ = Describe("DPUDeployment Watch", func() {
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
-				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
 				Expect(err).NotTo(HaveOccurred())
 				return changed
 			}()).To(BeTrue())
 		})
 
-		It("should return false when DPUDeployment is not found", func() {
+		It("should delete ConfigMap and set DependencyDeleted when DPUDeployment is not found", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -478,13 +478,21 @@ var _ = Describe("DPUDeployment Watch", func() {
 				},
 			}
 
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(provisioner).
+				WithStatusSubresource(provisioner).
+				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
-			Expect(func() bool {
-				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
-				Expect(err).NotTo(HaveOccurred())
-				return changed
-			}()).To(BeFalse())
+
+			changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(changed).To(BeTrue())
+
+			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+			Expect(cond).NotTo(BeNil())
+			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
 		})
 
 		It("should return false when ConfigMap is not found", func() {
@@ -534,7 +542,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
-				changed, _, err := r.handleDPUDeploymentChange(context.TODO(), provisioner)
+				changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
 				Expect(err).NotTo(HaveOccurred())
 				return changed
 			}()).To(BeFalse())
@@ -706,6 +714,23 @@ var _ = Describe("DPUDeployment flavor change integration (envtest)", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: dpuClusterNS},
 		})).To(Succeed())
 
+		By("creating DPUFlavor stubs")
+		oldFlavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "old-flavor",
+				Namespace: dpuClusterNS,
+			},
+		}
+		Expect(k8sClient.Create(ctx, oldFlavor)).To(Succeed())
+
+		newFlavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-flavor",
+				Namespace: dpuClusterNS,
+			},
+		}
+		Expect(k8sClient.Create(ctx, newFlavor)).To(Succeed())
+
 		By("creating DPUDeployment stub with old-flavor")
 		dd := &dpuservicev1alpha1.DPUDeployment{
 			ObjectMeta: metav1.ObjectMeta{
@@ -811,5 +836,140 @@ var _ = Describe("DPUDeployment flavor change integration (envtest)", func() {
 			g.Expect(cond.Status).To(Equal(metav1.ConditionFalse), "IgnitionConfigured should be False after flavor change")
 			g.Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDPUDeploymentChanged))
 		}, "30s", "1s").Should(Succeed())
+	})
+})
+
+var _ = Describe("DPUFlavor deletion integration (envtest)", func() {
+	const (
+		provisionerName = "test-prov-fldel"
+		provisionerNS   = "clusters"
+		dpuClusterNS    = "fldel-dpucluster"
+		dpuClusterName  = "fldel-cluster"
+		deploymentName  = "fldel-deploy"
+		flavorName      = "fldel-flavor"
+	)
+
+	It("should delete ConfigMap and set IgnitionConfigured=False when DPUFlavor is deleted", func() {
+		By("creating DPUCluster namespace")
+		Expect(k8sClient.Create(ctx, &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: dpuClusterNS},
+		})).To(Succeed())
+
+		By("creating DPUFlavor")
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      flavorName,
+				Namespace: dpuClusterNS,
+			},
+		}
+		Expect(k8sClient.Create(ctx, flavor)).To(Succeed())
+
+		By("creating DPUDeployment referencing the flavor")
+		dd := &dpuservicev1alpha1.DPUDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      deploymentName,
+				Namespace: dpuClusterNS,
+			},
+			Spec: dpuservicev1alpha1.DPUDeploymentSpec{
+				DPUs: dpuservicev1alpha1.DPUs{
+					BFB:            "test-bfb",
+					Flavor:         flavorName,
+					NodeEffect:     dpuprovisioningv1alpha1.Action{},
+					DPUSetStrategy: dpuprovisioningv1alpha1.DPUSetStrategy{Type: "RollingUpdate"},
+				},
+				Services: map[string]dpuservicev1alpha1.DPUDeploymentServiceConfiguration{
+					"stub-svc": {ServiceTemplate: "stub-tpl", ServiceConfiguration: "stub-cfg"},
+				},
+				ServiceChains: &dpuservicev1alpha1.ServiceChains{
+					Switches: []dpuservicev1alpha1.DPUDeploymentSwitch{
+						{Ports: []dpuservicev1alpha1.DPUDeploymentPort{
+							{ServiceInterface: &dpuservicev1alpha1.ServiceIfc{MatchLabels: map[string]string{"test": "true"}}},
+						}},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, dd)).To(Succeed())
+
+		By("creating ignition ConfigMap")
+		cmName := ignitiongenerator.ConfigMapName(dpuClusterName)
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cmName,
+				Namespace: dpuClusterNS,
+				Labels: map[string]string{
+					ignitiongenerator.BfcfgTemplateLabel: "true",
+				},
+				Annotations: map[string]string{
+					ignitiongenerator.BfcfgTemplateClusterNameAnnotation:      dpuClusterName,
+					ignitiongenerator.BfcfgTemplateClusterNamespaceAnnotation: dpuClusterNS,
+					ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation:    flavorName,
+				},
+			},
+			Data: map[string]string{
+				"BF_CFG_TEMPLATE": `{"ignition":{"version":"3.4.0"}}`,
+			},
+		}
+		Expect(k8sClient.Create(ctx, cm)).To(Succeed())
+
+		By("creating DPFHCPProvisioner CR")
+		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      provisionerName,
+				Namespace: provisionerNS,
+			},
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+				DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+					Name:      dpuClusterName,
+					Namespace: dpuClusterNS,
+				},
+				DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+					Name:      deploymentName,
+					Namespace: dpuClusterNS,
+				},
+				BaseDomain:                     "test.example.com",
+				OCPReleaseImage:                "quay.io/openshift-release-dev/ocp-release:4.17.0-x86_64",
+				SSHKeySecretRef:                corev1.LocalObjectReference{Name: "dummy-ssh"},
+				PullSecretRef:                  corev1.LocalObjectReference{Name: "dummy-pull"},
+				ControlPlaneAvailabilityPolicy: "SingleReplica",
+			},
+		}
+		Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
+
+		By("setting IgnitionConfigured=True (simulating post-ignition state)")
+		Eventually(func(g Gomega) {
+			fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: provisionerName, Namespace: provisionerNS}, fresh)).To(Succeed())
+			meta.SetStatusCondition(&fresh.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionTrue,
+				Reason:             provisioningv1alpha1.ReasonIgnitionGenerated,
+				LastTransitionTime: metav1.Now(),
+			})
+			g.Expect(k8sClient.Status().Update(ctx, fresh)).To(Succeed())
+		}, "10s", "1s").Should(Succeed())
+
+		By("deleting the DPUFlavor")
+		Expect(k8sClient.Delete(ctx, flavor)).To(Succeed())
+
+		By("verifying IgnitionConfigured=False with DependencyDeleted reason")
+		Eventually(func(g Gomega) {
+			fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      provisionerName,
+				Namespace: provisionerNS,
+			}, fresh)).To(Succeed())
+			cond := meta.FindStatusCondition(fresh.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+			g.Expect(cond).NotTo(BeNil(), "IgnitionConfigured condition should exist")
+			g.Expect(cond.Status).To(Equal(metav1.ConditionFalse), "IgnitionConfigured should be False after DPUFlavor deletion")
+			g.Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+		}, "30s", "1s").Should(Succeed())
+
+		By("verifying the ignition ConfigMap was deleted")
+		Eventually(func(g Gomega) {
+			lookupCM := &corev1.ConfigMap{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: dpuClusterNS}, lookupCM)
+			g.Expect(err).To(HaveOccurred(), "ConfigMap should be deleted when DPUFlavor is removed")
+		}, "10s", "1s").Should(Succeed())
 	})
 })
