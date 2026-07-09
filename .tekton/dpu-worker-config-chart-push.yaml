@@ -25,7 +25,7 @@ spec:
     - name: output-image
       value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpu-worker-config-chart:{{revision}}
     - name: chart-context
-      value: helm/dpf-worker-config/
+      value: helm/dpu-worker-config/
   pipelineSpec:
     description: |
       This pipeline packages and pushes a Helm chart to an OCI repository using trusted artifacts.
