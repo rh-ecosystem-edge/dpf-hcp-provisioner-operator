@@ -8,13 +8,13 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+      == "release-4.22"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: dpf-hcp-provisioner-operator
-    appstudio.openshift.io/component: dpu-worker-config-chart
+    appstudio.openshift.io/application: dpf-hcp-provisioner-operator-4-22
+    appstudio.openshift.io/component: dpu-worker-config-chart-4-22
     pipelines.appstudio.openshift.io/type: build
-  name: dpu-worker-config-chart-on-push
+  name: dpu-worker-config-chart-4-22-on-push
   namespace: dpu-kit-for-nvidia-operator-tenant
 spec:
   params:
@@ -23,9 +23,9 @@ spec:
     - name: revision
       value: '{{revision}}'
     - name: output-image
-      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpu-worker-config-chart:{{revision}}
+      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpu-worker-config-chart-4-22:{{revision}}
     - name: chart-context
-      value: helm/dpf-worker-config/
+      value: helm/dpu-worker-config/
   pipelineSpec:
     description: |
       This pipeline packages and pushes a Helm chart to an OCI repository using trusted artifacts.
@@ -202,7 +202,7 @@ spec:
       - name: netrc
         optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-dpu-worker-config-chart
+    serviceAccountName: build-pipeline-dpu-worker-config-chart-4-22
   workspaces:
     - name: git-auth
       secret:

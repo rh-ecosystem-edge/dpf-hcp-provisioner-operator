@@ -9,13 +9,13 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+      == "release-4.22"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: dpf-hcp-provisioner-operator
-    appstudio.openshift.io/component: dpu-worker-config-chart
+    appstudio.openshift.io/application: dpf-hcp-provisioner-operator-4-22
+    appstudio.openshift.io/component: dpu-worker-config-chart-4-22
     pipelines.appstudio.openshift.io/type: build
-  name: dpu-worker-config-chart-on-pull-request
+  name: dpu-worker-config-chart-4-22-on-pull-request
   namespace: dpu-kit-for-nvidia-operator-tenant
 spec:
   params:
@@ -24,7 +24,7 @@ spec:
     - name: revision
       value: '{{revision}}'
     - name: output-image
-      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpu-worker-config-chart:on-pr-{{revision}}
+      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpu-worker-config-chart-4-22:on-pr-{{revision}}
     - name: image-expires-after
       value: 5d
     - name: chart-context
@@ -179,7 +179,7 @@ spec:
       - name: netrc
         optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-dpu-worker-config-chart
+    serviceAccountName: build-pipeline-dpu-worker-config-chart-4-22
   workspaces:
     - name: git-auth
       secret:
