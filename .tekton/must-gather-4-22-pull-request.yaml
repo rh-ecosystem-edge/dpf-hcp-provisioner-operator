@@ -4,17 +4,17 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
-  creationTimestamp: null
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "release-4.22"
   labels:
-    appstudio.openshift.io/application: dpf-hcp-provisioner-operator
-    appstudio.openshift.io/component: dpf-hcp-provisioner-rhel10-operator
+    appstudio.openshift.io/application: dpf-hcp-provisioner-operator-4-22
+    appstudio.openshift.io/component: must-gather-4-22
     pipelines.appstudio.openshift.io/type: build
-  name: dpf-hcp-provisioner-rhel10-operator-on-push
+  name: must-gather-4-22-on-pull-request
   namespace: dpu-kit-for-nvidia-operator-tenant
 spec:
   params:
@@ -23,17 +23,17 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpf-hcp-provisioner-rhel10-operator:{{revision}}
+    value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/must-gather-4-22:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
   - name: dockerfile
-    value: Containerfile
+    value: must-gather/must-gather.Containerfile
   - name: hermetic
     value: "true"
   - name: build-source-image
     value: "true"
   - name: prefetch-input
-    value: '[{"type": "gomod", "path": "."}]'
-  - name: additional-tags
-    value: [ "latest" ]
+    value: '[{"type": "rpm", "path": "must-gather/rpm-prefetching"}]'
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -97,6 +97,11 @@ spec:
     - default: "true"
       description: Use the package registry proxy when prefetching dependencies
       name: enable-package-registry-proxy
+    - default: .
+      description: Target directories in component's source code to scan with SAST
+        tools. Multiple values should be separated with commas.
+      name: sast-target-dirs
+      type: string
     - default: []
       description: Array of --build-arg values ("arg=value" strings) for buildah
       name: build-args
@@ -110,10 +115,6 @@ spec:
         VMs
       name: privileged-nested
       type: string
-    - name: sast-target-dirs
-      type: string
-      default: .
-      description: Target directories to scan with SAST tools. Multiple values should be separated with commas.
     results:
     - description: ""
       name: IMAGE_URL
@@ -357,12 +358,12 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: TARGET_DIRS
+        value: $(params.sast-target-dirs)
       - name: SOURCE_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
-      - name: TARGET_DIRS
-        value: $(params.sast-target-dirs)
       - name: ARGS
         value: "--project-name=dpf-hcp-provisioner-operator --report --org=1a7a9d42-f2bf-40c6-a34e-1174f3c11785"
       runAfter:
@@ -409,12 +410,12 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: TARGET_DIRS
+        value: $(params.sast-target-dirs)
       - name: SOURCE_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
-      - name: TARGET_DIRS
-        value: $(params.sast-target-dirs)
       runAfter:
       - build-image-index
       taskRef:
@@ -437,12 +438,12 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: TARGET_DIRS
+        value: $(params.sast-target-dirs)
       - name: SOURCE_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
-      - name: TARGET_DIRS
-        value: $(params.sast-target-dirs)
       runAfter:
       - build-image-index
       taskRef:
@@ -465,9 +466,6 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_URL)
       - name: IMAGE_DIGEST
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
-      - name: ADDITIONAL_TAGS
-        value:
-          - $(params.additional-tags)
       runAfter:
       - build-image-index
       taskRef:
@@ -524,35 +522,13 @@ spec:
         operator: in
         values:
         - "false"
-    finally:
-    - name: slack-webhook-notification
-      params:
-      - name: secret-name
-        value: slack-notif-webhook
-      - name: key-name
-        value: token
-      - name: message
-        value: "[dpf-hcp-provisioner] [main] [<https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/commit/{{revision}}|commit-ref-{{revision}}>] [<https://konflux-ui.apps.kflux-prd-rh02.0fk9.p1.openshiftapps.com/ns/dpu-kit-for-nvidia-operator-tenant/applications/dpf-hcp-provisioner-operator/pipelineruns/$(context.pipelineRun.name)|pipeline>] Konflux build failed"
-      taskRef:
-        params:
-        - name: name
-          value: slack-webhook-notification
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-slack-webhook-notification:0.1
-        - name: kind
-          value: Task
-        resolver: bundles
-      when:
-      - input: $(tasks.status)
-        operator: in
-        values: [ "Failed" ]
     workspaces:
     - name: git-auth
       optional: true
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-dpf-hcp-provisioner-rhel10-operator
+    serviceAccountName: build-pipeline-must-gather-4-22
   workspaces:
   - name: git-auth
     secret:

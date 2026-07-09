@@ -4,17 +4,18 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "release-4.22"
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: dpf-hcp-provisioner-operator
-    appstudio.openshift.io/component: chart
+    appstudio.openshift.io/application: dpf-hcp-provisioner-operator-4-22
+    appstudio.openshift.io/component: chart-4-22
     pipelines.appstudio.openshift.io/type: build
-  name: chart-on-push
+  name: chart-4-22-on-pull-request
   namespace: dpu-kit-for-nvidia-operator-tenant
 spec:
   params:
@@ -23,7 +24,9 @@ spec:
     - name: revision
       value: '{{revision}}'
     - name: output-image
-      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart:{{revision}}
+      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart-4-22:on-pr-{{revision}}
+    - name: image-expires-after
+      value: 5d
     - name: chart-context
       value: helm/dpf-hcp-provisioner-operator/
   pipelineSpec:
@@ -67,7 +70,7 @@ spec:
     results:
       - description: ""
         name: IMAGE_URL
-        value: $(tasks.apply-semver-tag.results.IMAGE_URL)
+        value: $(tasks.build-helm-chart.results.IMAGE_URL)
       - description: ""
         name: IMAGE_DIGEST
         value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
@@ -153,6 +156,12 @@ spec:
             value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
           - name: CHART_CONTEXT
             value: $(params.chart-context)
+          # Use a low semver so helm never resolves PR charts as "latest".
+          # The build task always publishes a semver tag via `helm push`;
+          # without this, PR builds get versions like 0.1.138 that shadow
+          # real releases from the push pipeline.
+          - name: CHART_VERSION
+            value: 0.0.0-pr
         runAfter:
           - prefetch-dependencies
         taskRef:
@@ -164,45 +173,13 @@ spec:
             - name: kind
               value: task
           resolver: bundles
-      - name: apply-semver-tag
-        params:
-          - name: IMAGE_URL
-            value: $(tasks.build-helm-chart.results.IMAGE_URL)
-        taskSpec:
-          params:
-            - name: IMAGE_URL
-              description: The image URL to re-tag with a valid SemVer version
-              type: string
-          results:
-            - name: IMAGE_URL
-              description: The image URL with a valid SemVer tag
-          steps:
-            - name: retag
-              image: quay.io/konflux-ci/tools@sha256:a188f7f1e5f23275ac76ba78e3494f14fc3c7a1c75991bb1cadb37e34693eca5
-              script: |
-                #!/bin/bash
-                set -ex
-                SOURCE="docker://$(params.IMAGE_URL)"
-                # Extract repository and tag
-                REPO="${SOURCE%:*}"
-                TAG="${SOURCE##*:}"
-                # Convert _ to - in the tag to produce a valid SemVer version
-                FIXED_TAG="${TAG//_/-}"
-                DEST="${REPO}:${FIXED_TAG}"
-                printf '%s' "${DEST#docker://}" > "$(results.IMAGE_URL.path)"
-                echo "Tagging $SOURCE as $DEST"
-                skopeo copy --src-tls-verify=false --dest-tls-verify=false "$SOURCE" "$DEST"
-              securityContext:
-                runAsUser: 0
-        runAfter:
-          - build-helm-chart
     workspaces:
       - name: git-auth
         optional: true
       - name: netrc
         optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-chart
+    serviceAccountName: build-pipeline-chart-4-22
   workspaces:
     - name: git-auth
       secret:
