@@ -255,8 +255,17 @@ dpu_agent update-time
 
 log "INFO: Waiting for DPU phase to reach 'DPU Config'..."
 
+RETRY_INTERVAL=30
+elapsed=0
 until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
     sleep 5
+    elapsed=$((elapsed + 5))
+    if [ $elapsed -ge $RETRY_INTERVAL ]; then
+        log "INFO: Retrying bfupsignal and update-time in case DMS missed them..."
+        /usr/local/bin/bfupsignal.sh
+        dpu_agent update-time
+        elapsed=0
+    fi
 done
 wait_for_host_reboot_if_required
 
