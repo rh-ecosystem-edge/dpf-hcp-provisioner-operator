@@ -1,7 +1,6 @@
 [Unit]
 Description=Install RHCOS
 After=multi-user.target
-ConditionKernelCommandLine=initrd=initramfs
 SuccessExitStatus=0
 SuccessAction=reboot-force
 
