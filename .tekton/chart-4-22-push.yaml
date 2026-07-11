@@ -178,7 +178,7 @@ spec:
               description: The image URL with a valid SemVer tag
           steps:
             - name: retag
-              image: quay.io/konflux-ci/tools@sha256:a188f7f1e5f23275ac76ba78e3494f14fc3c7a1c75991bb1cadb37e34693eca5
+              image: quay.io/konflux-ci/tools@sha256:924a3a6aca3c49a71efca63e6414c2ebf6e30611481fd061b11f52c8bb472bb2
               script: |
                 #!/bin/bash
                 set -ex
