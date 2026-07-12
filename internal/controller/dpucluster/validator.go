@@ -423,4 +423,6 @@ func (v *Validator) handleDPUClusterFound(ctx context.Context, cr *provisioningv
 
 	// Success - continue with reconciliation
 	return ctrl.Result{}, nil
+
+	// test
 }
