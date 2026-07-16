@@ -16,7 +16,7 @@ log() {
 
 error() {
     log "ERROR: $1 - $2"
-    dpu_agent send-error "$1" "$2"
+    dpu_agent_retry send-error "$1" "$2"
 }
 
 validate_identity() {
@@ -80,10 +80,14 @@ wait_for_host_agent() {
 }
 
 dpu_agent() {
+    /usr/local/bin/dpuagent-client.py "$@"
+}
+
+dpu_agent_retry() {
     local TIMEOUT=300 # 5 minutes
     local START=$(date +%s)
 
-    until /usr/local/bin/dpuagent-client.py "$@"; do
+    until dpu_agent "$@"; do
         local ELAPSED=$(($(date +%s) - START))
         if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
             log "ERROR: Timed out contacting dpu-agent on call $1" >&2
@@ -222,12 +226,12 @@ install_rhcos() {
 wait_for_host_reboot_if_required() {
     if [ "$NVCONFIG_CHANGED" = "true" ]; then
         log "INFO: Host reboot required (NVConfig was changed), signaling host agent"
-        dpu_agent trigger-reboot PowerCycle
+        dpu_agent_retry trigger-reboot PowerCycle
 
         while true; do
             sleep 60
             log "INFO: Waiting for host power cycle, retrying..."
-            dpu_agent trigger-reboot PowerCycle
+            dpu_agent_retry trigger-reboot PowerCycle
         done
     fi
     log "INFO: No host reboot required."
@@ -240,7 +244,7 @@ validate_identity
 validate_ignition
 update_ignition
 wait_for_host_agent
-dpu_agent update-reboot-method-discovery
+dpu_agent_retry update-reboot-method-discovery
 set_nvconfig
 
 install_rhcos
@@ -251,12 +255,21 @@ log "INFO: Installation complete."
 
 /usr/local/bin/bfupsignal.sh
 
-dpu_agent update-time
+dpu_agent_retry update-time
 
 log "INFO: Waiting for DPU phase to reach 'DPU Config'..."
 
-until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
+RETRY_INTERVAL=30
+elapsed=0
+until [ "$(dpu_agent_retry get-dpu-phase)" = "DPU Config" ]; do
     sleep 5
+    elapsed=$((elapsed + 5))
+    if [ $elapsed -ge $RETRY_INTERVAL ]; then
+        log "INFO: Retrying bfupsignal and update-time in case DMS missed them..."
+        /usr/local/bin/bfupsignal.sh
+        dpu_agent update-time
+        elapsed=0
+    fi
 done
 wait_for_host_reboot_if_required
 
