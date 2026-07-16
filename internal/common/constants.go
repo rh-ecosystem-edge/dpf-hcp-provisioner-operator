@@ -29,18 +29,21 @@ const (
 	CSRApprovalControllerName = "csr-approval-controller"
 )
 
+// AnnotationPrefix is the domain prefix for all labels and annotations owned by this operator.
+const AnnotationPrefix = "dpfhcpprovisioner.dpu.hcp.io/"
+
 // Label keys for cross-namespace resource ownership tracking
 const (
 	// LabelDPFHCPProvisionerName is the label key for the DPFHCPProvisioner name
 	// Used to track resources owned by a specific DPFHCPProvisioner across namespaces
-	LabelDPFHCPProvisionerName = "dpfhcpprovisioner.dpu.hcp.io/name"
+	LabelDPFHCPProvisionerName = AnnotationPrefix + "name"
 
 	// LabelDPFHCPProvisionerNamespace is the label key for the DPFHCPProvisioner namespace
 	// Used to track resources owned by a specific DPFHCPProvisioner across namespaces
-	LabelDPFHCPProvisionerNamespace = "dpfhcpprovisioner.dpu.hcp.io/namespace"
+	LabelDPFHCPProvisionerNamespace = AnnotationPrefix + "namespace"
 
 	// LabelManagedBy marks resources created and owned by this operator.
-	LabelManagedBy = "dpfhcpprovisioner.dpu.hcp.io/managed"
+	LabelManagedBy = AnnotationPrefix + "managed"
 )
 
 // Namespace constants
