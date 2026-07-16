@@ -67,7 +67,7 @@ const (
 	// On multi-arch release payloads, this is actually a manifest-list reference, but
 	// we still refer to it as the "x86 OVN image" for clarity that it's what's running
 	// on the x86 management cluster.
-	AnnotationSourceOVNImage = "dpfhcpprovisioner.dpu.hcp.io/source-x86-ovn-image"
+	AnnotationSourceOVNImage = common.AnnotationPrefix + "source-x86-ovn-image"
 )
 
 // DPUServiceTemplateManager handles DPUServiceTemplate resource creation and deletion.
