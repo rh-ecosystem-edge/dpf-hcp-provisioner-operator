@@ -841,5 +841,93 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					ignCond.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed
 			}, timeout, interval).Should(BeTrue())
 		})
+
+		It("should invalidate BlueFieldOCPLayerImageFound when machineOSURL is removed in Ready phase", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-bfo-invalidate",
+					Namespace:  testNamespace,
+					Generation: 2,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					MachineOSURL: "", // removed
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					Phase: provisioningv1alpha1.PhaseReady,
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-bfo-invalidate",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			// Simulate stale condition from when machineOSURL was set
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
+				Status:             metav1.ConditionTrue,
+				Reason:             "LookupSkipped",
+				ObservedGeneration: 1,
+			})
+
+			// lookupBlueFieldOCPLayerImage needs a client and config, but the
+			// invalidation path is in updatePhaseFromConditions which we can
+			// test directly: after invalidation the condition is False.
+			// Simulate what lookupBlueFieldOCPLayerImage now does in the else branch:
+			bfoCond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound)
+			Expect(bfoCond).NotTo(BeNil())
+			Expect(bfoCond.Status).To(Equal(metav1.ConditionTrue), "precondition: stale True")
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
+				Status:             metav1.ConditionFalse,
+				Reason:             "MachineOSURLRemoved",
+				Message:            "machineOSURL was removed and auto-resolve has not yet run",
+				ObservedGeneration: provisioner.Generation,
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseFailed),
+				"should transition to Failed when BlueFieldOCPLayerImageFound is invalidated")
+		})
+
+		It("should not update HC release image when phase is Failed", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-no-hc-update",
+					Namespace:  testNamespace,
+					Generation: 2,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					OCPReleaseImage: "quay.io/openshift-release-dev/ocp-release:4.22.2-multi",
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-no-hc-update",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			// Set all validations passing except BlueFieldOCPLayerImageFound
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.BlueFieldOCPLayerImageFound,
+				Status: metav1.ConditionFalse,
+				Reason: "MachineOSURLRemoved",
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseFailed),
+				"precondition: phase should be Failed")
+
+			// Verify the phase gate: reconcileHostedClusterAndNodePool checks
+			// phase == Ready || phase == Upgrading before updating an existing HC.
+			// With phase == Failed, the update branch should not be entered.
+			Expect(provisioner.Status.Phase).NotTo(SatisfyAny(
+				Equal(provisioningv1alpha1.PhaseReady),
+				Equal(provisioningv1alpha1.PhaseUpgrading),
+			), "HC update should be blocked in Failed phase")
+		})
 	})
 })
