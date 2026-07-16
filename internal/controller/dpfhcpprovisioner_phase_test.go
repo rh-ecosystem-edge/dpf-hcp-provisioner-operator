@@ -866,7 +866,7 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
 				Type:    provisioningv1alpha1.HostedClusterProgressing,
 				Status:  metav1.ConditionFalse,
-				Reason:  "Blocked",
+				Reason:  hyperv1.BlockedReason,
 				Message: "failed to extract release metadata: manifest unknown",
 			})
 

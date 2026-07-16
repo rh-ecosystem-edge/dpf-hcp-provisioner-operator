@@ -1273,7 +1273,7 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		hcProgressing := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterProgressing)
 		hcDegraded := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterDegraded)
 
-		isBlocked := hcProgressing != nil && hcProgressing.Status == metav1.ConditionFalse && hcProgressing.Reason == "Blocked"
+		isBlocked := hcProgressing != nil && hcProgressing.Status == metav1.ConditionFalse && hcProgressing.Reason == hyperv1.BlockedReason
 		isDegraded := hcDegraded != nil && hcDegraded.Status == metav1.ConditionTrue
 
 		if isBlocked || isDegraded {
