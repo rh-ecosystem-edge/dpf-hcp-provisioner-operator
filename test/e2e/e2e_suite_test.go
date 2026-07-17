@@ -30,9 +30,11 @@ import (
 	dpuprovisioningv1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -47,6 +49,7 @@ var (
 	k8sClient     client.Client
 	k8sConfig     *rest.Config
 	runtimeScheme *runtime.Scheme
+	testingOnOCP  bool
 )
 
 // imageRepository extracts the repository from a full image reference.
@@ -106,6 +109,8 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	testingOnOCP = os.Getenv("KIND_ONLY_TESTS") != "true"
+
 	By("initializing Kubernetes client")
 	var err error
 	k8sConfig, err = config.GetConfig()
@@ -125,19 +130,23 @@ var _ = BeforeSuite(func() {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add NVIDIA DPU service types to scheme")
 	err = operatorv1.AddToScheme(runtimeScheme)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add NVIDIA DPF operator types to scheme")
+	err = configv1.Install(runtimeScheme)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to add OpenShift config types to scheme")
 
 	k8sClient, err = client.New(k8sConfig, client.Options{Scheme: runtimeScheme})
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create controller-runtime client")
 
-	By("deploying HyperShift operator on management cluster")
-	cmd := exec.Command("make", "e2e-deploy-hypershift")
-	_, err = utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to deploy HyperShift operator")
+	if testingOnOCP {
+		By("deploying HyperShift operator on management cluster")
+		cmd := exec.Command("make", "e2e-deploy-hypershift")
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to deploy HyperShift operator")
+	}
 
-	By("installing external DPF CRDs")
-	cmd = exec.Command("make", "e2e-install-dpf-crds")
+	By("installing external CRDs")
+	cmd := exec.Command("make", "apply-crds-for-e2e")
 	_, err = utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to install DPF CRDs")
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to install external CRDs")
 
 	// Determine operator image and chart.
 	// In CI, IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI is injected automatically via the
@@ -178,6 +187,16 @@ var _ = BeforeSuite(func() {
 		g.Expect(podList.Items).To(BeEmpty(), "Operator pods should be terminated")
 	}, 30*time.Second, 1*time.Second).Should(Succeed())
 
+	By("ensuring namespaces required by helm chart and tests exist")
+	// The helm chart creates a Role in openshift-config — on OCP this namespace
+	// exists, on kind we need to create it.
+	for _, ns := range []string{"openshift-config", dpfOperatorConfigNamespace} {
+		nsObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
+		if err := k8sClient.Create(context.Background(), nsObj); err != nil && !apierrors.IsAlreadyExists(err) {
+			ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create namespace %s", ns)
+		}
+	}
+
 	By("deploying the operator via helm chart")
 	helmArgs := []string{"upgrade", "--install",
 		"dpf-hcp-provisioner-operator", operatorChart,
@@ -198,6 +217,11 @@ var _ = BeforeSuite(func() {
 		"--set", "provisionerConfig.disableMetalLB=true",
 		"--wait", "--timeout", "5m",
 	)
+
+	// On kind, nodes have control-plane role, not master. Remove nodeSelector.
+	if !testingOnOCP {
+		helmArgs = append(helmArgs, "--set", "placement.target=custom")
+	}
 
 	cmd = exec.Command("helm", helmArgs...)
 	_, err = utils.Run(cmd)

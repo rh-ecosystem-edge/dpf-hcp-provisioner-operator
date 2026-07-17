@@ -105,12 +105,16 @@ func detectOCPReleaseImage() string {
 // For local testing, export it manually.
 func getBaseDomain() string {
 	domain := os.Getenv("BASE_DOMAIN")
-	if domain == "" {
-		Fail("BASE_DOMAIN must be set. " +
-			"In CI this is configured in the workflow. " +
-			"For local testing, export it with your cluster's base domain.")
+	if domain != "" {
+		return domain
 	}
-	return domain
+	if !testingOnOCP {
+		return "e2e.example.com"
+	}
+	Fail("BASE_DOMAIN must be set. " +
+		"In CI this is configured in the workflow. " +
+		"For local testing, export it with your cluster's base domain.")
+	return ""
 }
 
 // getControlPlaneAvailability returns the control plane availability policy.
@@ -151,6 +155,9 @@ func getEtcdStorageClass() string {
 				return item.GetName()
 			}
 		}
+	}
+	if !testingOnOCP {
+		return ""
 	}
 	Fail("No default StorageClass found and ETCD_STORAGE_CLASS not set. " +
 		"A StorageClass is required for HostedCluster etcd PVCs. " +
