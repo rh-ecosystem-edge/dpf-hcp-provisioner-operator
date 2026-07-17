@@ -116,6 +116,11 @@ func NewProvider() *content.EmbeddedProvider {
 				Mode:          0755,
 				ContentSource: f("pf-monitor.sh"),
 			},
+			{
+				Path:          "/usr/local/bin/ovs-vf-recovery.sh",
+				Mode:          0755,
+				ContentSource: f("ovs-vf-recovery.sh"),
+			},
 		},
 		SystemdFS: &systemdFS,
 	}

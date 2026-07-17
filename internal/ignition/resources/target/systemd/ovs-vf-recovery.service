@@ -1,0 +1,13 @@
+[Unit]
+Description=OVS VF representor recovery monitor
+After=ovs-vswitchd.service
+
+[Service]
+Type=exec
+ExecStart=/usr/local/bin/ovs-vf-recovery.sh
+TimeoutStartSec=infinity
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
