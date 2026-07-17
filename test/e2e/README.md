@@ -1,13 +1,40 @@
 # E2E Tests
 
-End-to-end tests for the dpf-hcp-provisioner-operator. These tests validate the full
-DPFHCPProvisioner lifecycle on a real OpenShift (OCP) cluster with HyperShift.
+End-to-end tests for the dpf-hcp-provisioner-operator.
+
+Tests are split into two groups using Ginkgo labels:
+
+- **`ocp-required`** — tests that need a real OCP cluster with HyperShift (HostedCluster lifecycle,
+  CSR approval, upgrades, cleanup). These validate the full DPFHCPProvisioner lifecycle.
+- **Unlabeled** — tests that run on any Kubernetes cluster, including Kind. Currently covers
+  DPUServiceTemplate controller lifecycle (creation, self-heal, deletion).
+
+## Running on Kind
+
+```bash
+# Create a kind cluster (if you don't already have one).
+# While it starts, kick off the image build in another terminal — it takes a while.
+kind create cluster
+
+# Build and load the operator image into kind
+make docker-build IMG=localhost/dpf-hcp-provisioner:dev
+podman save localhost/dpf-hcp-provisioner:dev | \
+  podman exec -i kind-control-plane ctr -n k8s.io images import -
+
+# Run the kind-compatible tests
+export IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI=localhost/dpf-hcp-provisioner:dev
+make test-e2e-kind
+```
+
+The `test-e2e-kind` target installs all required CRDs (DPF, HyperShift, OpenShift ClusterVersion),
+deploys the operator via Helm, and runs tests filtered by `--label-filter='!ocp-required'`.
 
 ## Requirements
 
-### Cluster
+### OCP Cluster (for `ocp-required` tests)
 
-An **OCP cluster** is required. These tests **cannot run on Kind or Minikube** because:
+An **OCP cluster** is required for the full test suite. The `ocp-required` tests
+**cannot run on Kind or Minikube** because:
 
 - **HyperShift operator** requires OCP-specific APIs and infrastructure to create real HostedClusters
 - **HostedCluster provisioning** needs a functional API server with proper networking
@@ -41,7 +68,7 @@ The cluster must have:
 The test suite automatically:
 
 1. **Deploys HyperShift operator** on the management cluster (`make e2e-deploy-hypershift`)
-2. **Generates and installs DPF CRDs** from vendored nvidia/doca-platform types (`make e2e-install-dpf-crds`)
+2. **Generates and installs CRDs** both ours and from vendored types (`make apply-crds-for-e2e`)
 3. **Deploys the operator** via Helm chart with the specified image
 
 ### Test Resources Created (BeforeAll)
@@ -126,7 +153,8 @@ Trigger on a PR: `/test dpf-hcp-provisioner-operator-e2e-aws-single-replica`
 
 | Target | Description |
 |--------|-------------|
-| `make test-e2e` | Run the full e2e test suite |
+| `make test-e2e` | Run the full e2e test suite (OCP cluster required) |
+| `make test-e2e-kind` | Run kind-compatible e2e tests (no OCP required) |
 | `make e2e-deploy-hypershift` | Deploy HyperShift operator (idempotent) |
-| `make e2e-generate-dpf-crds` | Generate DPF CRDs from vendored types |
-| `make e2e-install-dpf-crds` | Generate, install, and wait for DPF CRDs |
+| `make generate-crds-for-e2e` | Generate external CRDs (DPF, OpenShift) from vendored types |
+| `make apply-crds-for-e2e` | Generate, install, and wait for external CRDs |

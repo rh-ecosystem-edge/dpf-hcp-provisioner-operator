@@ -38,7 +38,7 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
-var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
+var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func() {
 	var (
 		kubeconfigFile string
 		hcConfig       *rest.Config
@@ -55,7 +55,6 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 		createDPUClusterStub(dpuClusterNS, dpuClusterName)
 
 		By("creating DPFOperatorConfig singleton")
-		createNamespace(dpfOperatorConfigNamespace)
 		createDPFOperatorConfig()
 
 		By("creating DPUFlavor stub")

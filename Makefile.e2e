@@ -1,0 +1,55 @@
+##@ E2E Testing
+# See test/e2e/README.md for full documentation on setup, requirements, and usage.
+
+E2E_TEST_TIMEOUT ?= 90m
+
+# Run e2e tests on an existing OCP cluster.
+# Required env vars:
+#   MACHINE_OS_URL  - DPU machine OS image URL
+#   BASE_DOMAIN     - cluster base domain for HostedCluster DNS
+# In CI, IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI is injected automatically.
+# For local testing, also set:
+#   export KUBECONFIG=/path/to/kubeconfig
+#   export IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI=quay.io/your-org/your-image:tag
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests on an existing OCP cluster.
+	go test ./test/e2e/ -v -ginkgo.v \
+		-ginkgo.timeout=$(E2E_TEST_TIMEOUT) \
+		-timeout $(E2E_TEST_TIMEOUT)
+
+.PHONY: e2e-deploy-hypershift
+e2e-deploy-hypershift: ## [E2E] Deploy HyperShift operator on the OCP management cluster.
+	./test/e2e/scripts/deploy-hypershift.sh
+
+.PHONY: generate-crds-for-e2e
+generate-crds-for-e2e: controller-gen ## [E2E] Generate external CRDs from vendored types.
+	# We .gitignore them so directory might not exist.
+	mkdir -p test/e2e/testdata/crds
+
+	# We gen directly from vendor, no need to download the packages
+
+	# DPF CRDs
+	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
+	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
+	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/operator/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
+
+	# OCP CRDs
+	$(CONTROLLER_GEN) crd paths="./vendor/github.com/openshift/api/config/v1/..." output:crd:dir=test/e2e/testdata/crds
+
+.PHONY: apply-crds-for-e2e
+apply-crds-for-e2e: generate-crds-for-e2e ## [E2E] Generate and install external CRDs on the cluster.
+	$(KUBECTL) apply -f test/e2e/testdata/crds/
+	$(KUBECTL) wait --for=condition=Established -f test/e2e/testdata/crds/ --timeout=60s
+
+	@# Some of these are HyperShift CRDs which exceed the 256KB annotation limit, so use server-side apply
+	$(KUBECTL) apply --server-side --force-conflicts -f internal/controller/testdata/crds/
+	$(KUBECTL) wait --for=condition=Established -f internal/controller/testdata/crds/ --timeout=60s
+
+E2E_KIND_TIMEOUT ?= 10m
+
+.PHONY: test-e2e-kind
+test-e2e-kind: manifests apply-crds-for-e2e ## Run kind-compatible e2e tests (no OCP required).
+	KIND_ONLY_TESTS=true go test ./test/e2e/ -v -ginkgo.v \
+		-ginkgo.label-filter='!ocp-required' \
+		-ginkgo.timeout=$(E2E_KIND_TIMEOUT) \
+		-timeout $(E2E_KIND_TIMEOUT)
