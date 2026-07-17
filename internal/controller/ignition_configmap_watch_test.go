@@ -536,4 +536,118 @@ var _ = Describe("Ignition ConfigMap Watch", func() {
 				"ObservedGeneration should match the current CR generation, not the old condition's")
 		})
 	})
+
+	Describe("ignitionContentStale", func() {
+		It("should return true when ConfigMap has no content hash annotation", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "cluster",
+						Namespace: "dpu-system",
+					},
+				},
+			}
+
+			cm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ignitiongenerator.ConfigMapName("cluster"),
+					Namespace: "dpu-system",
+					Labels: map[string]string{
+						ignitiongenerator.BfcfgTemplateLabel: "true",
+					},
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
+			Expect(r.ignitionContentStale(context.TODO(), provisioner)).To(BeTrue())
+		})
+
+		It("should return true when ConfigMap hash differs from current", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "cluster",
+						Namespace: "dpu-system",
+					},
+				},
+			}
+
+			cm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ignitiongenerator.ConfigMapName("cluster"),
+					Namespace: "dpu-system",
+					Labels: map[string]string{
+						ignitiongenerator.BfcfgTemplateLabel: "true",
+					},
+					Annotations: map[string]string{
+						ignitiongenerator.ContentHashAnnotation: "old-stale-hash",
+					},
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
+			Expect(r.ignitionContentStale(context.TODO(), provisioner)).To(BeTrue())
+		})
+
+		It("should return false when ConfigMap hash matches current", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "cluster",
+						Namespace: "dpu-system",
+					},
+				},
+			}
+
+			cm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ignitiongenerator.ConfigMapName("cluster"),
+					Namespace: "dpu-system",
+					Labels: map[string]string{
+						ignitiongenerator.BfcfgTemplateLabel: "true",
+					},
+					Annotations: map[string]string{
+						ignitiongenerator.ContentHashAnnotation: ignitiongenerator.CurrentContentHash(),
+					},
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
+			Expect(r.ignitionContentStale(context.TODO(), provisioner)).To(BeFalse())
+		})
+
+		It("should return false when ConfigMap does not exist", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "cluster",
+						Namespace: "dpu-system",
+					},
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient}
+			Expect(r.ignitionContentStale(context.TODO(), provisioner)).To(BeFalse())
+		})
+	})
 })
