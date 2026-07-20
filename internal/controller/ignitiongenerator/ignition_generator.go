@@ -83,7 +83,7 @@ const (
 	// BfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
 	BfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
 	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
-	bfcfgTemplateMachineOSURLAnnotation = dpuProvisioningPrefix + "bfcfg-template-machine-os-url"
+	bfcfgTemplateMachineOSURLAnnotation = operatorcommon.AnnotationPrefix + "bfcfg-template-machine-os-url"
 )
 
 // ConfigMapName returns the expected ignition ConfigMap name for a given DPUCluster.
@@ -92,7 +92,7 @@ func ConfigMapName(dpuClusterName string) string {
 }
 
 // BfcfgTemplateOCPReleaseImageAnnotation is the annotation specifying the OCP release image used for this ignition.
-const BfcfgTemplateOCPReleaseImageAnnotation = dpuProvisioningPrefix + "bfcfg-template-ocp-release-image"
+const BfcfgTemplateOCPReleaseImageAnnotation = operatorcommon.AnnotationPrefix + "bfcfg-template-ocp-release-image"
 
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
 type IgnitionGenerator struct {
