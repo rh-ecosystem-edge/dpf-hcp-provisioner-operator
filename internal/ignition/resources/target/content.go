@@ -127,7 +127,8 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 		p.SkipUnits = []string{"pf-monitor.service"}
 		filtered := make([]content.FileDefinition, 0, len(p.Files))
 		for _, f := range p.Files {
-			if f.Path != "/usr/local/bin/pf-monitor.sh" {
+			if f.Path != "/usr/local/bin/pf-monitor.sh" &&
+				f.Path != "/etc/yum.repos.d/agentrepo.repo" {
 				filtered = append(filtered, f)
 			}
 		}
