@@ -234,6 +234,13 @@ wait_for_host_reboot_if_required() {
 }
 
 setup_secureboot
+
+# The host mlx5_core driver has a 60 second window where it should not get a second error.
+# To prevent further errors during this window, we wait 60 seconds before continuing.
+# This is a recommendation from NVIDIA.
+log "INFO: Waiting 60s for host mlx5_core driver to settle"
+sleep 60
+
 validate_hardware
 
 validate_identity
