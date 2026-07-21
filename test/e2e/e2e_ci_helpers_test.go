@@ -105,12 +105,16 @@ func detectOCPReleaseImage() string {
 // For local testing, export it manually.
 func getBaseDomain() string {
 	domain := os.Getenv("BASE_DOMAIN")
-	if domain == "" {
-		Fail("BASE_DOMAIN must be set. " +
-			"In CI this is configured in the workflow. " +
-			"For local testing, export it with your cluster's base domain.")
+	if domain != "" {
+		return domain
 	}
-	return domain
+	if !testingOnOCP {
+		return "e2e.example.com"
+	}
+	Fail("BASE_DOMAIN must be set. " +
+		"In CI this is configured in the workflow. " +
+		"For local testing, export it with your cluster's base domain.")
+	return ""
 }
 
 // getControlPlaneAvailability returns the control plane availability policy.
@@ -151,6 +155,9 @@ func getEtcdStorageClass() string {
 				return item.GetName()
 			}
 		}
+	}
+	if !testingOnOCP {
+		return ""
 	}
 	Fail("No default StorageClass found and ETCD_STORAGE_CLASS not set. " +
 		"A StorageClass is required for HostedCluster etcd PVCs. " +
@@ -198,7 +205,9 @@ func createDPUClusterStub(ns, name string) {
 		},
 	}
 	err := k8sClient.Create(ctx, dpuCluster)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUCluster stub")
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUCluster stub")
+	}
 }
 
 // generateSSHKeySecret creates a secret with a generated SSH public key.
@@ -304,7 +313,9 @@ func createDPUDeploymentStub(ns, name, flavorName string) {
 		},
 	}
 	err := k8sClient.Create(ctx, dpuDeployment)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUDeployment stub")
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUDeployment stub")
+	}
 }
 
 // createDPUFlavorStub creates a minimal DPUFlavor CR.
@@ -338,7 +349,9 @@ func createDPUFlavorStub(ns, name string) {
 		},
 	}
 	err := k8sClient.Create(ctx, dpuFlavor)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUFlavor stub")
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPUFlavor stub")
+	}
 }
 
 // createDPFOperatorConfig creates the singleton DPFOperatorConfig in dpf-operator-system.
@@ -429,7 +442,9 @@ func createDPFHCPProvisionerWithCluster(ns, name, clusterName, clusterNS, deploy
 	}
 
 	err := k8sClient.Create(ctx, provisioner)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPFHCPProvisioner")
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPFHCPProvisioner")
+	}
 }
 
 // waitForCRPhase waits for a DPFHCPProvisioner to reach a specific phase.

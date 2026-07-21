@@ -36,11 +36,14 @@ COPY --chown=1001:0 api/ ./api/
 # Copy config directory (contains CRD manifests that helm chart symlinks reference)
 COPY --chown=1001:0 config/ ./config/
 
-# Copy Makefile (used to run e2e targets like e2e-deploy-hypershift, e2e-install-dpf-crds)
-COPY --chown=1001:0 Makefile ./
+# Copy Makefiles with e2e targets
+COPY --chown=1001:0 Makefile Makefile.e2e ./
 
 # Build controller-gen inside the container (ensures correct OS/arch for CRD generation)
 RUN make controller-gen
+
+# Copy unit-test CRDs (committed; used by apply-crds-for-e2e)
+COPY --chown=1001:0 internal/controller/testdata/crds/ ./internal/controller/testdata/crds/
 
 # Copy all test code (e2e tests, utils, scripts)
 COPY --chown=1001:0 test/ ./test/
