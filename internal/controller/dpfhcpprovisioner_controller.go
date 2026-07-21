@@ -1048,6 +1048,19 @@ func (r *DPFHCPProvisionerReconciler) lookupBlueFieldOCPLayerImage(ctx context.C
 			return result, err
 		}
 	} else {
+		// machineOSURL removed while in a phase that skips lookup —
+		// invalidate immediately so stale True doesn't let upgrades through.
+		bfoCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound)
+		if bfoCond != nil && bfoCond.Status == metav1.ConditionTrue && bfoCond.Reason == "LookupSkipped" {
+			log.Info("machineOSURL removed — invalidating BlueFieldOCPLayerImageFound until resolved")
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
+				Status:             metav1.ConditionFalse,
+				Reason:             "MachineOSURLRemoved",
+				Message:            "machineOSURL was removed and auto-resolve has not yet run",
+				ObservedGeneration: cr.Generation,
+			})
+		}
 		log.V(1).Info("Skipping BlueField OCP layer lookup - not in applicable phase", "phase", cr.Status.Phase)
 	}
 
@@ -1322,7 +1335,8 @@ func (r *DPFHCPProvisionerReconciler) reconcileHostedClusterAndNodePool(ctx cont
 		return ctrl.Result{}, nil
 	}
 
-	if cr.Status.HostedClusterRef != nil {
+	if cr.Status.HostedClusterRef != nil &&
+		(cr.Status.Phase == provisioningv1alpha1.PhaseReady || cr.Status.Phase == provisioningv1alpha1.PhaseUpgrading) {
 		log.V(1).Info("Checking HostedCluster and NodePool for release image updates")
 
 		if result, err := r.HostedClusterManager.CreateOrUpdateHostedCluster(ctx, cr); err != nil || result.RequeueAfter > 0 {
