@@ -84,6 +84,8 @@ const (
 	BfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
 	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
 	bfcfgTemplateMachineOSURLAnnotation = operatorcommon.AnnotationPrefix + "bfcfg-template-machine-os-url"
+	// ContentHashAnnotation stores the hash of embedded ignition resources used to build the CM.
+	ContentHashAnnotation = operatorcommon.AnnotationPrefix + "bfcfg-content-hash"
 )
 
 // ConfigMapName returns the expected ignition ConfigMap name for a given DPUCluster.
@@ -93,6 +95,15 @@ func ConfigMapName(dpuClusterName string) string {
 
 // BfcfgTemplateOCPReleaseImageAnnotation is the annotation specifying the OCP release image used for this ignition.
 const BfcfgTemplateOCPReleaseImageAnnotation = operatorcommon.AnnotationPrefix + "bfcfg-template-ocp-release-image"
+
+// CurrentContentHash returns a hash of all static embedded ignition resources
+// (target + common files and systemd units). Changes when the operator binary
+// ships different ignition content.
+func CurrentContentHash() string {
+	targetHash := target.NewProvider().ContentHash()
+	commonHash := common.NewProvider().ContentHash()
+	return targetHash[:6] + commonHash[:6]
+}
 
 // IgnitionGenerator handles ignition configuration generation for DPF provisioning
 type IgnitionGenerator struct {
@@ -592,6 +603,7 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 		BfcfgTemplateClusterNamespaceAnnotation: cr.Spec.DPUClusterRef.Namespace,
 		bfcfgTemplateMachineOSURLAnnotation:     machineOSURL,
 		BfcfgTemplateOCPReleaseImageAnnotation:  cr.Spec.OCPReleaseImage,
+		ContentHashAnnotation:                   CurrentContentHash(),
 	}
 	if cr.Spec.DPUDeploymentRef != nil {
 		dpuDeployment, err := ig.getDPUDeployment(ctx, cr)

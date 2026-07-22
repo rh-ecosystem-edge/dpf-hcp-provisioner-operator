@@ -1054,8 +1054,11 @@ func (r *DPFHCPProvisionerReconciler) lookupBlueFieldOCPLayerImage(ctx context.C
 	return ctrl.Result{}, nil
 }
 
-// generateIgnition runs the ignition generation feature if the CR is in the IgnitionGenerating phase,
-// or if it's in the Failed phase due to a previous ignition generation failure (transient retry).
+// generateIgnition runs the ignition generation feature when:
+//  1. Phase is IgnitionGenerating (normal first-time path), OR
+//  2. Phase is Failed AND the failure was caused by ignition generation (retry path), OR
+//  3. The existing ConfigMap's content hash doesn't match the current operator's hash
+//     (operator upgrade shipped new ignition resources).
 func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
@@ -1064,10 +1067,6 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 		return ctrl.Result{}, nil
 	}
 
-	// Run ignition generation when:
-	// 1. Phase is IgnitionGenerating (normal path), OR
-	// 2. Phase is Failed AND the failure was caused by ignition generation (retry path), OR
-	// 3. IgnitionConfigured was cleared due to operator restart or ConfigMap deletion
 	shouldGenerate := cr.Status.Phase == provisioningv1alpha1.PhaseIgnitionGenerating
 	if !shouldGenerate {
 		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
@@ -1082,6 +1081,18 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 			}
 		}
 	}
+
+	// If ignition is already configured, check if the CM content is stale.
+	if !shouldGenerate {
+		ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		if ignConfigured != nil && ignConfigured.Status == metav1.ConditionTrue {
+			if r.ignitionContentStale(ctx, cr) {
+				shouldGenerate = true
+				log.Info("Ignition ConfigMap content is stale, regenerating")
+			}
+		}
+	}
+
 	if !shouldGenerate {
 		log.V(1).Info("Skipping ignition generation", "phase", cr.Status.Phase)
 		return ctrl.Result{}, nil
@@ -1112,6 +1123,21 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 	}
 
 	return result, err
+}
+
+// ignitionContentStale checks whether the existing ignition ConfigMap was built
+// from a different version of the embedded resources (i.e., operator was upgraded).
+func (r *DPFHCPProvisionerReconciler) ignitionContentStale(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
+	cmName := ignitiongenerator.ConfigMapName(cr.Spec.DPUClusterRef.Name)
+	cmNamespace := cr.Spec.DPUClusterRef.Namespace
+
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNamespace}, cm); err != nil {
+		return false
+	}
+
+	storedHash := cm.Annotations[ignitiongenerator.ContentHashAnnotation]
+	return storedHash != ignitiongenerator.CurrentContentHash()
 }
 
 // computeReadyCondition determines if the DPFHCPProvisioner is fully operational and sets the Ready condition.

@@ -17,7 +17,9 @@ limitations under the License.
 package content
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -115,4 +117,28 @@ func EmbedFile(fsys embed.FS, path string) []byte {
 		panic(fmt.Sprintf("embedded file %q not found: %v", path, err))
 	}
 	return data
+}
+
+// ContentHash computes a SHA-256 hash over all files and systemd units in the
+// provider. This can be used to detect when embedded content changes between
+// operator versions.
+func (p *EmbeddedProvider) ContentHash() string {
+	h := sha256.New()
+	for _, f := range p.Files {
+		h.Write([]byte(f.Path))
+		switch src := f.ContentSource.(type) {
+		case []byte:
+			h.Write(src)
+		case string:
+			h.Write([]byte(src))
+		}
+	}
+	if p.SystemdFS != nil {
+		units, _ := LoadSystemdUnits(*p.SystemdFS, "systemd")
+		for _, u := range units {
+			h.Write([]byte(u.Name))
+			h.Write(u.Contents)
+		}
+	}
+	return hex.EncodeToString(h.Sum(nil))[:12]
 }
