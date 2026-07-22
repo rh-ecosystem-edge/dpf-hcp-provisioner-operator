@@ -1266,6 +1266,22 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(cr *provisioning
 		return
 	}
 
+	// Check for HostedCluster error states (blocked or degraded).
+	// If the HC cannot make progress (Progressing=False/Blocked) or is degraded,
+	// show Error so the user knows the cluster needs attention.
+	if cr.Status.HostedClusterRef != nil {
+		hcProgressing := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterProgressing)
+		hcDegraded := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterDegraded)
+
+		isBlocked := hcProgressing != nil && hcProgressing.Status == metav1.ConditionFalse && hcProgressing.Reason == hyperv1.BlockedReason
+		isDegraded := hcDegraded != nil && hcDegraded.Status == metav1.ConditionTrue
+
+		if isBlocked || isDegraded {
+			cr.Status.Phase = provisioningv1alpha1.PhaseError
+			return
+		}
+	}
+
 	// Check if upgrade is in progress
 	if isUpgrading(cr) {
 		cr.Status.Phase = provisioningv1alpha1.PhaseUpgrading

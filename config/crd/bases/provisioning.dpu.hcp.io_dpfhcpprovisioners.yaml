@@ -454,6 +454,7 @@ spec:
                 - IgnitionGenerating
                 - Ready
                 - Failed
+                - Error
                 - Deleting
                 type: string
             type: object

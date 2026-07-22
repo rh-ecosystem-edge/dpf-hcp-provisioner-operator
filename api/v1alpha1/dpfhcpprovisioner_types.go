@@ -192,7 +192,7 @@ type DPFHCPProvisionerSpec struct {
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
-// +kubebuilder:validation:Enum=Pending;Provisioning;Upgrading;IgnitionGenerating;Ready;Failed;Deleting
+// +kubebuilder:validation:Enum=Pending;Provisioning;Upgrading;IgnitionGenerating;Ready;Failed;Error;Deleting
 type DPFHCPProvisionerPhase string
 
 const (
@@ -211,8 +211,11 @@ const (
 	// PhaseReady indicates HostedCluster is operational, kubeconfig injected, CSR auto-approval active
 	PhaseReady DPFHCPProvisionerPhase = "Ready"
 
-	// PhaseFailed indicates permanent failure requiring user intervention
+	// PhaseFailed indicates permanent failure requiring user intervention (validation or ignition errors)
 	PhaseFailed DPFHCPProvisionerPhase = "Failed"
+
+	// PhaseError indicates the HostedCluster is in an error state (blocked or degraded)
+	PhaseError DPFHCPProvisionerPhase = "Error"
 
 	// PhaseDeleting indicates finalizer cleanup in progress
 	PhaseDeleting DPFHCPProvisionerPhase = "Deleting"

@@ -239,6 +239,7 @@ var _ = Describe("DPFHCPProvisioner API Types", func() {
 			Expect(string(PhaseProvisioning)).To(Equal("Provisioning"))
 			Expect(string(PhaseReady)).To(Equal("Ready"))
 			Expect(string(PhaseFailed)).To(Equal("Failed"))
+			Expect(string(PhaseError)).To(Equal("Error"))
 			Expect(string(PhaseDeleting)).To(Equal("Deleting"))
 		})
 
@@ -248,6 +249,7 @@ var _ = Describe("DPFHCPProvisioner API Types", func() {
 				PhaseProvisioning,
 				PhaseReady,
 				PhaseFailed,
+				PhaseError,
 				PhaseDeleting,
 			}
 

@@ -841,5 +841,106 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					ignCond.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed
 			}, timeout, interval).Should(BeTrue())
 		})
+		It("should transition to Error when HostedCluster is blocked (Progressing=False, reason=Blocked)", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-hc-blocked",
+					Namespace:  testNamespace,
+					Generation: 1,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-hc-blocked",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterAvailable,
+				Status:  metav1.ConditionFalse,
+				Reason:  "WaitingForAvailable",
+				Message: "failed to extract release metadata: manifest unknown",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterProgressing,
+				Status:  metav1.ConditionFalse,
+				Reason:  hyperv1.BlockedReason,
+				Message: "failed to extract release metadata: manifest unknown",
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseError),
+				"should be Error when HostedCluster is blocked")
+		})
+
+		It("should transition to Error when HostedCluster is degraded", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-hc-degraded",
+					Namespace:  testNamespace,
+					Generation: 1,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-hc-degraded",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterAvailable,
+				Status:  metav1.ConditionFalse,
+				Reason:  "WaitingForAvailable",
+				Message: "HostedCluster is degraded",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterDegraded,
+				Status:  metav1.ConditionTrue,
+				Reason:  "DegradedError",
+				Message: "encountering errors requiring intervention",
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseError),
+				"should be Error when HostedCluster is degraded")
+		})
+
+		It("should stay in Provisioning when HostedCluster is progressing normally", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-hc-progressing",
+					Namespace:  testNamespace,
+					Generation: 1,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-hc-progressing",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterAvailable,
+				Status:  metav1.ConditionFalse,
+				Reason:  "WaitingForAvailable",
+				Message: "Components are starting up",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterProgressing,
+				Status:  metav1.ConditionTrue,
+				Reason:  "Provisioning",
+				Message: "HostedCluster is being provisioned",
+			})
+
+			reconciler.updatePhaseFromConditions(provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseProvisioning),
+				"should stay in Provisioning when HC is progressing normally")
+		})
 	})
 })
