@@ -191,9 +191,14 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Feature: Copy Secrets to clusters namespace
-	// Only run during Pending phase (all validations must pass first)
-	// Note: We only check for Pending (not Failed) to prevent secret operations when validations fail
-	if cr.Status.Phase == provisioningv1alpha1.PhasePending {
+	// Runs whenever secrets have been validated successfully, not just during Pending phase.
+	// This ensures that when a user rotates credentials (creates a new secret and updates the
+	// CR's PullSecretRef/SSHKeySecretRef), the new copies are created and stale copies removed
+	// in all phases. The copy names encode the source reference, so changing the reference
+	// also changes HostedCluster.Spec.PullSecret.Name, causing HyperShift to create a new
+	// ignition-server token with the correct hash.
+	secretsValid := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.SecretsValid)
+	if secretsValid != nil && secretsValid.Status == metav1.ConditionTrue {
 		log.V(1).Info("Copying secrets to clusters namespace")
 		if result, err := r.SecretManager.CopySecrets(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 			if err != nil {
@@ -201,8 +206,10 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			}
 			return result, err
 		}
+	}
 
-		// Generate ETCD encryption key
+	// Generate ETCD encryption key (only once during initial provisioning)
+	if cr.Status.Phase == provisioningv1alpha1.PhasePending {
 		log.V(1).Info("Generating ETCD encryption key")
 		if result, err := r.SecretManager.GenerateETCDEncryptionKey(ctx, &cr); err != nil || result.RequeueAfter > 0 {
 			if err != nil {
@@ -210,8 +217,6 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			}
 			return result, err
 		}
-	} else {
-		log.V(1).Info("Skipping secret management - cluster already provisioned or being deleted", "phase", cr.Status.Phase)
 	}
 
 	// This MUST run BEFORE reconcileHostedClusterAndNodePool so conditions are set

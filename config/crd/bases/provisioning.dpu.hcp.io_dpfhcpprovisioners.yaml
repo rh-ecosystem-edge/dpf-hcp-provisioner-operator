@@ -260,7 +260,7 @@ spec:
                 description: |-
                   PullSecretRef is a reference to a Secret containing the container registry pull secret
                   Secret must be in the same namespace as the DPFHCPProvisioner CR and contain key '.dockerconfigjson'
-                  This field is immutable.
+                  To rotate the pull secret, create a new Secret and update this field to point to it.
                 properties:
                   name:
                     default: ""
@@ -273,14 +273,11 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-                x-kubernetes-validations:
-                - message: pullSecretRef is immutable
-                  rule: self == oldSelf
               sshKeySecretRef:
                 description: |-
                   SSHKeySecretRef is a reference to a Secret containing the SSH public key for cluster node access
                   Secret must be in the same namespace as the DPFHCPProvisioner CR and contain key 'id_rsa.pub'
-                  This field is immutable.
+                  To rotate the SSH key, create a new Secret and update this field to point to it.
                 properties:
                   name:
                     default: ""
@@ -293,9 +290,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-                x-kubernetes-validations:
-                - message: sshKeySecretRef is immutable
-                  rule: self == oldSelf
               virtualIP:
                 description: |-
                   VirtualIP is the virtual IP address for load balancer

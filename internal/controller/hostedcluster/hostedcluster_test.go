@@ -72,8 +72,8 @@ var _ = Describe("HostedCluster Builder", func() {
 		It("should reference correct secret names", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
-			Expect(hc.Spec.PullSecret.Name).To(Equal("test-provisioner-pull-secret"))
-			Expect(hc.Spec.SSHKey.Name).To(Equal("test-provisioner-ssh-key"))
+			Expect(hc.Spec.PullSecret.Name).To(Equal(PullSecretCopyName(cr)))
+			Expect(hc.Spec.SSHKey.Name).To(Equal(SSHKeyCopyName(cr)))
 		})
 
 		It("should set DNS base domain", func() {

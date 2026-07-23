@@ -75,24 +75,47 @@ func (hm *HostedClusterManager) CreateOrUpdateHostedCluster(ctx context.Context,
 	if err == nil {
 		// HostedCluster exists - verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingHC, cr) {
+			needsUpdate := false
+			isUpgrade := false
+
 			// Check if release image needs to be updated (upgrade scenario)
 			if existingHC.Spec.Release.Image != cr.Spec.OCPReleaseImage {
 				log.Info("Updating HostedCluster release image for upgrade",
 					"hostedCluster", hcName,
 					"oldImage", existingHC.Spec.Release.Image,
 					"newImage", cr.Spec.OCPReleaseImage)
-
 				existingHC.Spec.Release.Image = cr.Spec.OCPReleaseImage
-				if err := hm.Update(ctx, existingHC); err != nil {
-					return ctrl.Result{}, fmt.Errorf("failed to update HostedCluster release image: %w", err)
-				}
-
 				// Clear the cached BlueField OCP layer image since it corresponds to the old OCP version.
 				// The lookup will re-run in the IgnitionGenerating phase for the new version.
 				cr.Status.BlueFieldOCPLayerImage = ""
+				needsUpdate = true
+				isUpgrade = true
+			}
 
-				// Requeue to let the HC upgrade proceed before running ignition generation
-				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			// Check if secret references need to be updated (user rotated credentials by
+			// pointing PullSecretRef/SSHKeySecretRef to a new secret). A name change causes
+			// HyperShift to create a new ignition-server token with the correct hash.
+			expectedPullSecretName := PullSecretCopyName(cr)
+			expectedSSHKeyName := SSHKeyCopyName(cr)
+			if existingHC.Spec.PullSecret.Name != expectedPullSecretName || existingHC.Spec.SSHKey.Name != expectedSSHKeyName {
+				log.Info("Updating HostedCluster secret references",
+					"hostedCluster", hcName,
+					"pullSecret", expectedPullSecretName,
+					"sshKey", expectedSSHKeyName)
+				existingHC.Spec.PullSecret.Name = expectedPullSecretName
+				existingHC.Spec.SSHKey.Name = expectedSSHKeyName
+				needsUpdate = true
+			}
+
+			if needsUpdate {
+				if err := hm.Update(ctx, existingHC); err != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to update HostedCluster: %w", err)
+				}
+				if isUpgrade {
+					// Requeue to let the HC upgrade proceed before running ignition generation
+					return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+				}
+				return ctrl.Result{}, nil
 			}
 
 			log.V(1).Info("HostedCluster already exists and is owned by this DPFHCPProvisioner, no update needed",
@@ -176,14 +199,14 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 				Image: cr.Spec.OCPReleaseImage,
 			},
 
-			// Pull secret reference (copied to clusters namespace)
+			// Pull secret reference (copied to clusters namespace, name encodes source ref)
 			PullSecret: corev1.LocalObjectReference{
-				Name: fmt.Sprintf("%s-pull-secret", cr.Name),
+				Name: PullSecretCopyName(cr),
 			},
 
-			// SSH key reference (copied to clusters namespace)
+			// SSH key reference (copied to clusters namespace, name encodes source ref)
 			SSHKey: corev1.LocalObjectReference{
-				Name: fmt.Sprintf("%s-ssh-key", cr.Name),
+				Name: SSHKeyCopyName(cr),
 			},
 
 			// DNS configuration
