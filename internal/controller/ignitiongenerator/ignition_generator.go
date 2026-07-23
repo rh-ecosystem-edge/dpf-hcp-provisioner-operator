@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -296,7 +297,11 @@ func (ig *IgnitionGenerator) getIgnitionCACert(ctx context.Context, cr *provisio
 }
 
 // getIgnitionToken finds the ignition bearer token from the control plane namespace.
-// HyperShift names the secret "token-<cluster>-<hash>", so we search by prefix.
+// HyperShift names the secret "token-<cluster>-<hash>" where the hash encodes the current
+// rollout config (including HC.Spec.PullSecret.Name). After a credential rotation the old
+// token still exists until it expires (~11h), so multiple matching secrets can be present.
+// We always use the NEWEST token, which corresponds to the current HC spec and carries the
+// correct pull-secret-hash — using an older token would cause a 403 from the ignition server.
 func (ig *IgnitionGenerator) getIgnitionToken(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (string, error) {
 	ns := ig.controlPlaneNamespace(cr)
 	prefix := ignitionTokenPrefix + cr.Status.HostedClusterRef.Name
@@ -306,17 +311,28 @@ func (ig *IgnitionGenerator) getIgnitionToken(ctx context.Context, cr *provision
 		return "", fmt.Errorf("failed to list secrets in %s: %w", ns, err)
 	}
 
+	// Collect all matching token secrets, then pick the newest one.
+	var candidates []corev1.Secret
 	for i := range secretList.Items {
 		if strings.HasPrefix(secretList.Items[i].Name, prefix) {
-			tokenBytes, ok := secretList.Items[i].Data[ignitionTokenKey]
-			if !ok {
-				return "", fmt.Errorf("token key not found in secret %s", secretList.Items[i].Name)
-			}
-			// Re-encode: Secret.Data is already decoded, but the ignition server expects the base64 form
-			return base64.StdEncoding.EncodeToString(tokenBytes), nil
+			candidates = append(candidates, secretList.Items[i])
 		}
 	}
-	return "", fmt.Errorf("no token secret with prefix %q found in namespace %s", prefix, ns)
+	if len(candidates) == 0 {
+		return "", fmt.Errorf("no token secret with prefix %q found in namespace %s", prefix, ns)
+	}
+
+	// Sort newest-first so candidates[0] is the token for the current HC spec.
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[j].CreationTimestamp.Before(&candidates[i].CreationTimestamp)
+	})
+
+	tokenBytes, ok := candidates[0].Data[ignitionTokenKey]
+	if !ok {
+		return "", fmt.Errorf("token key not found in secret %s", candidates[0].Name)
+	}
+	// Re-encode: Secret.Data is already decoded, but the ignition server expects the base64 form
+	return base64.StdEncoding.EncodeToString(tokenBytes), nil
 }
 
 // getIgnitionEndpoint reads the ignition endpoint URL from the HostedCluster status.
