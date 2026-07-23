@@ -59,7 +59,14 @@ fi
 
 cx_pcidev=$(lspci -nD 2>/dev/null | grep 15b3:a2d[26c] | awk '{print $1}' | head -1)
 cx_dev_id=$(lspci -nD -s ${cx_pcidev} 2>/dev/null | awk -F ':' '{print strtonum("0x" $NF)}')
-PSID=$(mstflint -d $cx_pcidev q | grep PSID | awk '{print $NF}')
+
+flint_device=$cx_pcidev
+
+if mokutil --sb-state 2>/dev/null | grep -q "SecureBoot enabled"; then
+    flint_device=$(grep -l "PCI_SLOT_NAME=$cx_pcidev" /sys/class/fwctl/*/device/uevent | awk -F/ '{print "/dev/fwctl/"$5}')
+fi
+
+PSID=$(mstflint -d $flint_device q | grep PSID | awk '{print $NF}')
 
 log "INFO: Updating NIC firmware"
 if ! update_nic_firmware; then
