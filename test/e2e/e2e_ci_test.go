@@ -504,6 +504,17 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 				"IgnitionConfigured should be True after upgrade")
 			Expect(condMap["HostedClusterUpgrading"]).To(Equal(metav1.ConditionFalse),
 				"HostedClusterUpgrading should be False after upgrade")
+
+			By("verifying HostedCluster ClusterVersionProgressing is not True")
+			hc := &hyperv1.HostedCluster{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ciNamespace, Name: hcName}, hc)
+			Expect(err).NotTo(HaveOccurred())
+			for _, c := range hc.Status.Conditions {
+				if c.Type == string(hyperv1.ClusterVersionProgressing) {
+					Expect(c.Status).NotTo(Equal(metav1.ConditionTrue),
+						"ClusterVersionProgressing should not be True when operator reports Ready — CVO is still rolling out operators")
+				}
+			}
 		})
 	})
 

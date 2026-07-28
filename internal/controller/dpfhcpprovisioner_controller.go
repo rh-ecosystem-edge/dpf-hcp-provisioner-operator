@@ -1471,12 +1471,21 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
-// isHostedClusterVersionReady checks if the control plane has completed rolling out the target
-// release image by inspecting ControlPlaneVersion.History. Returns true only when the most
-// recent history entry matches the target and has State == Completed, which means all
-// management-side control plane components have reached the new version and the ignition
-// server is serving content for it.
+// isHostedClusterVersionReady checks if the HostedCluster has fully completed rolling out the
+// target release image. It requires both:
+//  1. ControlPlaneVersion.History shows the target version as Completed (control plane done)
+//  2. ClusterVersionProgressing condition is not True (CVO finished rolling out all operators)
+//
+// Checking only History is insufficient: ControlPlaneVersion reports Completed when the control
+// plane components are done, but cluster operators (dns, network, monitoring, etc.) may still
+// be rolling out. ClusterVersionProgressing tracks the full CVO rollout.
 func (r *DPFHCPProvisionerReconciler) isHostedClusterVersionReady(hc *hyperv1.HostedCluster, targetReleaseImage string) bool {
+	// ClusterVersionProgressing=True means the CVO is still rolling out operators
+	cvProgressing := meta.FindStatusCondition(hc.Status.Conditions, string(hyperv1.ClusterVersionProgressing))
+	if cvProgressing != nil && cvProgressing.Status == metav1.ConditionTrue {
+		return false
+	}
+
 	if len(hc.Status.ControlPlaneVersion.History) == 0 {
 		return false
 	}

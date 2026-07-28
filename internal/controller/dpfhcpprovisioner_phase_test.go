@@ -663,6 +663,26 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			Expect(isUpgrading(provisioner)).To(BeFalse())
 		})
 
+		It("isHostedClusterVersionReady should return false when ClusterVersionProgressing is True", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			hc := &hyperv1.HostedCluster{
+				Status: hyperv1.HostedClusterStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   string(hyperv1.ClusterVersionProgressing),
+							Status: metav1.ConditionTrue,
+						},
+					},
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{
+						History: []hyperv1.ControlPlaneUpdateHistory{
+							{Version: "4.22.1", State: configv1.CompletedUpdate},
+						},
+					},
+				},
+			}
+			Expect(reconciler.isHostedClusterVersionReady(hc, "quay.io/openshift-release-dev/ocp-release:4.22.1-multi")).To(BeFalse())
+		})
+
 		It("isHostedClusterVersionReady should return true when version matches and state is Completed", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			hc := &hyperv1.HostedCluster{
