@@ -111,7 +111,7 @@ var _ = Describe("NodePool Upgrade", func() {
 		Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
 	})
 
-	It("should update NodePool release image when spec changes", func() {
+	It("should not update NodePool release image when spec changes (upgrade is handled by handleUpgrade)", func() {
 		cr := &provisioningv1alpha1.DPFHCPProvisioner{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-provisioner",
@@ -153,7 +153,8 @@ var _ = Describe("NodePool Upgrade", func() {
 
 		updatedNP := &hyperv1.NodePool{}
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: "default"}, updatedNP)).To(Succeed())
-		Expect(updatedNP.Spec.Release.Image).To(Equal(newImage))
+		Expect(updatedNP.Spec.Release.Image).To(Equal(oldImage),
+			"release image should not be updated by CreateNodePool")
 	})
 
 	It("should not update NodePool when release image is unchanged", func() {

@@ -449,9 +449,9 @@ spec:
                 description: Phase represents the current lifecycle phase
                 enum:
                 - Pending
-                - Provisioning
-                - Upgrading
-                - IgnitionGenerating
+                - WaitingForControlPlane
+                - GeneratingIgnition
+                - ClusterVersionProgressing
                 - Ready
                 - Failed
                 - Deleting

@@ -177,7 +177,7 @@ var _ = Describe("DPFHCPProvisioner Integration Tests with envtest", func() {
 				if err := k8sClient.Get(ctx, types.NamespacedName{Name: provisionerName, Namespace: "default"}, provisioner); err != nil {
 					return err
 				}
-				provisioner.Status.Phase = provisioningv1alpha1.PhaseProvisioning
+				provisioner.Status.Phase = provisioningv1alpha1.PhaseWaitingForControlPlane
 				return k8sClient.Status().Update(ctx, provisioner)
 			}, time.Second*5, time.Millisecond*100).Should(Succeed())
 
@@ -186,7 +186,7 @@ var _ = Describe("DPFHCPProvisioner Integration Tests with envtest", func() {
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: provisionerName, Namespace: "default"}, updated)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(updated.Status.Phase).To(Equal(provisioningv1alpha1.PhaseProvisioning))
+			Expect(updated.Status.Phase).To(Equal(provisioningv1alpha1.PhaseWaitingForControlPlane))
 			Expect(updated.Generation).To(Equal(initialGeneration), "Status update should not increment generation")
 		})
 
