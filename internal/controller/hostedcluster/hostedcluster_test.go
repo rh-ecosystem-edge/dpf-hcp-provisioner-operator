@@ -390,7 +390,7 @@ var _ = Describe("HostedCluster Upgrade", func() {
 		Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
 	})
 
-	It("should update HostedCluster release image when spec changes", func() {
+	It("should not update HostedCluster release image when spec changes (upgrade is handled by handleUpgrade)", func() {
 		cr := &provisioningv1alpha1.DPFHCPProvisioner{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-provisioner",
@@ -399,9 +399,6 @@ var _ = Describe("HostedCluster Upgrade", func() {
 			},
 			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
 				OCPReleaseImage: newImage,
-			},
-			Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
-				BlueFieldOCPLayerImage: "quay.io/bf-ocp-layer:4.18.0",
 			},
 		}
 
@@ -426,20 +423,17 @@ var _ = Describe("HostedCluster Upgrade", func() {
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(existingHC).
-			WithStatusSubresource(cr).
 			Build()
 
 		hm := NewHostedClusterManager(fakeClient, scheme)
 		result, err := hm.CreateOrUpdateHostedCluster(ctx, cr)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(result.RequeueAfter).To(BeNumerically(">", 0), "should requeue after upgrade")
+		Expect(result.RequeueAfter).To(BeZero())
 
 		updatedHC := &hyperv1.HostedCluster{}
 		Expect(fakeClient.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: "default"}, updatedHC)).To(Succeed())
-		Expect(updatedHC.Spec.Release.Image).To(Equal(newImage))
-
-		Expect(cr.Status.BlueFieldOCPLayerImage).To(BeEmpty(),
-			"BlueFieldOCPLayerImage should be cleared after upgrade")
+		Expect(updatedHC.Spec.Release.Image).To(Equal(oldImage),
+			"release image should not be updated by CreateOrUpdateHostedCluster")
 	})
 
 	It("should not update HostedCluster when release image is unchanged", func() {

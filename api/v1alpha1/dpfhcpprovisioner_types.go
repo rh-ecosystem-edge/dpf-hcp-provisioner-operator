@@ -192,30 +192,17 @@ type DPFHCPProvisionerSpec struct {
 }
 
 // DPFHCPProvisionerPhase represents the lifecycle phase of the DPFHCPProvisioner
-// +kubebuilder:validation:Enum=Pending;Provisioning;Upgrading;IgnitionGenerating;Ready;Failed;Deleting
+// +kubebuilder:validation:Enum=Pending;WaitingForControlPlane;GeneratingIgnition;ClusterVersionProgressing;Ready;Failed;Deleting
 type DPFHCPProvisionerPhase string
 
 const (
-	// PhasePending indicates initial state, validation in progress
-	PhasePending DPFHCPProvisionerPhase = "Pending"
-
-	// PhaseProvisioning indicates HostedCluster and related resources are being created
-	PhaseProvisioning DPFHCPProvisionerPhase = "Provisioning"
-
-	// PhaseUpgrading indicates a HostedCluster release image upgrade is in progress
-	PhaseUpgrading DPFHCPProvisionerPhase = "Upgrading"
-
-	// PhaseIgnitionGenerating indicates ignition generation is in progress
-	PhaseIgnitionGenerating DPFHCPProvisionerPhase = "IgnitionGenerating"
-
-	// PhaseReady indicates HostedCluster is operational, kubeconfig injected, CSR auto-approval active
-	PhaseReady DPFHCPProvisionerPhase = "Ready"
-
-	// PhaseFailed indicates permanent failure requiring user intervention
-	PhaseFailed DPFHCPProvisionerPhase = "Failed"
-
-	// PhaseDeleting indicates finalizer cleanup in progress
-	PhaseDeleting DPFHCPProvisionerPhase = "Deleting"
+	PhasePending                   DPFHCPProvisionerPhase = "Pending"
+	PhaseWaitingForControlPlane    DPFHCPProvisionerPhase = "WaitingForControlPlane"
+	PhaseGeneratingIgnition        DPFHCPProvisionerPhase = "GeneratingIgnition"
+	PhaseClusterVersionProgressing DPFHCPProvisionerPhase = "ClusterVersionProgressing"
+	PhaseReady                     DPFHCPProvisionerPhase = "Ready"
+	PhaseFailed                    DPFHCPProvisionerPhase = "Failed"
+	PhaseDeleting                  DPFHCPProvisionerPhase = "Deleting"
 )
 
 // Condition types for DPFHCPProvisioner.

@@ -408,7 +408,7 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					return ""
 				}
 				return provisioner.Status.Phase
-			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseProvisioning))
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseWaitingForControlPlane))
 		})
 
 		It("should stay in Provisioning when HostedCluster is available BUT kubeconfig is NOT injected", func() {
@@ -466,7 +466,7 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					return ""
 				}
 				return provisioner.Status.Phase
-			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseProvisioning))
+			}, timeout, interval).Should(Equal(provisioningv1alpha1.PhaseWaitingForControlPlane))
 
 			// Mock: Simulate HC available but kubeconfig NOT injected
 			Eventually(func() error {
@@ -499,7 +499,7 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					return ""
 				}
 				return provisioner.Status.Phase
-			}, time.Second*3, interval).Should(Equal(provisioningv1alpha1.PhaseProvisioning))
+			}, time.Second*3, interval).Should(Equal(provisioningv1alpha1.PhaseWaitingForControlPlane))
 
 			// Verify Ready condition is False or not set
 			Eventually(func() bool {
@@ -553,8 +553,8 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			})
 
 			reconciler.updatePhaseFromConditions(provisioner)
-			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseUpgrading),
-				"should be Upgrading while HostedClusterUpgrading=True")
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition),
+				"should be IgnitionGenerating when ignition is stale, regardless of HostedClusterUpgrading")
 		})
 
 		It("should transition to IgnitionGenerating when HostedClusterUpgrading is False", func() {
@@ -596,11 +596,11 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			})
 
 			reconciler.updatePhaseFromConditions(provisioner)
-			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseIgnitionGenerating),
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition),
 				"should transition to IgnitionGenerating when upgrade is complete")
 		})
 
-		It("should transition to Upgrading when HostedClusterUpgrading=True and ignition is stale", func() {
+		It("should transition to IgnitionGenerating when HostedClusterUpgrading=True and ignition is stale", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
@@ -622,6 +622,11 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 				Reason: "Available",
 			})
 			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:   provisioningv1alpha1.KubeConfigInjected,
+				Status: metav1.ConditionTrue,
+				Reason: provisioningv1alpha1.ReasonKubeConfigInjected,
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
 				Type:   provisioningv1alpha1.HostedClusterUpgrading,
 				Status: metav1.ConditionTrue,
 				Reason: provisioningv1alpha1.ReasonUpgradeInProgress,
@@ -634,8 +639,8 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			})
 
 			reconciler.updatePhaseFromConditions(provisioner)
-			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseUpgrading),
-				"should be Upgrading when HostedClusterUpgrading=True")
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition),
+				"should be IgnitionGenerating when ignition is stale, regardless of HostedClusterUpgrading")
 		})
 
 		It("isUpgrading should return true when HostedClusterUpgrading=True", func() {

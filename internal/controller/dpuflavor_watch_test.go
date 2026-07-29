@@ -457,7 +457,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 			r.updatePhaseFromConditions(provisioner)
 
 			Expect(provisioner.Status.Phase).NotTo(Equal(provisioningv1alpha1.PhaseFailed))
-			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseIgnitionGenerating))
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition))
 		})
 	})
 })

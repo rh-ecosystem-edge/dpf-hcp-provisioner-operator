@@ -236,7 +236,9 @@ var _ = Describe("DPFHCPProvisioner API Types", func() {
 	Context("Phase Enum", func() {
 		It("should have correct phase enum values", func() {
 			Expect(string(PhasePending)).To(Equal("Pending"))
-			Expect(string(PhaseProvisioning)).To(Equal("Provisioning"))
+			Expect(string(PhaseWaitingForControlPlane)).To(Equal("WaitingForControlPlane"))
+			Expect(string(PhaseGeneratingIgnition)).To(Equal("GeneratingIgnition"))
+			Expect(string(PhaseClusterVersionProgressing)).To(Equal("ClusterVersionProgressing"))
 			Expect(string(PhaseReady)).To(Equal("Ready"))
 			Expect(string(PhaseFailed)).To(Equal("Failed"))
 			Expect(string(PhaseDeleting)).To(Equal("Deleting"))
@@ -245,7 +247,9 @@ var _ = Describe("DPFHCPProvisioner API Types", func() {
 		It("should allow all valid phases to be set", func() {
 			validPhases := []DPFHCPProvisionerPhase{
 				PhasePending,
-				PhaseProvisioning,
+				PhaseWaitingForControlPlane,
+				PhaseGeneratingIgnition,
+				PhaseClusterVersionProgressing,
 				PhaseReady,
 				PhaseFailed,
 				PhaseDeleting,
