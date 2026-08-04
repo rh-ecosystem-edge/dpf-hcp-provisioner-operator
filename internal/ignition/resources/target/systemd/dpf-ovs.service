@@ -1,6 +1,7 @@
 [Unit]
 Description=DPF OVS setup
-After=network.target
+After=network.target openvswitch.service
+Requires=openvswitch.service
 ConditionPathExists=/etc/mlnx-release
 
 [Service]
