@@ -2,35 +2,56 @@
 set -e
 
 # Long-running service that ensures routing table 100 stays configured for
-# OVN-K traffic via br-dpu. Continuously monitors and re-applies rules/routes
-# in case they are removed (e.g. after NMState reconfiguration).
+# OVN-K traffic via the primary IP bridge interface. Continuously monitors
+# and re-applies rules/routes in case they are removed (e.g. after NMState
+# reconfiguration). The bridge name is resolved dynamically from the primary IP.
 
 CHECK_INTERVAL=2
 RECONCILE_INTERVAL=60
 PRIMARY_IP_FILE="/run/nodeip-configuration/primary-ip"
 
-echo "Waiting for primary IP file to determine IP version..."
+wait_for_primary_ip() {
+    echo "Waiting for primary IP file to determine IP version..."
+    while [ ! -f "$PRIMARY_IP_FILE" ] || [ ! -s "$PRIMARY_IP_FILE" ]; do
+        sleep $CHECK_INTERVAL
+    done
 
-while [ ! -f "$PRIMARY_IP_FILE" ] || [ ! -s "$PRIMARY_IP_FILE" ]; do
-    sleep $CHECK_INTERVAL
-done
+    br_dpu_ip=$(tr -d '[:space:]' < "$PRIMARY_IP_FILE")
+    echo "Using primary IP from $PRIMARY_IP_FILE: $br_dpu_ip"
 
-br_dpu_ip=$(tr -d '[:space:]' < "$PRIMARY_IP_FILE")
-echo "Using br-dpu IP from $PRIMARY_IP_FILE: $br_dpu_ip"
+    if [[ "$br_dpu_ip" =~ : ]]; then
+        IP_VERSION="6"
+        IP_FLAG="-6"
+        PREFIX_LEN="128"
+        LINK_LOCAL_PATTERN="^fe80:"
+        echo "Detected IPv6 configuration"
+    else
+        IP_VERSION="4"
+        IP_FLAG="-4"
+        PREFIX_LEN="32"
+        LINK_LOCAL_PATTERN="^169[.]254"
+        echo "Detected IPv4 configuration"
+    fi
+}
 
-if [[ "$br_dpu_ip" =~ : ]]; then
-    IP_VERSION="6"
-    IP_FLAG="-6"
-    PREFIX_LEN="128"
-    LINK_LOCAL_PATTERN="^fe80:"
-    echo "Detected IPv6 configuration"
-else
-    IP_VERSION="4"
-    IP_FLAG="-4"
-    PREFIX_LEN="32"
-    LINK_LOCAL_PATTERN="^169[.]254"
-    echo "Detected IPv4 configuration"
-fi
+resolve_bridge_name() {
+    local ip="$1"
+    echo "Waiting for bridge interface with IP $ip to appear..."
+    while true; do
+        local iface
+        iface=$(ip -j addr show | jq -r --arg ip "$ip" \
+            '.[] | select(.addr_info[]? | .local == $ip) | .ifname' | head -n1)
+        if [ -n "$iface" ]; then
+            if ip -d -j link show "$iface" | jq -e '.[0].linkinfo.info_kind == "bridge"' > /dev/null 2>&1; then
+                echo "Resolved bridge interface: $iface"
+                BRIDGE_NAME="$iface"
+                return 0
+            fi
+            echo "Warning: $iface has IP $ip but is not a bridge, retrying..."
+        fi
+        sleep $CHECK_INTERVAL
+    done
+}
 
 ensure_rule() {
     if ip $IP_FLAG -j rule list | jq -e --arg src "$br_dpu_ip" '.[] | select(.src == $src and .table == "100")' > /dev/null 2>&1; then
@@ -54,16 +75,16 @@ configure_routing() {
     local ovnk_ip="$2"
 
     local br_dpu_network
-    br_dpu_network=$(ip $IP_FLAG -j route show dev br-dpu | jq -r '.[] | select(.protocol == "kernel") | .dst' | head -n1)
+    br_dpu_network=$(ip $IP_FLAG -j route show dev "$BRIDGE_NAME" | jq -r '.[] | select(.protocol == "kernel") | .dst' | head -n1)
     if [ -z "$br_dpu_network" ]; then
-        echo "Warning: Could not find br-dpu network, will retry"
+        echo "Warning: Could not find $BRIDGE_NAME network, will retry"
         return 1
     fi
 
     local br_dpu_gateway
-    br_dpu_gateway=$(ip $IP_FLAG -j route | jq -r '.[] | select(.dst == "default" and .dev == "br-dpu") | .gateway' | head -n1)
+    br_dpu_gateway=$(ip $IP_FLAG -j route | jq -r --arg dev "$BRIDGE_NAME" '.[] | select(.dst == "default" and .dev == $dev) | .gateway' | head -n1)
     if [ -z "$br_dpu_gateway" ]; then
-        echo "Warning: Could not find gateway for br-dpu, will retry"
+        echo "Warning: Could not find gateway for $BRIDGE_NAME, will retry"
         return 1
     fi
 
@@ -82,40 +103,47 @@ configure_routing() {
     fi
 
     local br_dpu_metric
-    br_dpu_metric=$(ip $IP_FLAG -j route show dev br-dpu | jq -r '.[] | select(.protocol == "kernel") | .metric // 425' | head -n1)
+    br_dpu_metric=$(ip $IP_FLAG -j route show dev "$BRIDGE_NAME" | jq -r '.[] | select(.protocol == "kernel") | .metric // 425' | head -n1)
 
     ensure_rule
     ensure_route "$ovnk_subnet" via "$br_dpu_gateway"
-    ensure_route "$br_dpu_network" dev br-dpu proto kernel scope link src "$br_dpu_ip" metric "$br_dpu_metric"
+    ensure_route "$br_dpu_network" dev "$BRIDGE_NAME" proto kernel scope link src "$br_dpu_ip" metric "$br_dpu_metric"
     return 0
 }
 
-echo "Waiting for OVN-K interface (with link-local address) to get an IP address..."
+reconcile_loop() {
+    echo "Waiting for OVN-K interface (with link-local address) to get an IP address..."
 
-configured=false
-while true; do
-    ovnk_ifaces=$(ip -j addr show | jq --arg pattern "$LINK_LOCAL_PATTERN" -r '.[] | select(.addr_info[]? | .local | test($pattern)) | .ifname' | sort -u)
+    configured=false
+    while true; do
+        ovnk_ifaces=$(ip -j addr show | jq --arg pattern "$LINK_LOCAL_PATTERN" -r '.[] | select(.addr_info[]? | .local | test($pattern)) | .ifname' | sort -u)
 
-    for ovnk_iface in $ovnk_ifaces; do
-        ovnk_ip=$(ip $IP_FLAG -j addr show "$ovnk_iface" | jq --arg pattern "$LINK_LOCAL_PATTERN" -r '.[] | .addr_info[]? | select(.local | test($pattern) | not) | .local' | head -n1)
+        for ovnk_iface in $ovnk_ifaces; do
+            ovnk_ip=$(ip $IP_FLAG -j addr show "$ovnk_iface" | jq --arg pattern "$LINK_LOCAL_PATTERN" -r '.[] | .addr_info[]? | select(.local | test($pattern) | not) | .local' | head -n1)
 
-        if [ -n "$ovnk_ip" ]; then
-            if [ "$configured" = "false" ]; then
-                echo "Found OVN-K interface: $ovnk_iface with IPv${IP_VERSION}: $ovnk_ip"
-            fi
-            if configure_routing "$ovnk_iface" "$ovnk_ip"; then
+            if [ -n "$ovnk_ip" ]; then
                 if [ "$configured" = "false" ]; then
-                    echo "Routing configuration completed, entering reconcile loop"
-                    configured=true
+                    echo "Found OVN-K interface: $ovnk_iface with IPv${IP_VERSION}: $ovnk_ip"
                 fi
+                if configure_routing "$ovnk_iface" "$ovnk_ip"; then
+                    if [ "$configured" = "false" ]; then
+                        echo "Routing configuration completed, entering reconcile loop"
+                        configured=true
+                    fi
+                fi
+                break
             fi
-            break
+        done
+
+        if [ "$configured" = "true" ]; then
+            sleep $RECONCILE_INTERVAL
+        else
+            sleep $CHECK_INTERVAL
         fi
     done
+}
 
-    if [ "$configured" = "true" ]; then
-        sleep $RECONCILE_INTERVAL
-    else
-        sleep $CHECK_INTERVAL
-    fi
-done
+# --- Main ---
+wait_for_primary_ip
+resolve_bridge_name "$br_dpu_ip"
+reconcile_loop
