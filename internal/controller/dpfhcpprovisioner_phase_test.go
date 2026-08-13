@@ -890,6 +890,107 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					ignCond.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed
 			}, timeout, interval).Should(BeTrue())
 		})
+		It("should transition to Error when HostedCluster is blocked (Progressing=False, reason=Blocked)", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-hc-blocked",
+					Namespace:  testNamespace,
+					Generation: 1,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-hc-blocked",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterAvailable,
+				Status:  metav1.ConditionFalse,
+				Reason:  "WaitingForAvailable",
+				Message: "failed to extract release metadata: manifest unknown",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterProgressing,
+				Status:  metav1.ConditionFalse,
+				Reason:  hyperv1.BlockedReason,
+				Message: "failed to extract release metadata: manifest unknown",
+			})
+
+			reconciler.updatePhaseFromConditions(context.Background(), provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseError),
+				"should be Error when HostedCluster is blocked")
+		})
+
+		It("should transition to Error when HostedCluster is degraded", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-hc-degraded",
+					Namespace:  testNamespace,
+					Generation: 1,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-hc-degraded",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterAvailable,
+				Status:  metav1.ConditionFalse,
+				Reason:  "WaitingForAvailable",
+				Message: "HostedCluster is degraded",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterDegraded,
+				Status:  metav1.ConditionTrue,
+				Reason:  "DegradedError",
+				Message: "encountering errors requiring intervention",
+			})
+
+			reconciler.updatePhaseFromConditions(context.Background(), provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseError),
+				"should be Error when HostedCluster is degraded")
+		})
+
+		It("should stay in Provisioning when HostedCluster is progressing normally", func() {
+			reconciler := &DPFHCPProvisionerReconciler{}
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "phase-unit-hc-progressing",
+					Namespace:  testNamespace,
+					Generation: 1,
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "phase-unit-hc-progressing",
+						Namespace: testNamespace,
+					},
+				},
+			}
+
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterAvailable,
+				Status:  metav1.ConditionFalse,
+				Reason:  "WaitingForAvailable",
+				Message: "Components are starting up",
+			})
+			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.HostedClusterProgressing,
+				Status:  metav1.ConditionTrue,
+				Reason:  "Provisioning",
+				Message: "HostedCluster is being provisioned",
+			})
+
+			reconciler.updatePhaseFromConditions(context.Background(), provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseWaitingForControlPlane),
+				"should stay in WaitingForControlPlane when HC is progressing normally")
+		})
 	})
 })
 
@@ -1033,6 +1134,41 @@ var _ = Describe("handleUpgrade", func() {
 		Expect(ignCond).NotTo(BeNil())
 		Expect(ignCond.Status).To(Equal(metav1.ConditionFalse))
 		Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonReleaseImageUpdated))
+	})
+
+	It("should recover when in ClusterVersionProgressing phase (partial failure)", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhaseClusterVersionProgressing)
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:   provisioningv1alpha1.HostedClusterAvailable,
+			Status: metav1.ConditionTrue,
+			Reason: "Available",
+		})
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:   provisioningv1alpha1.IgnitionConfigured,
+			Status: metav1.ConditionTrue,
+			Reason: provisioningv1alpha1.ReasonIgnitionGenerated,
+		})
+
+		hc := newHC(newImage) // HC already updated
+		np := newNP(oldImage) // NP NOT updated due to crash
+
+		r := buildReconciler(cr, hc, np)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(Equal(1*time.Second),
+			"should requeue to continue monitoring upgrade")
+
+		// NP should be updated to new image
+		updatedNP := &hyperv1.NodePool{}
+		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedNP)).To(Succeed())
+		Expect(updatedNP.Spec.Release.Image).To(Equal(newImage),
+			"NodePool should be updated to new image during recovery")
+
+		// HostedClusterUpgrading should be True
+		upgradingCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+		Expect(upgradingCond).NotTo(BeNil())
+		Expect(upgradingCond.Status).To(Equal(metav1.ConditionTrue))
 	})
 
 	It("should recover and delete stale ignition ConfigMap during partial failure", func() {

@@ -145,9 +145,9 @@ kubectl get dpfhcp <name> -n <namespace> -o jsonpath='{.status.conditions}' | jq
 
 ### Ignition Generation Failure
 
-**Condition:** `IgnitionConfigured = False`
+**Condition:** `IgnitionConfigured = False` with reason `IgnitionGenerationFailed` or `MachineOSURLMissing`
 
-**Symptoms:** CR enters `Failed` phase. Transient invalidation (e.g., release image change or dependency update) keeps the CR in `GeneratingIgnition` until regeneration succeeds.
+**Symptoms:** CR enters `Failed` phase. Note: transient invalidation reasons (e.g., `ReleaseImageUpdated`, `OperatorRestarted`, `ConfigMapDeleted`) do **not** cause the `Failed` phase — the CR stays in `GeneratingIgnition` and the controller retries automatically.
 
 **Resolution:**
 1. Verify the `dpuDeploymentRef` points to a valid DPUDeployment

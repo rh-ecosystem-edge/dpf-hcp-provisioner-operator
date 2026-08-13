@@ -69,14 +69,15 @@ func (nm *NodePoolManager) CreateNodePool(ctx context.Context, cr *provisioningv
 
 	if err == nil {
 		// NodePool exists - verify ownership via OwnerReference
-		if !metav1.IsControlledBy(existingNP, cr) {
-			return ctrl.Result{}, fmt.Errorf("nodePool %s exists in %s but is owned by different DPFHCPProvisioner", npName, npNamespace)
+		if metav1.IsControlledBy(existingNP, cr) {
+			log.V(1).Info("NodePool already exists and is owned by this DPFHCPProvisioner, no update needed",
+				"nodePool", npName,
+				"namespace", npNamespace)
+			return ctrl.Result{}, nil
 		}
 
-		log.V(1).Info("NodePool already exists and is owned by this DPFHCPProvisioner, no update needed",
-			"nodePool", npName,
-			"namespace", npNamespace)
-		return ctrl.Result{}, nil
+		// Name conflict - NP exists but owned by different DPFHCPProvisioner
+		return ctrl.Result{}, fmt.Errorf("nodePool %s exists in %s but is owned by different DPFHCPProvisioner", npName, npNamespace)
 	}
 
 	if !apierrors.IsNotFound(err) {

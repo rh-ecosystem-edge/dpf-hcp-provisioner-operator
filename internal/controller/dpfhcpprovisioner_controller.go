@@ -1095,7 +1095,7 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 		}
 		if !r.isControlPlaneReady(hc, cr.Spec.OCPReleaseImage) {
 			log.V(1).Info("Waiting for control plane rollout before regenerating ignition")
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 	}
 
@@ -1202,14 +1202,24 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 	if cr.Status.HostedClusterRef != nil {
 		hc := &hyperv1.HostedCluster{}
 		hcKey := types.NamespacedName{Name: cr.Status.HostedClusterRef.Name, Namespace: cr.Status.HostedClusterRef.Namespace}
-		if err := r.Get(ctx, hcKey, hc); err != nil || !r.isControlPlaneReady(hc, cr.Spec.OCPReleaseImage) {
+		if err := r.Get(ctx, hcKey, hc); err != nil {
+			log.Error(err, "Not ready: failed to read HostedCluster")
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:    provisioningv1alpha1.Ready,
+				Status:  metav1.ConditionFalse,
+				Reason:  provisioningv1alpha1.ReasonHostedClusterNotReady,
+				Message: "Failed to read HostedCluster to confirm version rollout",
+			})
+			return
+		}
+		if !r.isControlPlaneReady(hc, cr.Spec.OCPReleaseImage) {
 			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 				Type:    provisioningv1alpha1.Ready,
 				Status:  metav1.ConditionFalse,
 				Reason:  provisioningv1alpha1.ReasonControlPlaneProgressing,
 				Message: "Waiting for control plane to finish rolling out target version",
 			})
-			log.V(1).Info("Not ready: control plane version not confirmed", "error", err)
+			log.V(1).Info("Not ready: control plane version not confirmed")
 			return
 		}
 	}
@@ -1265,7 +1275,12 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(ctx context.Cont
 		}
 	}
 
-	// Check if ignition generation failed
+	// Check if ignition generation failed.
+	// When IgnitionConfigured is explicitly False with a failure reason, transition to Failed
+	// so the user can see the error and take action. The controller will retry on requeue.
+	// Note: IgnitionConfigured=False with transient reasons (e.g., ReleaseImageUpdated,
+	// OperatorRestarted) does NOT cause Failed — those are handled by generateIgnition
+	// and the phase will be GeneratingIgnition instead.
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 	if ignConfigured != nil && ignConfigured.Status == metav1.ConditionFalse &&
 		(ignConfigured.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed || ignConfigured.Reason == provisioningv1alpha1.ReasonMachineOSURLMissing) {
@@ -1429,17 +1444,21 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 			if err := r.Status().Update(ctx, cr); err != nil {
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// HC spec already matches CR — if the version has finished rolling out, nothing to do.
-	// If it hasn't and we're in Ready phase, an upgrade is in progress that we missed
-	// (e.g. operator restarted or a race prevented detection) — fall through to handle it.
-	// Only check during Ready phase to avoid treating initial install (where version is
-	// also Partial) as an upgrade.
+	// If it hasn't and we're in a steady-state phase (Ready or ClusterVersionProgressing),
+	// an upgrade is in progress that we missed (e.g. operator restarted or a race prevented
+	// detection) — fall through to handle it.
+	// Only check during steady-state phases to avoid treating initial install (where version
+	// is also Partial) as an upgrade.
 	if hc.Spec.Release.Image == cr.Spec.OCPReleaseImage {
-		if cr.Status.Phase != provisioningv1alpha1.PhaseReady || r.isHostedClusterVersionReady(hc, cr.Spec.OCPReleaseImage) {
+		isStablePhase := cr.Status.Phase == provisioningv1alpha1.PhaseReady ||
+			cr.Status.Phase == provisioningv1alpha1.PhaseClusterVersionProgressing
+		if !isStablePhase || r.isHostedClusterVersionReady(hc, cr.Spec.OCPReleaseImage) {
 			return ctrl.Result{}, nil
 		}
 		log.Info("HC spec matches but version not yet ready, entering upgrade flow",
@@ -1490,10 +1509,13 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 
 	np := &hyperv1.NodePool{}
 	npKey := types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}
-	if err := r.Get(ctx, npKey, np); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to get NodePool: %w", err)
-	}
-	if np.Spec.Release.Image != cr.Spec.OCPReleaseImage {
+	npErr := r.Get(ctx, npKey, np)
+	switch {
+	case apierrors.IsNotFound(npErr):
+		log.Info("NodePool not found, it will be created with the target release image", "nodePool", npKey.Name)
+	case npErr != nil:
+		return ctrl.Result{}, fmt.Errorf("failed to get NodePool: %w", npErr)
+	case np.Spec.Release.Image != cr.Spec.OCPReleaseImage:
 		log.Info("Updating NodePool release image",
 			"nodePool", np.Name,
 			"oldImage", np.Spec.Release.Image,
