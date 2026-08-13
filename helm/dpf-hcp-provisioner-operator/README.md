@@ -329,7 +329,7 @@ kubectl get dpfhcpprovisioner prod-dpu-cluster -n my-dpu-clusters -o jsonpath='{
 ```
 
 Key status fields:
-- `phase`: Current lifecycle phase (Pending, Provisioning, Ready, Failed, Deleting)
+- `phase`: Current lifecycle phase (Pending, WaitingForControlPlane, GeneratingIgnition, ClusterVersionProgressing, Ready, Failed, Deleting)
 - `conditions`: Detailed condition information organized by category:
   - **DPFHCPProvisioner-specific conditions:**
     - `Ready`: Overall operational status of the DPFHCPProvisioner

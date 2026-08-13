@@ -81,7 +81,7 @@ kubectl get dpfhcp <name> -n <namespace> -o jsonpath='{.status.conditions}' | jq
 
 **Condition:** `BlueFieldOCPLayerImageFound = False`
 
-**Symptoms:** CR stays in `Provisioning` phase.
+**Symptoms:** CR stays in `Failed` phase.
 
 **Cause:** The operator cannot find a BlueField container image tag matching the OCP version in the configured registry.
 
@@ -93,11 +93,11 @@ kubectl get dpfhcp <name> -n <namespace> -o jsonpath='{.status.conditions}' | jq
 2. Verify the OCP version extracted from `ocpReleaseImage` has a matching tag in the BlueField OCP layer image repository
 3. If the BlueField OCP layer image is known, set `machineOSURL` in the DPFHCPProvisioner spec to skip the lookup
 
-### HostedCluster Stuck in Provisioning
+### HostedCluster Stuck in WaitingForControlPlane
 
 **Conditions:** `HostedClusterAvailable = False`, `HostedClusterProgressing = True`
 
-**Symptoms:** CR stays in `Provisioning` phase for an extended period.
+**Symptoms:** CR stays in `WaitingForControlPlane` phase for an extended period.
 
 **Resolution:**
 1. Check the HostedCluster directly:
@@ -147,7 +147,7 @@ kubectl get dpfhcp <name> -n <namespace> -o jsonpath='{.status.conditions}' | jq
 
 **Condition:** `IgnitionConfigured = False`
 
-**Symptoms:** CR stays in `IgnitionGenerating` phase.
+**Symptoms:** CR enters `Failed` phase. Transient invalidation (e.g., release image change or dependency update) keeps the CR in `GeneratingIgnition` until regeneration succeeds.
 
 **Resolution:**
 1. Verify the `dpuDeploymentRef` points to a valid DPUDeployment

@@ -73,18 +73,9 @@ func (nm *NodePoolManager) CreateNodePool(ctx context.Context, cr *provisioningv
 			return ctrl.Result{}, fmt.Errorf("nodePool %s exists in %s but is owned by different DPFHCPProvisioner", npName, npNamespace)
 		}
 
-		// Reconcile release image in case a previous update failed partway through
-		if existingNP.Spec.Release.Image != cr.Spec.OCPReleaseImage {
-			log.Info("Updating NodePool release image",
-				"nodePool", npName,
-				"oldImage", existingNP.Spec.Release.Image,
-				"newImage", cr.Spec.OCPReleaseImage)
-			existingNP.Spec.Release.Image = cr.Spec.OCPReleaseImage
-			if err := nm.Update(ctx, existingNP); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to update NodePool release image: %w", err)
-			}
-		}
-
+		log.V(1).Info("NodePool already exists and is owned by this DPFHCPProvisioner, no update needed",
+			"nodePool", npName,
+			"namespace", npNamespace)
 		return ctrl.Result{}, nil
 	}
 

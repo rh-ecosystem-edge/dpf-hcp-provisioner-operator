@@ -24,8 +24,9 @@ The operator maintains a **1:1:1 relationship**: each `DPFHCPProvisioner` CR map
 | Phase | Description |
 |-------|-------------|
 | `Pending` | Initial state; validation of DPUCluster, secrets, and configuration in progress |
-| `Provisioning` | HostedCluster and related resources are being created |
-| `IgnitionGenerating` | BlueField-specific ignition configuration is being generated |
+| `WaitingForControlPlane` | Waiting for the hosted control plane to become available (initial provisioning) or to roll out the target version (upgrade) |
+| `GeneratingIgnition` | BlueField-specific ignition configuration is being generated |
+| `ClusterVersionProgressing` | Ignition configured, waiting for control plane to finish rolling out target version |
 | `Ready` | HostedCluster is operational, kubeconfig injected, CSR auto-approval active |
 | `Failed` | Permanent failure requiring user intervention |
 | `Deleting` | Finalizer cleanup in progress (HostedCluster deletion, MetalLB cleanup) |

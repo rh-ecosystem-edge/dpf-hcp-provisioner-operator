@@ -347,6 +347,12 @@ const (
 	// ReasonDependencyDeleted indicates a required dependency (DPUDeployment or DPUFlavor) was deleted.
 	// The ignition ConfigMap is removed and will be regenerated once the dependency is recreated.
 	ReasonDependencyDeleted string = "DependencyDeleted"
+
+	// ReasonReleaseImageUpdated indicates ignition was invalidated because the OCP release image changed.
+	ReasonReleaseImageUpdated string = "ReleaseImageUpdated"
+
+	// ReasonControlPlaneProgressing indicates the control plane is still rolling out the target version.
+	ReasonControlPlaneProgressing string = "ControlPlaneProgressing"
 )
 
 // DPFHCPProvisionerStatus defines the observed state of DPFHCPProvisioner

@@ -30,10 +30,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	ignitiongenerator "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/ignitiongenerator"
 )
 
 // Phase Transition Tests
@@ -514,13 +519,27 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			}, timeout, interval).Should(BeTrue())
 		})
 
-		It("should not transition to IgnitionGenerating while HostedClusterUpgrading is True", func() {
+		It("should show WaitingForControlPlane when upgrading and control plane not ready", func() {
+			scheme := runtime.NewScheme()
+			Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
+			hc := &hyperv1.HostedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "phase-unit-upgrading",
+					Namespace: testNamespace,
+				},
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(hc).Build()
 			reconciler := &DPFHCPProvisionerReconciler{}
+			reconciler.Client = fakeClient
+
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "phase-unit-upgrading",
 					Namespace:  testNamespace,
 					Generation: 2,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					OCPReleaseImage: "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
 				},
 				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
@@ -548,16 +567,16 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
 				Type:               provisioningv1alpha1.IgnitionConfigured,
 				Status:             metav1.ConditionFalse,
-				Reason:             "ReleaseImageUpdated",
+				Reason:             provisioningv1alpha1.ReasonReleaseImageUpdated,
 				ObservedGeneration: 2,
 			})
 
-			reconciler.updatePhaseFromConditions(provisioner)
-			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition),
-				"should be IgnitionGenerating when ignition is stale, regardless of HostedClusterUpgrading")
+			reconciler.updatePhaseFromConditions(context.Background(), provisioner)
+			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseWaitingForControlPlane),
+				"should be WaitingForControlPlane when upgrading and control plane has not rolled out target version")
 		})
 
-		It("should transition to IgnitionGenerating when HostedClusterUpgrading is False", func() {
+		It("should transition to GeneratingIgnition when HostedClusterUpgrading is False", func() {
 			reconciler := &DPFHCPProvisionerReconciler{}
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
@@ -591,22 +610,47 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
 				Type:               provisioningv1alpha1.IgnitionConfigured,
 				Status:             metav1.ConditionFalse,
-				Reason:             "ReleaseImageUpdated",
+				Reason:             provisioningv1alpha1.ReasonReleaseImageUpdated,
 				ObservedGeneration: 2,
 			})
 
-			reconciler.updatePhaseFromConditions(provisioner)
+			reconciler.updatePhaseFromConditions(context.Background(), provisioner)
 			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition),
-				"should transition to IgnitionGenerating when upgrade is complete")
+				"should transition to GeneratingIgnition when upgrade is complete")
 		})
 
-		It("should transition to IgnitionGenerating when HostedClusterUpgrading=True and ignition is stale", func() {
+		It("should show GeneratingIgnition when upgrading and control plane is ready", func() {
+			scheme := runtime.NewScheme()
+			Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
+			hc := &hyperv1.HostedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "phase-unit-upgrading-phase",
+					Namespace: testNamespace,
+				},
+				Status: hyperv1.HostedClusterStatus{
+					ControlPlaneVersion: hyperv1.ControlPlaneVersionStatus{
+						History: []hyperv1.ControlPlaneUpdateHistory{
+							{
+								State:   configv1.CompletedUpdate,
+								Version: "4.19.0",
+								Image:   "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+							},
+						},
+					},
+				},
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(hc).Build()
 			reconciler := &DPFHCPProvisionerReconciler{}
+			reconciler.Client = fakeClient
+
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "phase-unit-upgrading-phase",
 					Namespace:  testNamespace,
 					Generation: 3,
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					OCPReleaseImage: "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
 				},
 				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
 					HostedClusterRef: &corev1.ObjectReference{
@@ -634,13 +678,13 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 			meta.SetStatusCondition(&provisioner.Status.Conditions, metav1.Condition{
 				Type:               provisioningv1alpha1.IgnitionConfigured,
 				Status:             metav1.ConditionFalse,
-				Reason:             "ReleaseImageUpdated",
+				Reason:             provisioningv1alpha1.ReasonReleaseImageUpdated,
 				ObservedGeneration: 3,
 			})
 
-			reconciler.updatePhaseFromConditions(provisioner)
+			reconciler.updatePhaseFromConditions(context.Background(), provisioner)
 			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition),
-				"should be IgnitionGenerating when ignition is stale, regardless of HostedClusterUpgrading")
+				"should be GeneratingIgnition when upgrading and control plane has rolled out target version")
 		})
 
 		It("isUpgrading should return true when HostedClusterUpgrading=True", func() {
@@ -846,5 +890,292 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					ignCond.Reason == provisioningv1alpha1.ReasonIgnitionGenerationFailed
 			}, timeout, interval).Should(BeTrue())
 		})
+	})
+})
+
+var _ = Describe("handleUpgrade", func() {
+	const (
+		oldImage       = "quay.io/openshift-release-dev/ocp-release:4.18.0-multi"
+		newImage       = "quay.io/openshift-release-dev/ocp-release:4.19.0-multi"
+		testNamespace  = "default"
+		dpuClusterName = "test-dpucluster"
+		dpuClusterNS   = "test-dpucluster-ns"
+	)
+
+	var (
+		ctx    context.Context
+		scheme *runtime.Scheme
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		scheme = runtime.NewScheme()
+		Expect(provisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(hyperv1.AddToScheme(scheme)).To(Succeed())
+		Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	})
+
+	newCR := func(image string, phase provisioningv1alpha1.DPFHCPProvisionerPhase) *provisioningv1alpha1.DPFHCPProvisioner {
+		return &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-provisioner",
+				Namespace: testNamespace,
+				UID:       "test-uid-123",
+			},
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+				OCPReleaseImage: image,
+				DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+					Name:      dpuClusterName,
+					Namespace: dpuClusterNS,
+				},
+			},
+			Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+				Phase: phase,
+				HostedClusterRef: &corev1.ObjectReference{
+					Name:      "test-provisioner",
+					Namespace: testNamespace,
+				},
+			},
+		}
+	}
+
+	newHC := func(image string) *hyperv1.HostedCluster {
+		return &hyperv1.HostedCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-provisioner",
+				Namespace: testNamespace,
+			},
+			Spec: hyperv1.HostedClusterSpec{
+				Release: hyperv1.Release{Image: image},
+			},
+		}
+	}
+
+	newNP := func(image string) *hyperv1.NodePool {
+		return &hyperv1.NodePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-provisioner",
+				Namespace: testNamespace,
+			},
+			Spec: hyperv1.NodePoolSpec{
+				Release: hyperv1.Release{Image: image},
+			},
+		}
+	}
+
+	newIgnitionCM := func() *corev1.ConfigMap {
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ignitiongenerator.ConfigMapName(dpuClusterName),
+				Namespace: dpuClusterNS,
+			},
+			Data: map[string]string{"BF_CFG_TEMPLATE": "some-ignition-data"},
+		}
+	}
+
+	buildReconciler := func(cr *provisioningv1alpha1.DPFHCPProvisioner, objs ...client.Object) *DPFHCPProvisionerReconciler {
+		allObjs := append([]client.Object{cr}, objs...)
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(allObjs...).
+			WithStatusSubresource(cr).
+			Build()
+
+		return &DPFHCPProvisionerReconciler{
+			Client:   fakeClient,
+			Scheme:   scheme,
+			Recorder: record.NewFakeRecorder(10),
+		}
+	}
+
+	It("should recover when HC was updated but NP was not (partial failure)", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhaseReady)
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:   provisioningv1alpha1.HostedClusterAvailable,
+			Status: metav1.ConditionTrue,
+			Reason: "Available",
+		})
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:   provisioningv1alpha1.IgnitionConfigured,
+			Status: metav1.ConditionTrue,
+			Reason: provisioningv1alpha1.ReasonIgnitionGenerated,
+		})
+
+		hc := newHC(newImage) // HC already updated in previous partial run
+		np := newNP(oldImage) // NP NOT updated due to crash
+
+		r := buildReconciler(cr, hc, np)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(Equal(1*time.Second),
+			"should requeue to continue monitoring upgrade")
+
+		// NP should be updated to new image
+		updatedNP := &hyperv1.NodePool{}
+		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedNP)).To(Succeed())
+		Expect(updatedNP.Spec.Release.Image).To(Equal(newImage),
+			"NodePool should be updated to new image during recovery")
+
+		// HC should remain unchanged (already matched)
+		updatedHC := &hyperv1.HostedCluster{}
+		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedHC)).To(Succeed())
+		Expect(updatedHC.Spec.Release.Image).To(Equal(newImage),
+			"HostedCluster should still have new image")
+
+		// HostedClusterUpgrading should be True
+		upgradingCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+		Expect(upgradingCond).NotTo(BeNil())
+		Expect(upgradingCond.Status).To(Equal(metav1.ConditionTrue))
+
+		// IgnitionConfigured should be False (invalidated)
+		ignCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		Expect(ignCond).NotTo(BeNil())
+		Expect(ignCond.Status).To(Equal(metav1.ConditionFalse))
+		Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonReleaseImageUpdated))
+	})
+
+	It("should recover and delete stale ignition ConfigMap during partial failure", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhaseReady)
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:   provisioningv1alpha1.IgnitionConfigured,
+			Status: metav1.ConditionTrue,
+			Reason: provisioningv1alpha1.ReasonIgnitionGenerated,
+		})
+
+		hc := newHC(newImage) // HC already updated
+		np := newNP(oldImage) // NP not updated
+		cm := newIgnitionCM() // Stale CM still present (crash happened before CM deletion)
+
+		r := buildReconciler(cr, hc, np, cm)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(Equal(1*time.Second),
+			"should requeue to continue monitoring upgrade")
+
+		// Ignition ConfigMap should be deleted
+		deletedCM := &corev1.ConfigMap{}
+		err = r.Get(ctx, types.NamespacedName{
+			Name:      ignitiongenerator.ConfigMapName(dpuClusterName),
+			Namespace: dpuClusterNS,
+		}, deletedCM)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue(),
+			"stale ignition ConfigMap should be deleted during recovery")
+	})
+
+	It("should detect upgrade and update both HC and NP", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhaseReady)
+		hc := newHC(oldImage)
+		np := newNP(oldImage)
+
+		r := buildReconciler(cr, hc, np)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(Equal(1 * time.Second))
+
+		// HC should be updated
+		updatedHC := &hyperv1.HostedCluster{}
+		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedHC)).To(Succeed())
+		Expect(updatedHC.Spec.Release.Image).To(Equal(newImage))
+
+		// NP should be updated
+		updatedNP := &hyperv1.NodePool{}
+		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedNP)).To(Succeed())
+		Expect(updatedNP.Spec.Release.Image).To(Equal(newImage))
+
+		// HostedClusterUpgrading should be True
+		upgradingCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+		Expect(upgradingCond).NotTo(BeNil())
+		Expect(upgradingCond.Status).To(Equal(metav1.ConditionTrue))
+		Expect(upgradingCond.Reason).To(Equal(provisioningv1alpha1.ReasonUpgradeInProgress))
+	})
+
+	It("should complete upgrade when version is ready", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhaseWaitingForControlPlane)
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:   provisioningv1alpha1.HostedClusterUpgrading,
+			Status: metav1.ConditionTrue,
+			Reason: provisioningv1alpha1.ReasonUpgradeInProgress,
+		})
+
+		hc := newHC(newImage)
+		hc.Status.ControlPlaneVersion = hyperv1.ControlPlaneVersionStatus{
+			History: []hyperv1.ControlPlaneUpdateHistory{{
+				State:   configv1.CompletedUpdate,
+				Version: "4.19.0",
+				Image:   newImage,
+			}},
+		}
+		np := newNP(newImage)
+
+		r := buildReconciler(cr, hc, np)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		// HostedClusterUpgrading should be set to False
+		upgradingCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+		Expect(upgradingCond).NotTo(BeNil())
+		Expect(upgradingCond.Status).To(Equal(metav1.ConditionFalse))
+		Expect(upgradingCond.Reason).To(Equal(provisioningv1alpha1.ReasonUpgradeComplete))
+	})
+
+	It("should skip upgrade during Pending phase", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhasePending)
+		hc := newHC(oldImage)
+		np := newNP(oldImage)
+
+		r := buildReconciler(cr, hc, np)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		updatedHC := &hyperv1.HostedCluster{}
+		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedHC)).To(Succeed())
+		Expect(updatedHC.Spec.Release.Image).To(Equal(oldImage),
+			"HC should not be updated during Pending phase")
+
+		updatedNP := &hyperv1.NodePool{}
+		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedNP)).To(Succeed())
+		Expect(updatedNP.Spec.Release.Image).To(Equal(oldImage),
+			"NP should not be updated during Pending phase")
+	})
+
+	It("should no-op when images match and version is ready", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhaseReady)
+		hc := newHC(newImage)
+		hc.Status.ControlPlaneVersion = hyperv1.ControlPlaneVersionStatus{
+			History: []hyperv1.ControlPlaneUpdateHistory{{
+				State:   configv1.CompletedUpdate,
+				Version: "4.19.0",
+				Image:   newImage,
+			}},
+		}
+		np := newNP(newImage)
+
+		r := buildReconciler(cr, hc, np)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		upgradingCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
+		Expect(upgradingCond).To(BeNil(),
+			"HostedClusterUpgrading should not be set when no upgrade is happening")
+	})
+
+	It("should skip when HostedClusterRef is nil", func() {
+		cr := newCR(newImage, provisioningv1alpha1.PhaseReady)
+		cr.Status.HostedClusterRef = nil
+
+		r := buildReconciler(cr)
+
+		result, err := r.handleUpgrade(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeZero())
 	})
 })

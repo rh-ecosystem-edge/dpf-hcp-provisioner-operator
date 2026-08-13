@@ -1087,7 +1087,7 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 	// to finish rolling out the new version before regenerating — the ignition server
 	// serves content for whatever version is currently running.
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
-	if ignConfigured != nil && ignConfigured.Reason == "ReleaseImageUpdated" {
+	if ignConfigured != nil && ignConfigured.Reason == provisioningv1alpha1.ReasonReleaseImageUpdated {
 		hc := &hyperv1.HostedCluster{}
 		hcKey := types.NamespacedName{Name: cr.Status.HostedClusterRef.Name, Namespace: cr.Status.HostedClusterRef.Namespace}
 		if err := r.Get(ctx, hcKey, hc); err != nil {
@@ -1198,19 +1198,18 @@ func (r *DPFHCPProvisionerReconciler) computeReadyCondition(ctx context.Context,
 		return
 	}
 
-	// ClusterVersion must have finished rolling out
+	// Control plane must have finished rolling out the target version
 	if cr.Status.HostedClusterRef != nil {
 		hc := &hyperv1.HostedCluster{}
 		hcKey := types.NamespacedName{Name: cr.Status.HostedClusterRef.Name, Namespace: cr.Status.HostedClusterRef.Namespace}
-		err := r.Get(ctx, hcKey, hc)
-		if err != nil || !r.isHostedClusterVersionReady(hc, cr.Spec.OCPReleaseImage) {
+		if err := r.Get(ctx, hcKey, hc); err != nil || !r.isControlPlaneReady(hc, cr.Spec.OCPReleaseImage) {
 			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 				Type:    provisioningv1alpha1.Ready,
 				Status:  metav1.ConditionFalse,
-				Reason:  "ClusterVersionProgressing",
-				Message: "Waiting for cluster version rollout to complete",
+				Reason:  provisioningv1alpha1.ReasonControlPlaneProgressing,
+				Message: "Waiting for control plane to finish rolling out target version",
 			})
-			log.V(1).Info("Not ready: ClusterVersion not confirmed", "error", err)
+			log.V(1).Info("Not ready: control plane version not confirmed", "error", err)
 			return
 		}
 	}
@@ -1296,7 +1295,7 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(ctx context.Cont
 		return
 	}
 
-	// After ignition is configured, we're waiting for full cluster version rollout
+	// Ignition configured but not yet Ready — control plane version still progressing
 	if ignConfigured != nil && ignConfigured.Status == metav1.ConditionTrue &&
 		ignConfigured.ObservedGeneration == cr.Generation {
 		cr.Status.Phase = provisioningv1alpha1.PhaseClusterVersionProgressing
@@ -1333,11 +1332,10 @@ func (r *DPFHCPProvisionerReconciler) updatePhaseFromConditions(ctx context.Cont
 	cr.Status.Phase = provisioningv1alpha1.PhasePending
 }
 
-// reconcileHostedClusterAndNodePool creates or updates the HostedCluster and NodePool resources.
+// reconcileHostedClusterAndNodePool creates the HostedCluster and NodePool resources.
 // During Pending phase: creates HC and NP for the first time (initial provisioning).
-// After provisioning (hostedClusterRef is set): checks for release image changes to support upgrades.
-// If an upgrade is triggered, persists status and returns RequeueAfter to let the HC upgrade
-// proceed before running ignition generation.
+// After provisioning (hostedClusterRef is set): verifies HC and NP exist with correct ownership.
+// Release image upgrades are handled separately by handleUpgrade.
 func (r *DPFHCPProvisionerReconciler) reconcileHostedClusterAndNodePool(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
@@ -1466,7 +1464,7 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 	meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionFalse,
-		Reason:             "ReleaseImageUpdated",
+		Reason:             provisioningv1alpha1.ReasonReleaseImageUpdated,
 		Message:            "Ignition invalidated due to release image upgrade, will regenerate after upgrade completes",
 		ObservedGeneration: cr.Generation,
 	})
@@ -1477,13 +1475,17 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 
 	// Sync the release image on HC and NP — this is the only place that updates
 	// the release image, so the upgrade is always detected before the sync happens.
-	log.Info("Updating HostedCluster release image",
-		"hostedCluster", hc.Name,
-		"oldImage", hc.Spec.Release.Image,
-		"newImage", cr.Spec.OCPReleaseImage)
-	hc.Spec.Release.Image = cr.Spec.OCPReleaseImage
-	if err := r.Update(ctx, hc); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to update HostedCluster release image: %w", err)
+	// Skip the update if images already match (recovery path where HC spec was already synced).
+	oldImage := hc.Spec.Release.Image
+	if hc.Spec.Release.Image != cr.Spec.OCPReleaseImage {
+		log.Info("Updating HostedCluster release image",
+			"hostedCluster", hc.Name,
+			"oldImage", hc.Spec.Release.Image,
+			"newImage", cr.Spec.OCPReleaseImage)
+		hc.Spec.Release.Image = cr.Spec.OCPReleaseImage
+		if err := r.Update(ctx, hc); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update HostedCluster release image: %w", err)
+		}
 	}
 
 	np := &hyperv1.NodePool{}
@@ -1491,13 +1493,15 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 	if err := r.Get(ctx, npKey, np); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get NodePool: %w", err)
 	}
-	log.Info("Updating NodePool release image",
-		"nodePool", np.Name,
-		"oldImage", np.Spec.Release.Image,
-		"newImage", cr.Spec.OCPReleaseImage)
-	np.Spec.Release.Image = cr.Spec.OCPReleaseImage
-	if err := r.Update(ctx, np); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to update NodePool release image: %w", err)
+	if np.Spec.Release.Image != cr.Spec.OCPReleaseImage {
+		log.Info("Updating NodePool release image",
+			"nodePool", np.Name,
+			"oldImage", np.Spec.Release.Image,
+			"newImage", cr.Spec.OCPReleaseImage)
+		np.Spec.Release.Image = cr.Spec.OCPReleaseImage
+		if err := r.Update(ctx, np); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update NodePool release image: %w", err)
+		}
 	}
 
 	cr.Status.BlueFieldOCPLayerImage = ""
@@ -1510,7 +1514,7 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 	}
 
 	r.Recorder.Event(cr, corev1.EventTypeNormal, provisioningv1alpha1.ReasonUpgradeInProgress,
-		fmt.Sprintf("Upgrade started: %s → %s", hc.Spec.Release.Image, cr.Spec.OCPReleaseImage))
+		fmt.Sprintf("Upgrade started: %s → %s", oldImage, cr.Spec.OCPReleaseImage))
 
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }

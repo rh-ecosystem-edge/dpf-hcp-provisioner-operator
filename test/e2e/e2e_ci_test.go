@@ -94,7 +94,7 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 			createDPFHCPProvisioner(ciNamespace, provisionerName)
 
 			By("waiting for CR to pass validation and begin provisioning")
-			waitForCRPhase(provisionerName, "Provisioning", 5*time.Minute)
+			waitForCRPhase(provisionerName, "WaitingForControlPlane", 5*time.Minute)
 
 			By("verifying HostedCluster was created")
 			var hcName string
@@ -442,11 +442,14 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, func() {
 					"HostedClusterUpgrading should be True")
 			}, 2*time.Minute, pollingInterval).Should(Succeed())
 
-			By("verifying phase is Upgrading")
+			By("verifying phase reflects upgrade in progress (WaitingForControlPlane or GeneratingIgnition)")
 			Eventually(func(g Gomega) {
 				phase := getCRPhase(provisionerName)
-				g.Expect(phase).To(Equal("Upgrading"),
-					"Phase should be Upgrading during upgrade")
+				g.Expect(phase).To(SatisfyAny(
+					Equal("WaitingForControlPlane"),
+					Equal("GeneratingIgnition"),
+					Equal("ClusterVersionProgressing"),
+				), "Phase should reflect upgrade progress")
 			}, 2*time.Minute, pollingInterval).Should(Succeed())
 
 			By("verifying ignition ConfigMap was deleted")
