@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"github.com/openshift/hypershift/api/util/ipnet"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,8 +73,8 @@ var _ = Describe("HostedCluster Builder", func() {
 		It("should reference correct secret names", func() {
 			hc := hm.buildHostedCluster(cr, "")
 
-			Expect(hc.Spec.PullSecret.Name).To(Equal("test-provisioner-pull-secret"))
-			Expect(hc.Spec.SSHKey.Name).To(Equal("test-provisioner-ssh-key"))
+			Expect(hc.Spec.PullSecret.Name).To(Equal(PullSecretCopyName(cr)))
+			Expect(hc.Spec.SSHKey.Name).To(Equal(SSHKeyCopyName(cr)))
 		})
 
 		It("should set DNS base domain", func() {
@@ -468,7 +469,9 @@ var _ = Describe("HostedCluster Upgrade", func() {
 				}},
 			},
 			Spec: hyperv1.HostedClusterSpec{
-				Release: hyperv1.Release{Image: oldImage},
+				Release:    hyperv1.Release{Image: oldImage},
+				PullSecret: corev1.LocalObjectReference{Name: PullSecretCopyName(cr)},
+				SSHKey:     corev1.LocalObjectReference{Name: SSHKeyCopyName(cr)},
 			},
 		}
 

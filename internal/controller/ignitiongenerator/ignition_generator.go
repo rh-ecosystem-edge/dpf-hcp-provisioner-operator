@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -295,28 +296,48 @@ func (ig *IgnitionGenerator) getIgnitionCACert(ctx context.Context, cr *provisio
 	return caCert, nil
 }
 
-// getIgnitionToken finds the ignition bearer token from the control plane namespace.
-// HyperShift names the secret "token-<cluster>-<hash>", so we search by prefix.
-func (ig *IgnitionGenerator) getIgnitionToken(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (string, error) {
+// getIgnitionTokens returns all ignition bearer token values from the control plane namespace.
+// HyperShift names secrets "token-<cluster>-<hash>" where the hash encodes the rollout config
+// (including HC.Spec.PullSecret.Name). After a credential rotation — or rollback — multiple
+// tokens can coexist until they expire (~11h). The CORRECT token for the current HC spec is
+// whichever one the ignition server accepts (200); we return all candidates so the caller
+// can probe each one. Newest tokens are returned first as a heuristic.
+func (ig *IgnitionGenerator) getIgnitionTokens(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) ([]string, error) {
 	ns := ig.controlPlaneNamespace(cr)
 	prefix := ignitionTokenPrefix + cr.Status.HostedClusterRef.Name
 
 	secretList := &corev1.SecretList{}
 	if err := ig.Client.List(ctx, secretList, client.InNamespace(ns)); err != nil {
-		return "", fmt.Errorf("failed to list secrets in %s: %w", ns, err)
+		return nil, fmt.Errorf("failed to list secrets in %s: %w", ns, err)
 	}
 
+	var candidates []corev1.Secret
 	for i := range secretList.Items {
 		if strings.HasPrefix(secretList.Items[i].Name, prefix) {
-			tokenBytes, ok := secretList.Items[i].Data[ignitionTokenKey]
-			if !ok {
-				return "", fmt.Errorf("token key not found in secret %s", secretList.Items[i].Name)
-			}
-			// Re-encode: Secret.Data is already decoded, but the ignition server expects the base64 form
-			return base64.StdEncoding.EncodeToString(tokenBytes), nil
+			candidates = append(candidates, secretList.Items[i])
 		}
 	}
-	return "", fmt.Errorf("no token secret with prefix %q found in namespace %s", prefix, ns)
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("no token secret with prefix %q found in namespace %s", prefix, ns)
+	}
+
+	// Newest first — usually the right answer after a forward rotation.
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[j].CreationTimestamp.Before(&candidates[i].CreationTimestamp)
+	})
+
+	var tokens []string
+	for _, c := range candidates {
+		tokenBytes, ok := c.Data[ignitionTokenKey]
+		if !ok {
+			continue
+		}
+		tokens = append(tokens, base64.StdEncoding.EncodeToString(tokenBytes))
+	}
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("no usable token data in secrets with prefix %q in namespace %s", prefix, ns)
+	}
+	return tokens, nil
 }
 
 // getIgnitionEndpoint reads the ignition endpoint URL from the HostedCluster status.
@@ -336,6 +357,8 @@ func (ig *IgnitionGenerator) getIgnitionEndpoint(ctx context.Context, cr *provis
 }
 
 // downloadHCPIgnition downloads the ignition configuration from the HostedCluster ignition endpoint.
+// Multiple token secrets may exist concurrently (e.g. after a credential rotation or rollback);
+// the function probes each one and uses the first that the ignition server accepts (HTTP 200).
 func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) ([]byte, error) {
 	log := logf.FromContext(ctx)
 
@@ -344,7 +367,7 @@ func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provis
 		return nil, err
 	}
 
-	token, err := ig.getIgnitionToken(ctx, cr)
+	tokens, err := ig.getIgnitionTokens(ctx, cr)
 	if err != nil {
 		return nil, err
 	}
@@ -369,34 +392,40 @@ func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provis
 		},
 	}
 
-	// Download ignition
 	ignitionURL := fmt.Sprintf("https://%s/ignition", endpoint)
-	log.Info("Downloading ignition from HCP", "url", ignitionURL)
+	log.Info("Downloading ignition from HCP", "url", ignitionURL, "token_candidates", len(tokens))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ignitionURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	// Try each token; the correct one for the current HC spec returns 200.
+	// Wrong tokens (stale pull-secret-hash) return a non-200 status — skip them.
+	for i, token := range tokens {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, ignitionURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("HTTP request failed: %w", err)
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			// fall through to read body below
+			body, readErr := io.ReadAll(resp.Body)
+			if readErr != nil {
+				return nil, fmt.Errorf("failed to read ignition response body: %w", readErr)
+			}
+			log.Info("Ignition downloaded successfully", "token_index", i)
+			return body, nil
+		}
+
+		resp.Body.Close()
+		log.V(1).Info("Ignition token rejected, trying next",
+			"token_index", i, "status", resp.StatusCode, "remaining", len(tokens)-i-1)
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP request failed: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP request failed with status %d", resp.StatusCode)
-	}
-
-	ignitionData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	log.Info("Successfully downloaded HCP ignition", "size", len(ignitionData))
-	return ignitionData, nil
+	return nil, fmt.Errorf("all %d token candidate(s) rejected by ignition server at %s", len(tokens), ignitionURL)
 }
 
 // getDPUDeployment fetches the DPUDeployment CR referenced by the provisioner

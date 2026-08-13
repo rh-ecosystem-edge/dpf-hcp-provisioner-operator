@@ -35,6 +35,7 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
 )
 
 var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", func() {
@@ -252,11 +253,11 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			}
 			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
-			// Verify pull-secret is copied to same namespace
+			// Verify pull-secret is copied to same namespace (name encodes source ref)
 			pullSecretTarget := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{
-					Name:      provisionerName + "-pull-secret",
+					Name:      hostedcluster.PullSecretCopyName(provisioner),
 					Namespace: testNamespace,
 				}, pullSecretTarget)
 			}, timeout, interval).Should(Succeed())
@@ -300,11 +301,11 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			}
 			Expect(k8sClient.Create(ctx, provisioner)).To(Succeed())
 
-			// Verify ssh-key is copied to same namespace
+			// Verify ssh-key is copied to same namespace (name encodes source ref)
 			sshKeyTarget := &corev1.Secret{}
 			Eventually(func() error {
 				return k8sClient.Get(ctx, types.NamespacedName{
-					Name:      provisionerName + "-ssh-key",
+					Name:      hostedcluster.SSHKeyCopyName(provisioner),
 					Namespace: testNamespace,
 				}, sshKeyTarget)
 			}, timeout, interval).Should(Succeed())
@@ -447,10 +448,10 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			for _, secret := range secretList.Items {
 				// Check via OwnerReference instead of labels
 				if metav1.IsControlledBy(&secret, provisioner) {
-					if secret.Name == provisionerName+"-pull-secret" {
+					if secret.Name == hostedcluster.PullSecretCopyName(provisioner) {
 						pullSecretCount++
 					}
-					if secret.Name == provisionerName+"-ssh-key" {
+					if secret.Name == hostedcluster.SSHKeyCopyName(provisioner) {
 						sshKeyCount++
 					}
 					if secret.Name == provisionerName+"-etcd-encryption-key" {
@@ -495,7 +496,7 @@ var _ = Describe("HostedCluster Lifecycle - Foundation & Secret Management", fun
 			// Verify secret is NOT created due to missing source
 			Consistently(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name:      provisionerName + "-pull-secret",
+					Name:      hostedcluster.PullSecretCopyName(provisioner),
 					Namespace: testNamespace,
 				}, &corev1.Secret{})
 				return apierrors.IsNotFound(err)
