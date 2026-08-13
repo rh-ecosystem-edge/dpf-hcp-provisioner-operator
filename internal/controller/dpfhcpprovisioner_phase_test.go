@@ -1052,6 +1052,16 @@ var _ = Describe("handleUpgrade", func() {
 		}
 	}
 
+	// newHCWithPriorVersion creates an HC with a Completed version history entry for
+	// a prior image, proving a previous version was active (used in recovery tests).
+	newHCWithPriorVersion := func(specImage, priorCompletedImage string) *hyperv1.HostedCluster {
+		hc := newHC(specImage)
+		hc.Status.ControlPlaneVersion.History = []hyperv1.ControlPlaneUpdateHistory{
+			{Image: priorCompletedImage, State: configv1.CompletedUpdate, Version: "4.18.0"},
+		}
+		return hc
+	}
+
 	newNP := func(image string) *hyperv1.NodePool {
 		return &hyperv1.NodePool{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1102,8 +1112,8 @@ var _ = Describe("handleUpgrade", func() {
 			Reason: provisioningv1alpha1.ReasonIgnitionGenerated,
 		})
 
-		hc := newHC(newImage) // HC already updated in previous partial run
-		np := newNP(oldImage) // NP NOT updated due to crash
+		hc := newHCWithPriorVersion(newImage, oldImage) // HC updated, history proves prior version
+		np := newNP(oldImage)                           // NP NOT updated due to crash
 
 		r := buildReconciler(cr, hc, np)
 
@@ -1136,7 +1146,7 @@ var _ = Describe("handleUpgrade", func() {
 		Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonReleaseImageUpdated))
 	})
 
-	It("should recover when in ClusterVersionProgressing phase (partial failure)", func() {
+	It("should NOT trigger upgrade recovery when in ClusterVersionProgressing phase (initial install)", func() {
 		cr := newCR(newImage, provisioningv1alpha1.PhaseClusterVersionProgressing)
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 			Type:   provisioningv1alpha1.HostedClusterAvailable,
@@ -1149,26 +1159,25 @@ var _ = Describe("handleUpgrade", func() {
 			Reason: provisioningv1alpha1.ReasonIgnitionGenerated,
 		})
 
-		hc := newHC(newImage) // HC already updated
-		np := newNP(oldImage) // NP NOT updated due to crash
+		hc := newHC(newImage) // HC image matches CR (initial install, not an upgrade)
+		np := newNP(oldImage) // NP still has old image (hasn't been synced yet)
 
 		r := buildReconciler(cr, hc, np)
 
 		result, err := r.handleUpgrade(ctx, cr)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(result.RequeueAfter).To(Equal(1*time.Second),
-			"should requeue to continue monitoring upgrade")
+		Expect(result.RequeueAfter).To(BeZero(),
+			"should return early without entering upgrade flow")
 
-		// NP should be updated to new image
+		// NP should NOT be updated (no upgrade detected)
 		updatedNP := &hyperv1.NodePool{}
 		Expect(r.Get(ctx, types.NamespacedName{Name: "test-provisioner", Namespace: testNamespace}, updatedNP)).To(Succeed())
-		Expect(updatedNP.Spec.Release.Image).To(Equal(newImage),
-			"NodePool should be updated to new image during recovery")
+		Expect(updatedNP.Spec.Release.Image).To(Equal(oldImage),
+			"NodePool should not be modified during initial install")
 
-		// HostedClusterUpgrading should be True
+		// HostedClusterUpgrading should NOT be set
 		upgradingCond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterUpgrading)
-		Expect(upgradingCond).NotTo(BeNil())
-		Expect(upgradingCond.Status).To(Equal(metav1.ConditionTrue))
+		Expect(upgradingCond).To(BeNil())
 	})
 
 	It("should recover and delete stale ignition ConfigMap during partial failure", func() {
@@ -1179,9 +1188,9 @@ var _ = Describe("handleUpgrade", func() {
 			Reason: provisioningv1alpha1.ReasonIgnitionGenerated,
 		})
 
-		hc := newHC(newImage) // HC already updated
-		np := newNP(oldImage) // NP not updated
-		cm := newIgnitionCM() // Stale CM still present (crash happened before CM deletion)
+		hc := newHCWithPriorVersion(newImage, oldImage) // HC updated, history proves prior version
+		np := newNP(oldImage)                           // NP not updated
+		cm := newIgnitionCM()                           // Stale CM still present (crash happened before CM deletion)
 
 		r := buildReconciler(cr, hc, np, cm)
 

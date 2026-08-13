@@ -1449,16 +1449,17 @@ func (r *DPFHCPProvisionerReconciler) handleUpgrade(ctx context.Context, cr *pro
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// HC spec already matches CR — if the version has finished rolling out, nothing to do.
-	// If it hasn't and we're in a steady-state phase (Ready or ClusterVersionProgressing),
-	// an upgrade is in progress that we missed (e.g. operator restarted or a race prevented
-	// detection) — fall through to handle it.
-	// Only check during steady-state phases to avoid treating initial install (where version
-	// is also Partial) as an upgrade.
+	// HC spec already matches CR — if the control plane has finished rolling out, nothing to do.
+	// If it hasn't, check for a missed upgrade (operator crashed after updating HC but before
+	// persisting HostedClusterUpgrading). All three conditions must hold:
+	//   1. Phase is Ready (we previously completed successfully with some version)
+	//   2. isControlPlaneReady returns false (target version not confirmed)
+	//   3. Version history has a Completed entry for a DIFFERENT image (proves a prior
+	//      version was active — eliminates any false positives from initial install)
 	if hc.Spec.Release.Image == cr.Spec.OCPReleaseImage {
-		isStablePhase := cr.Status.Phase == provisioningv1alpha1.PhaseReady ||
-			cr.Status.Phase == provisioningv1alpha1.PhaseClusterVersionProgressing
-		if !isStablePhase || r.isHostedClusterVersionReady(hc, cr.Spec.OCPReleaseImage) {
+		if cr.Status.Phase != provisioningv1alpha1.PhaseReady ||
+			r.isControlPlaneReady(hc, cr.Spec.OCPReleaseImage) ||
+			!r.hasCompletedDifferentVersion(hc, cr.Spec.OCPReleaseImage) {
 			return ctrl.Result{}, nil
 		}
 		log.Info("HC spec matches but version not yet ready, entering upgrade flow",
@@ -1567,6 +1568,18 @@ func (r *DPFHCPProvisionerReconciler) isHostedClusterVersionReady(hc *hyperv1.Ho
 		return false
 	}
 	return true
+}
+
+// hasCompletedDifferentVersion checks if the HostedCluster version history contains at least
+// one Completed entry for an image different from targetReleaseImage. This definitively proves
+// a prior version was fully operational — making it safe to conclude an upgrade is in progress.
+func (r *DPFHCPProvisionerReconciler) hasCompletedDifferentVersion(hc *hyperv1.HostedCluster, targetReleaseImage string) bool {
+	for _, entry := range hc.Status.ControlPlaneVersion.History {
+		if entry.State == configv1.CompletedUpdate && !versionMatchesImage(entry.Version, entry.Image, targetReleaseImage) {
+			return true
+		}
+	}
+	return false
 }
 
 func versionMatchesImage(version, image, targetReleaseImage string) bool {
