@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BRIDGE_NAME="br-dpu"
+BRIDGE_NAME="br-ex"
 IP_HINT_FILE="/run/nodeip-configuration/primary-ip"
 TARGET_MTU="$1"
 NODE_IP=""
