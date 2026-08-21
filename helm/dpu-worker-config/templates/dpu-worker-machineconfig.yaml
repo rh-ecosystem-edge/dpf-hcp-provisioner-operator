@@ -43,12 +43,13 @@ spec:
         - contents: |
             [Unit]
             Description=Apply NMState bridge configuration
+            Wants=nodeip-configuration.service nmstate.service
             After=network.target NetworkManager.service nodeip-configuration.service nmstate.service
             Before=crio.service kubelet.service
 
             [Service]
             Type=oneshot
-            ExecStart=/usr/local/bin/apply-nmstate-bridge.sh{{ if .Values.networkMTU }} {{ .Values.networkMTU }}{{ end }}
+            ExecStart=/usr/local/bin/apply-nmstate-bridge.sh
             RemainAfterExit=yes
             TimeoutStartSec=150s
             Restart=on-failure
