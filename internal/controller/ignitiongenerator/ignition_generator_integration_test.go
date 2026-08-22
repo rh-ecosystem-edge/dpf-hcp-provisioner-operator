@@ -47,6 +47,8 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition"
 )
 
+const embeddedTargetIgnitionPath = "/var/target.ign"
+
 // buildRealisticHCPIgnition builds a realistic HCP ignition payload with machine config,
 // SSH keys, and systemd units — similar to what HyperShift actually returns.
 func buildRealisticHCPIgnition() []byte {
@@ -310,7 +312,7 @@ var _ = Describe("generateIgnition integration", func() {
 		// Verify live ignition has /var/target.ign (embedded target ignition)
 		var hasTargetIgn bool
 		for _, f := range liveIgn.Storage.Files {
-			if f.Path == "/var/target.ign" {
+			if f.Path == embeddedTargetIgnitionPath {
 				hasTargetIgn = true
 				Expect(f.Contents.Compression).NotTo(BeNil())
 				Expect(*f.Contents.Compression).To(Equal("gzip"))
@@ -679,6 +681,110 @@ var _ = Describe("generateIgnition integration", func() {
 		for _, f := range liveIgn.Storage.Files {
 			filePaths[f.Path] = true
 		}
-		Expect(filePaths).To(HaveKey("/var/target.ign"), "should embed target ignition")
+		Expect(filePaths).To(HaveKey(embeddedTargetIgnitionPath), "should embed target ignition")
+	})
+
+	It("should run the full ignition generation pipeline for zero-trust mode", func() {
+		hcpJSON := buildRealisticHCPIgnition()
+		server, caCert := startIgnitionServer(hcpJSON)
+		defer server.Close()
+
+		cr, objects := setupClusterObjects(server, caCert)
+
+		// Override flavor and operator config for zero-trust
+		flavor := objects[4].(*dpuprovisioningv1alpha1.DPUFlavor)
+		flavor.Spec.DpuMode = dpuprovisioningv1alpha1.ZeroTrustMode
+
+		registryURL := "http://bfb-registry.example.com"
+		operatorConfig := objects[5].(*operatorv1alpha1.DPFOperatorConfig)
+		operatorConfig.Spec.ProvisioningController = &operatorv1alpha1.ProvisioningControllerConfiguration{
+			Registry: &operatorv1alpha1.RegistryConfiguration{
+				LoadBalancerAddress: &registryURL,
+			},
+		}
+
+		scheme := newTestScheme()
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithStatusSubresource(cr).
+			WithObjects(
+				cr,
+				objects[0].(*corev1.Secret),
+				objects[1].(*corev1.Secret),
+				objects[2].(*hyperv1.HostedCluster),
+				objects[3].(*dpuservicev1alpha1.DPUDeployment),
+				flavor,
+				operatorConfig,
+			).
+			Build()
+		ig := NewIgnitionGenerator(fakeClient, scheme, recorder)
+
+		result, err := ig.GenerateIgnition(ctx, cr)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		cond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		Expect(cond).NotTo(BeNil())
+		Expect(cond.Status).To(Equal(metav1.ConditionTrue))
+
+		cm := &corev1.ConfigMap{}
+		cmKey := types.NamespacedName{
+			Name:      ConfigMapName("dpucluster-1"),
+			Namespace: "dpf-operator-system",
+		}
+		Expect(fakeClient.Get(ctx, cmKey, cm)).To(Succeed())
+
+		liveIgn := &igntypes.Config{}
+		Expect(json.Unmarshal([]byte(strings.TrimSpace(cm.Data[configMapKeyName])), liveIgn)).To(Succeed())
+
+		liveFilePaths := make(map[string]bool)
+		for _, f := range liveIgn.Storage.Files {
+			liveFilePaths[f.Path] = true
+		}
+		Expect(liveFilePaths).To(HaveKey("/var/lib/dpf/dpuagent/bootstrap-kubeconfig"))
+
+		var envSource string
+		for _, f := range liveIgn.Storage.Files {
+			if f.Path == "/etc/dpf/environment" && f.Contents.Source != nil {
+				envSource = *f.Contents.Source
+				break
+			}
+		}
+		Expect(envSource).To(ContainSubstring("DPUMode=zero-trust"))
+
+		var targetEncoded string
+		for _, f := range liveIgn.Storage.Files {
+			if f.Path == embeddedTargetIgnitionPath && f.Contents.Source != nil {
+				targetEncoded = strings.TrimPrefix(*f.Contents.Source, "data:;base64,")
+				break
+			}
+		}
+		Expect(targetEncoded).NotTo(BeEmpty())
+
+		targetIgn, err := ignition.DecodeIgnition(targetEncoded)
+		Expect(err).NotTo(HaveOccurred())
+
+		excludedUnits := []string{
+			"tmfifo-agent-link.service",
+			"bfupsignal.service",
+			"pf-monitor.service",
+			"report-machineosurl.service",
+		}
+		for _, u := range targetIgn.Systemd.Units {
+			for _, excluded := range excludedUnits {
+				Expect(u.Name).NotTo(Equal(excluded), "unit %s should be excluded in zero-trust target ignition", excluded)
+			}
+		}
+
+		var bfbRegistryFile *igntypes.File
+		for _, f := range targetIgn.Storage.Files {
+			if f.Path == "/etc/dpf/bfb-registry" {
+				bfbRegistryFile = &f
+				break
+			}
+		}
+		Expect(bfbRegistryFile).NotTo(BeNil(), "zero-trust target ignition should include bfb-registry environment file")
+		Expect(bfbRegistryFile.Contents.Compression).NotTo(BeNil())
+		Expect(*bfbRegistryFile.Contents.Compression).To(Equal("gzip"))
 	})
 })
