@@ -593,7 +593,7 @@ var _ = Describe("buildTargetIgnition", func() {
 		Expect(hasP0).To(BeTrue())
 	})
 
-	It("should exclude pf-monitor.service from systemd units in zero-trust mode", func() {
+	It("should exclude host-agent-dependent units in zero-trust mode", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
 			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
@@ -605,13 +605,21 @@ var _ = Describe("buildTargetIgnition", func() {
 		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, "")
 		Expect(err).NotTo(HaveOccurred())
 
+		excludedUnits := []string{
+			"pf-monitor.service",
+			"report-machineosurl.service",
+			"tmfifo-agent-link.service",
+			"bfupsignal.service",
+			"ovs-vf-recovery.service",
+		}
 		for _, u := range result.Systemd.Units {
-			Expect(u.Name).NotTo(Equal("pf-monitor.service"))
-			Expect(u.Name).NotTo(Equal("report-machineosurl.service"))
+			for _, excluded := range excludedUnits {
+				Expect(u.Name).NotTo(Equal(excluded), "unit %s should be excluded in zero-trust mode", excluded)
+			}
 		}
 	})
 
-	It("should exclude pf-monitor.sh file in zero-trust mode", func() {
+	It("should exclude host-agent-dependent files in zero-trust mode", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
 			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
@@ -623,13 +631,23 @@ var _ = Describe("buildTargetIgnition", func() {
 		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, "")
 		Expect(err).NotTo(HaveOccurred())
 
+		excludedFiles := []string{
+			"/usr/local/bin/pf-monitor.sh",
+			"/usr/local/bin/report-machineosurl.py",
+			"/etc/yum.repos.d/agentrepo.repo",
+			"/usr/local/bin/tmfifo-agent-link.sh",
+			"/usr/local/bin/dpuagent-client.py",
+			"/usr/local/bin/bfupsignal.sh",
+			"/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection",
+		}
 		for _, f := range result.Storage.Files {
-			Expect(f.Path).NotTo(Equal("/usr/local/bin/pf-monitor.sh"))
-			Expect(f.Path).NotTo(Equal("/usr/local/bin/report-machineosurl.py"))
+			for _, excluded := range excludedFiles {
+				Expect(f.Path).NotTo(Equal(excluded), "file %s should be excluded in zero-trust mode", excluded)
+			}
 		}
 	})
 
-	It("should include pf-monitor in non-zero-trust mode", func() {
+	It("should include all host-agent resources in trusted mode", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
 			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
@@ -640,31 +658,44 @@ var _ = Describe("buildTargetIgnition", func() {
 		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
-		var hasPfMonitorUnit, hasPfMonitorFile bool
-		var hasReportMachineOSURLUnit, hasReportMachineOSURLFile bool
+		unitNames := make(map[string]bool)
 		for _, u := range result.Systemd.Units {
-			if u.Name == "pf-monitor.service" {
-				hasPfMonitorUnit = true
-			}
-			if u.Name == "report-machineosurl.service" {
-				hasReportMachineOSURLUnit = true
-			}
+			unitNames[u.Name] = true
 		}
+		expectedUnits := []string{
+			"pf-monitor.service",
+			"report-machineosurl.service",
+			"tmfifo-agent-link.service",
+			"bfupsignal.service",
+			"install-dpu-agent.service",
+			"dpu-fw-upgrade.service",
+			"setup-vfs-devlink.service",
+			"dpu-agent.service",
+			"dpf-ovs.service",
+		}
+		for _, name := range expectedUnits {
+			Expect(unitNames).To(HaveKey(name), "unit %s should be present in trusted mode", name)
+		}
+
+		filePaths := make(map[string]bool)
 		for _, f := range result.Storage.Files {
-			if f.Path == "/usr/local/bin/pf-monitor.sh" {
-				hasPfMonitorFile = true
-			}
-			if f.Path == "/usr/local/bin/report-machineosurl.py" {
-				hasReportMachineOSURLFile = true
-			}
+			filePaths[f.Path] = true
 		}
-		Expect(hasPfMonitorUnit).To(BeTrue())
-		Expect(hasPfMonitorFile).To(BeTrue())
-		Expect(hasReportMachineOSURLUnit).To(BeTrue())
-		Expect(hasReportMachineOSURLFile).To(BeTrue())
+		expectedFiles := []string{
+			"/usr/local/bin/pf-monitor.sh",
+			"/usr/local/bin/report-machineosurl.py",
+			"/etc/yum.repos.d/agentrepo.repo",
+			"/usr/local/bin/tmfifo-agent-link.sh",
+			"/usr/local/bin/dpuagent-client.py",
+			"/usr/local/bin/bfupsignal.sh",
+			"/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection",
+		}
+		for _, path := range expectedFiles {
+			Expect(filePaths).To(HaveKey(path), "file %s should be present in trusted mode", path)
+		}
 	})
 
-	It("should keep other systemd units in zero-trust mode", func() {
+	It("should keep mode-agnostic units in zero-trust mode", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
 			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
@@ -680,9 +711,121 @@ var _ = Describe("buildTargetIgnition", func() {
 		for _, u := range result.Systemd.Units {
 			unitNames[u.Name] = true
 		}
-		Expect(unitNames).To(HaveKey("tmfifo-agent-link.service"))
-		Expect(unitNames).To(HaveKey("setup-vfs-devlink.service"))
 		Expect(unitNames).To(HaveKey("dpf-ovs.service"))
+		Expect(unitNames).To(HaveKey("dpu-sf-gate.service"))
+		Expect(unitNames).To(HaveKey("dpu-agent.service"))
+		Expect(unitNames).To(HaveKey("install-dpu-agent.service"))
+		Expect(unitNames).To(HaveKey("dpu-fw-upgrade.service"))
+		Expect(unitNames).To(HaveKey("setup-vfs-devlink.service"))
+	})
+
+	It("should not have tmfifo-agent-link dependency in rendered units for zero-trust mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, "")
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, u := range result.Systemd.Units {
+			if u.Contents != nil {
+				Expect(*u.Contents).NotTo(ContainSubstring("tmfifo-agent-link.service"),
+					"unit %s should not reference tmfifo-agent-link.service in zero-trust mode", u.Name)
+			}
+		}
+	})
+
+	It("should have tmfifo-agent-link dependency in rendered units for trusted mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false, "")
+		Expect(err).NotTo(HaveOccurred())
+
+		tmfifoDependents := []string{"dpu-agent.service", "install-dpu-agent.service", "dpu-fw-upgrade.service", "setup-vfs-devlink.service"}
+		for _, u := range result.Systemd.Units {
+			for _, depName := range tmfifoDependents {
+				if u.Name == depName && u.Contents != nil {
+					Expect(*u.Contents).To(ContainSubstring("tmfifo-agent-link.service"),
+						"unit %s should reference tmfifo-agent-link.service in trusted mode", u.Name)
+				}
+			}
+		}
+	})
+
+	It("should render dpu-agent.service with zero-trust flags in zero-trust mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, "")
+		Expect(err).NotTo(HaveOccurred())
+
+		var dpuAgentUnit *igntypes.Unit
+		for _, u := range result.Systemd.Units {
+			if u.Name == "dpu-agent.service" {
+				dpuAgentUnit = &u
+				break
+			}
+		}
+		Expect(dpuAgentUnit).NotTo(BeNil())
+		Expect(dpuAgentUnit.Contents).NotTo(BeNil())
+		Expect(*dpuAgentUnit.Contents).To(ContainSubstring("--zero-trust-mode"))
+		Expect(*dpuAgentUnit.Contents).To(ContainSubstring("--bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig"))
+	})
+
+	It("should not render zero-trust flags in dpu-agent.service for trusted mode", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false, "")
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, u := range result.Systemd.Units {
+			if u.Name == "dpu-agent.service" && u.Contents != nil {
+				Expect(*u.Contents).NotTo(ContainSubstring("--zero-trust-mode"))
+				Expect(*u.Contents).NotTo(ContainSubstring("--bootstrap-kubeconfig"))
+			}
+		}
+	})
+
+	It("should add bfb-registry environment file when bfbRegistryURL is set", func() {
+		hcpJSON := buildHCPIgnitionJSON()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+			},
+		}
+
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, "http://bfb-registry.example.com")
+		Expect(err).NotTo(HaveOccurred())
+
+		var bfbRegistryFile *igntypes.File
+		for _, f := range result.Storage.Files {
+			if f.Path == "/etc/dpf/bfb-registry" {
+				bfbRegistryFile = &f
+				break
+			}
+		}
+		Expect(bfbRegistryFile).NotTo(BeNil())
+		Expect(bfbRegistryFile.Contents.Source).NotTo(BeNil())
+		Expect(*bfbRegistryFile.Contents.Source).To(ContainSubstring("BFBRegistryURL=http://bfb-registry.example.com"))
 	})
 })
 
@@ -758,6 +901,124 @@ var _ = Describe("buildLiveIgnition", func() {
 		_, err := ig.buildLiveIgnition(targetIgnition, []byte("invalid"), flavor, false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to parse HCP ignition for passwd"))
+	})
+
+	It("should set DPUMode=zero-trust in environment file in zero-trust mode", func() {
+		targetIgnition := ignition.NewEmptyIgnition("3.4.0")
+		hcpJSON, _ := json.Marshal(ignition.NewEmptyIgnition("3.4.0"))
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		var envFile *igntypes.File
+		for _, f := range result.Storage.Files {
+			if f.Path == "/etc/dpf/environment" {
+				envFile = &f
+				break
+			}
+		}
+		Expect(envFile).NotTo(BeNil())
+		Expect(envFile.Contents.Source).NotTo(BeNil())
+		Expect(*envFile.Contents.Source).To(ContainSubstring("DPUMode=zero-trust"))
+	})
+
+	It("should include bootstrap-kubeconfig template file in zero-trust mode", func() {
+		targetIgnition := ignition.NewEmptyIgnition("3.4.0")
+		hcpJSON, _ := json.Marshal(ignition.NewEmptyIgnition("3.4.0"))
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		var bootstrapKubeconfig *igntypes.File
+		for _, f := range result.Storage.Files {
+			if f.Path == "/var/lib/dpf/dpuagent/bootstrap-kubeconfig" {
+				bootstrapKubeconfig = &f
+				break
+			}
+		}
+		Expect(bootstrapKubeconfig).NotTo(BeNil())
+		Expect(bootstrapKubeconfig.Contents.Source).NotTo(BeNil())
+		Expect(*bootstrapKubeconfig.Contents.Source).To(ContainSubstring("{{ .BootstrapKubeconfig | b64enc }}"))
+	})
+
+	It("should not include bootstrap-kubeconfig file in trusted mode", func() {
+		targetIgnition := ignition.NewEmptyIgnition("3.4.0")
+		hcpJSON, _ := json.Marshal(ignition.NewEmptyIgnition("3.4.0"))
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false)
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, f := range result.Storage.Files {
+			Expect(f.Path).NotTo(Equal("/var/lib/dpf/dpuagent/bootstrap-kubeconfig"))
+		}
+	})
+
+	It("should exclude host-agent-dependent common files in zero-trust mode", func() {
+		targetIgnition := ignition.NewEmptyIgnition("3.4.0")
+		hcpJSON, _ := json.Marshal(ignition.NewEmptyIgnition("3.4.0"))
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+				OVS:     dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		excludedFiles := []string{
+			"/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection",
+			"/usr/local/bin/dpuagent-client.py",
+			"/usr/local/bin/bfupsignal.sh",
+		}
+		for _, f := range result.Storage.Files {
+			for _, excluded := range excludedFiles {
+				Expect(f.Path).NotTo(Equal(excluded), "file %s should be excluded in zero-trust mode", excluded)
+			}
+		}
+	})
+
+	It("should include host-agent common files in trusted mode", func() {
+		targetIgnition := ignition.NewEmptyIgnition("3.4.0")
+		hcpJSON, _ := json.Marshal(ignition.NewEmptyIgnition("3.4.0"))
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
+				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
+			},
+		}
+
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false)
+		Expect(err).NotTo(HaveOccurred())
+
+		filePaths := make(map[string]bool)
+		for _, f := range result.Storage.Files {
+			filePaths[f.Path] = true
+		}
+		expectedFiles := []string{
+			"/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection",
+			"/usr/local/bin/dpuagent-client.py",
+			"/usr/local/bin/bfupsignal.sh",
+		}
+		for _, path := range expectedFiles {
+			Expect(filePaths).To(HaveKey(path), "file %s should be present in trusted mode", path)
+		}
 	})
 })
 
