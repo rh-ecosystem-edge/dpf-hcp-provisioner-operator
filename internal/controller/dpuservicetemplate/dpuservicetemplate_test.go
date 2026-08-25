@@ -716,7 +716,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 		It("should return defaults for supported version", func() {
 			defaults, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("26.4")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(defaults.OVN.ChartVersion).To(Equal("v26.4-ocp-beta3"))
+			Expect(defaults.OVN.ChartVersion).To(Equal("v26.4.1-ocp-release-v4.22"))
 			Expect(defaults.DTS.ChartVersion).To(Equal("1.25.5"))
 			Expect(defaults.HBN.ChartVersion).To(Equal("3.4.0"))
 		})
