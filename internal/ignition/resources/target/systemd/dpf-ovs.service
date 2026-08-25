@@ -3,11 +3,15 @@ Description=DPF OVS setup
 After=network.target openvswitch.service
 Requires=openvswitch.service
 ConditionPathExists=/etc/mlnx-release
+ConditionPathExists=!/run/dpf-ovs-configured
 
 [Service]
 Type=oneshot
 ExecStart=/bin/bash /usr/local/bin/dpf-ovs-script.sh
+ExecStartPost=/bin/touch /run/dpf-ovs-configured
 RemainAfterExit=true
+RestartSec=5s
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
