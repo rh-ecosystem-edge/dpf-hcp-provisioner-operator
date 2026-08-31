@@ -55,7 +55,7 @@ spec:
             description: DPFHCPProvisionerConfigSpec defines the operator-wide configuration
             properties:
               blueFieldOCPLayerRepo:
-                default: quay.io/eelgaev/rhcos-bfb
+                default: registry.redhat.io/dpu-kit-for-nvidia/bluefield-ocp-layer-rhel10
                 description: |-
                   BlueFieldOCPLayerRepo is the container registry repository for BlueField OCP layer images.
                   The operator queries this repository to find an image tag matching the OCP version.

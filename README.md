@@ -119,7 +119,7 @@ A cluster-scoped singleton (must be named `default`) that provides operator-wide
 
 | Field | Type | Default | Description                                                      |
 |-------|------|---------|------------------------------------------------------------------|
-| `blueFieldOCPLayerRepo` | `string` | `quay.io/eelgaev/rhcos-bfb` | Container registry for BlueField OCP layer images |
+| `blueFieldOCPLayerRepo` | `string` | `registry.redhat.io/dpu-kit-for-nvidia/bluefield-ocp-layer-rhel10` | Container registry for BlueField OCP layer images |
 | `manageDPUServiceTemplates` | `bool` | `false` | Whether the operator manages DPUServiceTemplate resources. **Deprecated:** this field will be removed in a future release, at which point DPUServiceTemplate management will always be enabled. |
 
 ```yaml
@@ -128,7 +128,7 @@ kind: DPFHCPProvisionerConfig
 metadata:
   name: default
 spec:
-  blueFieldOCPLayerRepo: quay.io/eelgaev/rhcos-bfb
+  blueFieldOCPLayerRepo: registry.redhat.io/dpu-kit-for-nvidia/bluefield-ocp-layer-rhel10
   manageDPUServiceTemplates: false
 ```
 

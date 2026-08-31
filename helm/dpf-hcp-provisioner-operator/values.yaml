@@ -48,7 +48,7 @@ logLevel: info
 # Created as a post-install/post-upgrade helm hook after CRDs are established.
 provisionerConfig: {}
   # Example overrides (uncomment to customize):
-  # blueFieldOCPLayerRepo: "quay.io/eelgaev/rhcos-bfb"
+  # blueFieldOCPLayerRepo: "quay.io/<user>/bluefield-ocp-layer"
   # disableMetalLB: true  # Set to true for cloud platforms (AWS, Azure, GCP) with native LoadBalancer support
 
 # Leader election configuration
