@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	. "github.com/onsi/ginkgo/v2"
@@ -52,6 +53,20 @@ type fakeReleaseImageReader struct {
 func (f *fakeReleaseImageReader) GetComponentImage(_ context.Context, _ string, _ string, _ authn.Keychain) (string, error) {
 	f.callCount++
 	return f.image, f.err
+}
+
+type fallbackReleaseImageReader struct {
+	failPrefix    string
+	fallbackImage string
+	callCount     int
+}
+
+func (f *fallbackReleaseImageReader) GetComponentImage(_ context.Context, ref string, _ string, _ authn.Keychain) (string, error) {
+	f.callCount++
+	if strings.HasPrefix(ref, f.failPrefix) {
+		return "", fmt.Errorf("unauthorized: authentication required")
+	}
+	return f.fallbackImage, nil
 }
 
 func newDPFOperatorConfig(version string) *operatorv1alpha1.DPFOperatorConfig {
@@ -443,6 +458,41 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 				image := dpuManifests["image"].(map[string]any)
 				Expect(image["repository"]).To(Equal("quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256"))
 				Expect(image["tag"]).To(Equal("ddd444"))
+			})
+		})
+
+		Context("when cluster registry lacks the aarch64 image (CI environment)", func() {
+			It("should fall back to quay.io and resolve the OVN image", func() {
+				ciReleaseImage := "registry.build09.ci.openshift.org/ci-op-xxx/release:4.22.10"
+				prereqs := allPrereqsWithRelease(x86OVNImage, ciReleaseImage)
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(prereqs...).
+					WithStatusSubresource(prereqs[0]).
+					Build()
+
+				reader := &fallbackReleaseImageReader{
+					failPrefix:    "registry.build09.ci.openshift.org",
+					fallbackImage: arm64OVNImage,
+				}
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
+
+				err := manager.EnsureTemplates(ctx, targetNamespace, &common.OperatorConfig{})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(reader.callCount).To(Equal(2))
+
+				ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+				err = fakeClient.Get(ctx, types.NamespacedName{Name: "ovn", Namespace: targetNamespace}, ovnTemplate)
+				Expect(err).NotTo(HaveOccurred())
+
+				var ovnValues map[string]any
+				Expect(json.Unmarshal(ovnTemplate.Spec.HelmChart.Values.Raw, &ovnValues)).To(Succeed())
+				dpuManifests := ovnValues["dpuManifests"].(map[string]any)
+				image := dpuManifests["image"].(map[string]any)
+				Expect(image["repository"]).To(Equal("quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256"))
+				Expect(image["tag"]).To(Equal("bbb222"))
 			})
 		})
 

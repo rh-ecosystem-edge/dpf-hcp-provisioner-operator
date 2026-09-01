@@ -53,6 +53,10 @@ const (
 	ovnDPUDaemonSetNamespace = "openshift-ovn-kubernetes"
 	ovnControllerName        = "ovnkube-controller"
 
+	// Fallback registry for aarch64 release lookups when the cluster's own
+	// registry (e.g. a CI-internal registry) does not carry the aarch64 image.
+	quayOCPReleaseRepo = "quay.io/openshift-release-dev/ocp-release"
+
 	// TODO: This is an OVN-K template, not OVN, some day we should probably
 	// change "ovn" to "ovn-k", but then we also have to touch the
 	// DPUDeployment which refers to it, which resides in the openshift-dpf
@@ -352,7 +356,11 @@ func isMultiArchReleaseImage(image string) bool {
 }
 
 // resolveARM64OVNImage extracts the aarch64 ovn-kubernetes image from the release payload.
+// It first tries the cluster's own registry (derived from ClusterVersion) and, if that
+// fails (e.g. CI-internal registries that only carry x86_64), falls back to quay.io.
 func (m *DPUServiceTemplateManager) resolveARM64OVNImage(ctx context.Context, releaseImage, ocpVersion string) (repo, tag string, err error) {
+	log := logf.FromContext(ctx)
+
 	registry := releaseImage
 	if idx := strings.Index(registry, "@"); idx > 0 {
 		registry = registry[:idx]
@@ -368,7 +376,16 @@ func (m *DPUServiceTemplateManager) resolveARM64OVNImage(ctx context.Context, re
 
 	ovnImage, err := m.ReleaseImageReader.GetComponentImage(ctx, aarch64Ref, ovnKubernetesName, keychain)
 	if err != nil {
-		return "", "", fmt.Errorf("resolving aarch64 OVN image from release %q: %w", aarch64Ref, err)
+		fallbackRef := fmt.Sprintf("%s:%s-aarch64", quayOCPReleaseRepo, ocpVersion)
+		if fallbackRef == aarch64Ref {
+			return "", "", fmt.Errorf("resolving aarch64 OVN image from release %q: %w", aarch64Ref, err)
+		}
+		log.Info("Primary aarch64 release lookup failed, trying quay.io fallback",
+			"primaryRef", aarch64Ref, "fallbackRef", fallbackRef, "error", err)
+		ovnImage, err = m.ReleaseImageReader.GetComponentImage(ctx, fallbackRef, ovnKubernetesName, keychain)
+		if err != nil {
+			return "", "", fmt.Errorf("resolving aarch64 OVN image from fallback %q: %w", fallbackRef, err)
+		}
 	}
 
 	return splitImage(ovnImage)
