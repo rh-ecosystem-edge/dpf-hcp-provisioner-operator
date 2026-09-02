@@ -33,12 +33,17 @@ func TestContent(t *testing.T) {
 // mockProvider implements ContentProvider for testing
 type mockProvider struct {
 	files        []FileDefinition
+	links        []LinkDefinition
 	systemdUnits []SystemdUnitDefinition
 	systemdErr   error
 }
 
 func (m *mockProvider) GetFiles() []FileDefinition {
 	return m.files
+}
+
+func (m *mockProvider) GetLinks() []LinkDefinition {
+	return m.links
 }
 
 func (m *mockProvider) GetSystemdUnits() ([]SystemdUnitDefinition, error) {

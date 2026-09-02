@@ -64,6 +64,26 @@ func AddFiles(ign *igntypes.Config, provider ContentProvider) error {
 	return nil
 }
 
+// AddLinks adds symlinks from a content provider to an ignition config
+func AddLinks(ign *igntypes.Config, provider ContentProvider) error {
+	for _, linkDef := range provider.GetLinks() {
+		target := linkDef.Target
+		entry := igntypes.Link{
+			Node: igntypes.Node{
+				Path:      linkDef.Path,
+				Overwrite: ignition.Ptr(true),
+			},
+			LinkEmbedded1: igntypes.LinkEmbedded1{
+				Target: &target,
+			},
+		}
+
+		ign.Storage.Links = append(ign.Storage.Links, entry)
+	}
+
+	return nil
+}
+
 // AddSystemdUnits adds systemd units from a content provider to an ignition config
 func AddSystemdUnits(ign *igntypes.Config, provider ContentProvider) error {
 	units, err := provider.GetSystemdUnits()
@@ -96,6 +116,9 @@ func AddKernelArgs(ign *igntypes.Config) {
 // AddContent is a convenience function that adds both files and systemd units
 func AddContent(ign *igntypes.Config, provider ContentProvider) error {
 	if err := AddFiles(ign, provider); err != nil {
+		return err
+	}
+	if err := AddLinks(ign, provider); err != nil {
 		return err
 	}
 	if err := AddSystemdUnits(ign, provider); err != nil {

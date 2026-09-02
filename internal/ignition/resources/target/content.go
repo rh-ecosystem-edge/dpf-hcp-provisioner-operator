@@ -123,6 +123,12 @@ func NewProvider() *content.EmbeddedProvider {
 				ContentSource: f("report-machineosurl.py"),
 			},
 		},
+		Links: []content.LinkDefinition{
+			{
+				Path:   "/etc/localtime",
+				Target: "/usr/share/zoneinfo/UTC",
+			},
+		},
 		SystemdFS: &systemdFS,
 	}
 }
