@@ -31,6 +31,12 @@ type FileDefinition struct {
 	ContentSource interface{} // Can be []byte for embedded files or string for data URIs
 }
 
+// LinkDefinition represents a symlink to be added to an ignition config
+type LinkDefinition struct {
+	Path   string
+	Target string
+}
+
 // SystemdUnitDefinition represents a systemd unit to be added
 type SystemdUnitDefinition struct {
 	Name     string
@@ -40,6 +46,7 @@ type SystemdUnitDefinition struct {
 // ContentProvider interface for content modules
 type ContentProvider interface {
 	GetFiles() []FileDefinition
+	GetLinks() []LinkDefinition
 	GetSystemdUnits() ([]SystemdUnitDefinition, error)
 }
 
@@ -47,11 +54,16 @@ type ContentProvider interface {
 // It eliminates the boilerplate of per-file //go:embed vars and duplicated systemd loading.
 type EmbeddedProvider struct {
 	Files     []FileDefinition
+	Links     []LinkDefinition
 	SystemdFS *embed.FS // nil if this provider has no systemd units
 }
 
 func (p *EmbeddedProvider) GetFiles() []FileDefinition {
 	return p.Files
+}
+
+func (p *EmbeddedProvider) GetLinks() []LinkDefinition {
+	return p.Links
 }
 
 func (p *EmbeddedProvider) GetSystemdUnits() ([]SystemdUnitDefinition, error) {
