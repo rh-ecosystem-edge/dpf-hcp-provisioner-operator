@@ -37,7 +37,7 @@ helm/dpf-hcp-provisioner-operator/
 
 | File | Purpose |
 |------|---------|
-| `Chart.yaml` | Chart metadata: name, version (0.1.0), appVersion (v0.1.0), description, keywords, maintainers |
+| `Chart.yaml` | Chart metadata: name, version (0.1.0), appVersion (placeholder; overridden with `--app-version <commit-sha>` when Konflux packages the chart), description, keywords, maintainers |
 | `values.yaml` | Default configuration values with inline documentation |
 | `values-production.yaml` | Production-optimized preset: HA (2 replicas), higher resources, master node placement |
 | `values-development.yaml` | Development-optimized preset: debug logging, lower resources, latest tag, Always pull |
@@ -85,7 +85,7 @@ Located in `templates/_helpers.tpl`:
 | `dpf-hcp-provisioner-operator.selectorLabels` | Pod selector labels | `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `control-plane: controller-manager` |
 | `dpf-hcp-provisioner-operator.serviceAccountName` | ServiceAccount name (defaults to release name if not set in values) | `dpf-hcp-provisioner-operator` |
 | `dpf-hcp-provisioner-operator.namespace` | Namespace name | `dpf-hcp-provisioner-system` |
-| `dpf-hcp-provisioner-operator.image` | Full image reference | `quay.io/lhadad/dpf-hcp-provisioner-operator:v0.1.0` |
+| `dpf-hcp-provisioner-operator.image` | Full image reference (repository:tag, tag falls back to `.Chart.AppVersion`) | `quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpf-hcp-provisioner-rhel10-operator:<commit-sha>` |
 
 ## Resources Created
 
@@ -106,7 +106,7 @@ When you install this Helm chart with release name `dpf-hcp-provisioner-operator
 
 | Configuration | values.yaml (Default) | values-development.yaml | values-production.yaml |
 |--------------|----------------------|-------------------------|------------------------|
-| **Image Tag** | `v0.1.0` | `latest` | `v0.1.0` |
+| **Image Tag** | `""` (falls back to `.Chart.AppVersion`, i.e. commit SHA) | `latest` | inherited (or pinned release tag) |
 | **Pull Policy** | `Always` | `Always` | `IfNotPresent` |
 | **Replicas** | `1` | `1` | `2` |
 | **Log Level** | `info` | `debug` | `info` |

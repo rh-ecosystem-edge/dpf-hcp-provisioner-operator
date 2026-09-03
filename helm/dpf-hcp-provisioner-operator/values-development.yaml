@@ -2,8 +2,10 @@
 # Use this file for development/testing environments
 
 # Operator image configuration
+# Repository is inherited from values.yaml (the Konflux dev build for this branch).
+# Only override tag/pullPolicy here; set image.repository explicitly if you need a
+# different image (e.g. your own quay.io fork) for local testing.
 image:
-  repository: quay.io/lhadad/dpf-hcp-provisioner-operator
   tag: latest
   pullPolicy: Always
 
