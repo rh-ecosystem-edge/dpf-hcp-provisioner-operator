@@ -1,7 +1,9 @@
 [Unit]
 Description=DPF DPU Firmware Upgrade
+{{- if not .ZeroTrust }}
 After=tmfifo-agent-link.service
 Requires=tmfifo-agent-link.service
+{{- end }}
 Before=dpu-agent.service
 ConditionPathExists=/etc/mlnx-release
 

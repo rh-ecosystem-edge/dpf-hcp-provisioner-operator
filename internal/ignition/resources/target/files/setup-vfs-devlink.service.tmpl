@@ -1,7 +1,9 @@
 [Unit]
 Description=Setup Host VFs and Activate devlink
-After=tmfifo-agent-link.service devlink-activate.service
+After={{- if not .ZeroTrust }}tmfifo-agent-link.service {{ end }}devlink-activate.service
+{{- if not .ZeroTrust }}
 Requires=tmfifo-agent-link.service
+{{- end }}
 Before=install-dpu-agent.service
 ConditionPathExists=!/etc/mlnx-release
 
