@@ -38,7 +38,7 @@ if is_zero_trust; then
         sleep 5
     done
 
-    cd /tmp
+    cd /tmp || install_error "Failed to change to /tmp directory"
     dnf download dpu-agent --disablerepo=* --repofrompath=zt-agentrepo,"$BFBRegistryURL/rpm/" || install_error "dnf download dpu-agent from bfb-registry failed"
 else
     TIMEOUT=900
@@ -55,7 +55,7 @@ else
         sleep 1
     done
 
-    cd /tmp
+    cd /tmp || install_error "Failed to change to /tmp directory"
     dnf download dpu-agent --disablerepo=* --enablerepo=agentrepo || install_error "dnf download dpu-agent failed"
 fi
 
