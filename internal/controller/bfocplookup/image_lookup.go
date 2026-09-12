@@ -137,7 +137,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 
 	// Query registry for matching tag
 	logger.V(1).Info("Querying registry for BlueField OCP layer image", "repository", repository, "version", version)
-	blueFieldOCPLayerImage, err := r.validateTagExists(ctx, repository, version, keychain)
+	blueFieldOCPLayerImage, err := r.validateTagExists(ctx, repository, version, cr.Spec.MachineOSVariant, keychain)
 	if err != nil {
 		switch err.(type) {
 		case *VersionNotFoundError:
@@ -232,8 +232,12 @@ func (r *ImageLookup) getKeychain(ctx context.Context, cr *provisioningv1alpha1.
 }
 
 // buildImageReference constructs a full image reference string and parses it into a name.Reference.
-func buildImageReference(repository, version string) (string, name.Reference, error) {
+func buildImageReference(repository, version, variant string) (string, name.Reference, error) {
 	imageRef := fmt.Sprintf("%s:%s", repository, version)
+	if variant != "" {
+		imageRef = fmt.Sprintf("%s-%s", imageRef, variant)
+	}
+
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid image reference %s: %w", imageRef, err)
@@ -243,8 +247,8 @@ func buildImageReference(repository, version string) (string, name.Reference, er
 
 // validateTagExists checks if a specific tag exists in the container registry via a HEAD request.
 // Returns the full image reference (repository:tag) if found.
-func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version string, keychain authn.Keychain) (string, error) {
-	imageRef, ref, err := buildImageReference(repository, version)
+func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version, variant string, keychain authn.Keychain) (string, error) {
+	imageRef, ref, err := buildImageReference(repository, version, variant)
 	if err != nil {
 		return "", &RegistryAccessError{
 			Repository: repository,
