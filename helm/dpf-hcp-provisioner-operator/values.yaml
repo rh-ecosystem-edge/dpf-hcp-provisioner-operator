@@ -6,11 +6,29 @@
 nameOverride: dpf-hcp-provisioner-operator
 
 # Operator image configuration
+#
+# This repository points at the Konflux dev build for this branch. It is intentionally
+# committed here so that `helm upgrade --install` works out of the box without needing
+# --set image.repository/image.tag.
+#
+# The tag is intentionally left empty: it falls back to .Chart.AppVersion (see below and
+# templates/_helpers.tpl). Konflux's build-helm-chart-oci-ta task automatically packages
+# this chart with `--app-version <commit-sha>`, so every chart pushed to the OCI registry
+# already has the correct commit-sha tag baked in for that build, with no manual step
+# required.
+#
+# IMPORTANT: the Konflux release pipeline that ships this chart to registry.redhat.io only
+# relocates/retags the already-built chart artifact (byte-for-byte copy) -- it does NOT
+# rewrite this file's content. So the repository/tag below must already be the production
+# values at the exact commit that gets selected for release. See RELEASING.md for the
+# (manual) two-step procedure: flip these values to registry.redhat.io before cutting a
+# release, then flip them back to the dev image afterwards for continued development.
 image:
-  # Repository for the operator image
-  repository: quay.io/lhadad/dpf-hcp-provisioner-operator
-  # Image tag (defaults to Chart appVersion if not specified)
-  tag: v0.1.0
+  # Repository for the operator image (Konflux dev build for this branch)
+  repository: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpf-hcp-provisioner-rhel10-operator
+  # Image tag. Empty means: use .Chart.AppVersion (set to the commit SHA at chart-package time).
+  # Override with --set image.tag=... to pin to a specific build.
+  tag: ""
   # Image digest (when set, takes precedence over tag for immutable deployments)
   # Example: sha256:abc123...
   digest: ""
