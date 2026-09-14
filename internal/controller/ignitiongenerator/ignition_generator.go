@@ -204,7 +204,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("failed to get DPFOperatorConfig: %w", err)
 	}
 
-	var mtu = uint16(*dpfOperatorConfig.Spec.Networking.HighSpeedMTU)
+	var mtu = uint16(*dpfOperatorConfig.Spec.Networking.ControlPlaneMTU)
 
 	// Use spec.machineOSURL if set, otherwise fall back to status.blueFieldOCPLayerImage (from OCP layer lookup)
 	machineOSURL := cr.Spec.MachineOSURL
