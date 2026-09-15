@@ -444,7 +444,7 @@ var _ = Describe("GetSingletonDPFOperatorConfig", func() {
 			},
 			Spec: operatorv1alpha1.DPFOperatorConfigSpec{
 				Networking: &operatorv1alpha1.Networking{
-					HighSpeedMTU: &mtu,
+					ControlPlaneMTU: &mtu,
 				},
 			},
 		}
@@ -452,7 +452,7 @@ var _ = Describe("GetSingletonDPFOperatorConfig", func() {
 
 		result, err := operatorcommon.GetSingletonDPFOperatorConfig(ctx, fakeClient)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(*result.Spec.Networking.HighSpeedMTU).To(BeEquivalentTo(9000))
+		Expect(*result.Spec.Networking.ControlPlaneMTU).To(BeEquivalentTo(9000))
 	})
 
 	It("should return error when no DPFOperatorConfig exists", func() {
