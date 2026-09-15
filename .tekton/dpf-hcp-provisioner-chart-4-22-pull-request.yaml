@@ -13,9 +13,9 @@ metadata:
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: dpf-hcp-provisioner-operator-4-22
-    appstudio.openshift.io/component: dpf-hcp-provisioner-chart
+    appstudio.openshift.io/component: dpf-hcp-provisioner-chart-4-22
     pipelines.appstudio.openshift.io/type: build
-  name: dpf-hcp-provisioner-chart-on-pull-request
+  name: dpf-hcp-provisioner-chart-4-22-on-pull-request
   namespace: dpu-kit-for-nvidia-operator-tenant
 spec:
   params:
@@ -24,11 +24,13 @@ spec:
     - name: revision
       value: '{{revision}}'
     - name: output-image
-      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpf-hcp-provisioner-chart:on-pr-{{revision}}
+      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpf-hcp-provisioner-chart-4-22:on-pr-{{revision}}
     - name: image-expires-after
       value: 5d
     - name: chart-context
       value: helm/dpf-hcp-provisioner-operator/
+    - name: OVERWRITE_CHART_NAME
+      value: "false"
   pipelineSpec:
     description: |
       This pipeline packages and pushes a Helm chart to an OCI repository using trusted artifacts.
@@ -162,6 +164,8 @@ spec:
           # real releases from the push pipeline.
           - name: CHART_VERSION
             value: 0.0.0-pr
+          - name: OVERWRITE_CHART_NAME
+            value: $(params.OVERWRITE_CHART_NAME)
         runAfter:
           - prefetch-dependencies
         taskRef:
@@ -169,7 +173,7 @@ spec:
             - name: name
               value: build-helm-chart-oci-ta
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:4ec5709bcefdc9e4bbc135560163749d50a35928968c9e717e27fc8c050ce88e
+              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.4@sha256:bcc69ce9ecf786df7876eb4a47ff7835d4ed85121d8f55dc4531ff955c1095b9
             - name: kind
               value: task
           resolver: bundles
@@ -179,7 +183,7 @@ spec:
       - name: netrc
         optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-dpf-hcp-provisioner-chart
+    serviceAccountName: build-pipeline-dpf-hcp-provisioner-chart-4-22
   workspaces:
     - name: git-auth
       secret:
