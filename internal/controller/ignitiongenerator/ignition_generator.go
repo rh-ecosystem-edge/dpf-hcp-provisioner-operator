@@ -457,16 +457,23 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 		return nil, fmt.Errorf("failed to add target content: %w", err)
 	}
 
-	// Add templated dpu-agent.service unit (ZT mode adds extra flags)
-	unitName, unitContents, err := target.RenderDPUAgentServiceUnit(zeroTrust)
-	if err != nil {
-		return nil, fmt.Errorf("failed to render dpu-agent.service: %w", err)
+	// Add templated systemd units (ZT mode conditionalizes tmfifo dependencies and dpu-agent flags)
+	for _, renderFn := range []func(bool) (string, string, error){
+		target.RenderDPUAgentServiceUnit,
+		target.RenderInstallDPUAgentServiceUnit,
+		target.RenderDPUFWUpgradeServiceUnit,
+		target.RenderSetupVFSDevlinkServiceUnit,
+	} {
+		unitName, unitContents, err := renderFn(zeroTrust)
+		if err != nil {
+			return nil, fmt.Errorf("failed to render %s: %w", unitName, err)
+		}
+		targetIgnition.Systemd.Units = append(targetIgnition.Systemd.Units, igntypes.Unit{
+			Name:     unitName,
+			Enabled:  ignition.Ptr(true),
+			Contents: &unitContents,
+		})
 	}
-	targetIgnition.Systemd.Units = append(targetIgnition.Systemd.Units, igntypes.Unit{
-		Name:     unitName,
-		Enabled:  ignition.Ptr(true),
-		Contents: &unitContents,
-	})
 
 	// Add common content files and systemd units
 	commonProvider := common.NewProvider(zeroTrust)
