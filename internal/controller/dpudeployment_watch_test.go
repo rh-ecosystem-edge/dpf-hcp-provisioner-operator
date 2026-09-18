@@ -43,6 +43,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 		Expect(provisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 		Expect(dpuservicev1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(dpuprovisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
 	})
 
 	Describe("dpuDeploymentToRequests", func() {
@@ -292,6 +293,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 					},
 				},
 			}
+			flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "my-flavor",
+					Namespace: "dpf-operator-system",
+				},
+			}
 
 			cm := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -308,7 +315,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(dd, cm).
+				WithObjects(dd, flavor, cm).
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
@@ -358,6 +365,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 					},
 				},
 			}
+			flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "new-flavor",
+					Namespace: "dpf-operator-system",
+				},
+			}
 
 			cm := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -374,7 +387,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(provisioner, dd, cm).
+				WithObjects(provisioner, dd, flavor, cm).
 				WithStatusSubresource(provisioner).
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
@@ -425,6 +438,12 @@ var _ = Describe("DPUDeployment Watch", func() {
 					},
 				},
 			}
+			flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "my-flavor",
+					Namespace: "dpf-operator-system",
+				},
+			}
 
 			cm := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -439,7 +458,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(provisioner, dd, cm).
+				WithObjects(provisioner, dd, flavor, cm).
 				WithStatusSubresource(provisioner).
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
@@ -535,10 +554,16 @@ var _ = Describe("DPUDeployment Watch", func() {
 					},
 				},
 			}
+			flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "my-flavor",
+					Namespace: "dpf-operator-system",
+				},
+			}
 
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(dd).
+				WithObjects(dd, flavor).
 				Build()
 			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
 			Expect(func() bool {
@@ -648,6 +673,187 @@ var _ = Describe("DPUDeployment Watch", func() {
 
 			Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseFailed))
 		})
+	})
+})
+
+var _ = Describe("handleDependencyChanges dependency readiness", func() {
+	var scheme *runtime.Scheme
+
+	BeforeEach(func() {
+		scheme = runtime.NewScheme()
+		Expect(provisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(corev1.AddToScheme(scheme)).To(Succeed())
+		Expect(dpuservicev1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(dpuprovisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
+	})
+
+	It("should wait instead of failing when DPUDeployment is not found", func() {
+		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "doca",
+				Namespace:  "clusters",
+				Generation: 1,
+			},
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+				DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+					Name:      "cluster",
+					Namespace: "dpu-system",
+				},
+				DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+					Name:      "dpudeployment",
+					Namespace: "dpf-operator-system",
+				},
+			},
+			Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+				Phase: provisioningv1alpha1.PhaseGeneratingIgnition,
+				HostedClusterRef: &corev1.ObjectReference{
+					Name:      "doca",
+					Namespace: "clusters",
+				},
+				Conditions: []metav1.Condition{
+					{
+						Type:               provisioningv1alpha1.HostedClusterAvailable,
+						Status:             metav1.ConditionTrue,
+						Reason:             "AsExpected",
+						LastTransitionTime: metav1.Now(),
+					},
+					{
+						Type:               provisioningv1alpha1.KubeConfigInjected,
+						Status:             metav1.ConditionTrue,
+						Reason:             provisioningv1alpha1.ReasonKubeConfigInjected,
+						LastTransitionTime: metav1.Now(),
+					},
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(provisioner).
+			WithStatusSubresource(provisioner).
+			Build()
+		r := &DPFHCPProvisionerReconciler{
+			Client:   fakeClient,
+			Recorder: record.NewFakeRecorder(10),
+		}
+
+		changed, result, err := r.handleDependencyChanges(context.Background(), provisioner)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(changed).To(BeTrue())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		Expect(cond).NotTo(BeNil())
+		Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+		Expect(cond.Message).To(ContainSubstring("dpudeployment"))
+		Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition))
+	})
+
+	It("should wait instead of retrying when recovering from IgnitionGenerationFailed due to missing DPUDeployment", func() {
+		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "doca",
+				Namespace:  "clusters",
+				Generation: 1,
+			},
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+				DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+					Name:      "cluster",
+					Namespace: "dpu-system",
+				},
+				DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+					Name:      "dpudeployment",
+					Namespace: "dpf-operator-system",
+				},
+			},
+			Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+				Phase: provisioningv1alpha1.PhaseFailed,
+				HostedClusterRef: &corev1.ObjectReference{
+					Name:      "doca",
+					Namespace: "clusters",
+				},
+				Conditions: []metav1.Condition{
+					{
+						Type:               provisioningv1alpha1.HostedClusterAvailable,
+						Status:             metav1.ConditionTrue,
+						Reason:             "AsExpected",
+						LastTransitionTime: metav1.Now(),
+					},
+					{
+						Type:               provisioningv1alpha1.KubeConfigInjected,
+						Status:             metav1.ConditionTrue,
+						Reason:             provisioningv1alpha1.ReasonKubeConfigInjected,
+						LastTransitionTime: metav1.Now(),
+					},
+					{
+						Type:               provisioningv1alpha1.IgnitionConfigured,
+						Status:             metav1.ConditionFalse,
+						Reason:             provisioningv1alpha1.ReasonIgnitionGenerationFailed,
+						Message:            "Failed to generate ignition: failed to retrieve DPU Flavor: failed to get DPUDeployment: DPUDeployment.svc.dpu.nvidia.com \"dpudeployment\" not found",
+						LastTransitionTime: metav1.Now(),
+					},
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(provisioner).
+			WithStatusSubresource(provisioner).
+			Build()
+		r := &DPFHCPProvisionerReconciler{
+			Client:   fakeClient,
+			Recorder: record.NewFakeRecorder(10),
+		}
+
+		changed, result, err := r.handleDependencyChanges(context.Background(), provisioner)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(changed).To(BeTrue())
+		Expect(result.RequeueAfter).To(BeZero())
+
+		cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+		Expect(cond).NotTo(BeNil())
+		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+		Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition))
+	})
+
+	It("should not block reconciliation before ignition prerequisites are met", func() {
+		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "doca",
+				Namespace:  "clusters",
+				Generation: 1,
+			},
+			Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+				DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+					Name:      "cluster",
+					Namespace: "dpu-system",
+				},
+				DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+					Name:      "dpudeployment",
+					Namespace: "dpf-operator-system",
+				},
+			},
+			Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+				Phase: provisioningv1alpha1.PhaseWaitingForControlPlane,
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(provisioner).
+			WithStatusSubresource(provisioner).
+			Build()
+		r := &DPFHCPProvisionerReconciler{
+			Client:   fakeClient,
+			Recorder: record.NewFakeRecorder(10),
+		}
+
+		changed, _, err := r.handleDependencyChanges(context.Background(), provisioner)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(changed).To(BeFalse())
+		Expect(meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)).To(BeNil())
 	})
 })
 

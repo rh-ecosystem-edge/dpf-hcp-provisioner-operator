@@ -355,6 +355,97 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 					"IgnitionConfigured should stay True - BFB change doesn't require regeneration")
 		})
 
+		It("should not regenerate ignition while DPUDeployment is missing", func() {
+			ctx := context.Background()
+
+			By("verifying CR is Ready and ignition ConfigMap exists")
+			Expect(getCRPhase(provisionerName)).To(Equal("Ready"))
+			cm := getIgnitionConfigMap()
+			Expect(cm).NotTo(BeNil(), "Ignition ConfigMap should exist before DPUDeployment deletion")
+
+			By("deleting the DPUDeployment")
+			dpuDeployment := &dpuservicev1.DPUDeployment{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Name:      dpuDeploymentName,
+				Namespace: dpuClusterNS,
+			}, dpuDeployment)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Delete(ctx, dpuDeployment)).To(Succeed())
+
+			By("waiting for DPUDeployment to be fully removed")
+			Eventually(func(g Gomega) {
+				found := &dpuservicev1.DPUDeployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      dpuDeploymentName,
+					Namespace: dpuClusterNS,
+				}, found)
+				if err == nil && len(found.Finalizers) > 0 {
+					found.Finalizers = nil
+					_ = k8sClient.Update(ctx, found)
+				}
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(),
+					"DPUDeployment should be deleted")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for ignition ConfigMap to be deleted")
+			Eventually(func(g Gomega) {
+				g.Expect(getIgnitionConfigMap()).To(BeNil(),
+					"Ignition ConfigMap should be deleted when DPUDeployment is missing")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for IgnitionConfigured=False with DependencyDeleted")
+			Eventually(func(g Gomega) {
+				conditions := getCRConditions(ciNamespace, provisionerName)
+				var ignCond *metav1.Condition
+				for i := range conditions {
+					if conditions[i].Type == "IgnitionConfigured" {
+						ignCond = &conditions[i]
+						break
+					}
+				}
+				g.Expect(ignCond).NotTo(BeNil(), "IgnitionConfigured condition should exist")
+				g.Expect(ignCond.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted),
+					"should wait for DPUDeployment instead of failing ignition generation")
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("verifying ignition is not retried while DPUDeployment is missing")
+			Consistently(func(g Gomega) {
+				g.Expect(getIgnitionConfigMap()).To(BeNil(),
+					"Ignition ConfigMap should stay deleted while DPUDeployment is missing")
+				conditions := getCRConditions(ciNamespace, provisionerName)
+				for _, c := range conditions {
+					if c.Type == "IgnitionConfigured" {
+						g.Expect(c.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted),
+							"IgnitionConfigured reason should stay DependencyDeleted, not IgnitionGenerationFailed")
+					}
+				}
+				g.Expect(getCRPhase(provisionerName)).NotTo(Equal("Failed"),
+					"CR should not enter Failed while waiting for DPUDeployment")
+			}, 45*time.Second, pollingInterval).Should(Succeed())
+
+			By("recreating the DPUDeployment")
+			createDPUDeploymentStub(dpuClusterNS, dpuDeploymentName, dpuFlavorName)
+
+			By("waiting for ignition ConfigMap to be regenerated")
+			Eventually(func(g Gomega) {
+				found := getIgnitionConfigMap()
+				g.Expect(found).NotTo(BeNil(),
+					"Ignition ConfigMap should be regenerated after DPUDeployment is recreated")
+				g.Expect(found.Data["BF_CFG_TEMPLATE"]).NotTo(BeEmpty(),
+					"Regenerated ConfigMap should have ignition data")
+			}, 5*time.Minute, pollingInterval).Should(Succeed())
+
+			By("waiting for CR to return to Ready state")
+			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)
+
+			By("verifying IgnitionConfigured condition is True again")
+			Eventually(func(g Gomega) {
+				status := getConditionStatus(ciNamespace, provisionerName, "IgnitionConfigured")
+				g.Expect(status).To(Equal(string(metav1.ConditionTrue)))
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+		})
+
 		It("should have injected kubeconfig into DPUCluster namespace", func() {
 			ctx := context.Background()
 			kubeconfigSecretName := fmt.Sprintf("%s-admin-kubeconfig", provisionerName)
