@@ -344,7 +344,7 @@ const (
 	// This invalidates the current ignition ConfigMap and triggers regeneration.
 	ReasonDPUDeploymentChanged string = "DPUDeploymentChanged"
 
-	// ReasonDependencyDeleted indicates a required dependency (DPUDeployment or DPUFlavor) was deleted.
+	// ReasonDependencyDeleted indicates a required dependency (DPUDeployment or DPUFlavor) is missing.
 	// The ignition ConfigMap is removed and will be regenerated once the dependency is recreated.
 	ReasonDependencyDeleted string = "DependencyDeleted"
 
