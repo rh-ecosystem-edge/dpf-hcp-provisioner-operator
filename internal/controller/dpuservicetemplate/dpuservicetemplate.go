@@ -564,7 +564,7 @@ func (m *DPUServiceTemplateManager) ensureHBNTemplate(ctx context.Context, names
 		}
 	}
 
-	return m.ensureTemplate(ctx, namespace, "hbn", "hbn", defaults.HBN.ChartRepoURL, defaults.HBN.ChartName, defaults.HBN.ChartVersion, values, nil, nil, log)
+	return m.ensureTemplate(ctx, namespace, templateNameHBN, templateNameHBN, defaults.HBN.ChartRepoURL, defaults.HBN.ChartName, defaults.HBN.ChartVersion, values, nil, nil, log)
 }
 
 func (m *DPUServiceTemplateManager) ensureTemplate(
@@ -593,6 +593,10 @@ func (m *DPUServiceTemplateManager) ensureTemplate(
 	if err := m.client.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, template); err == nil {
 		if template.Labels[common.LabelManagedBy] != "true" {
 			log.Info("Skipping DPUServiceTemplate not managed by operator", "name", name)
+			return nil
+		}
+		if !template.DeletionTimestamp.IsZero() {
+			log.Info("Skipping DPUServiceTemplate that is being deleted", "name", name)
 			return nil
 		}
 	} else if !apierrors.IsNotFound(err) {

@@ -167,16 +167,55 @@ var _ = Describe("DPUServiceTemplate E2E", Ordered, func() {
 			}, generalTemplateReconcileTimeout, generalTemplateReconcileInterval).Should(Succeed())
 		})
 
+		It("should delete templates when DPUDeployment is deleted", func() {
+			ctx := context.Background()
+
+			By("deleting the DPUDeployment while the provisioner still exists")
+			dd := &dpuservicev1alpha1.DPUDeployment{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Name: dpuDeploymentName, Namespace: dpuClusterNS,
+			}, dd)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Delete(ctx, dd)).To(Succeed())
+
+			By("verifying all managed templates are deleted")
+			Eventually(func(g Gomega) {
+				var list dpuservicev1alpha1.DPUServiceTemplateList
+				err := k8sClient.List(ctx, &list,
+					client.InNamespace(dpuClusterNS),
+					client.MatchingLabels{managedByLabel: "true"},
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(list.Items).To(BeEmpty(), "All managed templates should be deleted")
+			}, generalTemplateReconcileTimeout, generalTemplateReconcileInterval).Should(Succeed())
+
+			By("verifying templates are not recreated while the provisioner still exists")
+			Consistently(func(g Gomega) {
+				for _, name := range templateNames {
+					template := &dpuservicev1alpha1.DPUServiceTemplate{}
+					err := k8sClient.Get(ctx, types.NamespacedName{
+						Name: name, Namespace: dpuClusterNS,
+					}, template)
+					g.Expect(err).To(HaveOccurred())
+				}
+			}, 20*time.Second, 5*time.Second).Should(Succeed())
+		})
+
 		It("should delete templates when provisioner is deleted", func() {
 			ctx := context.Background()
 
-			By("verifying templates exist before deletion")
+			By("recreating DPUDeployment so templates exist again")
+			createDPUDeploymentStub(dpuClusterNS, dpuDeploymentName, dpuFlavorName)
+
+			By("waiting for templates to be recreated")
 			for _, name := range templateNames {
-				template := &dpuservicev1alpha1.DPUServiceTemplate{}
-				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name: name, Namespace: dpuClusterNS,
-				}, template)
-				Expect(err).NotTo(HaveOccurred(), "Template %s should exist before provisioner deletion", name)
+				Eventually(func(g Gomega) {
+					template := &dpuservicev1alpha1.DPUServiceTemplate{}
+					err := k8sClient.Get(ctx, types.NamespacedName{
+						Name: name, Namespace: dpuClusterNS,
+					}, template)
+					g.Expect(err).NotTo(HaveOccurred(), "Template %s should exist before provisioner deletion", name)
+				}, generalTemplateReconcileTimeout, generalTemplateReconcileInterval).Should(Succeed())
 			}
 
 			By("deleting the DPFHCPProvisioner")
