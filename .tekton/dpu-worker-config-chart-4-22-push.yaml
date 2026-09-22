@@ -12,9 +12,9 @@ metadata:
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: dpf-hcp-provisioner-operator-4-22
-    appstudio.openshift.io/component: dpu-worker-config-chart
+    appstudio.openshift.io/component: dpu-worker-config-chart-4-22
     pipelines.appstudio.openshift.io/type: build
-  name: dpu-worker-config-chart-on-push
+  name: dpu-worker-config-chart-4-22-on-push
   namespace: dpu-kit-for-nvidia-operator-tenant
 spec:
   params:
@@ -23,11 +23,13 @@ spec:
     - name: revision
       value: '{{revision}}'
     - name: output-image
-      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpu-worker-config-chart:{{revision}}
+      value: quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpu-worker-config-chart-4-22:{{revision}}
     - name: chart-context
       value: helm/dpu-worker-config/
-    - name: CHART_VERSION
-      value: 4.22.0
+    - name: OVERWRITE_CHART_NAME
+      value: "false"
+    - name: PUSH_CHART_TO_IMAGE_REPOSITORY
+      value: "true"
   pipelineSpec:
     description: |
       This pipeline packages and pushes a Helm chart to an OCI repository using trusted artifacts.
@@ -157,6 +159,10 @@ spec:
             value: $(params.chart-context)
           - name: CHART_VERSION
             value: $(params.CHART_VERSION)
+          - name: OVERWRITE_CHART_NAME
+            value: $(params.OVERWRITE_CHART_NAME)
+          - name: PUSH_CHART_TO_IMAGE_REPOSITORY
+            value: $(params.PUSH_CHART_TO_IMAGE_REPOSITORY)
         runAfter:
           - prefetch-dependencies
         taskRef:
@@ -164,7 +170,7 @@ spec:
             - name: name
               value: build-helm-chart-oci-ta
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:4ec5709bcefdc9e4bbc135560163749d50a35928968c9e717e27fc8c050ce88e
+              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.4@sha256:7c7c7117e59e1c8d96a9ebc63807b5d4950d30ebabcd127eec4950a89d99eece
             - name: kind
               value: task
           resolver: bundles
@@ -206,7 +212,7 @@ spec:
       - name: netrc
         optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-dpu-worker-config-chart
+    serviceAccountName: build-pipeline-dpu-worker-config-chart-4-22
   workspaces:
     - name: git-auth
       secret:
