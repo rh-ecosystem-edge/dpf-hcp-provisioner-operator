@@ -15,10 +15,22 @@ spec:
       type: string
       default: "300"
       description: Seconds oobtkube waits for an OOB connection after applying all CR variants.
-    - name: OCP_VERSION_PREFIX
+    - name: OCP_VERSION
       type: string
-      default: "4.21."
-      description: OpenShift version prefix for the ephemeral cluster.
+      default: "4.21"
+      description: OpenShift minor version for the ephemeral HyperShift cluster.
+    - name: COMPUTE_NODE_TYPE
+      type: string
+      default: m5.xlarge
+      description: AWS instance type for ephemeral HyperShift worker nodes.
+    - name: HYPERSHIFT_NODE_COUNT
+      type: string
+      default: "3"
+      description: Number of worker nodes for the ephemeral HyperShift cluster.
+    - name: HOSTED_MANAGEMENT_CLUSTER
+      type: string
+      default: hosted-mgmt2
+      description: Hosted management cluster used to provision the ephemeral cluster.
     - name: GCS_KEY_SECRET
       type: string
       default: gcs-key
@@ -60,8 +72,8 @@ spec:
                 echo "Skipping DAST: not a push event (got: ${EVENT_TYPE})."
               fi
 
-    # ── 1. Provision EaaS space ──────────────────────────────────────────────
-    - name: provision-env
+    # ── 1. Provision ephemeral OCP cluster through OpenShift CI ──────────────
+    - name: provision-cluster
       runAfter:
         - check-event-type
       when:
@@ -72,81 +84,29 @@ spec:
         resolver: git
         params:
           - name: url
-            value: https://github.com/konflux-ci/build-definitions.git
+            value: https://github.com/openshift/konflux-tasks
           - name: revision
             value: main
           - name: pathInRepo
-            value: task/eaas-provision-space/0.1/eaas-provision-space.yaml
+            value: tasks/provision-ephemeral-cluster/0.1/provision-ephemeral-cluster.yaml
       params:
-        - name: ownerKind
-          value: PipelineRun
         - name: ownerName
           value: $(context.pipelineRun.name)
         - name: ownerUid
           value: $(context.pipelineRun.uid)
+        - name: workflow
+          value: hypershift-hostedcluster-workflow
+        - name: clusterProfile
+          value: aws-konflux-prod
+        - name: timeout
+          value: 1h
+        - name: releases
+          value: >-
+            {"latest":{"release":{"channel":"stable","version":"$(params.OCP_VERSION)","architecture":"multi"}}}
+        - name: env
+          value: '{"COMPUTE_NODE_TYPE":"$(params.COMPUTE_NODE_TYPE)","HYPERSHIFT_NODE_COUNT":"$(params.HYPERSHIFT_NODE_COUNT)","HOSTED_MANAGEMENT_CLUSTER":"$(params.HOSTED_MANAGEMENT_CLUSTER)"}'
 
-    # ── 2b. Provision ephemeral OCP cluster ──────────────────────────────────
-    - name: provision-cluster
-      runAfter:
-        - provision-env
-      when:
-        - input: "$(tasks.check-event-type.results.should-run)"
-          operator: in
-          values: ["true"]
-      taskSpec:
-        results:
-          - name: clusterName
-            value: "$(steps.create-cluster.results.clusterName)"
-        steps:
-          - name: get-supported-versions
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-get-supported-ephemeral-cluster-versions/0.1/eaas-get-supported-ephemeral-cluster-versions.yaml
-            params:
-              - name: eaasSpaceSecretRef
-                value: $(tasks.provision-env.results.secretRef)
-
-          - name: pick-version
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-get-latest-openshift-version-by-prefix/0.1/eaas-get-latest-openshift-version-by-prefix.yaml
-            params:
-              - name: prefix
-                value: $(params.OCP_VERSION_PREFIX)
-
-          - name: create-cluster
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-create-ephemeral-cluster-hypershift-aws/0.1/eaas-create-ephemeral-cluster-hypershift-aws.yaml
-            params:
-              - name: eaasSpaceSecretRef
-                value: $(tasks.provision-env.results.secretRef)
-              - name: version
-                value: $(steps.pick-version.results.version)
-              - name: instanceType
-                value: m5.xlarge
-              - name: timeout
-                value: 40m
-
-    # ── 3. Install the operator on the ephemeral cluster ────────────────────
+    # ── 2. Install the operator on the ephemeral cluster ────────────────────
     - name: install-operator
       runAfter:
         - provision-cluster
@@ -157,21 +117,18 @@ spec:
       params:
         - name: SNAPSHOT
           value: $(params.SNAPSHOT)
-        - name: eaasSpaceSecretRef
-          value: $(tasks.provision-env.results.secretRef)
-        - name: clusterName
-          value: $(tasks.provision-cluster.results.clusterName)
+        - name: clusterCredentialsSecretRef
+          value: $(tasks.provision-cluster.results.secretRef)
       taskSpec:
         params:
           - name: SNAPSHOT
             type: string
-          - name: eaasSpaceSecretRef
-            type: string
-          - name: clusterName
+          - name: clusterCredentialsSecretRef
             type: string
         volumes:
           - name: credentials
-            emptyDir: {}
+            secret:
+              secretName: $(params.clusterCredentialsSecretRef)
           - name: source
             emptyDir: {}
         steps:
@@ -187,29 +144,11 @@ spec:
                 --branch main --depth 1 /tmp/source
               echo "Repository cloned to /tmp/source"
 
-          - name: get-kubeconfig
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-get-ephemeral-cluster-credentials/0.1/eaas-get-ephemeral-cluster-credentials.yaml
-            params:
-              - name: eaasSpaceSecretRef
-                value: $(params.eaasSpaceSecretRef)
-              - name: clusterName
-                value: $(params.clusterName)
-              - name: credentials
-                value: credentials
-
           - name: install-crds
             image: golang:1.27
             env:
               - name: KUBECONFIG
-                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+                value: /credentials/kubeconfig
             volumeMounts:
               - name: credentials
                 mountPath: /credentials
@@ -256,7 +195,7 @@ spec:
             image: quay.io/konflux-ci/konflux-test:latest
             env:
               - name: KUBECONFIG
-                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+                value: /credentials/kubeconfig
               - name: SNAPSHOT
                 value: $(params.SNAPSHOT)
             volumeMounts:
@@ -299,7 +238,7 @@ spec:
               helm "${ARGS[@]}"
               echo "Operator installed successfully."
 
-    # ── 4. Run oobtkube DAST scan + parse results ────────────────────────────
+    # ── 3. Run oobtkube DAST scan + parse results ────────────────────────────
     - name: dast-scan
       runAfter:
         - install-operator
@@ -312,10 +251,8 @@ spec:
           value: $(params.OOBTKUBE_PORT)
         - name: TIMEOUT
           value: $(params.OOBTKUBE_TIMEOUT)
-        - name: eaasSpaceSecretRef
-          value: $(tasks.provision-env.results.secretRef)
-        - name: clusterName
-          value: $(tasks.provision-cluster.results.clusterName)
+        - name: clusterCredentialsSecretRef
+          value: $(tasks.provision-cluster.results.secretRef)
         - name: GCS_KEY_SECRET
           value: $(params.GCS_KEY_SECRET)
       taskSpec:
@@ -324,9 +261,7 @@ spec:
             type: string
           - name: TIMEOUT
             type: string
-          - name: eaasSpaceSecretRef
-            type: string
-          - name: clusterName
+          - name: clusterCredentialsSecretRef
             type: string
           - name: GCS_KEY_SECRET
             type: string
@@ -337,36 +272,19 @@ spec:
             description: Vulnerability counts from oobtkube SARIF.
         volumes:
           - name: credentials
-            emptyDir: {}
+            secret:
+              secretName: $(params.clusterCredentialsSecretRef)
           - name: scan-results
             emptyDir: {}
           - name: gcs-key
             secret:
               secretName: $(params.GCS_KEY_SECRET)
         steps:
-          - name: get-kubeconfig
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-get-ephemeral-cluster-credentials/0.1/eaas-get-ephemeral-cluster-credentials.yaml
-            params:
-              - name: eaasSpaceSecretRef
-                value: $(params.eaasSpaceSecretRef)
-              - name: clusterName
-                value: $(params.clusterName)
-              - name: credentials
-                value: credentials
-
           - name: setup
             image: quay.io/konflux-ci/konflux-test:latest
             env:
               - name: KUBECONFIG
-                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+                value: /credentials/kubeconfig
             volumeMounts:
               - name: credentials
                 mountPath: /credentials
@@ -473,7 +391,7 @@ spec:
             image: quay.io/konflux-ci/konflux-test:latest
             env:
               - name: KUBECONFIG
-                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+                value: /credentials/kubeconfig
               - name: PORT
                 value: $(params.PORT)
               - name: TIMEOUT
@@ -650,7 +568,7 @@ spec:
               gsutil cp "$RESULTS" "$GCS_PATH"
               echo "Scan results uploaded to $GCS_PATH"
 
-  # ── Finally: clean up test resources (EaaS deprovisions the cluster itself) ─
+  # ── Finally: clean up test resources ───────────────────────────────────
   finally:
     - name: cleanup
       when:
@@ -658,43 +576,22 @@ spec:
           operator: in
           values: ["true"]
       params:
-        - name: eaasSpaceSecretRef
-          value: $(tasks.provision-env.results.secretRef)
-        - name: clusterName
-          value: $(tasks.provision-cluster.results.clusterName)
+        - name: clusterCredentialsSecretRef
+          value: $(tasks.provision-cluster.results.secretRef)
       taskSpec:
         params:
-          - name: eaasSpaceSecretRef
-            type: string
-          - name: clusterName
+          - name: clusterCredentialsSecretRef
             type: string
         volumes:
           - name: credentials
-            emptyDir: {}
+            secret:
+              secretName: $(params.clusterCredentialsSecretRef)
         steps:
-          - name: get-kubeconfig
-            ref:
-              resolver: git
-              params:
-                - name: url
-                  value: https://github.com/konflux-ci/build-definitions.git
-                - name: revision
-                  value: main
-                - name: pathInRepo
-                  value: stepactions/eaas-get-ephemeral-cluster-credentials/0.1/eaas-get-ephemeral-cluster-credentials.yaml
-            params:
-              - name: eaasSpaceSecretRef
-                value: $(params.eaasSpaceSecretRef)
-              - name: clusterName
-                value: $(params.clusterName)
-              - name: credentials
-                value: credentials
-
           - name: delete-test-resources
             image: quay.io/konflux-ci/konflux-test:latest
             env:
               - name: KUBECONFIG
-                value: /credentials/$(steps.get-kubeconfig.results.kubeconfig)
+                value: /credentials/kubeconfig
             volumeMounts:
               - name: credentials
                 mountPath: /credentials
@@ -710,4 +607,4 @@ spec:
               kubectl delete clusterrolebinding oobtkube-dast-rolebinding --ignore-not-found=true
               kubectl delete clusterrole oobtkube-dast-role --ignore-not-found=true
               kubectl delete serviceaccount oobtkube-dast-sa -n default --ignore-not-found=true
-              echo "Cleanup complete. EaaS will deprovision the ephemeral cluster."
+              echo "Cleanup complete. OpenShift CI will deprovision the ephemeral cluster."
