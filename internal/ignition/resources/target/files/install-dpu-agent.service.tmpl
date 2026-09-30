@@ -1,7 +1,9 @@
 [Unit]
 Description=Install DPU agent
+{{- if not .ZeroTrust }}
 After=tmfifo-agent-link.service
 Requires=tmfifo-agent-link.service
+{{- end }}
 Before=machine-config-daemon-firstboot.service
 
 [Service]

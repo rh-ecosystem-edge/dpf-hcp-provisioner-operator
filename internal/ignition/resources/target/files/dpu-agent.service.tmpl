@@ -1,8 +1,10 @@
 [Unit]
 Description=DPF DPU Agent - Provisioning and Configuration
-After=tmfifo-agent-link.service install-dpu-agent.service dpu-fw-upgrade.service
+After={{- if not .ZeroTrust }}tmfifo-agent-link.service {{ end }}install-dpu-agent.service dpu-fw-upgrade.service
 Before=nodeip-configuration.service kubelet-dependencies.target ovs-configuration.service
+{{- if not .ZeroTrust }}
 Requires=tmfifo-agent-link.service
+{{- end }}
 Wants=install-dpu-agent.service dpu-fw-upgrade.service
 ConditionPathExists=/etc/mlnx-release
 ConditionPathExists=/usr/local/bin/dpu-agent
