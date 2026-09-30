@@ -180,6 +180,17 @@ type DPFHCPProvisionerSpec struct {
 	// +optional
 	MachineOSURL string `json:"machineOSURL,omitempty"`
 
+	// Use a different variant of the MachineOS image. Similar to the
+	// unsupported MachineOSURL, but for officially supported released hotfix
+	// variants of the MachineOS image. The possible values for this field can
+	// be found in documentation or release notes, whenever new versions of the
+	// DPU machine OS image are released with targeted fixes for the same OCP
+	// release. Leave empty to use the default variant of the MachineOS image.
+	// If the variant is not available for the current specified OCP release,
+	// the DPFHCPProvisioner will fail to provision new nodes.
+	// +optional
+	MachineOSVariant string `json:"machineOSVariant,omitempty"`
+
 	// Networking defines the network CIDR configuration for the hosted cluster.
 	// When not specified, defaults are used: ServiceNetwork 172.31.0.0/16,
 	// ClusterNetwork 10.132.0.0/14, MachineNetwork empty.
