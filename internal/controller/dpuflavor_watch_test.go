@@ -324,7 +324,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
 			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
-			Expect(cond.Message).To(ContainSubstring("DPUFlavor deleted-flavor deleted"))
+			Expect(cond.Message).To(ContainSubstring("DPUFlavor dpf-operator-system/deleted-flavor not found"))
 
 			// ConfigMap should be deleted
 			deletedCM := &corev1.ConfigMap{}
