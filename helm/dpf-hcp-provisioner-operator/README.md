@@ -26,6 +26,7 @@ This Helm chart deploys the DPF-HCP provisioner Operator, which manages DPU (Dat
 - [Uninstallation](#uninstallation)
 - [Troubleshooting](#troubleshooting)
 - [Development](#development)
+- [Releasing](#releasing)
 - [Support](#support)
 
 ## Description
@@ -37,10 +38,11 @@ The DPF-HCP provisioner Operator addresses this challenge by completely abstract
 Install the operator with a single command:
 
 ```bash
-helm install dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.1.0 \
+helm install dpf-hcp-provisioner-operator oci://quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart \
   --namespace dpf-hcp-provisioner-system --create-namespace
 ```
+
+The chart's default `image.repository`/`image.tag` already point at the Konflux dev build for this branch (tag = commit SHA), so no `--set image.*` is required.
 
 Verify installation:
 
@@ -75,8 +77,7 @@ Before installing this Helm chart, ensure the following are installed and config
 Install the operator from the OCI registry:
 
 ```bash
-helm install dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.1.0 \
+helm install dpf-hcp-provisioner-operator oci://quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart \
   --namespace dpf-hcp-provisioner-system --create-namespace
 ```
 
@@ -111,8 +112,7 @@ placement:
 Install with custom values:
 
 ```bash
-helm install dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.1.0 \
+helm install dpf-hcp-provisioner-operator oci://quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart \
   --values my-values.yaml \
   --namespace dpf-hcp-provisioner-system --create-namespace
 ```
@@ -122,8 +122,7 @@ helm install dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-pr
 By default, the operator is installed in the `dpf-hcp-provisioner-system` namespace. To use a different namespace:
 
 ```bash
-helm install dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.1.0 \
+helm install dpf-hcp-provisioner-operator oci://quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart \
   --set namespace=my-custom-namespace \
   --namespace my-custom-namespace --create-namespace
 ```
@@ -134,8 +133,8 @@ helm install dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-pr
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image.repository` | Operator container image repository | `quay.io/lhadad/dpf-hcp-provisioner-operator` |
-| `image.tag` | Operator image tag | `v0.1.0` |
+| `image.repository` | Operator container image repository | `quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/dpf-hcp-provisioner-rhel10-operator` |
+| `image.tag` | Operator image tag (empty falls back to `.Chart.AppVersion`, set to the commit SHA at chart-package time) | `""` |
 | `image.pullPolicy` | Image pull policy | `Always` |
 | `replicaCount` | Number of operator replicas | `1` |
 | `namespace` | Namespace for operator deployment | `dpf-hcp-provisioner-system` |
@@ -360,16 +359,14 @@ Key status fields:
 To upgrade the operator to a new version:
 
 ```bash
-helm upgrade dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.2.0 \
+helm upgrade dpf-hcp-provisioner-operator oci://quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart \
   --namespace dpf-hcp-provisioner-system --create-namespace
 ```
 
 ### Upgrade with Custom Values
 
 ```bash
-helm upgrade dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.2.0 \
+helm upgrade dpf-hcp-provisioner-operator oci://quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart \
   --values my-values.yaml \
   --namespace dpf-hcp-provisioner-system --create-namespace
 ```
@@ -377,8 +374,7 @@ helm upgrade dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-pr
 ### Upgrade with Override Parameters
 
 ```bash
-helm upgrade dpf-hcp-provisioner-operator oci://quay.io/lhadad/charts/dpf-hcp-provisioner-operator \
-  --version 0.2.0 \
+helm upgrade dpf-hcp-provisioner-operator oci://quay.io/redhat-user-workloads/dpu-kit-for-nvidia-operator-tenant/chart \
   --set resources.limits.memory=1Gi \
   --namespace dpf-hcp-provisioner-system --create-namespace
 ```
@@ -563,7 +559,8 @@ The chart includes pre-configured values files for different environments:
 - Single replica
 
 **values-production.yaml**:
-- Image tag: `v0.1.0` (specific version)
+- Image repository/tag: inherited from `values.yaml`, or pin explicitly to the released image
+  (e.g. `registry.redhat.io/dpu-kit-for-nvidia/dpf-hcp-provisioner-rhel10-operator:4.22`)
 - Pull policy: `IfNotPresent`
 - Log level: `info`
 - Higher resource limits (200m CPU, 256Mi memory)
@@ -580,6 +577,13 @@ helm install dpf-hcp-provisioner-operator ./helm/dpf-hcp-provisioner-operator \
 helm install dpf-hcp-provisioner-operator ./helm/dpf-hcp-provisioner-operator \
   --values helm/dpf-hcp-provisioner-operator/values-production.yaml
 ```
+
+## Releasing
+
+Shipping this chart to `registry.redhat.io` requires a manual, two-step content flip on the
+release branch, since Konflux's release pipeline only relocates the already-built chart
+artifact (byte-for-byte copy) rather than rewriting `values.yaml`/`Chart.yaml`. See
+[RELEASING.md](RELEASING.md) for the full procedure and checklist.
 
 ## Support
 

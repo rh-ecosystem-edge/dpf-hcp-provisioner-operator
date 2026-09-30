@@ -3,9 +3,13 @@
 # and multiple BlueField image mappings
 
 # Operator image configuration
+# For an actual production release, values.yaml itself must be flipped to the
+# registry.redhat.io image/tag before the release commit is built (see RELEASING.md --
+# the Konflux release pipeline only copies bytes, it does not rewrite chart content).
+# Uncomment below only if you need to test against a specific released image locally.
 image:
-  repository: quay.io/lhadad/dpf-hcp-provisioner-operator
-  tag: v0.1.0
+  # repository: registry.redhat.io/dpu-kit-for-nvidia/dpf-hcp-provisioner-rhel10-operator
+  # tag: "4.22"
   pullPolicy: IfNotPresent
 
 # High availability - 2 replicas with leader election
