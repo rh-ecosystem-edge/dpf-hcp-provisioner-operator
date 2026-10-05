@@ -8,7 +8,8 @@
     "prHourlyLimit": 0,
     "prConcurrentLimit": 0,
     "enabledManagers": [
-        "tekton"
+        "tekton",
+        "rpm-lockfile"
     ],
     "tekton": {
         "managerFilePatterns": [
