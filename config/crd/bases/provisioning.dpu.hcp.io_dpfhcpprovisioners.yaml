@@ -145,6 +145,17 @@ spec:
                   MachineOSURL is the URL for the DPU machine OS image to be used in the ignition configuration
                   This URL replaces the default OS image URL in the HyperShift-generated ignition
                 type: string
+              machineOSVariant:
+                description: |-
+                  Use a different variant of the MachineOS image. Similar to the
+                  unsupported MachineOSURL, but for officially supported released hotfix
+                  variants of the MachineOS image. The possible values for this field can
+                  be found in documentation or release notes, whenever new versions of the
+                  DPU machine OS image are released with targeted fixes for the same OCP
+                  release. Leave empty to use the default variant of the MachineOS image.
+                  If the variant is not available for the current specified OCP release,
+                  the DPFHCPProvisioner will fail to provision new nodes.
+                type: string
               networking:
                 description: |-
                   Networking defines the network CIDR configuration for the hosted cluster.
