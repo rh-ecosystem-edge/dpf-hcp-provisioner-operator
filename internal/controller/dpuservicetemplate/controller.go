@@ -21,6 +21,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,8 +39,9 @@ import (
 )
 
 // DPUServiceTemplateReconciler manages DPUServiceTemplate resources based on
-// DPFHCPProvisioner presence. Templates are created when at least one active
-// provisioner references a DPUCluster namespace, and deleted when none remain.
+// DPFHCPProvisioner and DPUDeployment presence. Templates are created when an
+// active provisioner references a non-deleting DPUDeployment in the DPUCluster
+// namespace, and deleted when no provisioner or DPUDeployment remains.
 type DPUServiceTemplateReconciler struct {
 	client.Client
 	Scheme  *runtime.Scheme
@@ -47,6 +49,7 @@ type DPUServiceTemplateReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=svc.dpu.nvidia.com,resources=dpuservicetemplates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=svc.dpu.nvidia.com,resources=dpudeployments,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusterversions,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch,namespace=openshift-config
@@ -74,36 +77,66 @@ func (r *DPUServiceTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	hasActive := anyProvisionersActive(&allProvisioners, dpuClusterNS)
-
-	if hasActive {
-		if err := r.Manager.EnsureTemplates(ctx, dpuClusterNS, operatorConfig); err != nil {
-			log.Error(err, "Failed to ensure DPUServiceTemplates")
+	deployments, err := r.activeDPUDeployments(ctx, &allProvisioners, dpuClusterNS)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if len(deployments) == 0 {
+		if err := r.Manager.DeleteTemplates(ctx, dpuClusterNS); err != nil {
+			log.Error(err, "Failed to delete DPUServiceTemplates")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
 
-	// No active provisioners reference this namespace, ensure templates are deleted - they're
-	// not used by any provisioner in the namespace.
-	if err := r.Manager.DeleteTemplates(ctx, dpuClusterNS); err != nil {
-		log.Error(err, "Failed to delete DPUServiceTemplates")
+	if err := r.Manager.EnsureTemplates(ctx, dpuClusterNS, operatorConfig); err != nil {
+		log.Error(err, "Failed to ensure DPUServiceTemplates")
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
 
-// anyProvisionersActive checks if any provisioner in the list is active
-// (non-deleting) and references the given DPUCluster namespace.
-func anyProvisionersActive(allProvisioners *provisioningv1alpha1.DPFHCPProvisionerList, dpuClusterNamespace string) bool {
+// activeDPUDeployments returns non-deleting DPUDeployments referenced by
+// active provisioners for this DPUCluster namespace.
+func (r *DPUServiceTemplateReconciler) activeDPUDeployments(ctx context.Context, allProvisioners *provisioningv1alpha1.DPFHCPProvisionerList, dpuClusterNamespace string) ([]dpuservicev1alpha1.DPUDeployment, error) {
+	seen := make(map[types.NamespacedName]struct{})
+	var deployments []dpuservicev1alpha1.DPUDeployment
+
 	for i := range allProvisioners.Items {
 		// index-based loop to avoid copying provisioner structs
 		p := &allProvisioners.Items[i]
-		if p.DeletionTimestamp.IsZero() && p.Spec.DPUClusterRef.Namespace == dpuClusterNamespace {
-			return true
+		if !p.DeletionTimestamp.IsZero() || p.Spec.DPUClusterRef.Namespace != dpuClusterNamespace {
+			continue
 		}
+		if p.Spec.DPUDeploymentRef == nil {
+			continue
+		}
+
+		key := types.NamespacedName{
+			Name:      p.Spec.DPUDeploymentRef.Name,
+			Namespace: p.Spec.DPUDeploymentRef.Namespace,
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+
+		dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
+		err := r.Get(ctx, key, dpuDeployment)
+		if apierrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if !dpuDeployment.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		seen[key] = struct{}{}
+		deployments = append(deployments, *dpuDeployment)
 	}
-	return false
+
+	return deployments, nil
 }
 
 // SetupWithManager registers this controller with the manager.
@@ -113,6 +146,10 @@ func (r *DPUServiceTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(
 			&provisioningv1alpha1.DPFHCPProvisioner{},
 			handler.EnqueueRequestsFromMapFunc(r.provisionerToNamespace),
+		).
+		Watches(
+			&dpuservicev1alpha1.DPUDeployment{},
+			handler.EnqueueRequestsFromMapFunc(r.dpuDeploymentToNamespace),
 		).
 		Watches(
 			&appsv1.DaemonSet{},
@@ -200,6 +237,42 @@ func (r *DPUServiceTemplateReconciler) templateToNamespace(_ context.Context, ob
 	return []reconcile.Request{
 		{NamespacedName: types.NamespacedName{Name: obj.GetNamespace()}},
 	}
+}
+
+// dpuDeploymentToNamespace maps a DPUDeployment event to reconcile requests for
+// DPUCluster namespaces of provisioners that reference the DPUDeployment.
+func (r *DPUServiceTemplateReconciler) dpuDeploymentToNamespace(ctx context.Context, obj client.Object) []reconcile.Request {
+	dpuDeployment, ok := obj.(*dpuservicev1alpha1.DPUDeployment)
+	if !ok {
+		return nil
+	}
+
+	var provisioners provisioningv1alpha1.DPFHCPProvisionerList
+	if err := r.List(ctx, &provisioners); err != nil {
+		logf.FromContext(ctx).Error(err, "Failed to list DPFHCPProvisioners for DPUDeployment watch")
+		return nil
+	}
+
+	seenNamespacesSet := make(map[string]struct{})
+	var requests []reconcile.Request
+	for i := range provisioners.Items {
+		p := &provisioners.Items[i]
+		if p.Spec.DPUDeploymentRef == nil ||
+			p.Spec.DPUDeploymentRef.Name != dpuDeployment.Name ||
+			p.Spec.DPUDeploymentRef.Namespace != dpuDeployment.Namespace {
+			continue
+		}
+
+		ns := p.Spec.DPUClusterRef.Namespace
+		if _, ok := seenNamespacesSet[ns]; ok {
+			continue
+		}
+		seenNamespacesSet[ns] = struct{}{}
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{Name: ns},
+		})
+	}
+	return requests
 }
 
 func overridesConfigMapPredicate(operatorNamespace string) predicate.Predicate {
