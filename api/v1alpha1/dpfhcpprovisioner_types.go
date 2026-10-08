@@ -105,19 +105,15 @@ type DPFHCPProvisionerSpec struct {
 
 	// SSHKeySecretRef is a reference to a Secret containing the SSH public key for cluster node access
 	// Secret must be in the same namespace as the DPFHCPProvisioner CR and contain key 'id_rsa.pub'
-	// This field is immutable.
+	// To rotate the SSH key, create a new Secret and update this field to point to it.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="sshKeySecretRef is immutable"
-	// +immutable
 	// +required
 	SSHKeySecretRef corev1.LocalObjectReference `json:"sshKeySecretRef"`
 
 	// PullSecretRef is a reference to a Secret containing the container registry pull secret
 	// Secret must be in the same namespace as the DPFHCPProvisioner CR and contain key '.dockerconfigjson'
-	// This field is immutable.
+	// To rotate the pull secret, create a new Secret and update this field to point to it.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="pullSecretRef is immutable"
-	// +immutable
 	// +required
 	PullSecretRef corev1.LocalObjectReference `json:"pullSecretRef"`
 
@@ -335,6 +331,10 @@ const (
 	// ReasonIgnitionGenerationFailed indicates ignition generation encountered an error.
 	// This triggers a Failed phase transition so the user can see the error and take action.
 	ReasonIgnitionGenerationFailed string = "IgnitionGenerationFailed"
+
+	// ReasonIgnitionCredentialSyncPending indicates HyperShift has not yet propagated the
+	// current HostedCluster credentials into the ignition server.
+	ReasonIgnitionCredentialSyncPending string = "IgnitionCredentialSyncPending"
 
 	// ReasonMachineOSURLMissing indicates no machine OS URL is available from any source.
 	// This triggers a Failed phase transition because ignition cannot be generated without it.

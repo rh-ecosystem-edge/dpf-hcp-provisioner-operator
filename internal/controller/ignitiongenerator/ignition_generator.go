@@ -22,9 +22,12 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -47,6 +50,7 @@ import (
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	operatorcommon "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
+	hostedclustermanager "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/hostedcluster"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition"
 	igncontent "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/content"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/ignition/resources/common"
@@ -55,13 +59,16 @@ import (
 )
 
 const (
-	httpClientTimeout   = 30 * time.Second
-	ignitionSecretName  = "ignition-server-ca-cert"
-	ignitionTokenPrefix = "token-"
-	ignitionTokenKey    = "token"
-	configMapKeyName    = "BF_CFG_TEMPLATE"
-	configMapNamePrefix = "bfcfg"
-	ignitionVersion     = "3.4.0"
+	httpClientTimeout                      = 30 * time.Second
+	ignitionSecretName                     = "ignition-server-ca-cert"
+	ignitionTokenPrefix                    = "token-"
+	ignitionTokenKey                       = "token"
+	tokenPullSecretHashKey                 = "pull-secret-hash"
+	nodePoolCurrentConfigVersionAnnotation = "hypershift.openshift.io/nodePoolCurrentConfigVersion"
+	ignitionSyncRequeueAfter               = 10 * time.Second
+	configMapKeyName                       = "BF_CFG_TEMPLATE"
+	configMapNamePrefix                    = "bfcfg"
+	ignitionVersion                        = "3.4.0"
 
 	// DPF provisioning label and annotation constants.
 	// Copied from github.com/nvidia/doca-platform/internal/provisioning/controllers/util
@@ -85,6 +92,17 @@ const (
 	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
 	bfcfgTemplateMachineOSURLAnnotation = operatorcommon.AnnotationPrefix + "bfcfg-template-machine-os-url"
 )
+
+var errIgnitionSyncPending = errors.New("HyperShift ignition credential sync is pending")
+
+// hashPullSecret matches HyperShift's support/util.HashSimple for []byte inputs.
+// HashSimple formats its input with %v before hashing, so preserve that exact
+// representation when comparing against the pull-secret hash in token secrets.
+func hashPullSecret(data []byte) string {
+	hash := fnv.New32a()
+	_, _ = fmt.Fprintf(hash, "%v", data)
+	return fmt.Sprintf("%08x", hash.Sum32())
+}
 
 // ConfigMapName returns the expected ignition ConfigMap name for a given DPUCluster.
 func ConfigMapName(dpuClusterName string) string {
@@ -116,6 +134,28 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 
 	// Execute ignition generation workflow
 	if err := ig.generateIgnition(ctx, cr); err != nil {
+		if errors.Is(err, errIgnitionSyncPending) {
+			log.Info("Waiting for HyperShift to sync the current ignition configuration", "reason", err)
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionFalse,
+				Reason:             provisioningv1alpha1.ReasonIgnitionCredentialSyncPending,
+				Message:            err.Error(),
+				ObservedGeneration: cr.Generation,
+			})
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.Ready,
+				Status:             metav1.ConditionFalse,
+				Reason:             "IgnitionNotConfigured",
+				Message:            "Waiting for HyperShift to sync the current ignition configuration",
+				ObservedGeneration: cr.Generation,
+			})
+			if updateErr := ig.Client.Status().Update(ctx, cr); updateErr != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to update status while waiting for ignition sync: %w", updateErr)
+			}
+			return ctrl.Result{RequeueAfter: ignitionSyncRequeueAfter}, nil
+		}
+
 		log.Error(err, "Ignition generation failed")
 
 		// Set error condition and persist immediately — this is an early-return error path
@@ -295,28 +335,159 @@ func (ig *IgnitionGenerator) getIgnitionCACert(ctx context.Context, cr *provisio
 	return caCert, nil
 }
 
-// getIgnitionToken finds the ignition bearer token from the control plane namespace.
-// HyperShift names the secret "token-<cluster>-<hash>", so we search by prefix.
-func (ig *IgnitionGenerator) getIgnitionToken(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (string, error) {
+// getIgnitionTokens returns token candidates for legacy objects that do not have credential
+// references. Valid DPFHCPProvisioners use getSynchronizedIgnitionToken to select the token for
+// the NodePool's current config and verify its pull-secret hash.
+func (ig *IgnitionGenerator) getIgnitionTokens(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) ([]string, error) {
 	ns := ig.controlPlaneNamespace(cr)
-	prefix := ignitionTokenPrefix + cr.Status.HostedClusterRef.Name
+	prefix := ignitionTokenPrefix + cr.Status.HostedClusterRef.Name + "-"
 
 	secretList := &corev1.SecretList{}
 	if err := ig.Client.List(ctx, secretList, client.InNamespace(ns)); err != nil {
-		return "", fmt.Errorf("failed to list secrets in %s: %w", ns, err)
+		return nil, fmt.Errorf("failed to list secrets in %s: %w", ns, err)
 	}
 
+	var candidates []corev1.Secret
 	for i := range secretList.Items {
 		if strings.HasPrefix(secretList.Items[i].Name, prefix) {
-			tokenBytes, ok := secretList.Items[i].Data[ignitionTokenKey]
-			if !ok {
-				return "", fmt.Errorf("token key not found in secret %s", secretList.Items[i].Name)
-			}
-			// Re-encode: Secret.Data is already decoded, but the ignition server expects the base64 form
-			return base64.StdEncoding.EncodeToString(tokenBytes), nil
+			candidates = append(candidates, secretList.Items[i])
 		}
 	}
-	return "", fmt.Errorf("no token secret with prefix %q found in namespace %s", prefix, ns)
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("no token secret with prefix %q found in namespace %s", prefix, ns)
+	}
+
+	// Newest first — usually the right answer after a forward rotation.
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[j].CreationTimestamp.Before(&candidates[i].CreationTimestamp)
+	})
+
+	var tokens []string
+	for _, c := range candidates {
+		tokenBytes, ok := c.Data[ignitionTokenKey]
+		if !ok {
+			continue
+		}
+		tokens = append(tokens, base64.StdEncoding.EncodeToString(tokenBytes))
+	}
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("no usable token data in secrets with prefix %q in namespace %s", prefix, ns)
+	}
+	return tokens, nil
+}
+
+// getSynchronizedIgnitionToken returns the token for the NodePool's current config only after
+// HyperShift has created it with the pull-secret hash that matches the current HostedCluster
+// pull secret. It also returns the current SSH public key so the downloaded ignition can be
+// checked for propagation of SSHKey changes, which do not affect the pull-secret hash.
+func (ig *IgnitionGenerator) getSynchronizedIgnitionToken(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (string, []byte, error) {
+	if cr.Status.HostedClusterRef == nil {
+		return "", nil, fmt.Errorf("%w: HostedCluster reference is not available", errIgnitionSyncPending)
+	}
+	if cr.Spec.PullSecretRef.Name == "" || cr.Spec.SSHKeySecretRef.Name == "" {
+		return "", nil, fmt.Errorf("%w: pull-secret and SSH-key references must both be set", errIgnitionSyncPending)
+	}
+
+	hc := &hyperv1.HostedCluster{}
+	hcKey := types.NamespacedName{
+		Name:      cr.Status.HostedClusterRef.Name,
+		Namespace: cr.Status.HostedClusterRef.Namespace,
+	}
+	if err := ig.Client.Get(ctx, hcKey, hc); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil, fmt.Errorf("%w: HostedCluster %s is not available yet", errIgnitionSyncPending, hcKey)
+		}
+		return "", nil, fmt.Errorf("failed to get HostedCluster %s: %w", hcKey, err)
+	}
+
+	expectedPullSecretName := hostedclustermanager.PullSecretCopyName(cr)
+	if hc.Spec.PullSecret.Name != expectedPullSecretName {
+		return "", nil, fmt.Errorf("%w: HostedCluster pull-secret reference is %q, waiting for %q", errIgnitionSyncPending, hc.Spec.PullSecret.Name, expectedPullSecretName)
+	}
+	expectedSSHKeyName := hostedclustermanager.SSHKeyCopyName(cr)
+	if hc.Spec.SSHKey.Name != expectedSSHKeyName {
+		return "", nil, fmt.Errorf("%w: HostedCluster SSH-key reference is %q, waiting for %q", errIgnitionSyncPending, hc.Spec.SSHKey.Name, expectedSSHKeyName)
+	}
+
+	pullSecret := &corev1.Secret{}
+	pullSecretKey := types.NamespacedName{Name: hc.Spec.PullSecret.Name, Namespace: hc.Namespace}
+	if err := ig.Client.Get(ctx, pullSecretKey, pullSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil, fmt.Errorf("%w: pull secret %s is not available yet", errIgnitionSyncPending, pullSecretKey)
+		}
+		return "", nil, fmt.Errorf("failed to get pull secret %s: %w", pullSecretKey, err)
+	}
+	pullSecretData, ok := pullSecret.Data[corev1.DockerConfigJsonKey]
+	if !ok {
+		return "", nil, fmt.Errorf("pull secret %s is missing %q", pullSecretKey, corev1.DockerConfigJsonKey)
+	}
+	expectedPullSecretHash := hashPullSecret(pullSecretData)
+
+	nodePool := &hyperv1.NodePool{}
+	nodePoolKey := types.NamespacedName{Name: hc.Name, Namespace: hc.Namespace}
+	if err := ig.Client.Get(ctx, nodePoolKey, nodePool); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil, fmt.Errorf("%w: NodePool %s is not available yet", errIgnitionSyncPending, nodePoolKey)
+		}
+		return "", nil, fmt.Errorf("failed to get NodePool %s: %w", nodePoolKey, err)
+	}
+
+	currentConfigVersion := nodePool.Annotations[nodePoolCurrentConfigVersionAnnotation]
+	if currentConfigVersion == "" {
+		return "", nil, fmt.Errorf("%w: NodePool %s has not published its current config version", errIgnitionSyncPending, nodePoolKey)
+	}
+
+	tokenSecretKey := types.NamespacedName{
+		Name:      ignitionTokenPrefix + nodePool.Name + "-" + currentConfigVersion,
+		Namespace: ig.controlPlaneNamespace(cr),
+	}
+	tokenSecret := &corev1.Secret{}
+	if err := ig.Client.Get(ctx, tokenSecretKey, tokenSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil, fmt.Errorf("%w: current token secret %s is not available yet", errIgnitionSyncPending, tokenSecretKey)
+		}
+		return "", nil, fmt.Errorf("failed to get current token secret %s: %w", tokenSecretKey, err)
+	}
+	token, ok := tokenSecret.Data[ignitionTokenKey]
+	if !ok {
+		return "", nil, fmt.Errorf("%w: current token secret %s has no token yet", errIgnitionSyncPending, tokenSecretKey)
+	}
+	if tokenPullSecretHash := string(tokenSecret.Data[tokenPullSecretHashKey]); tokenPullSecretHash != expectedPullSecretHash {
+		return "", nil, fmt.Errorf("%w: current token secret pull-secret hash does not match HostedCluster pull secret", errIgnitionSyncPending)
+	}
+
+	sshKeySecretKey := types.NamespacedName{Name: hc.Spec.SSHKey.Name, Namespace: hc.Namespace}
+	sshKeySecret := &corev1.Secret{}
+	if err := ig.Client.Get(ctx, sshKeySecretKey, sshKeySecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil, fmt.Errorf("%w: SSH-key secret %s is not available yet", errIgnitionSyncPending, sshKeySecretKey)
+		}
+		return "", nil, fmt.Errorf("failed to get SSH-key secret %s: %w", sshKeySecretKey, err)
+	}
+	sshKey, ok := sshKeySecret.Data["id_rsa.pub"]
+	if !ok || strings.TrimSpace(string(sshKey)) == "" {
+		return "", nil, fmt.Errorf("SSH-key secret %s is missing a non-empty id_rsa.pub key", sshKeySecretKey)
+	}
+
+	return base64.StdEncoding.EncodeToString(token), sshKey, nil
+}
+
+// ignitionContainsSSHKey reports whether an ignition payload includes the expected public key.
+func ignitionContainsSSHKey(ignitionBytes, expectedSSHKey []byte) (bool, error) {
+	var config igntypes.Config
+	if err := json.Unmarshal(ignitionBytes, &config); err != nil {
+		return false, fmt.Errorf("failed to decode ignition while checking SSH-key sync: %w", err)
+	}
+
+	expected := strings.TrimSpace(string(expectedSSHKey))
+	for _, user := range config.Passwd.Users {
+		for _, authorizedKey := range user.SSHAuthorizedKeys {
+			if strings.TrimSpace(string(authorizedKey)) == expected {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // getIgnitionEndpoint reads the ignition endpoint URL from the HostedCluster status.
@@ -335,18 +506,35 @@ func (ig *IgnitionGenerator) getIgnitionEndpoint(ctx context.Context, cr *provis
 	return hc.Status.IgnitionEndpoint, nil
 }
 
-// downloadHCPIgnition downloads the ignition configuration from the HostedCluster ignition endpoint.
+// downloadHCPIgnition downloads ignition from the HostedCluster endpoint. For valid provisioners,
+// it uses only the token for the NodePool's current config and verifies that the response contains
+// the current SSH key before allowing the caller to publish the ConfigMap.
 func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) ([]byte, error) {
 	log := logf.FromContext(ctx)
+	strictCredentialSync := cr.Spec.PullSecretRef.Name != "" || cr.Spec.SSHKeySecretRef.Name != ""
 
 	caCert, err := ig.getIgnitionCACert(ctx, cr)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := ig.getIgnitionToken(ctx, cr)
-	if err != nil {
-		return nil, err
+	var tokens []string
+	var expectedSSHKey []byte
+	if strictCredentialSync {
+		currentToken, sshKey, err := ig.getSynchronizedIgnitionToken(ctx, cr)
+		if err != nil {
+			return nil, err
+		}
+		tokens = []string{currentToken}
+		expectedSSHKey = sshKey
+	} else {
+		// Compatibility fallback for incomplete legacy objects (and test fixtures) with both
+		// required refs empty. This probes tokens by HTTP acceptance but cannot prove the
+		// ignition matches the current refs; valid DPFHCPProvisioners must use the strict path.
+		tokens, err = ig.getIgnitionTokens(ctx, cr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	endpoint, err := ig.getIgnitionEndpoint(ctx, cr)
@@ -369,34 +557,55 @@ func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provis
 		},
 	}
 
-	// Download ignition
 	ignitionURL := fmt.Sprintf("https://%s/ignition", endpoint)
-	log.Info("Downloading ignition from HCP", "url", ignitionURL)
+	log.Info("Downloading ignition from HCP", "url", ignitionURL, "token_candidates", len(tokens))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ignitionURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	// Try each token; the correct one for the current HC spec returns 200.
+	// Wrong tokens (stale pull-secret-hash) return a non-200 status — skip them.
+	for i, token := range tokens {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, ignitionURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			if strictCredentialSync {
+				return nil, fmt.Errorf("%w: ignition endpoint is not ready for the current token: %v", errIgnitionSyncPending, err)
+			}
+			return nil, fmt.Errorf("HTTP request failed: %w", err)
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			// fall through to read body below
+			body, readErr := io.ReadAll(resp.Body)
+			if readErr != nil {
+				return nil, fmt.Errorf("failed to read ignition response body: %w", readErr)
+			}
+			if strictCredentialSync {
+				containsSSHKey, checkErr := ignitionContainsSSHKey(body, expectedSSHKey)
+				if checkErr != nil {
+					return nil, checkErr
+				}
+				if !containsSSHKey {
+					return nil, fmt.Errorf("%w: ignition endpoint has not propagated the current SSH key", errIgnitionSyncPending)
+				}
+			}
+			log.Info("Ignition downloaded successfully", "token_index", i)
+			return body, nil
+		}
+
+		resp.Body.Close()
+		if strictCredentialSync {
+			return nil, fmt.Errorf("%w: current ignition token was rejected with HTTP status %d", errIgnitionSyncPending, resp.StatusCode)
+		}
+		log.V(1).Info("Ignition token rejected, trying next",
+			"token_index", i, "status", resp.StatusCode, "remaining", len(tokens)-i-1)
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP request failed: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP request failed with status %d", resp.StatusCode)
-	}
-
-	ignitionData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	log.Info("Successfully downloaded HCP ignition", "size", len(ignitionData))
-	return ignitionData, nil
+	return nil, fmt.Errorf("all %d token candidate(s) rejected by ignition server at %s", len(tokens), ignitionURL)
 }
 
 // getDPUDeployment fetches the DPUDeployment CR referenced by the provisioner

@@ -476,8 +476,8 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 			}, time.Second*5, time.Millisecond*100).Should(MatchError(ContainSubstring("baseDomain is immutable")))
 		})
 
-		It("should reject updates to sshKeySecretRef", func() {
-			// Wrap in Eventually to handle race with controller
+		It("should allow updates to sshKeySecretRef (mutable for credential rotation)", func() {
+			// sshKeySecretRef is intentionally mutable so users can rotate SSH keys
 			Eventually(func() error {
 				fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
 				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "immutability-test", Namespace: "default"}, fresh); err != nil {
@@ -486,11 +486,11 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				updated := fresh.DeepCopy()
 				updated.Spec.SSHKeySecretRef.Name = "different-ssh-key"
 				return k8sClient.Update(ctx, updated)
-			}, time.Second*5, time.Millisecond*100).Should(MatchError(ContainSubstring("sshKeySecretRef is immutable")))
+			}, time.Second*5, time.Millisecond*100).Should(Succeed())
 		})
 
-		It("should reject updates to pullSecretRef", func() {
-			// Wrap in Eventually to handle race with controller
+		It("should allow updates to pullSecretRef (mutable for credential rotation)", func() {
+			// pullSecretRef is intentionally mutable so users can rotate pull secrets
 			Eventually(func() error {
 				fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
 				if err := k8sClient.Get(ctx, types.NamespacedName{Name: "immutability-test", Namespace: "default"}, fresh); err != nil {
@@ -499,7 +499,7 @@ var _ = Describe("DPFHCPProvisioner CRD Schema Validation Tests", func() {
 				updated := fresh.DeepCopy()
 				updated.Spec.PullSecretRef.Name = "different-pull-secret"
 				return k8sClient.Update(ctx, updated)
-			}, time.Second*5, time.Millisecond*100).Should(MatchError(ContainSubstring("pullSecretRef is immutable")))
+			}, time.Second*5, time.Millisecond*100).Should(Succeed())
 		})
 
 		It("should reject updates to etcdStorageClass", func() {

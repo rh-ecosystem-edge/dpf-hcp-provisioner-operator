@@ -19,7 +19,9 @@ package hostedcluster
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +37,30 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
+// PullSecretCopyName returns the name of the pull-secret copy for a given DPFHCPProvisioner.
+//
+// The name encodes the source secret reference so that changing PullSecretRef.Name
+// produces a different copy name. This is critical: HyperShift's NodePool controller
+// includes HostedCluster.Spec.PullSecret.Name in its rollout config hash, which determines
+// the ignition-server token secret name. When the name changes, a new token secret is
+// created with the correct pull-secret-hash, avoiding the stale-hash mismatch that occurs
+// with in-place data updates.
+func PullSecretCopyName(cr *provisioningv1alpha1.DPFHCPProvisioner) string {
+	return fmt.Sprintf("%s-pull-secret-%s", cr.Name, shortHash(cr.Spec.PullSecretRef.Name))
+}
+
+// SSHKeyCopyName returns the name of the ssh-key copy for a given DPFHCPProvisioner.
+// The name encodes the source secret reference for the same reason as PullSecretCopyName.
+func SSHKeyCopyName(cr *provisioningv1alpha1.DPFHCPProvisioner) string {
+	return fmt.Sprintf("%s-ssh-key-%s", cr.Name, shortHash(cr.Spec.SSHKeySecretRef.Name))
+}
+
+// shortHash returns the first 8 hex characters of the SHA-256 hash of s.
+func shortHash(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return fmt.Sprintf("%x", h[:4])
+}
+
 // SecretManager handles secret copying and ETCD key generation for HostedCluster
 type SecretManager struct {
 	client.Client
@@ -49,22 +75,30 @@ func NewSecretManager(c client.Client, scheme *runtime.Scheme) *SecretManager {
 	}
 }
 
-// CopySecrets copies pull-secret and ssh-key within the same namespace as DPFHCPProvisioner
-// Returns ctrl.Result and error for reconciliation flow
+// CopySecrets copies pull-secret and ssh-key within the same namespace as DPFHCPProvisioner.
+// Copy names encode the source secret reference (via PullSecretCopyName / SSHKeyCopyName) so
+// that a user can rotate credentials by creating a new secret and updating the CR's
+// PullSecretRef/SSHKeySecretRef — the new copy name propagates to the HostedCluster spec,
+// causing HyperShift to create a new ignition-server token with the correct hash.
+// Stale copies from a previous reference are deleted automatically.
+// Returns ctrl.Result and error for reconciliation flow.
 func (sm *SecretManager) CopySecrets(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	// Copy pull-secret
-	pullSecretName := fmt.Sprintf("%s-pull-secret", cr.Name)
+	pullSecretName := PullSecretCopyName(cr)
 	if err := sm.copyPullSecret(ctx, cr, pullSecretName); err != nil {
 		log.Error(err, "Failed to copy pull-secret")
 		return ctrl.Result{}, err
 	}
 
-	// Copy ssh-key
-	sshKeyName := fmt.Sprintf("%s-ssh-key", cr.Name)
+	sshKeyName := SSHKeyCopyName(cr)
 	if err := sm.copySSHKey(ctx, cr, sshKeyName); err != nil {
 		log.Error(err, "Failed to copy ssh-key")
+		return ctrl.Result{}, err
+	}
+
+	if err := sm.cleanupStaleSecretCopies(ctx, cr, pullSecretName, sshKeyName); err != nil {
+		log.Error(err, "Failed to cleanup stale secret copies")
 		return ctrl.Result{}, err
 	}
 
@@ -199,6 +233,39 @@ func (sm *SecretManager) copySSHKey(ctx context.Context, cr *provisioningv1alpha
 		"secret", targetName,
 		"namespace", cr.Namespace)
 
+	return nil
+}
+
+// cleanupStaleSecretCopies deletes owned pull-secret and ssh-key copies whose names no longer
+// match the current expected names (i.e. the source reference changed). This also handles
+// migration from the old fixed-name scheme (<cr>-pull-secret / <cr>-ssh-key) to the
+// reference-encoded scheme.
+func (sm *SecretManager) cleanupStaleSecretCopies(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, currentPullSecretName, currentSSHKeyName string) error {
+	log := logf.FromContext(ctx)
+
+	secretList := &corev1.SecretList{}
+	if err := sm.List(ctx, secretList, client.InNamespace(cr.Namespace)); err != nil {
+		return fmt.Errorf("failed to list secrets for stale copy cleanup: %w", err)
+	}
+
+	for i := range secretList.Items {
+		s := &secretList.Items[i]
+		if !metav1.IsControlledBy(s, cr) {
+			continue
+		}
+		// Match any owned secret whose name starts with the pull-secret or ssh-key prefix
+		// but is not the current expected copy. This covers both old fixed names and any
+		// previous hash-encoded names.
+		isPullStale := strings.HasPrefix(s.Name, cr.Name+"-pull-secret") && s.Name != currentPullSecretName
+		isSSHStale := strings.HasPrefix(s.Name, cr.Name+"-ssh-key") && s.Name != currentSSHKeyName
+		if !isPullStale && !isSSHStale {
+			continue
+		}
+		log.Info("Deleting stale secret copy", "secret", s.Name, "namespace", cr.Namespace)
+		if err := sm.Delete(ctx, s); err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete stale secret copy %s: %w", s.Name, err)
+		}
+	}
 	return nil
 }
 

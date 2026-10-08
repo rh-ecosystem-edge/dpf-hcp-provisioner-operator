@@ -19,6 +19,7 @@ package hostedcluster
 import (
 	"context"
 	"fmt"
+	"time"
 
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	"github.com/openshift/hypershift/api/util/ipnet"
@@ -74,6 +75,28 @@ func (hm *HostedClusterManager) CreateOrUpdateHostedCluster(ctx context.Context,
 	if err == nil {
 		// HostedCluster exists - verify ownership via OwnerReference
 		if metav1.IsControlledBy(existingHC, cr) {
+			// Check if secret references need to be updated (user rotated credentials by
+			// pointing PullSecretRef/SSHKeySecretRef to a new secret). A name change causes
+			// HyperShift to create a new ignition-server token with the correct hash.
+			expectedPullSecretName := PullSecretCopyName(cr)
+			expectedSSHKeyName := SSHKeyCopyName(cr)
+			if existingHC.Spec.PullSecret.Name != expectedPullSecretName || existingHC.Spec.SSHKey.Name != expectedSSHKeyName {
+				log.Info("Updating HostedCluster secret references",
+					"hostedCluster", hcName,
+					"pullSecret", expectedPullSecretName,
+					"sshKey", expectedSSHKeyName)
+				existingHC.Spec.PullSecret.Name = expectedPullSecretName
+				existingHC.Spec.SSHKey.Name = expectedSSHKeyName
+				if err := hm.Update(ctx, existingHC); err != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to update HostedCluster: %w", err)
+				}
+				// Requeue to let HyperShift sync the new pull secret into its ignition
+				// server before we attempt to download ignition. Without this delay the
+				// operator downloads ignition in the same reconcile as the HC spec update
+				// and gets stale content because HyperShift hasn't propagated the new
+				// secret yet.
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			}
 			log.V(1).Info("HostedCluster already exists and is owned by this DPFHCPProvisioner, no update needed",
 				"hostedCluster", hcName,
 				"namespace", hcNamespace)
@@ -155,14 +178,14 @@ func (hm *HostedClusterManager) buildHostedCluster(cr *provisioningv1alpha1.DPFH
 				Image: cr.Spec.OCPReleaseImage,
 			},
 
-			// Pull secret reference (copied to clusters namespace)
+			// Pull secret reference (copied to clusters namespace, name encodes source ref)
 			PullSecret: corev1.LocalObjectReference{
-				Name: fmt.Sprintf("%s-pull-secret", cr.Name),
+				Name: PullSecretCopyName(cr),
 			},
 
-			// SSH key reference (copied to clusters namespace)
+			// SSH key reference (copied to clusters namespace, name encodes source ref)
 			SSHKey: corev1.LocalObjectReference{
-				Name: fmt.Sprintf("%s-ssh-key", cr.Name),
+				Name: SSHKeyCopyName(cr),
 			},
 
 			// DNS configuration

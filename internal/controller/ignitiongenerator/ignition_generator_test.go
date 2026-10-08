@@ -198,9 +198,10 @@ var _ = Describe("getIgnitionToken", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 		ig := &IgnitionGenerator{Client: fakeClient}
 
-		token, err := ig.getIgnitionToken(ctx, cr)
+		tokens, err := ig.getIgnitionTokens(ctx, cr)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(token).To(Equal(base64.StdEncoding.EncodeToString(rawToken)))
+		Expect(tokens).To(HaveLen(1))
+		Expect(tokens[0]).To(Equal(base64.StdEncoding.EncodeToString(rawToken)))
 	})
 
 	It("should return error when no matching secret exists", func() {
@@ -217,12 +218,12 @@ var _ = Describe("getIgnitionToken", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 		ig := &IgnitionGenerator{Client: fakeClient}
 
-		_, err := ig.getIgnitionToken(ctx, cr)
+		_, err := ig.getIgnitionTokens(ctx, cr)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("no token secret with prefix"))
 	})
 
-	It("should return error when token key is missing from secret", func() {
+	It("should return error when token key is missing from all matching secrets", func() {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "token-doca-abc123",
@@ -235,12 +236,12 @@ var _ = Describe("getIgnitionToken", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 		ig := &IgnitionGenerator{Client: fakeClient}
 
-		_, err := ig.getIgnitionToken(ctx, cr)
+		_, err := ig.getIgnitionTokens(ctx, cr)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("token key not found"))
+		Expect(err.Error()).To(ContainSubstring("no usable token data"))
 	})
 
-	It("should match the first secret with the correct prefix among multiple", func() {
+	It("should return all matching tokens when multiple secrets exist", func() {
 		secret1 := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "token-doca-first",
@@ -262,12 +263,17 @@ var _ = Describe("getIgnitionToken", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret1, secret2).Build()
 		ig := &IgnitionGenerator{Client: fakeClient}
 
-		token, err := ig.getIgnitionToken(ctx, cr)
+		tokens, err := ig.getIgnitionTokens(ctx, cr)
 		Expect(err).NotTo(HaveOccurred())
-		// Should get one of them (order is not guaranteed with fake client)
-		decoded, err := base64.StdEncoding.DecodeString(token)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(decoded)).To(Or(Equal("first-token"), Equal("second-token")))
+		Expect(tokens).To(HaveLen(2))
+		// Both tokens should be present (base64-encoded)
+		allDecoded := make([]string, 0, len(tokens))
+		for _, t := range tokens {
+			decoded, decErr := base64.StdEncoding.DecodeString(t)
+			Expect(decErr).NotTo(HaveOccurred())
+			allDecoded = append(allDecoded, string(decoded))
+		}
+		Expect(allDecoded).To(ConsistOf("first-token", "second-token"))
 	})
 })
 
