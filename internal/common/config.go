@@ -34,6 +34,8 @@ type OperatorConfig struct {
 	DisableMetalLB             bool
 	ManageDPUServiceTemplates  bool
 	DPUServicesImagePullSecret string
+	OVSHugepagesSize           string
+	OVSHugepagesAmount         int32
 }
 
 // LoadOperatorConfigFromCR fetches the DPFHCPProvisionerConfig singleton CR.
@@ -56,13 +58,17 @@ func LoadOperatorConfigFromCR(ctx context.Context, c client.Client) (*OperatorCo
 		DisableMetalLB:             configCR.Spec.DisableMetalLB,
 		ManageDPUServiceTemplates:  configCR.Spec.ManageDPUServiceTemplates,
 		DPUServicesImagePullSecret: configCR.Spec.DPUServicesImagePullSecret,
+		OVSHugepagesSize:           configCR.Spec.OVSHugepagesSize,
+		OVSHugepagesAmount:         configCR.Spec.OVSHugepagesAmount,
 	}
 
 	logger.V(1).Info("Operator config loaded from CR",
 		"blueFieldOCPLayerRepo", cfg.BlueFieldOCPLayerRepo,
 		"disableMetalLB", cfg.DisableMetalLB,
 		"manageDPUServiceTemplates", cfg.ManageDPUServiceTemplates,
-		"dpuServicesImagePullSecret", cfg.DPUServicesImagePullSecret)
+		"dpuServicesImagePullSecret", cfg.DPUServicesImagePullSecret,
+		"ovsHugepagesSize", cfg.OVSHugepagesSize,
+		"ovsHugepagesAmount", cfg.OVSHugepagesAmount)
 	return cfg, nil
 }
 

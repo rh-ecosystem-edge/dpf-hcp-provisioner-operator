@@ -81,6 +81,29 @@ spec:
                   Deprecated: This field will be removed in a future release, at which point
                   DPUServiceTemplate management will always be enabled.
                 type: boolean
+              ovsHugepagesAmount:
+                default: 250
+                description: |-
+                  OVSHugepagesAmount is the number of hugepages (each of OVSHugepagesSize) reserved
+                  per hosted-cluster node by the OVS hugepages reservation DaemonSet. Set to 0 to
+                  disable the reservation DaemonSet.
+                  The operator reserves OVSHugepagesAmount x OVSHugepagesSize on each node; the default
+                  reserves 250 pages of 2Mi (250 x 2Mi = 500Mi).
+                format: int32
+                minimum: 0
+                type: integer
+              ovsHugepagesSize:
+                default: 2Mi
+                description: |-
+                  OVSHugepagesSize is the hugepage size reserved on every hosted-cluster node by
+                  the OVS hugepages reservation DaemonSet. It selects the Kubernetes extended
+                  resource "hugepages-<size>" (e.g. "2Mi" -> hugepages-2Mi).
+                enum:
+                - 1Gi
+                - 2Mi
+                - 32Mi
+                - 64Ki
+                type: string
             type: object
         type: object
         x-kubernetes-validations:

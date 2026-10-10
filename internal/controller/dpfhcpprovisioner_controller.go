@@ -54,6 +54,7 @@ import (
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/ignitiongenerator"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/kubeconfiginjection"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/metallb"
+	ovshugepages "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/ovs-hugepages"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/secrets"
 )
 
@@ -73,6 +74,7 @@ type DPFHCPProvisionerReconciler struct {
 	StatusSyncer         *hostedcluster.StatusSyncer
 	KubeconfigInjector   *kubeconfiginjection.KubeconfigInjector
 	IgnitionGenerator    *ignitiongenerator.IgnitionGenerator
+	HugepagesManager     *ovshugepages.Manager
 
 	ignitionReconciled bool
 }
@@ -272,14 +274,41 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		log.V(1).Info("Skipping kubeconfig injection - HostedCluster not created yet")
 	}
 
+	// Feature: Hugepages reservation DaemonSet
+	// Create a DaemonSet inside the hosted cluster that runs one idle pod per node
+	// (each node is a DPU), reserving hugepages so they are not consumed by other
+	// workloads. Non-fatal: the hosted cluster API may not be reachable yet (e.g.
+	// control plane still coming up), so we don't fail the whole reconcile. Instead
+	// we record a bounded retry delay (applied to the normal return paths below) so
+	// the reconcile is retried even if no other event re-triggers it.
+	var hugepagesRequeueAfter time.Duration
+	if cr.Status.HostedClusterRef != nil {
+		log.V(1).Info("Reconciling hugepages reservation DaemonSet")
+		if err := r.HugepagesManager.ReconcileHugepagesDaemonSet(ctx, &cr, operatorConfig.OVSHugepagesSize, operatorConfig.OVSHugepagesAmount); err != nil {
+			log.V(1).Info("Hugepages reservation DaemonSet reconciliation deferred, will retry", "error", err.Error())
+			hugepagesRequeueAfter = 30 * time.Second
+		}
+	} else {
+		log.V(1).Info("Skipping hugepages reservation - HostedCluster not created yet")
+	}
+
+	// applyHugepagesRequeue folds the hugepages retry delay into a result without
+	// overriding an existing, sooner requeue.
+	applyHugepagesRequeue := func(result ctrl.Result) ctrl.Result {
+		if hugepagesRequeueAfter > 0 && (result.RequeueAfter == 0 || hugepagesRequeueAfter < result.RequeueAfter) {
+			result.RequeueAfter = hugepagesRequeueAfter
+		}
+		return result
+	}
+
 	// Detect DPUDeployment/DPUFlavor changes or deletions and invalidate ignition if needed.
 	if changed, result, err := r.handleDependencyChanges(ctx, &cr); changed || err != nil {
-		return result, err
+		return applyHugepagesRequeue(result), err
 	}
 
 	// Feature: Ignition lifecycle (verify + generate)
 	if result, err := r.reconcileIgnition(ctx, &cr); err != nil || result.RequeueAfter > 0 {
-		return result, err
+		return applyHugepagesRequeue(result), err
 	}
 
 	// Compute Ready condition based on all operational requirements
@@ -298,7 +327,7 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	log.Info("Reconciliation complete", "namespace", cr.Namespace, "name", cr.Name, "phase", cr.Status.Phase)
-	return ctrl.Result{}, nil
+	return applyHugepagesRequeue(ctrl.Result{}), nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

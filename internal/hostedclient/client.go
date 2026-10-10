@@ -14,7 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package csrapproval
+// Package hostedclient provides a single path for reaching a HyperShift hosted
+// (guest) cluster from the management cluster. It loads the hosted cluster's
+// admin kubeconfig, rewrites its endpoint to the internal service DNS name, and
+// caches one typed clientset per hosted cluster so every reconciler shares the
+// same connection instead of duplicating kubeconfig handling.
+package hostedclient
 
 import (
 	"context"
@@ -23,12 +28,94 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// KubernetesObject is satisfied by every pointer to a generated Kubernetes API type
+// (e.g. *corev1.Namespace, *appsv1.DaemonSet).
+type KubernetesObject interface {
+	metav1.Object
+	runtime.Object
+}
+
+// HostedResourceClient abstracts the typed client methods used by CreateOrUpdate.
+// Kubernetes typed clients (e.g. CoreV1().Namespaces()) satisfy this interface.
+type HostedResourceClient[T KubernetesObject] interface {
+	Get(context.Context, string, metav1.GetOptions) (T, error)
+	Create(context.Context, T, metav1.CreateOptions) (T, error)
+	Update(context.Context, T, metav1.UpdateOptions) (T, error)
+}
+
+type OperationResult string
+
+const (
+	OperationResultNone    OperationResult = "unchanged"
+	OperationResultCreated OperationResult = "created"
+	OperationResultUpdated OperationResult = "updated"
+)
+
+// CreateOrUpdate gets an object by name and either creates it (if not found) or
+// updates it (if the mutateFn changed it). It mirrors controllerutil.CreateOrUpdate
+// but works with typed Kubernetes clientsets instead of controller-runtime's client.
+func CreateOrUpdate[T KubernetesObject](
+	ctx context.Context,
+	c HostedResourceClient[T],
+	obj T,
+	mutateFn func(T) error,
+) (OperationResult, error) {
+	name, namespace := obj.GetName(), obj.GetNamespace()
+
+	existing, err := c.Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return OperationResultNone, err
+		}
+
+		if mutateFn != nil {
+			if err := mutateFn(obj); err != nil {
+				return OperationResultNone, err
+			}
+			if obj.GetName() != name || obj.GetNamespace() != namespace {
+				return OperationResultNone, fmt.Errorf(
+					"mutate function cannot change object name or namespace",
+				)
+			}
+		}
+
+		if _, err := c.Create(ctx, obj, metav1.CreateOptions{}); err != nil {
+			return OperationResultNone, err
+		}
+		return OperationResultCreated, nil
+	}
+
+	before := existing.DeepCopyObject()
+	if mutateFn != nil {
+		if err := mutateFn(existing); err != nil {
+			return OperationResultNone, err
+		}
+		if existing.GetName() != name || existing.GetNamespace() != namespace {
+			return OperationResultNone, fmt.Errorf(
+				"mutate function cannot change object name or namespace",
+			)
+		}
+	}
+
+	if equality.Semantic.DeepEqual(before, existing) {
+		return OperationResultNone, nil
+	}
+	if _, err := c.Update(ctx, existing, metav1.UpdateOptions{}); err != nil {
+		return OperationResultNone, err
+	}
+	return OperationResultUpdated, nil
+}
 
 // ClientManager manages hosted cluster client lifecycle
 type ClientManager struct {
@@ -89,7 +176,7 @@ func (cm *ClientManager) InvalidateClient(namespace, name string) {
 // createHostedClusterClient creates a Kubernetes client for the hosted cluster
 func (cm *ClientManager) createHostedClusterClient(ctx context.Context, namespace, name string) (*kubernetes.Clientset, error) {
 	// Fetch kubeconfig secret
-	kubeconfigData, err := cm.getKubeconfigData(ctx, namespace, name)
+	kubeconfigData, err := cm.GetKubeconfigData(ctx, namespace, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
@@ -114,8 +201,8 @@ func (cm *ClientManager) createHostedClusterClient(ctx context.Context, namespac
 		return nil, fmt.Errorf("failed to create rest config from kubeconfig: %w", err)
 	}
 
-	// Set reasonable timeouts for CSR API operations
-	// We use List/Get/UpdateApproval operations (not watches), so a 30s timeout is appropriate
+	// Set reasonable timeouts for hosted-cluster API operations
+	// Callers use request/response calls (not watches), so a 30s timeout is appropriate.
 	config.Timeout = 30 * time.Second
 	config.QPS = 5
 	config.Burst = 10
@@ -129,8 +216,8 @@ func (cm *ClientManager) createHostedClusterClient(ctx context.Context, namespac
 	return clientset, nil
 }
 
-// getKubeconfigData retrieves the kubeconfig data from the admin secret
-func (cm *ClientManager) getKubeconfigData(ctx context.Context, namespace, name string) ([]byte, error) {
+// GetKubeconfigData retrieves the kubeconfig data from the hosted cluster's admin secret
+func (cm *ClientManager) GetKubeconfigData(ctx context.Context, namespace, name string) ([]byte, error) {
 	// The kubeconfig secret name follows HyperShift convention: <hostedcluster-name>-admin-kubeconfig
 	secretName := name + "-admin-kubeconfig"
 

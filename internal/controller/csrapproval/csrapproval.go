@@ -33,6 +33,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/hostedclient"
 )
 
 const (
@@ -45,15 +46,16 @@ const (
 type CSRApprover struct {
 	mgmtClient    client.Client // Client for management cluster (where operator runs)
 	recorder      record.EventRecorder
-	clientManager *ClientManager // Manages cached clients to hosted clusters
+	clientManager *hostedclient.ClientManager // Shared manager for cached hosted-cluster clients
 }
 
-// NewCSRApprover creates a new CSR approver
-func NewCSRApprover(mgmtClient client.Client, recorder record.EventRecorder) *CSRApprover {
+// NewCSRApprover creates a new CSR approver. The hosted-cluster client manager is
+// injected so it can be shared with other reconcilers (e.g. the hugepages reservation).
+func NewCSRApprover(mgmtClient client.Client, recorder record.EventRecorder, clientManager *hostedclient.ClientManager) *CSRApprover {
 	return &CSRApprover{
 		mgmtClient:    mgmtClient,
 		recorder:      recorder,
-		clientManager: NewClientManager(mgmtClient),
+		clientManager: clientManager,
 	}
 }
 
@@ -87,7 +89,7 @@ func (a *CSRApprover) ProcessCSRs(ctx context.Context, dpfhcp *provisioningv1alp
 	}
 
 	// Step 3: Test connection
-	if err := TestConnection(ctx, hcClient); err != nil {
+	if err := hostedclient.TestConnection(ctx, hcClient); err != nil {
 		log.Error(err, "Hosted cluster not reachable")
 		// Invalidate cached client so next reconciliation creates a fresh one
 		// This handles cases like expired credentials, kubeconfig rotation, etc.
@@ -142,7 +144,7 @@ func (a *CSRApprover) StopCSRWatch(ctx context.Context, dpfhcp *provisioningv1al
 
 // isKubeconfigAvailable checks if the kubeconfig secret exists and is populated
 func (a *CSRApprover) isKubeconfigAvailable(ctx context.Context, dpfhcp *provisioningv1alpha1.DPFHCPProvisioner) bool {
-	_, err := a.clientManager.getKubeconfigData(ctx, dpfhcp.Namespace, dpfhcp.Name)
+	_, err := a.clientManager.GetKubeconfigData(ctx, dpfhcp.Namespace, dpfhcp.Name)
 	return err == nil
 }
 

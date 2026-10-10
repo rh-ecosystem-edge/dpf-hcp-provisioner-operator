@@ -90,6 +90,7 @@ In a separate namespace (`dpf-e2e-dpucluster`):
 - Verifies HostedCluster and NodePool are created
 - Validates ignition ConfigMap contains valid Ignition JSON
 - Validates kubeconfig is injected into DPUCluster namespace
+- Verifies the `openshift-doca-hugepages-holder` namespace and reservation DaemonSet request 500Mi of `hugepages-2Mi` per node
 - Validates all expected status conditions
 
 **CSR Auto-Approval:**

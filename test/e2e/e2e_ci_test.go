@@ -29,8 +29,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -43,6 +45,20 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 		kubeconfigFile string
 		hcConfig       *rest.Config
 	)
+
+	ensureHostedClusterAPI := func() {
+		if hcConfig != nil {
+			return
+		}
+
+		By("getting HostedCluster kubeconfig")
+		b64Kubeconfig := getHostedClusterKubeconfig(ciNamespace, provisionerName)
+		kubeconfigFile = writeKubeconfigToFile(b64Kubeconfig)
+		hcConfig = loadHCConfig(kubeconfigFile)
+
+		By("waiting for HostedCluster API to be reachable")
+		waitForHostedClusterAPIReachable(hcConfig, 5*time.Minute)
+	}
 
 	BeforeAll(func() {
 		By("cleaning up any stale resources from previous runs")
@@ -403,6 +419,38 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 			Expect(condMap["DPUClusterMissing"]).To(Equal(metav1.ConditionFalse),
 				"DPUClusterMissing should be False")
 		})
+
+		It("should reserve hugepages in the HostedCluster with a DaemonSet", func() {
+			ensureHostedClusterAPI()
+
+			By("waiting for the hugepages reservation DaemonSet in the HostedCluster")
+			_, hcClientset := getHCClient(hcConfig)
+			var daemonSet *appsv1.DaemonSet
+			Eventually(func(g Gomega) {
+				var err error
+				daemonSet, err = hcClientset.AppsV1().DaemonSets("openshift-doca-hugepages-holder").Get(
+					context.Background(), "ovs-hugepages-reservation", metav1.GetOptions{})
+				g.Expect(err).NotTo(HaveOccurred())
+			}, 2*time.Minute, pollingInterval).Should(Succeed())
+
+			By("verifying the DaemonSet reserves the configured default hugepages on every node")
+			podSpec := daemonSet.Spec.Template.Spec
+			Expect(podSpec.NodeSelector).To(BeEmpty(), "the reservation should target every HostedCluster node")
+			Expect(podSpec.Tolerations).To(ConsistOf(corev1.Toleration{
+				Operator: corev1.TolerationOpExists,
+			}), "the reservation should tolerate all node taints")
+			Expect(podSpec.PriorityClassName).To(Equal("system-node-critical"))
+			Expect(podSpec.Containers).To(HaveLen(1))
+
+			container := podSpec.Containers[0]
+			Expect(container.Image).NotTo(BeEmpty(), "the reservation pod image should be resolved from the release payload")
+			hugepagesResource := corev1.ResourceName("hugepages-2Mi")
+			wantReservation := resource.MustParse("500Mi") // 250 pages x 2Mi
+			request := container.Resources.Requests[hugepagesResource]
+			limit := container.Resources.Limits[hugepagesResource]
+			Expect(request.Equal(wantReservation)).To(BeTrue(), "the pod should request 500Mi of hugepages-2Mi")
+			Expect(limit.Equal(wantReservation)).To(BeTrue(), "the pod limit should equal its hugepages request")
+		})
 	})
 
 	Context("HostedCluster Upgrade", func() {
@@ -516,15 +564,7 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 			if getCRPhase(provisionerName) != "Ready" {
 				Skip("Skipping CSR tests - CR not in Ready state")
 			}
-			if kubeconfigFile == "" {
-				By("getting HostedCluster kubeconfig")
-				b64Kubeconfig := getHostedClusterKubeconfig(ciNamespace, provisionerName)
-				kubeconfigFile = writeKubeconfigToFile(b64Kubeconfig)
-				hcConfig = loadHCConfig(kubeconfigFile)
-
-				By("waiting for HostedCluster API to be reachable")
-				waitForHostedClusterAPIReachable(hcConfig, 5*time.Minute)
-			}
+			ensureHostedClusterAPI()
 		})
 
 		AfterEach(func() {

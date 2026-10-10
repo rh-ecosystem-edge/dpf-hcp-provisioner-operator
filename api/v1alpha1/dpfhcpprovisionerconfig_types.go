@@ -54,6 +54,24 @@ type DPFHCPProvisionerConfigSpec struct {
 	// When empty, no imagePullSecrets section is added to the templates.
 	// +optional
 	DPUServicesImagePullSecret string `json:"dpuServicesImagePullSecret,omitempty"`
+
+	// OVSHugepagesSize is the hugepage size reserved on every hosted-cluster node by
+	// the OVS hugepages reservation DaemonSet. It selects the Kubernetes extended
+	// resource "hugepages-<size>" (e.g. "2Mi" -> hugepages-2Mi).
+	// +kubebuilder:validation:Enum="1Gi";"2Mi";"32Mi";"64Ki"
+	// +kubebuilder:default="2Mi"
+	// +optional
+	OVSHugepagesSize string `json:"ovsHugepagesSize,omitempty"`
+
+	// OVSHugepagesAmount is the number of hugepages (each of OVSHugepagesSize) reserved
+	// per hosted-cluster node by the OVS hugepages reservation DaemonSet. Set to 0 to
+	// disable the reservation DaemonSet.
+	// The operator reserves OVSHugepagesAmount x OVSHugepagesSize on each node; the default
+	// reserves 250 pages of 2Mi (250 x 2Mi = 500Mi).
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:default=250
+	// +optional
+	OVSHugepagesAmount int32 `json:"ovsHugepagesAmount,omitempty"`
 }
 
 // +kubebuilder:object:root=true
