@@ -33,17 +33,26 @@ var BlueFieldGroupVersionKind = GroupVersion.WithKind(BlueFieldKind)
 // BlueFieldSoftwarePhase describes current state of BlueFieldSoftware CR.
 // Only one of the following state may be specified.
 // Default is Initializing.
-// +kubebuilder:validation:Enum=Initializing;Downloading;Ready;Deleting;Error
+// +kubebuilder:validation:Enum=Initializing;Downloading;Extracting;Ready;Deleting;Error
 type BlueFieldSoftwarePhase string
 
 // These are the valid statuses of BlueFieldSoftware.
 const (
+	// BlueFieldSoftwareFinalizerPrefix is the prefix for per-DPUSet protection finalizers
+	// placed on a BlueFieldSoftware while that DPUSet references it.
+	// Full format: provisioning.dpu.nvidia.com/bfs-dpuset-<dpuSetName>
+	BlueFieldSoftwareFinalizerPrefix = DPUProvisioningPrefix + "bfs-dpuset-"
+
+	// BlueFieldSoftwareFinalizer is retained for compatibility with older objects that still
+	// carry the shared protection finalizer.
 	BlueFieldSoftwareFinalizer = "provisioning.dpu.nvidia.com/bluefieldsoftware-protection"
 
 	// BlueFieldSoftware CR is created
 	BlueFieldSoftwareInitializing BlueFieldSoftwarePhase = "Initializing"
 	// Downloading BlueFieldSoftware components
 	BlueFieldSoftwareDownloading BlueFieldSoftwarePhase = "Downloading"
+	// Extracting BlueFieldSoftware components from downloaded bundle
+	BlueFieldSoftwareExtracting BlueFieldSoftwarePhase = "Extracting"
 	// Finished downloading BlueFieldSoftware components, ready for DPU to use
 	BlueFieldSoftwareReady BlueFieldSoftwarePhase = "Ready"
 	// Delete BlueFieldSoftware
@@ -76,34 +85,40 @@ var (
 	}
 )
 
+// BlueFieldSpec defines the desired state of BlueFieldSoftware.
+// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="BlueFieldSpec is immutable"
+// +kubebuilder:validation:XValidation:rule="!(has(self.nicFw) && has(self.platformPldmFwBundle))",message="nicFw and platformPldmFwBundle are mutually exclusive; set only one"
 type BlueFieldSpec struct {
+	// OS ISO points to the OS ISO used by DPU OS installation flow.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	OsIso string `json:"osIso"`
+
+	// PldmFwBundle maps each PSID to the PLDM firmware bundle URL used for that DPU model's
+	// baseline firmware updates. Each PSID's bundle is a complete PLDM package for that device.
+	// Keys are matched case-insensitively against the BMC-reported DPUDevice status PSID.
 	// +optional
-	PldmFwBundle string `json:"pldmFwBundle,omitempty"`
+	// +kubebuilder:validation:MinProperties=1
+	// +kubebuilder:validation:XValidation:rule="self.all(k, size(k) > 0 && size(self[k]) > 0)",message="pldmFwBundle entries must have non-empty PSID keys and non-empty bundle URLs"
+	PldmFwBundle map[string]string `json:"pldmFwBundle,omitempty"`
 
+	// PlatformPldmFwBundle points to the platform PLDM firmware bundle used for E/W NIC
+	// firmware updates.
 	// +optional
-	OsIso string `json:"osIso,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	PlatformPldmFwBundle *string `json:"platformPldmFwBundle,omitempty"`
 
+	// NicFw points to the NIC firmware binary used for E/W NIC firmware updates.
+	// Use this when a specific NIC firmware binary is required and is not included in the
+	// platform PLDM firmware bundle.
+	// In production, prefer using PlatformPldmFwBundle.
 	// +optional
-	TmpFwComponents *TmpFwComponents `json:"tmpFwComponents,omitempty"`
-}
-
-type TmpFwComponents struct {
-	BmcErot    string `json:"bmcErot,omitempty"`
-	BmcFw      string `json:"bmcFw,omitempty"`
-	AstraNicFw string `json:"astraNicFw,omitempty"`
-	GraceErot  string `json:"graceErot,omitempty"`
-	GraceFw    string `json:"graceFw,omitempty"`
-}
-
-type TmpFwComponentsVersions struct {
-	BmcErotVersion    string `json:"bmcErotVersion,omitempty"`
-	BmcFwVersion      string `json:"bmcFwVersion,omitempty"`
-	AstraNicFwVersion string `json:"astraNicFwVersion,omitempty"`
-	GraceErotVersion  string `json:"graceErotVersion,omitempty"`
-	GraceFwVersion    string `json:"graceFwVersion,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	NicFw *string `json:"nicFw,omitempty"`
 }
 
 // BlueFieldSoftwareStatus defines the observed state of BlueFieldSoftware
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.versions) || has(self.versions)",message="versions cannot be removed once set"
 type BlueFieldSoftwareStatus struct {
 	// The current state of BlueFieldSoftware.
 	// +kubebuilder:default=Initializing
@@ -111,7 +126,7 @@ type BlueFieldSoftwareStatus struct {
 	Phase BlueFieldSoftwarePhase `json:"phase"`
 	// Versions tracks the versions of the components
 	// +optional
-	Versions BluefieldSoftwareVersions `json:"versions,omitempty"`
+	Versions *BluefieldSoftwareVersions `json:"versions,omitempty"`
 	// DownloadedComponents tracks which components have been successfully downloaded
 	// +optional
 	DownloadedComponents DownloadedComponents `json:"downloadedComponents,omitempty"`
@@ -123,26 +138,63 @@ type BlueFieldSoftwareStatus struct {
 }
 
 // BluefieldSoftwareVersions defines the versions of various software components for a Bluefield device.
-// +kubebuilder:validation:XValidation:rule="self.fwBundleVersion == oldSelf.fwBundleVersion",message="fwBundleVersion is immutable"
-// +kubebuilder:validation:XValidation:rule="self.osISOVersion == oldSelf.osISOVersion",message="osISOVersion is immutable"
-// +kubebuilder:validation:XValidation:rule="self.tmpFwComponentsVersions == oldSelf.tmpFwComponentsVersions",message="tmpFwComponentsVersions is immutable"
 type BluefieldSoftwareVersions struct {
-	FwBundleVersion string `json:"fwBundleVersion,omitempty"`
+	// DOCA is the formatted, user-facing DOCA version derived from the OS ISO.
+	// +optional
+	DOCA string `json:"doca,omitempty"`
 
+	// OSISOVersion is the raw DOCA version for the OS ISO, taken from the ISO filename
+	// +optional
 	OSISOVersion string `json:"osISOVersion,omitempty"`
 
-	TmpFwComponentsVersions TmpFwComponentsVersions `json:"tmpFwComponentsVersions"`
+	// EWNicFwVersion is the E/W NIC firmware version taken from the platform PLDM bundle.
+	// It is not keyed by PSID because a BlueFieldSoftware carries a single platform bundle.
+	EWNicFwVersion string `json:"ewNicFwVersion,omitempty"`
+
+	// BluefieldSoftwareVersions maps each PSID to the firmware versions from that device's
+	// PLDM bundle. Keys are matched case-insensitively against the BMC-reported DPUDevice PSID.
+	// +optional
+	BluefieldSoftwareVersions map[string]BluefieldDeviceVersions `json:"bluefieldSoftwareVersions,omitempty"`
+}
+
+// BluefieldDeviceVersions holds firmware versions extracted from a single PSID's PLDM bundle.
+type BluefieldDeviceVersions struct {
+	// BMCVersion is the DPU BMC firmware version shipped in the bundle.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	BMCVersion string `json:"bmcVersion,omitempty"`
+
+	// BMCErotVersion is the BMC ERoT (External Root of Trust) firmware version shipped in the bundle.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	BMCErotVersion string `json:"bmcErotVersion,omitempty"`
+
+	// SBIOSVersion is the DPU SBIOS firmware version shipped in the bundle.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	SBIOSVersion string `json:"sbiosVersion,omitempty"`
+
+	// BFNicFwVersion is the BlueField NIC firmware version shipped in the bundle.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	BFNicFwVersion string `json:"bfNicFwVersion,omitempty"`
 }
 
 // DownloadedComponents tracks which components have been downloaded
 type DownloadedComponents struct {
-	PldmFwBundle string `json:"pldmFwBundle,omitempty"`
-	OsIso        string `json:"osIso,omitempty"`
-	BmcErot      string `json:"bmcErot,omitempty"`
-	BmcFw        string `json:"bmcFW,omitempty"`
-	AstraNicFw   string `json:"astraNicFw,omitempty"`
-	GraceErot    string `json:"graceErot,omitempty"`
-	GraceFw      string `json:"graceFw,omitempty"`
+	// PldmFwBundle maps each PSID to the local path of its downloaded PLDM firmware bundle.
+	// Keys are matched case-insensitively against the BMC-reported DPUDevice PSID.
+	PldmFwBundle map[string]string `json:"pldmFwBundle,omitempty"`
+
+	// PlatformPldmFwBundle is the local path of the downloaded platform PLDM firmware bundle.
+	PlatformPldmFwBundle string `json:"platformPldmFwBundle,omitempty"`
+
+	// OsIso is the local path of the downloaded OS ISO.
+	OsIso string `json:"osIso,omitempty"`
+
+	// NicFw is the local path of the E/W NIC firmware binary, either downloaded from
+	// spec.nicFw or unpacked from the platform PLDM firmware bundle.
+	NicFw string `json:"nicFw,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -185,6 +237,12 @@ func (b *BlueFieldSoftware) GetConditions() []metav1.Condition {
 // SetConditions sets the conditions of the BlueFieldSoftware
 func (b *BlueFieldSoftware) SetConditions(conditions []metav1.Condition) {
 	b.Status.Conditions = conditions
+}
+
+// BlueFieldSoftwareFinalizerForDPUSet returns the protection finalizer a DPUSet
+// places on a BlueFieldSoftware it references.
+func BlueFieldSoftwareFinalizerForDPUSet(dpuSetName string) string {
+	return BlueFieldSoftwareFinalizerPrefix + dpuSetName
 }
 
 func init() {

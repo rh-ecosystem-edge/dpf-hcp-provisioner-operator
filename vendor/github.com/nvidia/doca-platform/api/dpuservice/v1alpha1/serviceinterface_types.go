@@ -47,7 +47,7 @@ const (
 var ServiceInterfaceGroupVersionKind = GroupVersion.WithKind(ServiceInterfaceKind)
 
 // ServiceInterfaceSpec defines the desired state of ServiceInterface
-// +kubebuilder:validation:XValidation:rule="(self.interfaceType == 'vlan' && has(self.vlan)) || (self.interfaceType == 'pf' && has(self.pf)) || (self.interfaceType == 'vf' && has(self.vf)) || (self.interfaceType == 'physical' && has(self.physical)) || (self.interfaceType == 'service' && has(self.service)) || (self.interfaceType == 'ovn') || (self.interfaceType == 'patch' && has(self.patch))", message="`for interfaceType=vlan, vlan must be set; for interfaceType=pf, pf must be set; for interfaceType=vf, vf must be set; for interfaceType=physical, physical must be set; for interfaceType=service, service must be set; for interfaceType=patch, patch must be set`"
+// +kubebuilder:validation:XValidation:rule="(self.interfaceType == 'vlan' && has(self.vlan)) || (self.interfaceType == 'pf' && has(self.pf)) || (self.interfaceType == 'vf' && has(self.vf)) || (self.interfaceType == 'physical' && has(self.physical)) || (self.interfaceType == 'service' && has(self.service)) || (self.interfaceType == 'ovn') || (self.interfaceType == 'patch' && has(self.patch))",messageExpression="'for interfaceType=' + self.interfaceType + ', ' + self.interfaceType + ' must be set'"
 type ServiceInterfaceSpec struct {
 	// Node where this interface exists
 	// +optional
@@ -63,12 +63,15 @@ type ServiceInterfaceSpec struct {
 	// +optional
 	Vlan *VLAN `json:"vlan,omitempty"`
 	// The VF definition
+	// +kubebuilder:validation:XValidation:rule="(!has(oldSelf.virtualNetwork) && !has(self.virtualNetwork)) || ((has(oldSelf.virtualNetwork) && has(self.virtualNetwork)) && self.virtualNetwork==oldSelf.virtualNetwork)", message="virtualNetwork is immutable"
 	// +optional
 	VF *VF `json:"vf,omitempty"`
 	// The PF definition
+	// +kubebuilder:validation:XValidation:rule="(!has(oldSelf.virtualNetwork) && !has(self.virtualNetwork)) || ((has(oldSelf.virtualNetwork) && has(self.virtualNetwork)) && self.virtualNetwork==oldSelf.virtualNetwork)", message="virtualNetwork is immutable"
 	// +optional
 	PF *PF `json:"pf,omitempty"`
 	// The Service definition
+	// +kubebuilder:validation:XValidation:rule="(!has(oldSelf.virtualNetwork) && !has(self.virtualNetwork)) || ((has(oldSelf.virtualNetwork) && has(self.virtualNetwork)) && self.virtualNetwork==oldSelf.virtualNetwork)", message="virtualNetwork is immutable"
 	// +optional
 	Service *ServiceDef `json:"service,omitempty"`
 	// The OVN definition
@@ -79,6 +82,30 @@ type ServiceInterfaceSpec struct {
 	// The Patch definition
 	// +optional
 	Patch *PatchDef `json:"patch,omitempty"`
+}
+
+// GetVirtualNetworkName returns the virtual network name from the ServiceInterfaceSpec.
+// if it does not have a virtual network, it returns an empty string
+func (c *ServiceInterfaceSpec) GetVirtualNetworkName() string {
+	vnn := ""
+	switch c.InterfaceType {
+	case InterfaceTypePF:
+		if c.PF != nil &&
+			c.PF.VirtualNetwork != nil {
+			vnn = *c.PF.VirtualNetwork
+		}
+	case InterfaceTypeVF:
+		if c.VF != nil &&
+			c.VF.VirtualNetwork != nil {
+			vnn = *c.VF.VirtualNetwork
+		}
+	case InterfaceTypeService:
+		if c.Service != nil &&
+			c.Service.VirtualNetwork != nil {
+			vnn = *c.Service.VirtualNetwork
+		}
+	}
+	return vnn
 }
 
 const (
@@ -116,29 +143,21 @@ func (c *ServiceInterface) HasVirtualNetwork() bool {
 	return c.GetVirtualNetworkName() != ""
 }
 
-// GetVirtualNetworkName returns the virtual network name from the DPUServiceInterface.
+// GetVirtualNetworkName returns the virtual network name from the ServiceInterface.
 // if it does not have a virtual network, it returns an empty string
 func (c *ServiceInterface) GetVirtualNetworkName() string {
-	vnn := ""
-	switch c.Spec.InterfaceType {
-	case InterfaceTypePF:
-		if c.Spec.PF != nil &&
-			c.Spec.PF.VirtualNetwork != nil {
-			vnn = *c.Spec.PF.VirtualNetwork
-		}
-	case InterfaceTypeVF:
-		if c.Spec.VF != nil &&
-			c.Spec.VF.VirtualNetwork != nil {
-			vnn = *c.Spec.VF.VirtualNetwork
-		}
-	case InterfaceTypeService:
-		if c.Spec.Service != nil &&
-			c.Spec.Service.VirtualNetwork != nil {
-			vnn = *c.Spec.Service.VirtualNetwork
-		}
-	}
-	return vnn
+	return c.Spec.GetVirtualNetworkName()
 }
+
+// Getters below implement sfccontroller's interfaceEntrySpec.
+
+func (c *ServiceInterface) GetInterfaceType() string { return c.Spec.InterfaceType }
+func (c *ServiceInterface) GetPhysical() *Physical   { return c.Spec.Physical }
+func (c *ServiceInterface) GetVF() *VF               { return c.Spec.VF }
+func (c *ServiceInterface) GetPF() *PF               { return c.Spec.PF }
+func (c *ServiceInterface) GetOVN() *OVN             { return c.Spec.OVN }
+func (c *ServiceInterface) GetPatch() *PatchDef      { return c.Spec.Patch }
+func (c *ServiceInterface) GetService() *ServiceDef  { return c.Spec.Service }
 
 // Physical Identifies a physical interface
 type Physical struct {
@@ -148,7 +167,6 @@ type Physical struct {
 }
 
 // ServiceDef Identifies the service and network for the ServiceInterface
-// +kubebuilder:validation:XValidation:rule="(!has(oldSelf.virtualNetwork) && !has(self.virtualNetwork)) || ((has(oldSelf.virtualNetwork) && has(self.virtualNetwork)) && self.virtualNetwork==oldSelf.virtualNetwork)", message="virtualNetwork is immutable"
 type ServiceDef struct {
 	// ServiceID is the DPU Service Identifier
 	// +required
@@ -196,12 +214,18 @@ type VLAN struct {
 }
 
 // VF defines the VF configuration
-// +kubebuilder:validation:XValidation:rule="(!has(oldSelf.virtualNetwork) && !has(self.virtualNetwork)) || ((has(oldSelf.virtualNetwork) && has(self.virtualNetwork)) && self.virtualNetwork==oldSelf.virtualNetwork)", message="virtualNetwork is immutable"
 type VF struct {
+	// NICSelector defines the NIC selected for the VF interface
+	// +optional
+	NICSelector *NICSelectorSpec `json:"nicSelector,omitempty"`
 	// The VF ID
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=255
 	// +required
 	VFID int `json:"vfID"`
 	// The PF ID
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=255
 	// +required
 	PFID int `json:"pfID"`
 	// The parent interface reference
@@ -214,9 +238,13 @@ type VF struct {
 }
 
 // PF defines the PF configuration
-// +kubebuilder:validation:XValidation:rule="(!has(oldSelf.virtualNetwork) && !has(self.virtualNetwork)) || ((has(oldSelf.virtualNetwork) && has(self.virtualNetwork)) && self.virtualNetwork==oldSelf.virtualNetwork)", message="virtualNetwork is immutable"
 type PF struct {
+	// NICSelector defines the NIC selected for the PF interface
+	// +optional
+	NICSelector *NICSelectorSpec `json:"nicSelector,omitempty"`
 	// The PF ID
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=255
 	// +required
 	ID int `json:"pfID"`
 	// VirtualNetwork is the VirtualNetwork name in the same namespace
@@ -248,6 +276,50 @@ type PatchDef struct {
 	// PeerExternalIDs are the external IDs used to identify the peer patch port.
 	// +optional
 	PeerExternalIDs map[string]string `json:"peerExternalIDs,omitempty"`
+}
+
+// NICSelectorType is the type of NIC selector
+type NICSelectorType string
+
+const (
+	// NICSelectorTypeDPU selects the DPU NIC
+	NICSelectorTypeDPU NICSelectorType = "dpu"
+	// NICSelectorTypePCI selects NIC according to the provided PCI address of one of the NIC's Embedded CPU PFs (ECPFs)
+	NICSelectorTypePCI NICSelectorType = "pci"
+)
+
+// NICSelectorSpec defines how a NIC is selected
+// +kubebuilder:validation:XValidation:rule="(self.type == 'dpu') || (self.type == 'pci' && has(self.pci))", message="for type=pci, pci must be set"
+type NICSelectorSpec struct {
+	// Type is the type of selector to be used to identify the NIC.
+	// +kubebuilder:validation:Enum=dpu;pci
+	// +required
+	Type NICSelectorType `json:"type"`
+	// PCI is the PCI selector. valid only for selector type pci
+	// +optional
+	PCI *PCISelector `json:"pci,omitempty"`
+	// ControllerNumber specifies the controller number that will be used to find the matching representor on the DPU.
+	// A value of 0 targets the local controller, >=1 targets external controllers with the specified number. If unspecified controller number 1 is used.
+	// In case of a DPU/NIC with socket direct or MultiHost, the user should specify the controller number explicitly
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=255
+	// +optional
+	ControllerNumber *int32 `json:"controllerNumber,omitempty"`
+}
+
+func (n *NICSelectorSpec) GetControllerNumber() int32 {
+	if n == nil || n.ControllerNumber == nil {
+		return 1
+	}
+	return *n.ControllerNumber
+}
+
+// PCISelector selects NIC by PCI address
+type PCISelector struct {
+	// Address is the PCI address of any of the NIC's Embedded CPU PFs (ECPFs)
+	// +kubebuilder:validation:Pattern=`^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f]\.[0-7]{1}$`
+	// +required
+	Address string `json:"address,omitzero"`
 }
 
 // ServiceInterfaceStatus defines the observed state of ServiceInterface

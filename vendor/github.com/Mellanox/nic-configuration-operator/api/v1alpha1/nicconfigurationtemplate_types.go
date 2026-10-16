@@ -1,0 +1,268 @@
+/*
+2024 NVIDIA CORPORATION & AFFILIATES
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1alpha1
+
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// NicSelectorSpec is a desired configuration for NICs
+type NicSelectorSpec struct {
+	// Type of the NIC to be selected, e.g. 101d,1015,a2d6 etc.
+	NicType string `json:"nicType"`
+	// Array of PCI addresses to be selected, e.g. "0000:03:00.0"
+	// +kubebuilder:validation:items:Pattern=`^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]$`
+	PciAddresses []string `json:"pciAddresses,omitempty"`
+	// Serial numbers of the NICs to be selected, e.g. MT2116X09299. Note: serial numbers
+	// are not guaranteed unique — on systems with embedded NICs that share a flashed VPD
+	// image (e.g. HGX B300), multiple physical cards report the same serial, and this
+	// selector will match all of them. Use `pciAddresses` for precise per-card selection
+	// on such systems.
+	SerialNumbers []string `json:"serialNumbers,omitempty"`
+	// Part numbers of the NICs to be selected, e.g. MCX713106AEHEA_QP1
+	PartNumbers []string `json:"partNumbers,omitempty"`
+}
+
+// LinkTypeEnum described the link type (Ethernet / Infiniband)
+// +enum
+type LinkTypeEnum string
+
+// PciPerformanceOptimizedSpec specifies PCI performance optimization settings
+type PciPerformanceOptimizedSpec struct {
+	// Specifies whether to enable PCI performance optimization
+	Enabled bool `json:"enabled"`
+	// Deprecated: this field is ignored and no longer maps to MAX_ACC_OUT_READ.
+	MaxAccOutRead int `json:"maxAccOutRead,omitempty"`
+	// Specifies the size of a single PCI read request in bytes
+	// +kubebuilder:validation:Enum=128;256;512;1024;2048;4096
+	MaxReadRequest int `json:"maxReadRequest,omitempty"`
+}
+
+// ECNSpec specifies Explicit Congestion Notification settings
+type ECNSpec struct {
+	// Enable ECN on the specified priority
+	Enabled bool `json:"enabled"`
+	// Traffic class / priority to enable ECN on (0-7)
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=7
+	Priority int `json:"priority"`
+}
+
+// PauseFramesSpec specifies global pause frame settings
+type PauseFramesSpec struct {
+	// Enable global pause frames (autoneg, rx, tx). Set to false to disable all pause frames (recommended when PFC is used).
+	Enabled bool `json:"enabled"`
+}
+
+// QosSpec specifies Quality of Service settings
+type QosSpec struct {
+	// Trust mode for QoS settings, e.g. dscp
+	Trust string `json:"trust"`
+	// Priority-based Flow Control configuration, e.g. "0,0,0,1,0,0,0,0"
+	// +kubebuilder:validation:Pattern=`^([01],){7}[01]$`
+	PFC string `json:"pfc"`
+	// 8-bit value for type of service
+	ToS int `json:"tos,omitempty"`
+	// Cable length in meters, used for ECN buffer threshold calculation
+	CableLen int `json:"cableLen,omitempty"`
+	// ECN (Explicit Congestion Notification) settings
+	ECN *ECNSpec `json:"ecn,omitempty"`
+	// Global pause frame settings (disable when using PFC)
+	PauseFrames *PauseFramesSpec `json:"pauseFrames,omitempty"`
+}
+
+// RuntimePerformanceOptimizedSpec specifies runtime NIC performance tuning applied via ethtool
+type RuntimePerformanceOptimizedSpec struct {
+	// Enable runtime performance optimization
+	Enabled bool `json:"enabled"`
+	// RX ring buffer size (ethtool -G rx)
+	// +kubebuilder:validation:Minimum=1
+	RxRingSize int `json:"rxRingSize,omitempty"`
+	// TX ring buffer size (ethtool -G tx)
+	// +kubebuilder:validation:Minimum=1
+	TxRingSize int `json:"txRingSize,omitempty"`
+	// Number of combined channels (ethtool -L combined)
+	// +kubebuilder:validation:Minimum=1
+	CombinedChannels int `json:"combinedChannels,omitempty"`
+	// Enable Large Receive Offload (ethtool -K lro)
+	LRO *bool `json:"lro,omitempty"`
+}
+
+// RoceOptimizedSpec specifies RoCE optimization settings
+type RoceOptimizedSpec struct {
+	// Optimize RoCE
+	Enabled bool `json:"enabled"`
+	// Quality of Service settings
+	Qos *QosSpec `json:"qos,omitempty"`
+	// RoCE mode: 1 for RoCE v1, 2 for RoCE v2. Only effective when roceOptimized.enabled is true.
+	// +kubebuilder:validation:Enum=1;2
+	RoceMode int `json:"roceMode,omitempty"`
+}
+
+// GpuDirectOptimizedSpec specifies GPU Direct optimization settings
+type GpuDirectOptimizedSpec struct {
+	// Optimize GPU Direct
+	Enabled bool `json:"enabled"`
+	// GPU direct environment, e.g. Baremetal
+	Env string `json:"env"`
+}
+
+// SpectrumXOptimizedSpec enables Spectrum-X specific optimizations
+// +kubebuilder:validation:XValidation:rule="!has(self.multiplaneMode) || !has(self.numberOfPlanes) || self.multiplaneMode != 'none' || self.numberOfPlanes == 1",message="when MultiplaneMode is none, numberOfPlanes must be 1"
+// +kubebuilder:validation:XValidation:rule="!has(self.multiplaneMode) || !has(self.numberOfPlanes) || self.multiplaneMode == 'none' || self.numberOfPlanes != 1",message="when MultiplaneMode is not none, numberOfPlanes must not be 1"
+type SpectrumXOptimizedSpec struct {
+	// Optimize Spectrum X
+	Enabled bool `json:"enabled"`
+	// Version of the Spectrum-X architecture to optimize for. Should match the name of the config map with Spectrum-X profile
+	// +required
+	Version string `json:"version"`
+	// Overlay mode to be configured
+	// Can be "l3" or "none"
+	// +kubebuilder:validation:Enum=l3;none
+	// +kubebuilder:default:=none
+	// +optional
+	Overlay string `json:"overlay,omitempty"`
+	// Multiplane mode to be configured
+	// Can be "none", "swplb", "hwplb", or "uniplane"
+	// +kubebuilder:validation:Enum=none;swplb;hwplb;uniplane
+	// +kubebuilder:default:=none
+	// +optional
+	MultiplaneMode string `json:"multiplaneMode,omitempty"`
+	// Number of planes to be configured
+	// +kubebuilder:validation:Enum=1;2;4
+	// +kubebuilder:default:=1
+	// +optional
+	NumberOfPlanes int `json:"numberOfPlanes,omitempty"`
+}
+
+type NvConfigParam struct {
+	// Name of the arbitrary nvconfig parameter
+	// +kubebuilder:validation:MaxLength=64
+	Name string `json:"name"`
+	// Value of the arbitrary nvconfig parameter
+	// +kubebuilder:validation:MaxLength=128
+	Value string `json:"value"`
+}
+
+// NetworkBaySpec configures a ConnectX-9 Network Bay ("orchid") card. A Network Bay
+// card exposes two CX9 ASICs as two PCI endpoints that share a single OSFP cage and
+// must be configured as a pair. Allowed only when nicSelector.nicType == "1025"
+// (ConnectX-9), enforced by CEL on NicConfigurationTemplateSpec.
+type NetworkBaySpec struct {
+	// Conf is the mlxconfig system configuration profile name. The daemon resolves
+	// the profile parameters for the device's detected Network Bay ASIC and manages
+	// them through the regular mlxconfig validation and apply flow.
+	Conf string `json:"conf"`
+}
+
+// ConfigurationTemplateSpec is a set of configurations for the NICs
+// +kubebuilder:validation:XValidation:rule="!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled) || ((!has(self.linkType) || self.linkType == 'Ethernet') && self.numVfs == 1)",message="spectrumXOptimized can be enabled only when linkType=='Ethernet' (or unset for Network Bay) and numVfs==1"
+// +kubebuilder:validation:XValidation:rule="!(has(self.spectrumXOptimized) && self.spectrumXOptimized.enabled) || !(has(self.roceOptimized) && self.roceOptimized.enabled)",message="spectrumXOptimized includes RoCE optimizations, so separate roceOptimized section must not be enabled"
+// +kubebuilder:validation:XValidation:rule="has(self.networkBay) || has(self.linkType)",message="linkType is required unless networkBay is configured"
+// +kubebuilder:validation:XValidation:rule="!has(self.networkBay) || !has(self.linkType)",message="linkType must not be set when networkBay is configured (the Network Bay link type is governed by the system configuration)"
+// +kubebuilder:validation:XValidation:rule="!has(self.rawNvConfig) || self.rawNvConfig.all(p, !p.name.matches('.*[[][0-9]+[.][.][0-9]+[]].*'))",message="rawNvConfig parameter names must not use index-range syntax like NAME[0..3]; list each index explicitly (NAME[0], NAME[1], ...)"
+type ConfigurationTemplateSpec struct {
+	// Number of VFs to be configured
+	// +required
+	NumVfs int `json:"numVfs"`
+	// LinkType to be configured, Ethernet|Infiniband. Required unless networkBay is configured;
+	// for Network Bay the link type is governed by the system configuration and must not be set.
+	// +kubebuilder:validation:Enum=Ethernet;Infiniband
+	// +optional
+	LinkType LinkTypeEnum `json:"linkType,omitempty"`
+	// PCI performance optimization settings
+	PciPerformanceOptimized *PciPerformanceOptimizedSpec `json:"pciPerformanceOptimized,omitempty"`
+	// RoCE optimization settings
+	RoceOptimized *RoceOptimizedSpec `json:"roceOptimized,omitempty"`
+	// GPU Direct optimization settings
+	GpuDirectOptimized *GpuDirectOptimizedSpec `json:"gpuDirectOptimized,omitempty"`
+	// Runtime NIC performance tuning (ring buffers, channels, LRO) applied via ethtool
+	RuntimePerformanceOptimized *RuntimePerformanceOptimizedSpec `json:"runtimePerformanceOptimized,omitempty"`
+	// Spectrum-X optimization settings. Works only with linkType==Ethernet && numVfs==1. RawNvConfig parameters, if provided, are merged as overrides on top of Spectrum-X calculated params.
+	SpectrumXOptimized *SpectrumXOptimizedSpec `json:"spectrumXOptimized,omitempty"`
+	// NetworkBay configures a ConnectX-9 Network Bay card from a per-ASIC mlxconfig system profile. Allowed only for ConnectX-9 (nicType 1025).
+	// +optional
+	NetworkBay *NetworkBaySpec `json:"networkBay,omitempty"`
+	// List of arbitrary nv config parameters
+	// +kubebuilder:validation:MaxItems=128
+	RawNvConfig []NvConfigParam `json:"rawNvConfig,omitempty"`
+	// Force passes `--force` to mlxconfig set commands, letting mlxconfig accept
+	// a batch it would otherwise refuse due to implicit parameter dependencies.
+	// +optional
+	// +kubebuilder:default:=false
+	Force bool `json:"force,omitempty"`
+}
+
+// NicConfigurationTemplateSpec defines the desired state of NicConfigurationTemplate
+// +kubebuilder:validation:XValidation:rule="!(has(self.template.spectrumXOptimized) && self.template.spectrumXOptimized.enabled) || (self.nicSelector.nicType == '1021' || self.nicSelector.nicType == '1023' || self.nicSelector.nicType == '1025' || self.nicSelector.nicType == 'a2dc')",message="spectrumXOptimized can be enabled only for ConnectX-7, ConnectX-8, ConnectX-9 or BlueField-3 SuperNICs"
+// +kubebuilder:validation:XValidation:rule="!has(self.template.spectrumXOptimized) || !has(self.template.spectrumXOptimized.multiplaneMode) || self.nicSelector.nicType != '1021' || self.template.spectrumXOptimized.multiplaneMode == 'none'",message="ConnectX-7 (NicType 1021) supports only single-plane Spectrum-X (multiplaneMode none)"
+// +kubebuilder:validation:XValidation:rule="!has(self.template.spectrumXOptimized) || !has(self.template.spectrumXOptimized.multiplaneMode) || self.template.spectrumXOptimized.multiplaneMode != 'hwplb' || self.nicSelector.nicType == '1023' || self.nicSelector.nicType == '1025'",message="hwplb MultiplaneMode can only be enabled for ConnectX-8 (NicType 1023) or ConnectX-9 (NicType 1025)"
+// +kubebuilder:validation:XValidation:rule="!has(self.template.networkBay) || self.nicSelector.nicType == '1025'",message="networkBay can only be configured for ConnectX-9 (NicType 1025)"
+type NicConfigurationTemplateSpec struct {
+	// NodeSelector contains labels required on the node. When empty, the template will be applied to matching devices on all nodes.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// NIC selector configuration
+	// +required
+	NicSelector *NicSelectorSpec `json:"nicSelector"`
+	// ResetToDefault specifies whether node agent needs to perform a reset flow
+	// The following operations will be performed:
+	// * Nvconfig reset of all non-volatile configurations
+	//   - Mstconfig -d <device> reset for each PF
+	//   - Mstconfig -d <device> set ADVANCED_PCI_SETTINGS=1
+	// * Node reboot
+	//   - Applies new NIC NV config
+	//   - Will undo any runtime configuration previously performed for the device/driver
+	// +optional
+	// +kubebuilder:default:=false
+	ResetToDefault bool `json:"resetToDefault,omitempty"`
+	// Configuration template to be applied to matching devices
+	Template *ConfigurationTemplateSpec `json:"template"`
+}
+
+// NicTemplateStatus defines the observed state of NicConfigurationTemplate and NicFirmwareTemplate
+type NicTemplateStatus struct {
+	// NicDevice CRs matching this configuration / firmware template
+	NicDevices []string `json:"nicDevices,omitempty"`
+	// Conditions observed for this template, e.g. a Network Bay pairing imbalance on a node
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+
+// NicConfigurationTemplate is the Schema for the nicconfigurationtemplates API
+type NicConfigurationTemplate struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Defines the desired state of NICs
+	Spec NicConfigurationTemplateSpec `json:"spec,omitempty"`
+	// Defines the observed state of NicConfigurationTemplate
+	Status NicTemplateStatus `json:"status,omitempty"`
+}
+
+//+kubebuilder:object:root=true
+
+// NicConfigurationTemplateList contains a list of NicConfigurationTemplate
+type NicConfigurationTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []NicConfigurationTemplate `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&NicConfigurationTemplate{}, &NicConfigurationTemplateList{})
+}

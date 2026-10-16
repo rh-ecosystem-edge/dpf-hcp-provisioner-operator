@@ -89,6 +89,8 @@ func (c *DPUDeployment) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 
+// DPUDeployment is an object that describes a set of DPUServices and a DPUServiceChain that run a on a set of DPUs with
+// a given BFB or BlueFieldSoftware and DPUFlavor.
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced
@@ -97,9 +99,6 @@ func (c *DPUDeployment) SetConditions(conditions []metav1.Condition) {
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.conditions[?(@.type=='Ready')].reason`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 20", message="name length can't be bigger than 20 chars"
-
-// DPUDeployment is the Schema for the dpudeployments API. This object connects DPUServices with specific BFBs and
-// DPUServiceChains.
 type DPUDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -167,16 +166,37 @@ func (u *UpgradePolicy) ShouldApplyNodeEffect() bool {
 }
 
 // DPUs contains the DPU related configuration
+// +kubebuilder:validation:XValidation:rule="(has(self.bfb) && !has(self.blueFieldSoftware)) || (!has(self.bfb) && has(self.blueFieldSoftware))",message="exactly one of bfb or blueFieldSoftware must be specified"
+// +kubebuilder:validation:XValidation:rule="has(self.flavor) != has(self.flavorTemplate)",message="exactly one of flavor or flavorTemplate must be set"
 type DPUs struct {
 	// BFB is the name of the BFB object to be used in this DPUDeployment. It must be in the same namespace as the
 	// DPUDeployment.
-	// +required
-	BFB string `json:"bfb"`
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	BFB *string `json:"bfb,omitempty"`
+
+	// BlueFieldSoftware is the name of the BlueFieldSoftware object to be used in this DPUDeployment. It must be in the
+	// same namespace as the DPUDeployment.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	BlueFieldSoftware *string `json:"blueFieldSoftware,omitempty"`
 
 	// Flavor is the name of the DPUFlavor object to be used in this DPUDeployment. It must be in the same namespace as
-	// the DPUDeployment.
-	// +required
-	Flavor string `json:"flavor"`
+	// the DPUDeployment. Exactly one of flavor or flavorTemplate must be set (mutually exclusive).
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	Flavor *string `json:"flavor,omitempty"`
+
+	// FlavorTemplate is the name of the DPUFlavorTemplate object to be rendered per-DPU (against each
+	// DPUDevice.spec.values) into a generated DPUFlavor. It must be in the same namespace as the DPUDeployment.
+	// Exactly one of flavor or flavorTemplate must be set (mutually exclusive).
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	FlavorTemplate *string `json:"flavorTemplate,omitempty"`
+
+	// AstraEnabled indicates whether E/W NIC configuration (Astra) is enabled
+	// +optional
+	AstraEnabled *bool `json:"astraEnabled,omitempty"`
 
 	// DPUSets contains configuration for each DPUSet that is going to be created by the DPUDeployment
 	// +optional
@@ -198,11 +218,10 @@ type DPUs struct {
 	SecureBoot *bool `json:"secureBoot,omitempty"`
 }
 
+// DPUSet contains configuration for the DPUSet to be created by the DPUDeployment
 // +kubebuilder:validation:XValidation:rule="!(has(self.dpuAnnotations) && (self.dpuAnnotations.exists(key, (key.contains('dpu.nvidia.com/') || key.endsWith('dpu.nvidia.com')) && !key.startsWith('noderesources.dpu.nvidia.com'))))", message="should not contain dpu.nvidia.com/ and should not end with dpu.nvidia.com"
 // +kubebuilder:validation:XValidation:rule="!(has(self.nodeSelector) && has(self.dpuNodeSelector))", message="only one of nodeSelector or dpuNodeSelector can be specified"
 // +kubebuilder:validation:XValidation:rule="!(has(self.dpuSelector) && has(self.dpuDeviceSelector))", message="only one of dpuSelector or dpuDeviceSelector can be specified"
-
-// DPUSet contains configuration for the DPUSet to be created by the DPUDeployment
 type DPUSet struct {
 	// NameSuffix is the suffix to be added to the name of the DPUSet object created by the DPUDeployment.
 	// +kubebuilder:validation:MinLength=1
@@ -212,13 +231,13 @@ type DPUSet struct {
 
 	// NodeSelector defines the nodes that the DPUSet should target
 	//
-	// Deprecated: This field is deprecated and will be removed with v26.7.0. Use DPUNodeSelector instead.
+	// Deprecated: This field is deprecated and will be removed with v27.1.0. Use DPUNodeSelector instead.
 	// +optional
 	NodeSelector *metav1.LabelSelector `json:"nodeSelector,omitempty"`
 
 	// DPUSelector defines the DPUs that the DPUSet should target
 	//
-	// Deprecated: This field is deprecated and will be removed with v26.7.0. Use DPUDeviceSelector instead.
+	// Deprecated: This field is deprecated and will be removed with v27.1.0. Use DPUDeviceSelector instead.
 	// +optional
 	DPUSelector map[string]string `json:"dpuSelector,omitempty"`
 
@@ -323,9 +342,8 @@ type DPUDeploymentStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-
 // DPUDeploymentList contains a list of DPUDeployment
+// +kubebuilder:object:root=true
 type DPUDeploymentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

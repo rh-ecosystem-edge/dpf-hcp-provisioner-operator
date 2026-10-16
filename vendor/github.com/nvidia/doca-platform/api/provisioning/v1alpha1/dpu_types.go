@@ -26,6 +26,16 @@ import (
 const (
 	// DPUKind is the kind of the DPU object
 	DPUKind = "DPU"
+
+	// DPUAgentConditionNVConfigApplied is reported when mlxconfig has been applied for the current boot.
+	// It may appear on agentStatus.conditions (DPU Config phase) or agentStatus.preInstall.conditions
+	// (best-effort Config FW Parameters phase during reprovision).
+	DPUAgentConditionNVConfigApplied = "NVConfigApplied"
+
+	// DPUAgentConditionSPIREWorkloadAttestorEnabled is reported on SPIFFE DPUs once the
+	// SPIRE Kubernetes workload attestor is configured, which is what lets the SPIRE
+	// agent issue SVIDs to pods.
+	DPUAgentConditionSPIREWorkloadAttestorEnabled = "SPIREWorkloadAttestorEnabled"
 )
 
 // DPUGroupVersionKind is the GroupVersionKind of the DPU object
@@ -34,7 +44,7 @@ var DPUGroupVersionKind = GroupVersion.WithKind(DPUKind)
 // DPUPhase describes current state of DPU.
 // Only one of the following state may be specified.
 // Default is Initializing.
-// +kubebuilder:validation:Enum="Initializing";"Node Effect";"Pending";"Config FW Parameters";"Prepare BFB";"OS Installing";"DPU Config";"DPU Cluster Config";"Host Network Configuration";"Ready";"Error";"Deleting";"Rebooting";"Perform ARM Force Restart";"Initialize Interface";"Node Effect Removal";"Checking Host Reboot Required"
+// +kubebuilder:validation:Enum="Initializing";"Node Effect";"Pending";"Update Firmware";"Config FW Parameters";"Prepare BFB";"OS Installing";"DPU Config";"DPU Cluster Config";"Host Network Configuration";"Service Readiness";"Ready";"Error";"Deleting";"Rebooting";"Perform ARM Force Restart";"Initialize Interface";"Node Effect Removal";"Checking Host Reboot Required"
 type DPUPhase string
 
 // These are the valid statuses of DPU.
@@ -52,6 +62,8 @@ const (
 	DPUPending DPUPhase = "Pending"
 	// DPUPrepareBFB means the controller is preparing the BFB and bf.cfg to be installed to DPU
 	DPUPrepareBFB DPUPhase = "Prepare BFB"
+	// DPUUpdateFirmware means the controller will update the DPU firmware for BlueField4.
+	DPUUpdateFirmware DPUPhase = "Update Firmware"
 	// DPUConfig means the DPU agent will configure the DPU
 	DPUConfig DPUPhase = "DPU Config"
 	// DPUConfigFWParameters means the controller will manipulate DPU firmware, e.g., set DPU mode, check firmware version
@@ -64,6 +76,10 @@ const (
 	DPUClusterConfig DPUPhase = "DPU Cluster Config"
 	// DPUHostNetworkConfiguration means the host network configuration is running.
 	DPUHostNetworkConfiguration DPUPhase = "Host Network Configuration"
+	// DPUServiceReadiness waits for DPU services to become ready before the DPU is put into service.
+	// When the flavor configures a gate the phase blocks on it; it also waits for the DPU agent to
+	// release a host OS init hold when one was requested.
+	DPUServiceReadiness DPUPhase = "Service Readiness"
 	// DPUNodeEffectRemoval means the controller will remove the node effect from the DPU.
 	DPUNodeEffectRemoval DPUPhase = "Node Effect Removal"
 	// DPUReady means the DPU is ready to use.
@@ -86,16 +102,28 @@ const (
 	DPUCondBFBReady               DPUConditionType = "BFBReady"
 	DPUCondBlueFieldSoftwareReady DPUConditionType = "BlueFieldSoftwareReady"
 	DPUCondDPUFlavorExists        DPUConditionType = "DPUFlavorExists"
+	DPUCondDPUFlavorRendered      DPUConditionType = "DPUFlavorRendered"
 	DPUCondNodeEffectReady        DPUConditionType = "NodeEffectReady"
 	DPUCondBFBPrepared            DPUConditionType = "BFBPrepared"
 	DPUCondInterfaceInitialized   DPUConditionType = "InterfaceInitialized"
 	DPUCondFWConfigured           DPUConditionType = "FWConfigured"
+	DPUCondFWArmRestarted         DPUConditionType = "FWArmRestarted"
+	DPUCondFwBundleSubmitted      DPUConditionType = "FwBundleSubmitted"
+	DPUCondFwBundleUpdated        DPUConditionType = "FwBundleUpdated"
+	DPUCondFwBundleActivated      DPUConditionType = "FwBundleActivated"
+	DPUCondFwBundleArmShutdown    DPUConditionType = "FwBundleArmShutdown"
 	DPUCondBFBTransferred         DPUConditionType = "BFBTransferred"
+	DPUCondIsoTransferred         DPUConditionType = "IsoTransferred"
+	DPUCondConfigTransferred      DPUConditionType = "ConfigTransferred"
+	DPUCondVirtualMediaInserted   DPUConditionType = "VirtualMediaInserted"
+	DPUCondChangeBootTarget       DPUConditionType = "ChangeBootTarget"
+	DPUCondChassisReset           DPUConditionType = "ChassisReset"
 	DPUCondOSInstalled            DPUConditionType = "OSInstalled"
-	DPUConditionHostPowerCycle    DPUConditionType = "HostPowerCycle"
 	DPUCondRebooted               DPUConditionType = "Rebooted"
 	DPUCondHostNetworkReady       DPUConditionType = "HostNetworkReady"
 	DPUCondDPUClusterReady        DPUConditionType = "DPUClusterReady"
+	DPUCondDPUConfig              DPUConditionType = "DPUConfig"
+	DPUCondServiceReadiness       DPUConditionType = "ServiceReadiness"
 	DPUCondNodeEffectRemoved      DPUConditionType = "NodeEffectRemoved"
 	DPUCondDeleting               DPUConditionType = "Deleting"
 	DPUCondReady                  DPUConditionType = "Ready"
@@ -148,12 +176,10 @@ const (
 	NPDConditionOVSDBHealthy corev1.NodeConditionType = "OVSDBHealthy"
 	// NPDConditionOVSHealthy indicates OVS processes have not been OOM killed recently
 	NPDConditionOVSHealthy corev1.NodeConditionType = "OVSHealthy"
-	// NPDConditionDPUModeCorrect indicates DPU is in the correct separated mode
-	NPDConditionDPUModeCorrect corev1.NodeConditionType = "DPUModeCorrect"
 	// NPDConditionUplinkHealthy indicates the physical uplink interface is up
 	NPDConditionUplinkHealthy corev1.NodeConditionType = "UplinkHealthy"
-	// NPDConditionSRIOVHealthy indicates SR-IOV VF representors are present
-	NPDConditionSRIOVHealthy corev1.NodeConditionType = "SRIOVHealthy"
+	// NPDConditionPFRepresentorsHealthy indicates host PF representors are present on the DPU eswitch
+	NPDConditionPFRepresentorsHealthy corev1.NodeConditionType = "PFRepresentorsHealthy"
 	// NPDConditionMTUConfigured indicates network MTU is correctly configured
 	NPDConditionMTUConfigured corev1.NodeConditionType = "MTUConfigured"
 )
@@ -167,9 +193,8 @@ func GetNodeProblemDetectorConditions() []string {
 		string(NPDConditionOVSvSwitchdHealthy),
 		string(NPDConditionOVSDBHealthy),
 		string(NPDConditionOVSHealthy),
-		string(NPDConditionDPUModeCorrect),
 		string(NPDConditionUplinkHealthy),
-		string(NPDConditionSRIOVHealthy),
+		string(NPDConditionPFRepresentorsHealthy),
 		string(NPDConditionMTUConfigured),
 	}
 }
@@ -181,6 +206,18 @@ const (
 	InstallViaHostAgent DPUInstallInterfaceType = "hostAgent"
 	InstallViaRedFish   DPUInstallInterfaceType = "redfish"
 	InstallViaMock      DPUInstallInterfaceType = "mock"
+)
+
+// DeploymentMode describes the cluster deployment model for provisioning (zero-trust vs host-trusted).
+// This type is intentionally duplicated from operator/v1alpha1.DeploymentMode: the provisioning API
+// must not import the operator API group. Keep values and semantics aligned with
+// DPFOperatorConfig.spec.deploymentMode.
+// +kubebuilder:validation:Enum=zero-trust;host-trusted
+type DeploymentMode string
+
+const (
+	DeploymentModeZeroTrust   DeploymentMode = "zero-trust"
+	DeploymentModeHostTrusted DeploymentMode = "host-trusted"
 )
 
 func (ct DPUConditionType) String() string {
@@ -213,6 +250,7 @@ type K8sCluster struct {
 }
 
 // DPUSpec defines the desired state of DPU
+// +kubebuilder:validation:XValidation:rule="has(self.bfb) != has(self.blueFieldSoftware)",message="exactly one of bfb or blueFieldSoftware must be set"
 type DPUSpec struct {
 	// Specifies the DPUNode this DPU belongs to
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Value is immutable"
@@ -226,12 +264,16 @@ type DPUSpec struct {
 	DPUDeviceName string `json:"dpuDeviceName"`
 
 	// Specifies name of the bfb CR to use for this DPU
-	// +required
-	BFB string `json:"bfb"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +optional
+	BFB *string `json:"bfb,omitempty"`
 
 	// Specifies the name of the BlueFieldSoftware CR to use for this DPU
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	// +optional
-	BlueFieldSoftware string `json:"blueFieldSoftware,omitempty"`
+	BlueFieldSoftware *string `json:"blueFieldSoftware,omitempty"`
 
 	// The serial number of the DPU
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Value is immutable"
@@ -259,6 +301,10 @@ type DPUSpec struct {
 	// +required
 	DPUFlavor string `json:"dpuFlavor"`
 
+	// AstraEnabled indicates whether E/W NIC configuration (Astra) is enabled
+	// +optional
+	AstraEnabled *bool `json:"astraEnabled,omitempty"`
+
 	// SecureBoot specifies whether UEFI Secure Boot should be enabled.
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="Value is immutable"
@@ -271,7 +317,39 @@ type DPUSpec struct {
 	BMCIP string `json:"bmcIP,omitempty"`
 }
 
+// Reasons reported on DPUStatus.Outdated.Reason. Exactly one of these is set
+// at a time, corresponding to the first-precedence diverged template field.
+const (
+	DPUOutdatedReasonBFB               = "OutdatedBFB"
+	DPUOutdatedReasonDPUFlavor         = "OutdatedDPUFlavor"
+	DPUOutdatedReasonSecureBoot        = "OutdatedSecureBoot"
+	DPUOutdatedReasonBlueFieldSoftware = "OutdatedBlueFieldSoftware"
+)
+
+// DPUOutdated reports that the DPU has drifted from its owning DPUSet's
+// DPUTemplate in a way that requires the DPU to be reprovisioned. The struct
+// is presence-based: when the DPU matches the template, DPUStatus.Outdated is
+// nil. The DPUSet controller is the sole writer.
+type DPUOutdated struct {
+	// TimeStamp records when this drift was first observed for the current Reason.
+	// It is preserved across reconciles as long as Reason is unchanged.
+	// +required
+	TimeStamp metav1.Time `json:"timeStamp"`
+
+	// Reason is the machine-readable drift code (e.g. OutdatedBFB). When more
+	// than one template field has drifted, Reason reports the first in fixed
+	// precedence order: BFB -> DPUFlavor -> SecureBoot -> BlueFieldSoftware.
+	// +required
+	Reason string `json:"reason"`
+
+	// Message is a human-readable summary that lists every drifted field,
+	// e.g. "DPU template has changed (BFB: bfb-v1 -> bfb-v2, DPUFlavor: ...)".
+	// +required
+	Message string `json:"message"`
+}
+
 // DPUStatus defines the observed state of DPU
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.identityMode) || (has(self.identityMode) && self.identityMode == oldSelf.identityMode)",message="identityMode is immutable once set: can only transition from unset to a value"
 type DPUStatus struct {
 	// The current state of DPU.
 	// +kubebuilder:default=Initializing
@@ -283,6 +361,12 @@ type DPUStatus struct {
 	// the first transition from a non-empty Phase. Internal controller tracking only.
 	// +optional
 	PreviousPhase DPUPhase `json:"previousPhase,omitempty"`
+
+	// Outdated, when present, indicates the DPU has drifted from its owning
+	// DPUSet's DPUTemplate and needs to be reprovisioned. Set by the DPUSet
+	// controller; absent when the DPU matches the template.
+	// +optional
+	Outdated *DPUOutdated `json:"outdated,omitempty"`
 
 	// Conditions represents the provisioning lifecycle conditions.
 	// +optional
@@ -356,15 +440,39 @@ type DPUStatus struct {
 	// +optional
 	AgentStatus *AgentStatus `json:"agentStatus,omitempty"`
 
+	// RebootStatus contains host reboot progress.
+	// DPU controller derives user-facing DPUCondRebooted from this status.
+	// +optional
+	RebootStatus *RebootStatus `json:"rebootStatus,omitempty"`
+
 	// The mode of the DPU
 	// +kubebuilder:validation:Enum=dpu;nic
 	// +kubebuilder:default=dpu
 	// +optional
 	DPUMode DpuModeType `json:"dpuMode,omitempty"`
 
+	// DeploymentMode is copied from DPFOperatorConfig.spec.deploymentMode by the controller.
+	// This field is read-only for users.
+	// +kubebuilder:validation:Enum=zero-trust;host-trusted
+	// +optional
+	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
+
+	// Hostless indicates that the DPU is attached to a system-managed synthetic
+	// DPUNode rather than a physical host.
+	// +optional
+	Hostless bool `json:"hostless,omitempty"`
+
 	// SecureBoot indicates the current UEFI Secure Boot state.
 	// +optional
 	SecureBoot *SecureBootStatus `json:"secureBoot,omitempty"`
+
+	// IdentityMode records which authentication mechanism the DPU Agent uses to reach the
+	// management-cluster kube-apiserver. Stamped exactly once by the DPU controller during phase
+	// Initializing (nil guard); immutable thereafter. Pre-SPIFFE legacy DPUs have IdentityMode
+	// unset (nil) which consumers MUST treat semantically as bootstrap-token.
+	// +kubebuilder:validation:Enum=spiffe;bootstrap-token
+	// +optional
+	IdentityMode *IdentityMode `json:"identityMode,omitempty"`
 
 	// The task ID of the last task performed on the DPU BMC
 	// +optional
@@ -381,7 +489,7 @@ type Firmware struct {
 }
 
 // RebootMethodType is the type of reset/reboot required after NVConfig or firmware changes.
-// Set by the DPU agent. Values align with NVIDIA BlueField Reset and Reboot Procedures (mlxfwreset levels).
+// Set by the DPU agent. Most values align with NVIDIA BlueField Reset and Reboot Procedures (mlxfwreset levels).
 // +kubebuilder:validation:Enum=Unknown;NoAction;PowerCycle;SystemReboot;SystemLevelReset;FirmwareReset;DPUWarmReboot
 type RebootMethodType string
 
@@ -439,7 +547,116 @@ type AgentStatus struct {
 	// KubeletVersion represents the kubelet version running on the DPU.
 	KubeletVersion *string `json:"kubeletVersion,omitempty"`
 
+	// PreInstall holds agent-reported status for work done before OS install in the reprovisioning process.
+	// +optional
+	PreInstall *AgentPreInstallStatus `json:"preInstall,omitempty"`
+	// TrustBundleHash is the bundle-hash value last applied by the DPU agent.
+	// +optional
+	TrustBundleHash *string `json:"trustBundleHash,omitempty"`
+
+	// TrustBundleLastUpdateTime is when the trust bundle was last updated by the DPU agent.
+	// +optional
+	TrustBundleLastUpdateTime *metav1.Time `json:"trustBundleLastUpdateTime,omitempty"`
+
+	// Clock is the DPU clock compared against the host clock, recorded while the DPU agent was
+	// acquiring its identity. A DPU whose clock is skewed cannot verify the API server certificate,
+	// so it never obtains the identity it would need to report this itself. Set by the host agent,
+	// in trusted-host mode only.
+	// +optional
+	Clock *ClockStatus `json:"clock,omitempty"`
+
 	// Conditions contains the conditions reported from inside the DPU
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// Spiffe contains the SPIFFE heartbeat status reported by the DPU Agent when running in
+	// SPIFFE identity mode.
+	// +optional
+	Spiffe *SpiffeStatus `json:"spiffe,omitempty"`
+
+	// hostOSInit reports terminal host OS init release status from the DPU agent.
+	// Unset while the agent is polling or has not reached ReleaseHostOSInit.
+	// +optional
+	HostOSInit *HostOSInitStatus `json:"hostOSInit,omitempty"`
+}
+
+// ClockStatus holds two readings of the same instant, taken on the DPU and on the host.
+type ClockStatus struct {
+	// dpuTime is the DPU clock as reported by the DPU agent.
+	DPUTime metav1.Time `json:"dpuTime"`
+
+	// hostTime is the host clock when that report arrived. The host is the trusted side of the
+	// comparison, so a difference is attributed to the DPU.
+	HostTime metav1.Time `json:"hostTime"`
+}
+
+// HostOSInitStatus is the agent-reported terminal status for host OS init release.
+// +kubebuilder:validation:XValidation:rule="(has(self.skipped) ? 1 : 0) + (has(self.succeeded) ? 1 : 0) == 1",message="exactly one of skipped or succeeded must be set"
+type HostOSInitStatus struct {
+	// skipped indicates release was not required for this DPU.
+	// +optional
+	Skipped *HostOSInitSkipped `json:"skipped,omitempty"`
+	// succeeded indicates host OS init was released or was already cleared.
+	// +optional
+	Succeeded *HostOSInitSucceeded `json:"succeeded,omitempty"`
+}
+
+// HostOSInitSkipped reports that host OS init release was not required.
+type HostOSInitSkipped struct {
+	// reason is a stable machine-readable outcome code.
+	// +optional
+	Reason *string `json:"reason,omitempty"`
+	// message is a human-readable explanation.
+	// +optional
+	Message *string `json:"message,omitempty"`
+}
+
+// HostOSInitSucceeded reports successful host OS init release.
+type HostOSInitSucceeded struct {
+	// gate echoes the effective gate used for release.
+	// +optional
+	Gate ServiceReadinessGate `json:"gate,omitempty"`
+}
+
+// IdentityMode records which authentication mechanism the DPU Agent uses to reach the
+// management-cluster kube-apiserver. It is immutable once set (see DPUStatus.IdentityMode).
+type IdentityMode string
+
+const (
+	// IdentityModeSpiffe indicates the DPU Agent authenticates with a SPIFFE-issued JWT-SVID.
+	IdentityModeSpiffe IdentityMode = "spiffe"
+	// IdentityModeBootstrapToken indicates the DPU Agent authenticates with a kubeadm bootstrap token.
+	// An unset (nil) IdentityMode is treated semantically as bootstrap-token; no sentinel is declared
+	// for the unset case deliberately, to force explicit handling by consumers.
+	IdentityModeBootstrapToken IdentityMode = "bootstrap-token"
+)
+
+// SpiffeStatus is the DPU Agent's SPIFFE heartbeat sub-status.
+type SpiffeStatus struct {
+	// LastProbeTime is the wall-clock timestamp the DPU Agent recorded on its most recent successful
+	// status report. It is informational and subject to DPU clock skew, so it is not a precise
+	// liveness signal on its own.
+	// +optional
+	LastProbeTime *metav1.Time `json:"lastProbeTime,omitempty"`
+
+	// LastProbeMessage is a structured one-line diagnostic for the most recent self-probe. Unset in
+	// the steady-state happy path. Bounded to 256 chars (truncated agent-side).
+	// +kubebuilder:validation:MaxLength=256
+	// +optional
+	LastProbeMessage *string `json:"lastProbeMessage,omitempty"`
+}
+
+// AgentPreInstallStatus is agent status for reprovisioning.
+type AgentPreInstallStatus struct {
+	// AgentReported is set with a timestamp when dpu-agent detects a new DPU CR is created for reprovisioning.
+	// +optional
+	AgentReported *metav1.Time `json:"agentReported,omitempty"`
+
+	// Conditions contains pre-install conditions (e.g. NVConfigApplied for reprovisioning).
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
@@ -460,6 +677,45 @@ type PendingNVConfigEntry struct {
 	Current string `json:"current,omitempty"`
 	// NextBoot uses the "next_boot" so this type can be reused for parsing mlxfwrest output
 	NextBoot string `json:"next_boot,omitempty"`
+}
+
+// RebootStatusPhase is the host reboot progress phase.
+// +kubebuilder:validation:Enum=WaitForShutdown;Pending;Succeeded;Failed;Unknown
+type RebootStatusPhase string
+
+const (
+	// RebootStatusWaitForShutdown means the host reboot is held until the DPU has
+	// completed its graceful shutdown. Used in Zero Trust mode for a System Level
+	// Reset so the External/Script host reboot is not triggered while the Arm OS is
+	// still shutting down.
+	RebootStatusWaitForShutdown RebootStatusPhase = "WaitForShutdown"
+	// RebootStatusPending means reboot is requested but execution has not started yet
+	// (for example, waiting for a manual external reboot trigger).
+	RebootStatusPending RebootStatusPhase = "Pending"
+	// RebootStatusSucceeded means reboot completed successfully.
+	RebootStatusSucceeded RebootStatusPhase = "Succeeded"
+	// RebootStatusFailed means reboot execution failed.
+	RebootStatusFailed RebootStatusPhase = "Failed"
+	// RebootStatusUnknown means reboot execution state cannot be determined.
+	RebootStatusUnknown RebootStatusPhase = "Unknown"
+)
+
+// RebootStatus stores the host reboot execution status.
+type RebootStatus struct {
+	// Phase is the current host reboot progress.
+	Phase RebootStatusPhase `json:"phase,omitempty"`
+	// Method is the recommended reboot method.
+	// +optional
+	Method *RebootMethodType `json:"method,omitempty"`
+	// Reason indicates machine-readable reason for current phase.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Message provides human-readable details for current phase.
+	// +optional
+	Message string `json:"message,omitempty"`
+	// LastTransitionTime is the last update time for reboot status.
+	// +optional
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
