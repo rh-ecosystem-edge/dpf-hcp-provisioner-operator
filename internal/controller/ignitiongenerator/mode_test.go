@@ -19,11 +19,12 @@ package ignitiongenerator
 import (
 	"testing"
 
+	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestDetectDPUMode(t *testing.T) {
+func TestDPUModeFromFlavor(t *testing.T) {
 	tests := []struct {
 		name          string
 		dpuFlavor     *dpuprovisioningv1alpha1.DPUFlavor
@@ -33,179 +34,173 @@ func TestDetectDPUMode(t *testing.T) {
 		{
 			name: "zero-trust mode",
 			dpuFlavor: &dpuprovisioningv1alpha1.DPUFlavor{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-flavor-zt",
-					Namespace: "test-namespace",
-				},
 				Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
 					DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode,
 				},
 			},
-			expectedMode:  dpuprovisioningv1alpha1.ZeroTrustMode,
-			expectedError: false,
+			expectedMode: dpuprovisioningv1alpha1.ZeroTrustMode,
 		},
 		{
 			name: "dpu mode",
 			dpuFlavor: &dpuprovisioningv1alpha1.DPUFlavor{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-flavor-dpu",
-					Namespace: "test-namespace",
-				},
 				Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
 					DpuMode: dpuprovisioningv1alpha1.DpuMode,
 				},
 			},
-			expectedMode:  dpuprovisioningv1alpha1.DpuMode,
-			expectedError: false,
+			expectedMode: dpuprovisioningv1alpha1.DpuMode,
 		},
 		{
 			name: "empty mode returns error",
 			dpuFlavor: &dpuprovisioningv1alpha1.DPUFlavor{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-flavor-empty",
-					Namespace: "test-namespace",
-				},
-				Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
-					DpuMode: "",
-				},
+				Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{DpuMode: ""},
 			},
-			expectedMode:  "",
 			expectedError: true,
 		},
 		{
 			name: "nic mode returns error",
 			dpuFlavor: &dpuprovisioningv1alpha1.DPUFlavor{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-flavor-nic",
-					Namespace: "test-namespace",
-				},
 				Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
 					DpuMode: dpuprovisioningv1alpha1.NicMode,
 				},
 			},
-			expectedMode:  "",
 			expectedError: true,
 		},
 		{
 			name: "invalid mode returns error",
 			dpuFlavor: &dpuprovisioningv1alpha1.DPUFlavor{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-flavor-invalid",
-					Namespace: "test-namespace",
-				},
-				Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
-					DpuMode: "invalid-mode",
-				},
+				Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{DpuMode: "invalid-mode"},
 			},
-			expectedMode:  "",
 			expectedError: true,
 		},
 		{
 			name:          "nil DPUFlavor returns error",
 			dpuFlavor:     nil,
-			expectedMode:  "",
 			expectedError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mode, err := DetectDPUMode(tt.dpuFlavor)
-
+			mode, err := dpuModeFromFlavor(tt.dpuFlavor)
 			if tt.expectedError {
 				if err == nil {
-					t.Errorf("expected error but got none")
+					t.Fatal("expected error")
 				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
+				return
 			}
-
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if mode != tt.expectedMode {
-				t.Errorf("expected mode %s, got %s", tt.expectedMode, mode)
+				t.Fatalf("expected mode %s, got %s", tt.expectedMode, mode)
 			}
 		})
 	}
 }
 
-func TestIsZeroTrustMode(t *testing.T) {
-	tests := []struct {
-		name     string
-		mode     dpuprovisioningv1alpha1.DpuModeType
-		expected bool
-	}{
-		{
-			name:     "zero-trust mode returns true",
-			mode:     dpuprovisioningv1alpha1.ZeroTrustMode,
-			expected: true,
-		},
-		{
-			name:     "dpu mode returns false",
-			mode:     dpuprovisioningv1alpha1.DpuMode,
-			expected: false,
-		},
-		{
-			name:     "empty mode returns false",
-			mode:     "",
-			expected: false,
-		},
-		{
-			name:     "invalid mode returns false",
-			mode:     "invalid",
-			expected: false,
+func TestIsZeroTrustModeResolution(t *testing.T) {
+	hostTrustedOperator := &operatorv1alpha1.DPFOperatorConfig{
+		Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+			DeploymentMode: operatorv1alpha1.DeploymentModeHostTrusted,
 		},
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := IsZeroTrustMode(tt.mode)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
-		})
+	ztOperator := &operatorv1alpha1.DPFOperatorConfig{
+		Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+			DeploymentMode: operatorv1alpha1.DeploymentModeZeroTrust,
+		},
 	}
-}
+	legacyRedfish := &operatorv1alpha1.DPFOperatorConfig{
+		Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+			ProvisioningController: &operatorv1alpha1.ProvisioningControllerConfiguration{
+				InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{
+					InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{},
+				},
+			},
+		},
+	}
+	legacyHostAgent := &operatorv1alpha1.DPFOperatorConfig{
+		Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+			ProvisioningController: &operatorv1alpha1.ProvisioningControllerConfiguration{
+				InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{
+					InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{},
+				},
+			},
+		},
+	}
+	ztFlavor := &dpuprovisioningv1alpha1.DPUFlavor{
+		ObjectMeta: metav1.ObjectMeta{Name: "zt"},
+		Spec:       dpuprovisioningv1alpha1.DPUFlavorSpec{DpuMode: dpuprovisioningv1alpha1.ZeroTrustMode},
+	}
+	dpuFlavor := &dpuprovisioningv1alpha1.DPUFlavor{
+		ObjectMeta: metav1.ObjectMeta{Name: "dpu"},
+		Spec:       dpuprovisioningv1alpha1.DPUFlavorSpec{DpuMode: dpuprovisioningv1alpha1.DpuMode},
+	}
+	emptyFlavor := &dpuprovisioningv1alpha1.DPUFlavor{
+		ObjectMeta: metav1.ObjectMeta{Name: "empty"},
+	}
 
-func TestGetModeDescription(t *testing.T) {
 	tests := []struct {
 		name        string
-		mode        dpuprovisioningv1alpha1.DpuModeType
-		expected    string
-		shouldMatch bool // if false, just check it contains "unknown"
+		cfg         *operatorv1alpha1.DPFOperatorConfig
+		flavor      *dpuprovisioningv1alpha1.DPUFlavor
+		wantZT      bool
+		wantMode    dpuprovisioningv1alpha1.DpuModeType
+		expectError bool
 	}{
 		{
-			name:        "zero-trust mode",
-			mode:        dpuprovisioningv1alpha1.ZeroTrustMode,
-			expected:    "zero-trust (host untrusted, hardware-isolated)",
-			shouldMatch: true,
+			name:     "flavor dpuMode wins over host-trusted deploymentMode",
+			cfg:      hostTrustedOperator,
+			flavor:   ztFlavor,
+			wantZT:   true,
+			wantMode: dpuprovisioningv1alpha1.ZeroTrustMode,
 		},
 		{
-			name:        "dpu mode",
-			mode:        dpuprovisioningv1alpha1.DpuMode,
-			expected:    "dpu (host-trusted, standard mode)",
-			shouldMatch: true,
+			name:     "26.8 deploymentMode when flavor dpuMode unset",
+			cfg:      ztOperator,
+			flavor:   emptyFlavor,
+			wantZT:   true,
+			wantMode: dpuprovisioningv1alpha1.ZeroTrustMode,
 		},
 		{
-			name:        "unknown mode",
-			mode:        "invalid-mode",
-			expected:    "unknown",
-			shouldMatch: false,
+			name:     "legacy redfish when flavor dpuMode unset",
+			cfg:      legacyRedfish,
+			flavor:   emptyFlavor,
+			wantZT:   true,
+			wantMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+		},
+		{
+			name:     "26.4 flavor zero-trust when deploymentMode unset",
+			cfg:      legacyHostAgent,
+			flavor:   ztFlavor,
+			wantZT:   true,
+			wantMode: dpuprovisioningv1alpha1.ZeroTrustMode,
+		},
+		{
+			name:     "26.4 flavor dpu when deploymentMode unset",
+			cfg:      legacyHostAgent,
+			flavor:   dpuFlavor,
+			wantZT:   false,
+			wantMode: dpuprovisioningv1alpha1.DpuMode,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := GetModeDescription(tt.mode)
-			if tt.shouldMatch {
-				if result != tt.expected {
-					t.Errorf("expected %q, got %q", tt.expected, result)
+			gotZT, gotMode, err := isZeroTrustMode(tt.cfg, tt.flavor)
+			if tt.expectError {
+				if err == nil {
+					t.Fatal("expected error")
 				}
-			} else {
-				// For unknown modes, just check it contains "unknown"
-				if result != "unknown ("+string(tt.mode)+")" {
-					t.Errorf("expected description to be 'unknown (%s)', got %q", tt.mode, result)
-				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if gotZT != tt.wantZT {
+				t.Fatalf("zeroTrust: want %v, got %v", tt.wantZT, gotZT)
+			}
+			if gotMode != tt.wantMode {
+				t.Fatalf("mode: want %s, got %s", tt.wantMode, gotMode)
 			}
 		})
 	}

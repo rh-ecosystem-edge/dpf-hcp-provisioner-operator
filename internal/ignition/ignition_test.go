@@ -31,6 +31,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 )
 
@@ -601,7 +602,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:        testMlnxBfConfPath,
 					Operation:   dpuprovisioningv1alpha1.FileOverride,
-					Raw:         "ALLOW_SHARED_RQ=\"yes\"\nCUSTOM_SETTING=\"on\"\n",
+					Raw:         ptr.To("ALLOW_SHARED_RQ=\"yes\"\nCUSTOM_SETTING=\"on\"\n"),
 					Permissions: "0644",
 				},
 			},
@@ -634,7 +635,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:        testMlnxBfConfPath,
 					Operation:   dpuprovisioningv1alpha1.FileAppend,
-					Raw:         "EXTRA_SETTING=\"yes\"\n",
+					Raw:         ptr.To("EXTRA_SETTING=\"yes\"\n"),
 					Permissions: "0644",
 				},
 			},
@@ -669,7 +670,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:        "/etc/mellanox/mlnx-sf.conf",
 					Operation:   dpuprovisioningv1alpha1.FileOverride,
-					Raw:         "SF_CONFIG=1\n",
+					Raw:         ptr.To("SF_CONFIG=1\n"),
 					Permissions: "0644",
 				},
 			},
@@ -698,17 +699,17 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:      testMlnxBfConfPath,
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "REPLACED_CONTENT\n",
+					Raw:       ptr.To("REPLACED_CONTENT\n"),
 				},
 				{
 					Path:      "/etc/mellanox/mlnx-ovs.conf",
 					Operation: dpuprovisioningv1alpha1.FileAppend,
-					Raw:       "APPENDED_LINE\n",
+					Raw:       ptr.To("APPENDED_LINE\n"),
 				},
 				{
 					Path:      "/etc/dpf/custom.conf",
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "NEW_FILE\n",
+					Raw:       ptr.To("NEW_FILE\n"),
 				},
 			},
 		}
@@ -749,7 +750,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:      "/etc/mellanox/mlnx-ovs.conf",
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "NEW_OVS\n",
+					Raw:       ptr.To("NEW_OVS\n"),
 				},
 			},
 		}
@@ -769,7 +770,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:      "/etc/dpf/test.conf",
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "test",
+					Raw:       ptr.To("test"),
 				},
 			},
 		}
@@ -793,7 +794,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:        "/etc/dpf/script.sh",
 					Operation:   dpuprovisioningv1alpha1.FileOverride,
-					Raw:         "#!/bin/bash\n",
+					Raw:         ptr.To("#!/bin/bash\n"),
 					Permissions: "0755",
 				},
 			},
@@ -818,7 +819,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:        "/etc/dpf/bad.conf",
 					Operation:   dpuprovisioningv1alpha1.FileOverride,
-					Raw:         "content",
+					Raw:         ptr.To("content"),
 					Permissions: "invalid",
 				},
 			},
@@ -834,12 +835,12 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 			ConfigFiles: []dpuprovisioningv1alpha1.ConfigFile{
 				{
 					Path: "",
-					Raw:  "should be skipped",
+					Raw:  ptr.To("should be skipped"),
 				},
 				{
 					Path:      "/etc/dpf/valid.conf",
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "valid",
+					Raw:       ptr.To("valid"),
 				},
 			},
 		}
@@ -856,7 +857,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:      "/etc/mellanox/mlnx-sf.conf",
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "",
+					Raw:       ptr.To(""),
 				},
 			},
 		}
@@ -881,12 +882,12 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:      testMlnxBfConfPath,
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "NEW_BF\n",
+					Raw:       ptr.To("NEW_BF\n"),
 				},
 				{
 					Path:      "/etc/mellanox/mlnx-ovs.conf",
 					Operation: dpuprovisioningv1alpha1.FileOverride,
-					Raw:       "NEW_OVS\n",
+					Raw:       ptr.To("NEW_OVS\n"),
 				},
 			},
 		}
@@ -913,7 +914,7 @@ var _ = Describe("MergeFlavorConfigFiles", func() {
 				{
 					Path:        testMlnxBfConfPath,
 					Operation:   dpuprovisioningv1alpha1.FileAppend,
-					Raw:         "APPENDED\n",
+					Raw:         ptr.To("APPENDED\n"),
 					Permissions: "0600",
 				},
 			},

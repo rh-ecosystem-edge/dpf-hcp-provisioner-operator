@@ -278,8 +278,8 @@ func createDPUDeploymentStub(ns, name, flavorName string) {
 		},
 		Spec: dpuservicev1.DPUDeploymentSpec{
 			DPUs: dpuservicev1.DPUs{
-				BFB:    "e2e-bfb",
-				Flavor: flavorName,
+				BFB:    ptr.To("e2e-bfb"),
+				Flavor: ptr.To(flavorName),
 				// NodeEffect is required - use empty struct for stub (no node tainting)
 				NodeEffect: dpuprovisioningv1.Action{},
 				// DPUSetStrategy is required - use RollingUpdate for stub
@@ -336,14 +336,14 @@ func createDPUFlavorStub(ns, name string) {
 					Path:        "/etc/mellanox/mlnx-bf.conf",
 					Operation:   dpuprovisioningv1.FileOverride,
 					Permissions: "0644",
-					Raw: "ALLOW_SHARED_RQ=\"yes\"\nIPSEC_FULL_OFFLOAD=\"no\"\n" +
-						"ENABLE_ESWITCH_MULTIPORT=\"yes\"\nE2E_CUSTOM=\"true\"\n",
+					Raw: ptr.To("ALLOW_SHARED_RQ=\"yes\"\nIPSEC_FULL_OFFLOAD=\"no\"\n" +
+						"ENABLE_ESWITCH_MULTIPORT=\"yes\"\nE2E_CUSTOM=\"true\"\n"),
 				},
 				{
 					Path:        "/etc/dpf/e2e-custom.conf",
 					Operation:   dpuprovisioningv1.FileOverride,
 					Permissions: "0644",
-					Raw:         "E2E_NEW_FILE=yes\n",
+					Raw:         ptr.To("E2E_NEW_FILE=yes\n"),
 				},
 			},
 		},
@@ -500,7 +500,7 @@ func createDPUStub(ns, name, phase string) {
 		Spec: dpuprovisioningv1.DPUSpec{
 			DPUNodeName:   name,
 			DPUDeviceName: "bf3-device",
-			BFB:           "e2e-bfb",
+			BFB:           ptr.To("e2e-bfb"),
 			SerialNumber:  "E2E0000000001",
 			DPUFlavor:     dpuFlavorName,
 			NodeEffect: dpuprovisioningv1.NodeEffect{

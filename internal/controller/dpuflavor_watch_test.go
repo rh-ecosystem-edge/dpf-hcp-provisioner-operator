@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
@@ -72,7 +73,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						Flavor: "my-flavor",
+						Flavor: ptr.To("my-flavor"),
 					},
 				},
 			}
@@ -124,7 +125,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						Flavor: "other-flavor",
+						Flavor: ptr.To("other-flavor"),
 					},
 				},
 			}
@@ -172,7 +173,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						Flavor: "other-flavor",
+						Flavor: ptr.To("other-flavor"),
 					},
 				},
 			}
@@ -293,7 +294,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						Flavor: "deleted-flavor",
+						Flavor: ptr.To("deleted-flavor"),
 					},
 				},
 			}
@@ -370,8 +371,8 @@ var _ = Describe("DPUFlavor Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						BFB:    "my-bfb",
-						Flavor: "my-flavor",
+						BFB:    ptr.To("my-bfb"),
+						Flavor: ptr.To("my-flavor"),
 					},
 				},
 			}

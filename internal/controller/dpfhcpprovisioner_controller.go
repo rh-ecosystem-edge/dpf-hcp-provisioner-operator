@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -732,7 +733,7 @@ func (r *DPFHCPProvisionerReconciler) dpuFlavorToRequests(ctx context.Context, o
 		if err := r.Get(ctx, key, dd); err != nil {
 			continue
 		}
-		if dd.Spec.DPUs.Flavor == obj.GetName() {
+		if ptr.Deref(dd.Spec.DPUs.Flavor, "") == obj.GetName() {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      provisioner.Name,
@@ -782,7 +783,7 @@ func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Contex
 	}
 
 	// Check DPUFlavor still exists — no flavor means no valid ignition.
-	flavorName := dpuDeployment.Spec.DPUs.Flavor
+	flavorName := ptr.Deref(dpuDeployment.Spec.DPUs.Flavor, "")
 	if flavorName != "" {
 		dpuFlavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 		flavorKey := types.NamespacedName{
@@ -812,9 +813,9 @@ func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Contex
 	}
 	annotations := cm.Annotations
 
-	currentFlavor := dpuDeployment.Spec.DPUs.Flavor
+	currentFlavor := ptr.Deref(dpuDeployment.Spec.DPUs.Flavor, "")
 	storedFlavor := annotations[ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation]
-	currentBFB := dpuDeployment.Spec.DPUs.BFB
+	currentBFB := ptr.Deref(dpuDeployment.Spec.DPUs.BFB, "")
 	storedBFB := annotations[ignitiongenerator.BfcfgTemplateBFBNameAnnotation]
 
 	// Flavor changed → delete CM and regenerate ignition (content depends on flavor)
