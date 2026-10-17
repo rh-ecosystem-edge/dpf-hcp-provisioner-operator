@@ -20,49 +20,56 @@ func NewProvider(isZeroTrust bool) *content.EmbeddedProvider {
 		oobNetFile = "oob_net0_zt.nmconnection"
 	}
 
-	return &content.EmbeddedProvider{
-		Files: []content.FileDefinition{
-			{
-				Path:          "/etc/systemd/network/10-tmfifo_net.link",
-				Mode:          0644,
-				ContentSource: f("10-tmfifo_net.link"),
-			},
-			{
-				Path:          "/etc/systemd/network/10-oob_net.link",
-				Mode:          0644,
-				ContentSource: f("10-oob_net.link"),
-			},
-			{
+	files := []content.FileDefinition{
+		{
+			Path:          "/etc/systemd/network/10-tmfifo_net.link",
+			Mode:          0644,
+			ContentSource: f("10-tmfifo_net.link"),
+		},
+		{
+			Path:          "/etc/systemd/network/10-oob_net.link",
+			Mode:          0644,
+			ContentSource: f("10-oob_net.link"),
+		},
+		{
+			Path:          "/etc/NetworkManager/system-connections/oob_net0.nmconnection",
+			Mode:          0600,
+			ContentSource: f(oobNetFile),
+		},
+		{
+			Path:          "/usr/local/bin/bflog.sh",
+			Mode:          0755,
+			ContentSource: f("bflog.sh"),
+		},
+		{
+			Path:          "/usr/local/bin/setup-vfs-devlink.sh",
+			Mode:          0755,
+			ContentSource: f("setup-vfs-devlink.sh"),
+		},
+	}
+
+	if !isZeroTrust {
+		files = append(files,
+			content.FileDefinition{
 				Path:          "/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection",
 				Mode:          0600,
 				ContentSource: f("tmfifo_net0.nmconnection"),
 			},
-			{
-				Path:          "/etc/NetworkManager/system-connections/oob_net0.nmconnection",
-				Mode:          0600,
-				ContentSource: f(oobNetFile),
-			},
-			{
+			content.FileDefinition{
 				Path:          "/usr/local/bin/dpuagent-client.py",
 				Mode:          0755,
 				ContentSource: f("dpuagent-client.py"),
 			},
-			{
-				Path:          "/usr/local/bin/bflog.sh",
-				Mode:          0755,
-				ContentSource: f("bflog.sh"),
-			},
-			{
+			content.FileDefinition{
 				Path:          "/usr/local/bin/bfupsignal.sh",
 				Mode:          0755,
 				ContentSource: f("bfupsignal.sh"),
 			},
-			{
-				Path:          "/usr/local/bin/setup-vfs-devlink.sh",
-				Mode:          0755,
-				ContentSource: f("setup-vfs-devlink.sh"),
-			},
-		},
+		)
+	}
+
+	return &content.EmbeddedProvider{
+		Files:     files,
 		SystemdFS: &systemdFS,
 	}
 }
