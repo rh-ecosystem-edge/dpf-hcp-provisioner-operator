@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
@@ -82,8 +83,8 @@ func newTestDPUDeployment(cr *provisioningv1alpha1.DPFHCPProvisioner) *dpuservic
 		},
 		Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 			DPUs: dpuservicev1alpha1.DPUs{
-				BFB:    "test-bfb",
-				Flavor: "test-flavor",
+				BFB:    ptr.To("test-bfb"),
+				Flavor: ptr.To("test-flavor"),
 			},
 		},
 	}
@@ -357,7 +358,7 @@ var _ = Describe("retrieveDPUFlavor", func() {
 			},
 			Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 				DPUs: dpuservicev1alpha1.DPUs{
-					Flavor: "test-flavor",
+					Flavor: ptr.To("test-flavor"),
 				},
 			},
 		}
@@ -397,7 +398,7 @@ var _ = Describe("retrieveDPUFlavor", func() {
 			},
 			Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 				DPUs: dpuservicev1alpha1.DPUs{
-					Flavor: "",
+					Flavor: ptr.To(""),
 				},
 			},
 		}
@@ -417,7 +418,7 @@ var _ = Describe("retrieveDPUFlavor", func() {
 			},
 			Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 				DPUs: dpuservicev1alpha1.DPUs{
-					Flavor: "nonexistent-flavor",
+					Flavor: ptr.To("nonexistent-flavor"),
 				},
 			},
 		}
@@ -449,6 +450,12 @@ var _ = Describe("GetSingletonDPFOperatorConfig", func() {
 				Namespace: "dpf-operator-system",
 			},
 			Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+				DeploymentMode: operatorv1alpha1.DeploymentModeHostTrusted,
+				ProvisioningController: &operatorv1alpha1.ProvisioningControllerConfiguration{
+					InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{
+						InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{},
+					},
+				},
 				Networking: &operatorv1alpha1.Networking{
 					ControlPlaneMTU: &mtu,
 				},
@@ -823,9 +830,9 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		// Verify annotations
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNameAnnotation, *deployment.Spec.DPUs.BFB))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNameAnnotation, *deployment.Spec.DPUs.Flavor))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 	})
@@ -858,9 +865,9 @@ var _ = Describe("createOrUpdateConfigMap", func() {
 		Expect(cm.Labels).To(HaveKeyWithValue(BfcfgTemplateLabel, "true"))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNameAnnotation, cr.Spec.DPUClusterRef.Name))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateClusterNamespaceAnnotation, cr.Spec.DPUClusterRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNameAnnotation, deployment.Spec.DPUs.BFB))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNameAnnotation, *deployment.Spec.DPUs.BFB))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateBFBNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
-		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNameAnnotation, deployment.Spec.DPUs.Flavor))
+		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNameAnnotation, *deployment.Spec.DPUs.Flavor))
 		Expect(cm.Annotations).To(HaveKeyWithValue(BfcfgTemplateDPUFlavorNamespaceAnnotation, cr.Spec.DPUDeploymentRef.Namespace))
 		Expect(cm.Annotations).To(HaveKeyWithValue(bfcfgTemplateMachineOSURLAnnotation, cr.Spec.MachineOSURL))
 	})

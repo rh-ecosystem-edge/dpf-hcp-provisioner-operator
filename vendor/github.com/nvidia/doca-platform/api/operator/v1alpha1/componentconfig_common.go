@@ -43,8 +43,16 @@ var (
 	NodeSRIOVDevicePluginControllerName ComponentName = "nodesriovdeviceplugin-controller"
 	KubeStateMetricsName                ComponentName = "kube-state-metrics"
 	KubeStateMetricsRBACName            ComponentName = "kube-state-metrics-rbac"
+	DPUMonitoringName                   ComponentName = "dpu-monitoring"
 	NodeProblemDetectorName             ComponentName = "node-problem-detector"
 	OpenTelemetryCollectorName          ComponentName = "opentelemetry-collector"
+	PLDMUnpackContainerName             ComponentName = "pldmunpack"
+	KataContainersName                  ComponentName = "kata-containers"
+	SPIFFECSIDriverName                 ComponentName = "spiffe-csi-driver"
+	VaultKMSName                        ComponentName = "vault-kms"
+	SpireAgentRBACName                  ComponentName = "spire-agent-rbac"
+	CoreDNSName                         ComponentName = "coredns"
+	CoreDNSRBACName                     ComponentName = "coredns-rbac"
 )
 
 type ComponentName string
@@ -76,7 +84,7 @@ var (
 	// SRIOVDevicePluginContainer is the default name of the scaffolded SR-IOV Device Plugin container.
 	SRIOVDevicePluginContainer ContainerName = "kube-sriovdp"
 	// OVSCNI is the default name of the scaffolded OVS CNI
-	OVSCNI ContainerName = "ovs-cni-marker"
+	OVSCNI ContainerName = "ovs-cni-plugin"
 	// CNIInstallerContainer is the default name of the scaffolded CNI Installer container.
 	CNIInstallerContainer ContainerName = "cni-installer"
 	// KubeStateMetricsContainer is the default name of the kube-state-metrics container.
@@ -85,6 +93,12 @@ var (
 	NodeProblemDetectorContainer ContainerName = "node-problem-detector"
 	// OpenTelemetryCollectorContainer is the default name of the opentelemetry-collector container.
 	OpenTelemetryCollectorContainer ContainerName = "opentelemetry-collector"
+	// KataDeployContainer is the default name of the kata-deploy container.
+	KataDeployContainer ContainerName = "kata-deploy"
+	// VaultKMSContainer is the default name of the Vault KMS plugin container.
+	VaultKMSContainer ContainerName = "vault-kms"
+	// CoreDNSContainer is the default name of the host cluster CoreDNS container.
+	CoreDNSContainer ContainerName = "coredns"
 )
 
 type ContainerName string
@@ -135,8 +149,17 @@ func (c *DPFOperatorConfig) ComponentConfigs() []ComponentConfigurable {
 	if c.Spec.CNIInstaller != nil {
 		out = append(out, c.Spec.CNIInstaller)
 	}
+	if c.Spec.CoreDNS != nil {
+		out = append(out, c.Spec.CoreDNS)
+	}
 	if c.Spec.NodeSRIOVDevicePluginController != nil {
 		out = append(out, c.Spec.NodeSRIOVDevicePluginController)
+	}
+	if c.Spec.Security != nil && c.Spec.Security.Kata != nil {
+		out = append(out, c.Spec.Security.Kata)
+	}
+	if c.Spec.Security != nil && c.Spec.Security.VaultKMS != nil {
+		out = append(out, c.Spec.Security.VaultKMS)
 	}
 	if c.Spec.Monitoring != nil && c.Spec.Monitoring.KubeStateMetrics != nil {
 		out = append(out, c.Spec.Monitoring.KubeStateMetrics)
@@ -174,12 +197,17 @@ func (b *BaseComponentConfig) Disabled() bool {
 // by all controller configurations to reduce code duplication.
 type BaseControllerConfig struct {
 	// Replicas is the number of replicas for the controller deployment.
-	// This is used for High Availability. Leader election is enabled by default.
+	// Used for High Availability via leader election.
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=3
-	// +kubebuilder:default=1
+	// +kubebuilder:default=2
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+}
+
+// SetReplicas sets the desired replica count for the controller deployment.
+func (b *BaseControllerConfig) SetReplicas(replicas *int32) {
+	b.Replicas = replicas
 }
 
 // HelmComponentConfigurable is the shared config for helm components.

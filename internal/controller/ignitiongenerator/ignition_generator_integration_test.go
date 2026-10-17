@@ -35,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_4/types"
@@ -212,20 +213,19 @@ var _ = Describe("generateIgnition integration", func() {
 			},
 			Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 				DPUs: dpuservicev1alpha1.DPUs{
-					BFB:    "test-bfb",
-					Flavor: "test-flavor",
+					BFB:    ptr.To("test-bfb"),
+					Flavor: ptr.To("test-flavor"),
 				},
 			},
 		}
 
-		// DPUFlavor with OVS script and DPU mode
+		// DPUFlavor with OVS script (deployment mode comes from DPFOperatorConfig, not flavor)
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-flavor",
 				Namespace: "dpf-operator-system",
 			},
 			Spec: dpuprovisioningv1alpha1.DPUFlavorSpec{
-				DpuMode: dpuprovisioningv1alpha1.DpuMode,
 				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{
 					RawConfigScript: "#!/bin/bash\novs-vsctl add-br br0\novs-vsctl add-port br0 p0",
 				},
@@ -240,6 +240,12 @@ var _ = Describe("generateIgnition integration", func() {
 				Namespace: "dpf-operator-system",
 			},
 			Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+				DeploymentMode: operatorv1alpha1.DeploymentModeHostTrusted,
+				ProvisioningController: &operatorv1alpha1.ProvisioningControllerConfiguration{
+					InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{
+						InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{},
+					},
+				},
 				Networking: &operatorv1alpha1.Networking{
 					ControlPlaneMTU: &mtu,
 				},

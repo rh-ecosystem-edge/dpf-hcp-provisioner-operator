@@ -38,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -211,7 +212,12 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("failed to download HCP ignition: %w", err)
 	}
 
-	// Retrieve DPU Flavor configuration
+	dpfOperatorConfig, err := operatorcommon.GetSingletonDPFOperatorConfig(ctx, ig.Client)
+	if err != nil {
+		return fmt.Errorf("failed to get DPFOperatorConfig: %w", err)
+	}
+
+	// Retrieve DPU Flavor configuration (needed for flavor content and 26.4 dpuMode fallback)
 	log.V(1).Info("Retrieving DPU Flavor configuration")
 	dpuFlavor, err := ig.retrieveDPUFlavor(ctx, cr)
 	if err != nil {
@@ -221,25 +227,20 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("retrieved DPU Flavor is nil")
 	}
 
-	// Detect DPU mode from DPU Flavor
-	dpuMode, err := DetectDPUMode(dpuFlavor)
+	zeroTrust, dpuMode, err := isZeroTrustMode(dpfOperatorConfig, dpuFlavor)
 	if err != nil {
-		log.Error(err, "Failed to detect DPU mode")
+		log.Error(err, "Failed to detect DPU mode for ignition")
 		return fmt.Errorf("failed to detect DPU mode: %w", err)
 	}
-	log.Info("DPU mode detected",
+	log.Info("DPU mode detected for ignition",
 		"mode", dpuMode,
-		"description", GetModeDescription(dpuMode),
-		"dpuFlavor", dpuFlavor.Name,
-		"zeroTrust", IsZeroTrustMode(dpuMode))
+		"deploymentMode", dpfOperatorConfig.Spec.DeploymentMode,
+		"dpuFlavorDpuMode", dpuFlavor.Spec.DpuMode,
+		"description", dpuModeDescription(dpuMode),
+		"zeroTrust", zeroTrust)
 
-	// Step 3: Build target ignition (HCP + DPF modifications)
+	// Build target ignition (HCP + DPF modifications)
 	log.V(1).Info("Building target ignition")
-
-	dpfOperatorConfig, err := operatorcommon.GetSingletonDPFOperatorConfig(ctx, ig.Client)
-	if err != nil {
-		return fmt.Errorf("failed to get DPFOperatorConfig: %w", err)
-	}
 
 	var mtu = uint16(*dpfOperatorConfig.Spec.Networking.ControlPlaneMTU)
 
@@ -258,8 +259,6 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		})
 		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
 	}
-
-	zeroTrust := IsZeroTrustMode(dpuMode)
 
 	var bfbRegistryURL string
 	if zeroTrust {
@@ -628,8 +627,7 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 		return nil, err
 	}
 
-	// Extract flavor name
-	flavorName := dpuDeployment.Spec.DPUs.Flavor
+	flavorName := ptr.Deref(dpuDeployment.Spec.DPUs.Flavor, "")
 	if flavorName == "" {
 		return nil, fmt.Errorf("DPUDeployment.Spec.DPUs.Flavor is empty")
 	}
@@ -807,9 +805,13 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 		if err != nil {
 			return fmt.Errorf("failed to get DPUDeployment for BFB name: %w", err)
 		}
-		annotations[BfcfgTemplateBFBNameAnnotation] = dpuDeployment.Spec.DPUs.BFB
+		if bfbName := ptr.Deref(dpuDeployment.Spec.DPUs.BFB, ""); bfbName != "" {
+			annotations[BfcfgTemplateBFBNameAnnotation] = bfbName
+		}
 		annotations[BfcfgTemplateBFBNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
-		annotations[BfcfgTemplateDPUFlavorNameAnnotation] = dpuDeployment.Spec.DPUs.Flavor
+		if flavorName := ptr.Deref(dpuDeployment.Spec.DPUs.Flavor, ""); flavorName != "" {
+			annotations[BfcfgTemplateDPUFlavorNameAnnotation] = flavorName
+		}
 		annotations[BfcfgTemplateDPUFlavorNamespaceAnnotation] = cr.Spec.DPUDeploymentRef.Namespace
 	}
 

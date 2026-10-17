@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
@@ -305,7 +306,7 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 				Namespace: dpuClusterNS,
 			}, dpuDeployment)
 			Expect(err).NotTo(HaveOccurred())
-			dpuDeployment.Spec.DPUs.Flavor = newFlavorName
+			dpuDeployment.Spec.DPUs.Flavor = ptr.To(newFlavorName)
 			err = k8sClient.Update(ctx, dpuDeployment)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -348,7 +349,7 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 				Namespace: dpuClusterNS,
 			}, dpuDeployment)
 			Expect(err).NotTo(HaveOccurred())
-			dpuDeployment.Spec.DPUs.BFB = newBFBName
+			dpuDeployment.Spec.DPUs.BFB = ptr.To(newBFBName)
 			err = k8sClient.Update(ctx, dpuDeployment)
 			Expect(err).NotTo(HaveOccurred())
 

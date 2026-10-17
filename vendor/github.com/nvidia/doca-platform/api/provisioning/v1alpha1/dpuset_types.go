@@ -45,6 +45,11 @@ const (
 	// ConditionDPUSetReconciled is the condition type that indicates that the
 	// DPUSet is reconciled.
 	ConditionDPUSetReconciled conditions.ConditionType = "DPUSetPrereqsReconciled"
+	// ConditionDPUFlavorTemplateExists indicates whether the DPUFlavorTemplate referenced by a
+	// template-mode DPUSet exists. It is only meaningful for template-mode DPUSets, so it is
+	// owned but NOT ensured: it is set on demand (and cleared when the DPUSet reverts to a static
+	// DPUFlavor) rather than pre-seeded as Unknown on every DPUSet.
+	ConditionDPUFlavorTemplateExists conditions.ConditionType = "DPUFlavorTemplateExists"
 )
 
 var (
@@ -52,6 +57,9 @@ var (
 		conditions.TypeReady,
 		ConditionDPUSetReconciled,
 	}
+
+	DPUSetOwnedConditions = append(append([]conditions.ConditionType{}, DPUSetConditions...),
+		ConditionDPUFlavorTemplateExists)
 )
 
 var _ conditions.GetSet = &DPUSet{}
@@ -95,9 +103,16 @@ type DPUSetStrategy struct {
 type RollingUpdateDPU struct {
 	// MaxUnavailable is the maximum number of DPUs that can be unavailable during the update.
 	//
-	// Deprecated: This field is deprecated and will be removed with v26.7.0.
+	// Deprecated: This field is deprecated and will be removed with v27.1.0.
 	// +optional
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+}
+
+// BlueFieldSoftwareReference is a reference to a specific BlueFieldSoftware
+type BlueFieldSoftwareReference struct {
+	// Specifies name of the BlueFieldSoftware CR to use for this DPU
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name,omitempty"`
 }
 
 // BFBReference is a reference to a specific BFB
@@ -111,14 +126,24 @@ type ClusterSpec struct {
 	// NodeLabels specifies the labels to be added to the node.
 	// +optional
 	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
+	// NodeAnnotations specifies the annotations to be added to the node.
+	// +optional
+	NodeAnnotations map[string]string `json:"nodeAnnotations,omitempty"`
 	// Selector defines the selector of the DPUClusters the produced DPUs should join
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
+// DPUTemplateSpec defines the desired provisioning template for DPUs.
+// +kubebuilder:validation:XValidation:rule="(has(self.bfb) && has(self.bfb.name) ? 1 : 0) + (has(self.blueFieldSoftware) && has(self.blueFieldSoftware.name) ? 1 : 0) == 1",message="exactly one of bfb or blueFieldSoftware must be set"
+// +kubebuilder:validation:XValidation:rule="has(self.dpuFlavor) != has(self.dpuFlavorTemplate)",message="exactly one of dpuFlavor or dpuFlavorTemplate must be set"
 type DPUTemplateSpec struct {
 	// Specifies a BFB CR
-	BFB BFBReference `json:"bfb,omitempty"`
+	// +optional
+	BFB *BFBReference `json:"bfb,omitempty"`
+	// Specifies a BlueFieldSoftware CR
+	// +optional
+	BlueFieldSoftware *BlueFieldSoftwareReference `json:"blueFieldSoftware,omitempty"`
 	// Specifies how changes to the DPU should affect the Node
 	// +required
 	NodeEffect NodeEffect `json:"nodeEffect"`
@@ -126,9 +151,19 @@ type DPUTemplateSpec struct {
 	// +optional
 	Cluster *ClusterSpec `json:"cluster,omitempty"`
 	// DPUFlavor is the name of the DPUFlavor that will be used to deploy the DPU.
+	// Mutually exclusive with DPUFlavorTemplate.
 	// +kubebuilder:validation:MinLength=1
-	// +required
-	DPUFlavor string `json:"dpuFlavor"`
+	// +optional
+	DPUFlavor *string `json:"dpuFlavor,omitempty"`
+	// DPUFlavorTemplate is the name of a DPUFlavorTemplate that is rendered per-DPU
+	// (against DPUDevice.spec.values) into a generated DPUFlavor. Mutually exclusive
+	// with DPUFlavor.
+	// +kubebuilder:validation:MinLength=1
+	// +optional
+	DPUFlavorTemplate *string `json:"dpuFlavorTemplate,omitempty"`
+	// AstraEnabled indicates whether E/W NIC configuration (Astra) is enabled
+	// +optional
+	AstraEnabled *bool `json:"astraEnabled,omitempty"`
 	// SecureBoot specifies whether UEFI Secure Boot should be enabled.
 	// +optional
 	SecureBoot *bool `json:"secureBoot,omitempty"`
@@ -144,12 +179,14 @@ type DPUTemplate struct {
 
 // NodeEffect is the effect the DPU has on Nodes during provisioning.
 // Only one of Taint, NoEffect, CustomLabel, Drain, CustomAction, Hold can be set.
-// +kubebuilder:validation:XValidation:rule="(has(self.taint) ? 1 : 0) + (has(self.noEffect) ? 1 : 0) + (has(self.customLabel) ? 1 : 0) + (has(self.drain) ? 1 : 0) + (has(self.customAction) ? 1 : 0) + (has(self.hold) ? 1 : 0) == 1", message="only one of taint, noEffect, drain, customLabel, customAction, hold can be set"
 type NodeEffect struct {
 	Action        `json:",inline"`
 	UpgradePolicy `json:",inline"`
 }
 
+// Action defines the mutually exclusive node effect applied during provisioning.
+// Exactly one of taint, noEffect=true, drain=true, non-empty customLabel, non-empty customAction, or hold=true must be set.
+// +kubebuilder:validation:XValidation:rule="(has(self.taint) ? 1 : 0) + ((has(self.noEffect) && self.noEffect) ? 1 : 0) + ((has(self.customLabel) && size(self.customLabel) > 0) ? 1 : 0) + ((has(self.drain) && self.drain) ? 1 : 0) + ((has(self.customAction) && size(self.customAction) > 0) ? 1 : 0) + ((has(self.hold) && self.hold) ? 1 : 0) == 1", message="exactly one of taint, noEffect=true, drain=true, non-empty customLabel, non-empty customAction, hold=true must be set"
 type Action struct {
 	// Add specify taint on the DPU node
 	// +optional
@@ -268,7 +305,7 @@ type DPUSetSpec struct {
 
 	// Select the DPU with specific labels
 	//
-	// Deprecated: This field is deprecated and will be removed with v26.7.0. Use DPUDeviceSelector instead.
+	// Deprecated: This field is deprecated and will be removed with v27.1.0. Use DPUDeviceSelector instead.
 	// +optional
 	DPUSelector map[string]string `json:"dpuSelector,omitempty"`
 
@@ -307,6 +344,14 @@ type DPUSet struct {
 
 	Spec   DPUSetSpec   `json:"spec,omitempty"`
 	Status DPUSetStatus `json:"status,omitempty"`
+}
+
+// IsAstraEnabledForNonBlueField4 returns true if Astra is enabled on this DPUSet
+// and the target DPUDevice is not a BlueField4.
+func (c *DPUSet) IsAstraEnabledForNonBlueField4(dpuDevice DPUDevice) bool {
+	return c.Spec.DPUTemplate.Spec.AstraEnabled != nil &&
+		*c.Spec.DPUTemplate.Spec.AstraEnabled &&
+		dpuDevice.Status.DPUType != DPUTypeBlueField4
 }
 
 // +kubebuilder:object:root=true

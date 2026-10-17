@@ -17,27 +17,46 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/nvidia/doca-platform/internal/release"
 	"github.com/nvidia/doca-platform/pkg/conditions"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 const (
-	PreUpgradeValidationReadyCondition  conditions.ConditionType = "PreUpgradeValidationReady"
-	ImagePullSecretsReconciledCondition conditions.ConditionType = "ImagePullSecretsReconciled"
-	SystemComponentsReconciledCondition conditions.ConditionType = "SystemComponentsReconciled"
-	SystemComponentsReadyCondition      conditions.ConditionType = "SystemComponentsReady"
+	// DPUAgentIdentityTemplatesValidCondition reports that the templates parse and produce
+	// serial-dependent probe values. SPIFFE ID format and trust-domain semantics are validated
+	// later when the templates are rendered with real DPU and DPUDevice data.
+	DPUAgentIdentityTemplatesValidCondition conditions.ConditionType = "DPUAgentIdentityTemplatesValid"
+	PreUpgradeValidationReadyCondition      conditions.ConditionType = "PreUpgradeValidationReady"
+	ImagePullSecretsReconciledCondition     conditions.ConditionType = "ImagePullSecretsReconciled"
+	SystemComponentsReconciledCondition     conditions.ConditionType = "SystemComponentsReconciled"
+	SystemComponentsReadyCondition          conditions.ConditionType = "SystemComponentsReady"
+	CATrustBundleReadyCondition             conditions.ConditionType = "CATrustBundleReady"
 )
 
 var (
 	Conditions = []conditions.ConditionType{
 		conditions.TypeReady,
+		DPUAgentIdentityTemplatesValidCondition,
 		PreUpgradeValidationReadyCondition,
 		ImagePullSecretsReconciledCondition,
 		SystemComponentsReconciledCondition,
 		SystemComponentsReadyCondition,
+		CATrustBundleReadyCondition,
 	}
+)
+
+const (
+	// DefaultCATrustBundleConfigMapName is the default name of the ConfigMap that the DPF Operator
+	// maintains with the public DPF CA certificate(s) in Self-Signed CA case.
+	DefaultCATrustBundleConfigMapName = "dpf-ca-trust-bundle"
+	// CATrustBundleKey is the data key in the CA trust bundle ConfigMap. A single key holding one or
+	// more concatenated PEM certificates is the most portable form for both API readers and volume
+	// mounts (e.g. tools that scan for *.crt files).
+	CATrustBundleKey = "ca.crt"
+	// CATrustBundleHashKey tracks the effective CA set by a stable hash.
+	CATrustBundleHashKey = "bundle-hash"
 )
 
 var (
@@ -96,6 +115,24 @@ type Overrides struct {
 	// +kubebuilder:validation:MinLength=1
 	DPUOpenvSwitchSystemSharedLib64Path *string `json:"dpuOpenvSwitchSystemSharedLib64Path,omitempty"`
 
+	// DPULinkerCachePath is the path on the DPU at which the prebuilt dynamic-linker cache
+	// file can be found. When set, this file is mounted read-only into the SFC Controller
+	// container so that host OVS binaries can resolve shared libraries using the DPU's
+	// linker configuration. If not set, no linker cache mount is added.
+	// This setting does not change where components are installed. Installation location fixed in the BFB.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	DPULinkerCachePath *string `json:"dpuLinkerCachePath,omitempty"`
+
+	// DPUOptLibraryPath is the path on the DPU at which an additional library directory
+	// can be found. When set, this directory is mounted read-only into the SFC Controller
+	// container. Useful on distributions that install vendor libraries outside the standard
+	// paths (e.g. /usr/opt on RHCOS BFB). If not set, no additional library directory is mounted.
+	// This setting does not change where components are installed. Installation location fixed in the BFB.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	DPUOptLibraryPath *string `json:"dpuOptLibraryPath,omitempty"`
+
 	// KubernetesAPIServerVIP is the VIP the Kubernetes API server is accessible at.
 	// This setting enables specific underlying components deployed directly or indirectly by the DPF Operator to reach
 	// the Kubernetes API Server when the ClusterIP Kubernetes Service is not functional.
@@ -117,11 +154,24 @@ type Overrides struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	ArgoCDNamespace *string `json:"argoCDNamespace,omitempty"`
+
+	// ProvisioningIssuerCASecretName overrides the CA secret used by the provisioning Issuer during
+	// controlled CA rotation workflows. When unset, the default issuer secret is used.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	ProvisioningIssuerCASecretName *string `json:"provisioningIssuerCASecretName,omitempty"`
 }
+
+const (
+	// DefaultDPUNodeOOBBridgeName is the default out-of-band bridge name on host-trusted worker nodes.
+	DefaultDPUNodeOOBBridgeName = "br-dpu"
+)
 
 // Networking defines the networking configuration for the system components.
 type Networking struct {
 	// ControlPlaneMTU is the MTU value to be set on the management network.
+	// In zero-trust mode this value is applied to the DPU OOB interface (oob_net0), which does not
+	// support jumbo frames; it must not exceed 1500 when deploymentMode is zero-trust.
 	// The default is 1500.
 	// +kubebuilder:validation:Minimum=1280
 	// +kubebuilder:validation:Maximum=9216
@@ -136,9 +186,51 @@ type Networking struct {
 	// +kubebuilder:default=1500
 	// +optional
 	HighSpeedMTU *int `json:"highSpeedMTU,omitempty"`
+
+	// DPUNodeOOBBridgeName is the name of the Linux bridge on the host used for
+	// out-of-band DPU management traffic. If not specified, defaults to "br-dpu".
+	// This setting applies only to host-trusted deployments.
+	// +kubebuilder:default="br-dpu"
+	// +kubebuilder:validation:Pattern=`^[a-z][a-z0-9-]*$`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=15
+	// +optional
+	DPUNodeOOBBridgeName *string `json:"dpuNodeOOBBridgeName,omitempty"`
 }
 
+// GetDPUNodeOOBBridgeName returns the configured OOB bridge name, defaulting to br-dpu.
+func (n *Networking) GetDPUNodeOOBBridgeName() string {
+	if n == nil || n.DPUNodeOOBBridgeName == nil || *n.DPUNodeOOBBridgeName == "" {
+		return DefaultDPUNodeOOBBridgeName
+	}
+	return *n.DPUNodeOOBBridgeName
+}
+
+// DeploymentMode describes the cluster deployment model for DPU provisioning (zero-trust vs host-trusted).
+// +kubebuilder:validation:Enum=zero-trust;host-trusted
+type DeploymentMode string
+
+const (
+	// DeploymentModeZeroTrust requires provisioningController.installInterface.installViaRedfish
+	DeploymentModeZeroTrust DeploymentMode = "zero-trust"
+	// DeploymentModeHostTrusted allows provisioningController.installInterface.installViaHostAgent, or installViaGNOI
+	DeploymentModeHostTrusted DeploymentMode = "host-trusted"
+)
+
+// TODO: remove after v26.10.
+// Rules referencing deploymentMode must guard with !has(self.deploymentMode): x-kubernetes-validations
+// run on status-subresource writes too, and stored objects from releases predating the field would
+// otherwise fail rule evaluation with "no such key", blocking all status updates.
+
 // DPFOperatorConfigSpec defines the desired state of DPFOperatorConfig
+// +kubebuilder:validation:XValidation:rule="!has(self.deploymentMode) || self.deploymentMode != 'zero-trust' || (has(self.provisioningController.installInterface) && has(self.provisioningController.installInterface.installViaRedfish))",message="deploymentMode zero-trust requires provisioningController.installInterface.installViaRedfish"
+// +kubebuilder:validation:XValidation:rule="!has(self.deploymentMode) || self.deploymentMode != 'host-trusted' || !has(self.provisioningController.installInterface) || !has(self.provisioningController.installInterface.installViaRedfish)",message="deploymentMode host-trusted does not support provisioningController.installInterface.installViaRedfish"
+// +kubebuilder:validation:XValidation:rule="!has(self.deploymentMode) || self.deploymentMode == 'host-trusted' || !has(self.networking.dpuNodeOOBBridgeName) || self.networking.dpuNodeOOBBridgeName == 'br-dpu'",message="dpuNodeOOBBridgeName is only configurable in host-trusted mode"
+// +kubebuilder:validation:XValidation:rule="!has(self.deploymentMode) || self.deploymentMode != 'zero-trust' || !has(self.networking) || !has(self.networking.controlPlaneMTU) || self.networking.controlPlaneMTU <= 1500",message="controlPlaneMTU must not exceed 1500 in zero-trust mode because DPU OOB interfaces do not support jumbo frames"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.deploymentMode) || (has(self.deploymentMode) && self.deploymentMode == oldSelf.deploymentMode)",message="deploymentMode is immutable after creation: it cannot be changed once set, because already provisioned DPUs keep the trust boundary they were provisioned under. Switch the cluster to another deploymentMode by deleting and recreating DPFOperatorConfig (DR escape hatch); existing DPUs require re-provisioning."
+// +kubebuilder:validation:XValidation:rule="!has(self.security) || !has(self.security.spiffe) || self.deploymentMode == 'zero-trust'",message="spiffe configuration requires deploymentMode=zero-trust"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.security) || !has(oldSelf.security.spiffe) || (has(self.security) && has(self.security.spiffe))",message="spec.security.spiffe cannot be removed once set; SPIFFE-mode DPUs depend on this configuration. Disable SPIFFE for the cluster by deleting and recreating DPFOperatorConfig (DR escape hatch); existing SPIFFE-mode DPUs require re-provisioning."
+// +kubebuilder:validation:XValidation:rule="!has(self.kamajiClusterManager) || !has(self.kamajiClusterManager.etcdEncryptionAtRest) || self.kamajiClusterManager.etcdEncryptionAtRest.provider != 'vaultKMS' || (has(self.security) && has(self.security.vaultKMS) && (!has(self.security.vaultKMS.disable) || self.security.vaultKMS.disable == false))",message="kamajiClusterManager.etcdEncryptionAtRest.provider vaultKMS requires spec.security.vaultKMS to be enabled"
 type DPFOperatorConfigSpec struct {
 	// +optional
 	Overrides *Overrides `json:"overrides,omitempty"`
@@ -150,11 +242,20 @@ type DPFOperatorConfigSpec struct {
 	// +optional
 	Monitoring *MonitoringConfiguration `json:"monitoring,omitempty"`
 
+	// Security groups configuration for security-related components managed by the DPF Operator.
+	// +optional
+	Security *SecurityConfiguration `json:"security,omitempty"`
+
 	// List of secret names which are used to pull images for DPF system components and DPUServices.
 	// These secrets must be in the same namespace as the DPF Operator Config and should be created before the config is created.
 	// System reconciliation will not proceed until these secrets are available.
 	// +optional
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
+
+	// DeploymentMode selects zero-trust vs host-trusted deployment alignment.
+	// Required: operators must set this explicitly; provisioning controllers propagate this to DPU.status.deploymentMode.
+	// +required
+	DeploymentMode DeploymentMode `json:"deploymentMode"`
 
 	// DPUServiceController is the configuration for the DPUServiceController
 	// +optional
@@ -177,6 +278,8 @@ type DPFOperatorConfigSpec struct {
 	// +optional
 	Flannel *FlannelConfiguration `json:"flannel,omitempty"`
 	// OVSCNI is the configuration for OVSCNI
+	//
+	// Deprecated: OVS CNI is installed by CNIInstaller. Remove in 27.1.
 	// +optional
 	OVSCNI *OVSCNIConfiguration `json:"ovsCNI,omitempty"`
 	// NVIPAM is the configuration for NVIPAM
@@ -185,6 +288,9 @@ type DPFOperatorConfigSpec struct {
 	// CNIInstaller is the configuration for the cni-installer
 	// +optional
 	CNIInstaller *CNIInstallerConfiguration `json:"cniInstaller,omitempty"`
+	// CoreDNS is the configuration for CoreDNS serving Kamaji DPU clusters with a Keepalived endpoint.
+	// +optional
+	CoreDNS *CoreDNSConfiguration `json:"coreDNS,omitempty"`
 	// SFCController is the configuration for the SFCController
 	// +optional
 	SFCController *SFCControllerConfiguration `json:"sfcController,omitempty"`
@@ -225,6 +331,52 @@ type MonitoringConfiguration struct {
 	OpenTelemetryCollector *OpenTelemetryCollectorConfiguration `json:"openTelemetryCollector,omitempty"`
 }
 
+// SecurityConfiguration groups configuration for security-related configurations
+// managed by the DPF Operator.
+type SecurityConfiguration struct {
+	// PrivilegedPodEnforcement controls whether privileged pods are rejected
+	// unless explicitly allowed by the workload API. The DPUService controller
+	// currently implements this by applying the PrivilegedPodEnforcement
+	// ValidatingAdmissionPolicy to DPUService workloads.
+	//
+	// Setting it to false does not fully opt out of enforcement: the policy and its
+	// binding are kept, but the binding is switched from Deny to Audit, so privileged
+	// pods are no longer denied and are only recorded in the audit log. The allowlist
+	// is kept populated so the audit log only flags pods that would otherwise be
+	// denied.
+	//
+	// The objects are intentionally not deleted to avoid a Kubernetes paramRef
+	// informer bug (https://github.com/kubernetes/kubernetes/issues/133827).
+	//
+	// Defaults to true.
+	// +kubebuilder:default=true
+	// +optional
+	PrivilegedPodEnforcement *bool `json:"privilegedPodEnforcement,omitempty"`
+
+	// Kata is the configuration for Kata Containers.
+	// Kata Containers provides VM-based isolation for untrusted workloads on DPU nodes.
+	// This component is disabled by default; set disable to false to enable.
+	// +optional
+	Kata *KataContainersConfiguration `json:"kata,omitempty"`
+
+	// spiffe configures the SPIFFE-based DPU Agent identity flow. Edits are accepted post-bootstrap
+	// but do NOT retro-apply to already-provisioned DPUs.
+	// +optional
+	SPIFFE *SPIFFEConfiguration `json:"spiffe,omitempty"`
+
+	// VaultKMS is the configuration for the standalone Vault/OpenBao KMS plugin component.
+	// It is deployed as a DaemonSet on control-plane nodes and is disabled by default.
+	// The plugin is used for encryption at rest for DPUClusters.
+	// +optional
+	VaultKMS *VaultKMSConfiguration `json:"vaultKMS,omitempty"`
+}
+
+// PrivilegedPodEnforcementEnabled reports whether privileged pod enforcement is enabled.
+// Returns true when Security is nil, PrivilegedPodEnforcement is nil, or it is true.
+func (s *SecurityConfiguration) PrivilegedPodEnforcementEnabled() bool {
+	return s == nil || ptr.Deref(s.PrivilegedPodEnforcement, true)
+}
+
 // DPFOperatorConfigStatus defines the observed state of DPFOperatorConfig
 type DPFOperatorConfigStatus struct {
 	// Conditions exposes the current state of the OperatorConfig.
@@ -235,6 +387,11 @@ type DPFOperatorConfigStatus struct {
 
 	// Version is the version of the DPF Operator that is currently deployed.
 	Version *string `json:"version,omitempty"`
+
+	// TargetVersion is the version of the DPF Operator that is being deployed. It differs from
+	// Version while an upgrade is in progress.
+	// +optional
+	TargetVersion *string `json:"targetVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -274,8 +431,14 @@ func (c *DPFOperatorConfig) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
 }
 
+// UpgradeInProgress reports whether the deployed version differs from the version being deployed.
+// It compares the versions in the status and not the version of the binary reading the config:
+// components deployed by the DPF Operator still run the previous release during an upgrade.
 func (c *DPFOperatorConfig) UpgradeInProgress() bool {
-	return c.Status.Version != nil && *c.Status.Version != release.DPFVersion()
+	if c.Status.Version == nil || c.Status.TargetVersion == nil {
+		return false
+	}
+	return *c.Status.TargetVersion != *c.Status.Version
 }
 
 func (c *DPFOperatorConfig) IsNewConfig() bool {
@@ -293,4 +456,12 @@ func (c *DPFOperatorConfig) GetArgoCDNamespace() string {
 
 func (c *DPFOperatorConfig) MonitoringEnabled() bool {
 	return c.Spec.Monitoring == nil || c.Spec.Monitoring.Disable == nil || !*c.Spec.Monitoring.Disable
+}
+
+// GetCATrustBundleConfigMapName returns the name of the ConfigMap that holds the public provisioning
+// CA certificate(s). Consumers should call this helper to discover the trust bundle name instead of
+// hardcoding it. For now it always returns a fixed default name; a configurable override on the
+// DPFOperatorConfig API is planned for a follow-up task.
+func (c *DPFOperatorConfig) GetCATrustBundleConfigMapName() string {
+	return DefaultCATrustBundleConfigMapName
 }

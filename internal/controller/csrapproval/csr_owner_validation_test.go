@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -54,7 +55,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 				}
@@ -93,7 +94,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 				}
@@ -118,7 +119,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 				}
@@ -145,7 +146,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN111111",
 					},
 				}
@@ -157,7 +158,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-2",
 						DPUDeviceName: "device-2",
-						BFB:           "bfb-2",
+						BFB:           ptr.To("bfb-2"),
 						SerialNumber:  "SN222222",
 					},
 				}
@@ -169,7 +170,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-3",
 						DPUDeviceName: "device-3",
-						BFB:           "bfb-3",
+						BFB:           ptr.To("bfb-3"),
 						SerialNumber:  "SN333333",
 					},
 				}
@@ -201,7 +202,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{
@@ -230,7 +231,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{
@@ -258,7 +259,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{
@@ -287,7 +288,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{
@@ -324,7 +325,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{
@@ -361,7 +362,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{
@@ -397,7 +398,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{
@@ -425,7 +426,7 @@ var _ = Describe("CSR Owner Validation - DPU Existence Check", func() {
 					Spec: dpuprovisioningv1alpha1.DPUSpec{
 						DPUNodeName:   "node-1",
 						DPUDeviceName: "device-1",
-						BFB:           "bfb-1",
+						BFB:           ptr.To("bfb-1"),
 						SerialNumber:  "SN123456",
 					},
 					Status: dpuprovisioningv1alpha1.DPUStatus{

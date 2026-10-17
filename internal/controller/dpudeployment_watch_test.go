@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
@@ -287,8 +288,8 @@ var _ = Describe("DPUDeployment Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						BFB:    "my-bfb",
-						Flavor: "my-flavor",
+						BFB:    ptr.To("my-bfb"),
+						Flavor: ptr.To("my-flavor"),
 					},
 				},
 			}
@@ -353,8 +354,8 @@ var _ = Describe("DPUDeployment Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						BFB:    "my-bfb",
-						Flavor: "new-flavor",
+						BFB:    ptr.To("my-bfb"),
+						Flavor: ptr.To("new-flavor"),
 					},
 				},
 			}
@@ -420,8 +421,8 @@ var _ = Describe("DPUDeployment Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						BFB:    "my-bfb",
-						Flavor: "my-flavor",
+						BFB:    ptr.To("my-bfb"),
+						Flavor: ptr.To("my-flavor"),
 					},
 				},
 			}
@@ -530,8 +531,8 @@ var _ = Describe("DPUDeployment Watch", func() {
 				},
 				Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 					DPUs: dpuservicev1alpha1.DPUs{
-						BFB:    "my-bfb",
-						Flavor: "my-flavor",
+						BFB:    ptr.To("my-bfb"),
+						Flavor: ptr.To("my-flavor"),
 					},
 				},
 			}
@@ -739,8 +740,8 @@ var _ = Describe("DPUDeployment flavor change integration (envtest)", func() {
 			},
 			Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 				DPUs: dpuservicev1alpha1.DPUs{
-					BFB:            "test-bfb",
-					Flavor:         "old-flavor",
+					BFB:            ptr.To("test-bfb"),
+					Flavor:         ptr.To("old-flavor"),
 					NodeEffect:     dpuprovisioningv1alpha1.Action{},
 					DPUSetStrategy: dpuprovisioningv1alpha1.DPUSetStrategy{Type: "RollingUpdate"},
 				},
@@ -820,7 +821,7 @@ var _ = Describe("DPUDeployment flavor change integration (envtest)", func() {
 		Eventually(func(g Gomega) {
 			freshDD := &dpuservicev1alpha1.DPUDeployment{}
 			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: dpuClusterNS}, freshDD)).To(Succeed())
-			freshDD.Spec.DPUs.Flavor = "new-flavor"
+			freshDD.Spec.DPUs.Flavor = ptr.To("new-flavor")
 			g.Expect(k8sClient.Update(ctx, freshDD)).To(Succeed())
 		}, "10s", "1s").Should(Succeed())
 
@@ -872,8 +873,8 @@ var _ = Describe("DPUFlavor deletion integration (envtest)", func() {
 			},
 			Spec: dpuservicev1alpha1.DPUDeploymentSpec{
 				DPUs: dpuservicev1alpha1.DPUs{
-					BFB:            "test-bfb",
-					Flavor:         flavorName,
+					BFB:            ptr.To("test-bfb"),
+					Flavor:         ptr.To(flavorName),
 					NodeEffect:     dpuprovisioningv1alpha1.Action{},
 					DPUSetStrategy: dpuprovisioningv1alpha1.DPUSetStrategy{Type: "RollingUpdate"},
 				},

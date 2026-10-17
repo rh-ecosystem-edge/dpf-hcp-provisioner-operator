@@ -63,7 +63,10 @@ func addFlavorFiles(ign *igntypes.Config, configFiles []dpuprovisioningv1alpha1.
 			return fmt.Errorf("invalid permissions %q for config file %s: %w", cf.Permissions, cf.Path, err)
 		}
 
-		resource, err := EncodeGzipFile([]byte(cf.Raw))
+		if cf.Raw == nil {
+			return fmt.Errorf("config file %s has no raw content", cf.Path)
+		}
+		resource, err := EncodeGzipFile([]byte(*cf.Raw))
 		if err != nil {
 			return fmt.Errorf("failed to encode config file %s: %w", cf.Path, err)
 		}

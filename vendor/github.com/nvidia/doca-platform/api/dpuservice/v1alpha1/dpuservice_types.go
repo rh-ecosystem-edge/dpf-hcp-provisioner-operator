@@ -35,6 +35,10 @@ const (
 	DPUServiceListKind = "DPUServiceList"
 	// DPUServiceFinalizer is the finalizer that will be added to the DPUService.
 	DPUServiceFinalizer = "dpu.nvidia.com/dpuservice"
+	// DPUServiceSPIFFEDeregistrationFinalizer is held until a SPIFFE-enabled DPUService's
+	// ClusterStaticEntries are deleted. Separate from DPUServiceFinalizer so deregistration
+	// is ordered independently of ArgoCD Application teardown.
+	DPUServiceSPIFFEDeregistrationFinalizer = "dpu.nvidia.com/dpuservice-spiffe-deregistration"
 	// DPUServiceNameLabelKey is the label key that is used to store the name of the DPUService.
 	DPUServiceNameLabelKey = "dpu.nvidia.com/dpuservice-name"
 	// DPUServiceNamespaceLabelKey is the label key that is used to store the namespace of the DPUService.
@@ -71,6 +75,10 @@ const (
 	// ConditionApplicationsReady is the condition type that indicates that the
 	// applications are ready.
 	ConditionApplicationsReady conditions.ConditionType = "ApplicationsReady"
+	// ConditionSPIFFEEntriesReady reports whether this DPUService's per-DPU SPIRE
+	// ClusterStaticEntries have been rendered. True with no entries when SPIFFE is not
+	// used, so it does not hold back the Ready summary of existing DPUServices.
+	ConditionSPIFFEEntriesReady conditions.ConditionType = "SPIFFEEntriesReady"
 )
 
 var (
@@ -82,6 +90,7 @@ var (
 		ConditionApplicationsReady,
 		ConditionDPUServiceInterfaceReconciled,
 		ConditionConfigPortsReconciled,
+		ConditionSPIFFEEntriesReady,
 	}
 )
 
@@ -119,6 +128,9 @@ type DPUService struct {
 // +kubebuilder:validation:XValidation:rule="(has(self.interfaces) && has(self.serviceID)) || (!has(self.interfaces) && !has(self.serviceID)) || has(self.serviceID)", message="serviceID must be provided when interfaces are provided"
 // +kubebuilder:validation:XValidation:rule="!(has(self.deployInCluster) && self.deployInCluster && has(self.configPorts))", message="configPorts cannot be set when deployInCluster is true"
 // +kubebuilder:validation:XValidation:rule="!(has(self.deployInCluster) && self.deployInCluster && has(self.dpuClusterSelector))", message="dpuClusterSelector cannot be set when deployInCluster is true"
+// +kubebuilder:validation:XValidation:rule="!(has(self.deployInCluster) && self.deployInCluster && has(self.security) && has(self.security.privileged))", message="security.privileged must not be set when deployInCluster is true"
+// +kubebuilder:validation:XValidation:rule="!(has(self.deployInCluster) && self.deployInCluster && has(self.security) && has(self.security.spiffe))", message="security.spiffe must not be set when deployInCluster is true"
+// +kubebuilder:validation:XValidation:rule="(has(self.deployInCluster) && self.deployInCluster) || (has(self.security) && has(self.security.privileged)) || (oldSelf.hasValue() && !(has(oldSelf.value().deployInCluster) && oldSelf.value().deployInCluster) && !(has(oldSelf.value().security) && has(oldSelf.value().security.privileged)))", message="security.privileged must be set when deployInCluster is false", optionalOldSelf=true
 type DPUServiceSpec struct {
 	// Select the Clusters with specific labels, Applications will be created only for these Clusters
 	// +optional
@@ -159,7 +171,64 @@ type DPUServiceSpec struct {
 	// A DPUService can only have a single ServiceType across all ports.
 	// +optional
 	ConfigPorts *ConfigPorts `json:"configPorts,omitempty"`
+
+	// Security contains security-related settings for the DPUService.
+	// +optional
+	Security *DPUServiceSecurity `json:"security,omitempty"`
 }
+
+// DPUServiceSecurity contains security-related settings for a DPUService or
+// DPUServiceTemplate.
+type DPUServiceSecurity struct {
+	// Privileged, when set to true, allows workloads governed by this security
+	// setting to run containers with `securityContext.privileged: true` in the
+	// DPUCluster. When set to false, a ValidatingAdmissionPolicy in the
+	// DPUCluster rejects such workloads. On DPUService objects, this field must
+	// be unset when deployInCluster is true. For DPUServices that target a
+	// DPUCluster, Privileged must be set explicitly. When set on a
+	// DPUServiceTemplate, the DPUDeployment controller propagates the value to
+	// generated DPUServices that target DPUClusters.
+	//
+	// Scope of the policy enforcement:
+	//   - Only `securityContext.privileged: true` is gated. Other
+	//     privilege-escalation vectors (hostPID, hostIPC, hostNetwork,
+	//     allowPrivilegeEscalation, capabilities, hostPath volumes) are NOT
+	//     gated by this field.
+	//   - Enforcement matches workloads via the
+	//     `svc.dpu.nvidia.com/service` label. The controller adds this
+	//     label to the resources it manages, and to pod templates of
+	//     workload-controller resources (Deployment, DaemonSet, etc.). If a
+	//     Helm chart strips that label from the pod template, the parent
+	//     resource will be admitted but the child Pods will be denied at
+	//     Pod admission time.
+	// +optional
+	Privileged *bool `json:"privileged,omitempty"`
+
+	// SPIFFE opts this DPUService into SPIFFE workload identity. When set, one SPIRE
+	// ClusterStaticEntry is registered per targeted DPU, parented to that DPU's SPIRE
+	// agent, so the service's pods can obtain an SVID. The identity defaults to
+	// `spiffe://<trustDomain>/dpu/<serial>/service/<namespace>/<serviceID>` and is
+	// configurable through `DPFOperatorConfig.spec.security.spiffe`.
+	// The namespace qualifies the service ID, which is only unique within one.
+	//
+	// Presence-gated: `spiffe: {}` enables it. It has no sub-fields yet.
+	//
+	// Requires `DPFOperatorConfig.spec.security.spiffe`, and only covers DPUs in SPIFFE
+	// identity mode (`DPU.status.identityMode: Spiffe`); bootstrap-token DPUs are skipped.
+	// Both are reported on the SPIFFEEntriesReady condition rather than rejected at
+	// admission. Must not be set when deployInCluster is true, since in-cluster
+	// DPUServices run on the host and have no per-DPU SPIRE agent to parent to.
+	//
+	// When set on a DPUServiceTemplate, the DPUDeployment controller propagates it to
+	// generated DPUServices that target DPUClusters.
+	// +optional
+	SPIFFE *DPUServiceSPIFFE `json:"spiffe,omitempty"`
+}
+
+// DPUServiceSPIFFE opts a DPUService into SPIFFE workload identity. Intentionally empty:
+// the opt-in is the field's presence, and per-service knobs are deferred until the NKE PoC
+// settles on-DPU workload attestation.
+type DPUServiceSPIFFE struct{}
 
 // ConfigPorts defines the desired state of port configurations for a DPUService.
 // This struct determines how ports are exposed from the DPU to the host cluster.

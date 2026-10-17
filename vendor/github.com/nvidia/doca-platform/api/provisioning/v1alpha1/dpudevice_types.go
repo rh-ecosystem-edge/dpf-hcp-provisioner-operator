@@ -22,6 +22,7 @@ import (
 	"github.com/nvidia/doca-platform/pkg/conditions"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -29,7 +30,29 @@ const (
 	DPUDeviceKind = "DPUDevice"
 
 	// DPUDeviceFinalizer is the finalizer used to prevent DpuDevice deletion while DPU is using it
-	DPUDeviceFinalizer = "provisioning.dpu.nvidia.com/dpudevice-protection"
+	DPUDeviceFinalizer = DPUProvisioningPrefix + "dpudevice-protection"
+
+	// BMCCredentialFinalizer is the finalizer added to per-device BMC credential secrets
+	// to prevent accidental deletion while the DPUDevice depends on them.
+	BMCCredentialFinalizer = DPUProvisioningPrefix + "bmc-credential"
+
+	// DPUDeviceLabelSkipHWProvisioning indicates the device should skip
+	// hardware-specific provisioning steps (install, FW config, reboot).
+	DPUDeviceLabelSkipHWProvisioning = DPUProvisioningPrefix + "skip-hw-provisioning"
+
+	// SPIFFEDeregistrationFinalizer is added to a SPIFFE-mode DPUDevice and held until its
+	// per-DPU SPIRE ClusterStaticEntry CR has been removed from the K8s API. It enforces the
+	// deletion-ordering invariant that the ClusterStaticEntry is GC'd before the DPUDevice,
+	// so a reflashed DPU cannot race a stale identity entry.
+	SPIFFEDeregistrationFinalizer = DPUProvisioningPrefix + "spiffe-deregistration"
+
+	// RotateBMCServerCertificateAnnotation requests a manual rotation of the DPU BMC mTLS
+	// server certificate. The annotation value is an opaque token (any non-empty string;
+	// a timestamp or UUID is recommended). Rotation is triggered when the value differs from
+	// status.bmcServerCertificate.observedManualTrigger; after a successful rotation the
+	// controller copies the value into observedManualTrigger so the same trigger is not
+	// processed twice.
+	RotateBMCServerCertificateAnnotation = DPUProvisioningPrefix + "rotate-bmc-server-certificate"
 )
 
 // DPUDeviceGroupVersionKind is the GroupVersionKind of the DPUDevice object
@@ -41,25 +64,122 @@ const (
 	ConditionDpuDeviceDiscovered conditions.ConditionType = "Discovered"
 	// ConditionDpuDeviceNodeAttached indicates that the DPU is attached to a node
 	ConditionDpuDeviceNodeAttached conditions.ConditionType = "NodeAttached"
-	// ConditionDpuDeviceResettingBMC indicates that the BMC is being reset to factory defaults
-	ConditionDpuDeviceResettingBMC conditions.ConditionType = "ResettingBMC"
+	// ConditionDpuDeviceBMCFactoryResetReady indicates that the BMC factory reset step of
+	// initialization has finished, either because the BMC was reset and came back or because
+	// the policy said not to reset it. The reason distinguishes the two.
+	ConditionDpuDeviceBMCFactoryResetReady conditions.ConditionType = "BMCFactoryResetReady"
 	// ConditionDpuDeviceInitialized indicates that the DPU interface has been initialized
 	ConditionDpuDeviceInitialized conditions.ConditionType = "Initialized"
 	// ConditionDpuDeviceError indicates that the DPUDevice has an error
 	ConditionDpuDeviceError conditions.ConditionType = "Error"
 	// ConditionDpuDeviceReady indicates that the DPUDevice is ready
 	ConditionDpuDeviceReady conditions.ConditionType = "Ready"
+	// ConditionBMCCredentialsReady reports the health of BMC credential resolution.
+	ConditionBMCCredentialsReady conditions.ConditionType = "BMCCredentialsReady"
+	// ConditionSPIFFEEntryReady reports whether the per-DPU SPIRE ClusterStaticEntry has been
+	// registered and rendered (L1 composite mirror of the upstream entry status).
+	ConditionSPIFFEEntryReady conditions.ConditionType = "SPIFFEEntryReady"
+	// ConditionDpuDeviceBMCServerCertificateReady indicates the BMC mTLS server
+	// certificate is installed, valid, and not within its renew-before window.
+	ConditionDpuDeviceBMCServerCertificateReady conditions.ConditionType = "BMCServerCertificateReady"
+	// ConditionDpuDeviceCATrustBundleReady indicates whether the desired CA trust bundle
+	// has been reconciled to the device BMC truststore.
+	ConditionDpuDeviceCATrustBundleReady conditions.ConditionType = "CATrustBundleReady"
 )
+
+// BMCServerCertificateReady condition reasons
+const (
+	// ReasonBMCServerCertificateRotating indicates a rotation is in progress (CSR generated / CR pending).
+	ReasonBMCServerCertificateRotating = "BMCServerCertificateRotating"
+	// ReasonBMCServerCertificateRotationFailed indicates the last rotation attempt failed.
+	ReasonBMCServerCertificateRotationFailed = "BMCServerCertificateRotationFailed"
+	// ReasonBMCServerCertificateUntrusted indicates the BMC presents a server certificate that
+	// does not chain to the current DPF CA (or fails identity pinning). The controller re-runs
+	// setUpMTLS over basic auth without clearing Initialized.
+	ReasonBMCServerCertificateUntrusted = "BMCServerCertificateUntrusted"
+	// ReasonRedfishClientCertStale indicates the controller's Redfish client certificate does not
+	// chain to the current DPF CA. The controller forces cert-manager to reissue it.
+	ReasonRedfishClientCertStale = "RedfishClientCertStale"
+)
+
+// BMCCredentialsReady condition reasons
+const (
+	// ReasonCATrustBundleSynced indicates CA trust bundle is successfully synced to BMC.
+	ReasonCATrustBundleSynced = "CATrustBundleSynced"
+	// ReasonCATrustBundleSyncing indicates CA trust bundle sync is in progress.
+	ReasonCATrustBundleSyncing = "CATrustBundleSyncing"
+	// ReasonCredentialsSecretNotFound indicates the referenced secret does not exist.
+	ReasonCredentialsSecretNotFound = "CredentialsSecretNotFound"
+	// ReasonCredentialsSecretInvalid indicates the secret exists but is malformed.
+	ReasonCredentialsSecretInvalid = "CredentialsSecretInvalid"
+	// ReasonBMCAuthenticationFailed indicates the password was rejected by the BMC.
+	ReasonBMCAuthenticationFailed = "BMCAuthenticationFailed"
+	// ReasonModeSwitchNotAllowed indicates an attempt to switch from per-device to shared mode.
+	ReasonModeSwitchNotAllowed = "ModeSwitchNotAllowed"
+	// ReasonSharedCredentialSecretNotAllowed indicates a per-device BMC credential secret is
+	// already referenced by another DPUDevice and must not be shared.
+	ReasonSharedCredentialSecretNotAllowed = "SharedCredentialSecretNotAllowed"
+	// ReasonCATrustBundleSyncFailed indicates CA trust bundle sync to BMC failed.
+	ReasonCATrustBundleSyncFailed = "CATrustBundleSyncFailed"
+	// ReasonCATrustBundleUnavailable indicates desired CA trust bundle is unavailable or invalid.
+	ReasonCATrustBundleUnavailable = "CATrustBundleUnavailable"
+)
+
+// BMCFactoryResetReady condition reasons
+const (
+	// ReasonFactoryResetInProgress indicates ResetToDefaults was accepted by the BMC and DPF is
+	// waiting for the BMC to come back.
+	ReasonFactoryResetInProgress = "FactoryResetInProgress"
+	// ReasonFactoryResetFailed indicates DPF could not submit ResetToDefaults. It is not terminal:
+	// the submission is retried with backoff.
+	ReasonFactoryResetFailed = "FactoryResetFailed"
+	// ReasonFactoryResetCompleted indicates the BMC came back from the factory reset and
+	// initialization may continue.
+	ReasonFactoryResetCompleted = "FactoryResetCompleted"
+	// ReasonFactoryResetSkipped indicates no reset was performed, either because the policy is
+	// Never or because the device was already managed by DPF before this feature existed.
+	ReasonFactoryResetSkipped = "FactoryResetSkipped"
+)
+
+// BMCFactoryResetPolicy controls whether DPF resets a DPU BMC to factory defaults while
+// initializing the DPUDevice. The enum and default are declared on each field that uses it, so
+// they show up in the CRD schema at that field.
+type BMCFactoryResetPolicy string
+
+const (
+	// BMCFactoryResetPolicyOnInitialization resets the BMC to factory defaults once, while the
+	// DPUDevice is being initialized.
+	BMCFactoryResetPolicyOnInitialization BMCFactoryResetPolicy = "OnInitialization"
+	// BMCFactoryResetPolicyNever never resets the BMC.
+	BMCFactoryResetPolicyNever BMCFactoryResetPolicy = "Never"
+	// BMCFactoryResetPolicyDefault is the policy that applies when the field is left unset. It
+	// must stay in step with fields of this type that use API server defaulting.
+	BMCFactoryResetPolicyDefault = BMCFactoryResetPolicyOnInitialization
+)
+
+// GetBMCFactoryResetPolicy resolves an optional policy field. An object that bypassed API
+// server defaulting — a unit test fixture, anything built in memory — carries no value, and reads
+// here as whatever the CRD default would have written.
+func GetBMCFactoryResetPolicy(policy BMCFactoryResetPolicy) BMCFactoryResetPolicy {
+	if policy == "" {
+		return BMCFactoryResetPolicyDefault
+	}
+	return policy
+}
 
 var (
 	// DPUDeviceConditions are conditions that can be set on a DPUDevice object.
 	DPUDeviceConditions = []conditions.ConditionType{
 		ConditionDpuDeviceDiscovered,
-		ConditionDpuDeviceResettingBMC,
+		ConditionDpuDeviceBMCFactoryResetReady,
 		ConditionDpuDeviceNodeAttached,
 		ConditionDpuDeviceInitialized,
 		ConditionDpuDeviceError,
 		ConditionDpuDeviceReady,
+		ConditionBMCCredentialsReady,
+		ConditionSPIFFEEntryReady,
+		ConditionDpuDeviceBMCServerCertificateReady,
+		ConditionDpuDeviceCATrustBundleReady,
 	}
 )
 
@@ -71,7 +191,6 @@ type DPUDeviceSpec struct {
 	// Example: "MT_0001234567", "MT25066004C7"
 	//
 	// Deprecated: This field is deprecated and will be removed in a future version. Use status.psid instead.
-	// +kubebuilder:validation:Pattern=`^MT_?[A-Z0-9]+$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="PSID is immutable"
 	// +optional
 	PSID *string `json:"psid,omitempty"`
@@ -91,14 +210,12 @@ type DPUDeviceSpec struct {
 	// Example: "900-9D3B4-00SV-EA0"
 	//
 	// Deprecated: This field is deprecated and will be removed in a future version. Use status.opn instead.
-	// +kubebuilder:validation:Pattern=`^\d{3}-[A-Z0-9]{5}-[A-Z0-9]{4}-[A-Z0-9]{3}$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="OPN is immutable"
 	// +optional
 	OPN *string `json:"opn,omitempty"`
 
 	// BMCIP is the IP address of the BMC (Base Management Controller) on the device.
 	// This is used for remote management and monitoring of the device.
-	// This value is immutable and should not be changed once set.
 	// Example: "10.1.2.3"
 	// +kubebuilder:validation:Format=ipv4
 	// +optional
@@ -123,6 +240,14 @@ type DPUDeviceSpec struct {
 	// +optional
 	NumberOfPFs *int `json:"numberOfPFs,omitempty"`
 
+	// NICDeviceCount is the expected number of NIC devices used by dpu-agent provisioning.
+	// Valid range is 1 to 8. When unspecified, it defaults to 8.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=8
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="NICDeviceCount is immutable"
+	// +optional
+	NICDeviceCount *int `json:"nicDeviceCount,omitempty"`
+
 	// PF0Name is the name of the PF0 on the device.
 	// This value is immutable and should not be changed once set.
 	// Example: "eth0"
@@ -131,6 +256,43 @@ type DPUDeviceSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="PF0 Name is immutable"
 	// +optional
 	PF0Name *string `json:"pf0Name,omitempty"`
+
+	// BMCCredentialSecretName is the name of a Secret in the same namespace containing
+	// per-device BMC credentials. The secret must contain a "password" key with the BMC credential value.
+	// If specified, this password takes precedence over the shared bmc-shared-password secret.
+	// +optional
+	BMCCredentialSecretName *string `json:"bmcCredentialSecretName,omitempty"`
+
+	// BMCFactoryResetPolicy controls whether DPF resets this DPU BMC to factory defaults
+	// while initializing the DPUDevice. The reset clears all BMC configuration, including
+	// network settings, so the BMC must obtain its address via DHCP.
+	// - OnInitialization (default): reset the BMC once, while the DPUDevice is initialized.
+	// - Never: never reset.
+	// The value is honored only until the factory reset step finishes; changing it
+	// after BMCFactoryResetReady is True has no effect.
+	// +kubebuilder:validation:Enum=OnInitialization;Never
+	// +kubebuilder:default=OnInitialization
+	// +optional
+	BMCFactoryResetPolicy BMCFactoryResetPolicy `json:"bmcFactoryResetPolicy,omitempty"`
+
+	// Specifies details on the K8S cluster to join
+	// +optional
+	Cluster *DPUDeviceClusterSpec `json:"cluster,omitempty"`
+
+	// Values contains free-form per-device values used to render a DPUFlavorTemplate
+	// into a concrete generated DPUFlavor for this device.
+	// +optional
+	Values *runtime.RawExtension `json:"values,omitempty"`
+}
+
+// DPUDeviceClusterSpec holds node labels and annotations propagated from DPUDevice to the DPU and cluster node.
+type DPUDeviceClusterSpec struct {
+	// NodeLabels specifies labels to be added to the DPU cluster node for this device.
+	// +optional
+	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
+	// NodeAnnotations specifies annotations to be added to the DPU cluster node for this device.
+	// +optional
+	NodeAnnotations map[string]string `json:"nodeAnnotations,omitempty"`
 }
 
 type DPUDeviceStatus struct {
@@ -138,7 +300,6 @@ type DPUDeviceStatus struct {
 	// It's used to track the device's lifecycle and for inventory management.
 	// This value is discovered and should not be changed once set.
 	// Example: "MT_0001234567", "MT25066004C7"
-	// +kubebuilder:validation:Pattern=`^MT_?[A-Z0-9]+$`
 	// +optional
 	PSID *string `json:"psid,omitempty"`
 
@@ -205,8 +366,52 @@ type DPUDeviceStatus struct {
 	// +optional
 	SecureBoot *SecureBootStatus `json:"secureBoot,omitempty"`
 
+	// BMCCredentialSecretName is the name of the Secret last used successfully for BMC authentication.
+	// +optional
+	BMCCredentialSecretName *string `json:"bmcCredentialSecretName,omitempty"`
+
+	// BMCFactoryResetRequestTime is when DPF submitted ResetToDefaults to the BMC.
+	// It is nil until the request has been accepted, and once set it is never cleared:
+	// it is what keeps the BMC from being reset again for this DPUDevice.
+	// +optional
+	BMCFactoryResetRequestTime *metav1.Time `json:"bmcFactoryResetRequestTime,omitempty"`
+
+	// BMCServerCertificate reports the BMC mTLS server certificate rotation state.
+	// +optional
+	BMCServerCertificate *CertificateStatus `json:"bmcServerCertificate,omitempty"`
+	// CATrustBundle stores trust bundle reconciliation progress for the DPUDevice.
+	// +optional
+	CATrustBundle *TrustBundleStatus `json:"caTrustBundle,omitempty"`
+
 	// +optional
 	Conditions []metav1.Condition `json:"conditions"`
+}
+
+// CertificateStatus reports the rotation state of a DPF-managed certificate.
+type CertificateStatus struct {
+	// NotAfter is the expiry time of the certificate currently installed. It is taken
+	// from the issued certificate at rotation time.
+	// +optional
+	NotAfter *metav1.Time `json:"notAfter,omitempty"`
+
+	// LastRotationTime is the time DPF last successfully rotated the certificate.
+	// +optional
+	LastRotationTime *metav1.Time `json:"lastRotationTime,omitempty"`
+
+	// ObservedManualTrigger records the value of the manual rotation annotation that
+	// was last honored, so the same trigger is not processed twice.
+	// +optional
+	ObservedManualTrigger *string `json:"observedManualTrigger,omitempty"`
+}
+
+// TrustBundleStatus reports reconciliation progress for a CA trust bundle.
+type TrustBundleStatus struct {
+	// ObservedBundleHash records the last successfully applied bundle hash.
+	// +optional
+	ObservedBundleHash *string `json:"observedBundleHash,omitempty"`
+	// LastUpdateTime is when the last successful reconciliation completed.
+	// +optional
+	LastUpdateTime *metav1.Time `json:"lastUpdateTime,omitempty"`
 }
 
 // SecureBootStatus represents the UEFI Secure Boot configuration status on the DPU.
