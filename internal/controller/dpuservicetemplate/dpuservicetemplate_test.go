@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -144,6 +145,75 @@ func allPrereqsWithRelease(ovnImage, releaseImage string) []client.Object {
 		newClusterVersion(releaseImage),
 		newPullSecret(),
 		newOVNDaemonSet(ovnImage),
+	}
+}
+
+func newOperatorConfigCR() *provisioningv1alpha1.DPFHCPProvisionerConfig {
+	return &provisioningv1alpha1.DPFHCPProvisionerConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: provisioningv1alpha1.DefaultConfigName,
+		},
+		Spec: provisioningv1alpha1.DPFHCPProvisionerConfigSpec{
+			ManageDPUServiceTemplates: true,
+		},
+	}
+}
+
+func newTestProvisioner(name, dpuClusterNS, dpuDeploymentName, dpuDeploymentNS string) *provisioningv1alpha1.DPFHCPProvisioner {
+	return &provisioningv1alpha1.DPFHCPProvisioner{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+		Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+			DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+				Name:      "cluster",
+				Namespace: dpuClusterNS,
+			},
+			DPUDeploymentRef: &provisioningv1alpha1.DPUDeploymentReference{
+				Name:      dpuDeploymentName,
+				Namespace: dpuDeploymentNS,
+			},
+		},
+	}
+}
+
+func newTestDPUDeployment(name, namespace string) *dpuservicev1alpha1.DPUDeployment {
+	return &dpuservicev1alpha1.DPUDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: dpuservicev1alpha1.DPUDeploymentSpec{
+			DPUs: dpuservicev1alpha1.DPUs{
+				BFB:    "bfb",
+				Flavor: "flavor",
+			},
+		},
+	}
+}
+
+func newDeletingDPUDeployment(name, namespace string) *dpuservicev1alpha1.DPUDeployment {
+	now := metav1.Now()
+	dd := newTestDPUDeployment(name, namespace)
+	dd.DeletionTimestamp = &now
+	dd.Finalizers = []string{dpuservicev1alpha1.DPUDeploymentFinalizer}
+	return dd
+}
+
+func newManagedTemplate(name, namespace string) *dpuservicev1alpha1.DPUServiceTemplate {
+	return &dpuservicev1alpha1.DPUServiceTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    map[string]string{common.LabelManagedBy: "true"},
+		},
+		Spec: dpuservicev1alpha1.DPUServiceTemplateSpec{
+			DeploymentServiceName: name,
+			HelmChart: dpuservicev1alpha1.HelmChart{
+				Source: dpuservicev1alpha1.ApplicationSource{RepoURL: "https://example.com", Version: "1"},
+			},
+		},
 	}
 }
 
@@ -567,6 +637,51 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 			})
 		})
 
+		Context("when a managed DPUServiceTemplate is being deleted", func() {
+			It("should not recreate or update the terminating template", func() {
+				now := metav1.Now()
+				deletingTemplate := &dpuservicev1alpha1.DPUServiceTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "ovn",
+						Namespace:         targetNamespace,
+						Labels:            map[string]string{"dpfhcpprovisioner.dpu.hcp.io/managed": "true"},
+						DeletionTimestamp: &now,
+						Finalizers:        []string{dpuservicev1alpha1.DPUServiceTemplateFinalizer},
+					},
+					Spec: dpuservicev1alpha1.DPUServiceTemplateSpec{
+						DeploymentServiceName: "ovn",
+						HelmChart: dpuservicev1alpha1.HelmChart{
+							Source: dpuservicev1alpha1.ApplicationSource{RepoURL: "https://stale", Version: "stale"},
+						},
+					},
+				}
+
+				prereqs := allPrereqs(x86OVNImage)
+				objects := append(prereqs, deletingTemplate)
+
+				fakeClient = fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithObjects(objects...).
+					WithStatusSubresource(prereqs[0]).
+					Build()
+
+				reader := &fakeReleaseImageReader{image: arm64OVNImage}
+				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
+
+				err := manager.EnsureTemplates(ctx, targetNamespace, &common.OperatorConfig{})
+				Expect(err).NotTo(HaveOccurred())
+
+				ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+				err = fakeClient.Get(ctx, types.NamespacedName{
+					Name:      "ovn",
+					Namespace: targetNamespace,
+				}, ovnTemplate)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(ovnTemplate.DeletionTimestamp).NotTo(BeNil())
+				Expect(ovnTemplate.Spec.HelmChart.Source.Version).To(Equal("stale"))
+			})
+		})
+
 		Context("when a DPUServiceTemplate already exists with different spec", func() {
 			It("should update it to the desired state", func() {
 				existingTemplate := &dpuservicev1alpha1.DPUServiceTemplate{
@@ -732,5 +847,168 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("unsupported DPF version"))
 		})
+	})
+})
+
+var _ = Describe("DPUServiceTemplate Reconciler", func() {
+	var (
+		ctx        context.Context
+		fakeClient client.Client
+		scheme     *runtime.Scheme
+		reconciler *dpuservicetemplate.DPUServiceTemplateReconciler
+	)
+
+	const (
+		targetNamespace = "dpf-operator-system"
+		x86OVNImage     = "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaa111"
+		arm64OVNImage   = "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:bbb222"
+		deploymentName  = "hcp-dpu-deployment"
+	)
+
+	BeforeEach(func() {
+		ctx = context.TODO()
+		scheme = newTestScheme()
+	})
+
+	setupReconciler := func(objects ...client.Object) {
+		fakeClient = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(objects...).
+			Build()
+		reconciler = &dpuservicetemplate.DPUServiceTemplateReconciler{
+			Client: fakeClient,
+			Scheme: scheme,
+			Manager: dpuservicetemplate.NewDPUServiceTemplateManager(
+				fakeClient, fakeClient, &fakeReleaseImageReader{image: arm64OVNImage}, testOperatorNamespace,
+			),
+		}
+	}
+
+	It("should delete DPUServiceTemplates when the referenced DPUDeployment is being deleted", func() {
+		setupReconciler(
+			newOperatorConfigCR(),
+			newTestProvisioner("test-provisioner", targetNamespace, deploymentName, targetNamespace),
+			newDeletingDPUDeployment(deploymentName, targetNamespace),
+			newManagedTemplate("ovn", targetNamespace),
+		)
+
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Name: targetNamespace},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+		err = fakeClient.Get(ctx, types.NamespacedName{
+			Name:      "ovn",
+			Namespace: targetNamespace,
+		}, ovnTemplate)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	It("should create DPUServiceTemplates when the referenced DPUDeployment is active", func() {
+		prereqs := allPrereqs(x86OVNImage)
+		objects := append(prereqs,
+			newOperatorConfigCR(),
+			newTestProvisioner("test-provisioner", targetNamespace, deploymentName, targetNamespace),
+			newTestDPUDeployment(deploymentName, targetNamespace),
+		)
+		fakeClient = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(objects...).
+			WithStatusSubresource(prereqs[0]).
+			Build()
+		reconciler = &dpuservicetemplate.DPUServiceTemplateReconciler{
+			Client: fakeClient,
+			Scheme: scheme,
+			Manager: dpuservicetemplate.NewDPUServiceTemplateManager(
+				fakeClient, fakeClient, &fakeReleaseImageReader{image: arm64OVNImage}, testOperatorNamespace,
+			),
+		}
+
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Name: targetNamespace},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+		err = fakeClient.Get(ctx, types.NamespacedName{
+			Name:      "ovn",
+			Namespace: targetNamespace,
+		}, ovnTemplate)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should delete DPUServiceTemplates when the referenced DPUDeployment is not found", func() {
+		setupReconciler(
+			newOperatorConfigCR(),
+			newTestProvisioner("test-provisioner", targetNamespace, deploymentName, targetNamespace),
+			newManagedTemplate("ovn", targetNamespace),
+		)
+
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Name: targetNamespace},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+		err = fakeClient.Get(ctx, types.NamespacedName{
+			Name:      "ovn",
+			Namespace: targetNamespace,
+		}, ovnTemplate)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	It("should delete DPUServiceTemplates when no provisioner remains", func() {
+		setupReconciler(
+			newOperatorConfigCR(),
+			newManagedTemplate("ovn", targetNamespace),
+		)
+
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Name: targetNamespace},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+		err = fakeClient.Get(ctx, types.NamespacedName{
+			Name:      "ovn",
+			Namespace: targetNamespace,
+		}, ovnTemplate)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	It("should still create DPUServiceTemplates when another DPUDeployment remains active", func() {
+		prereqs := allPrereqs(x86OVNImage)
+		objects := append(prereqs,
+			newOperatorConfigCR(),
+			newTestProvisioner("deleting-provisioner", targetNamespace, "deleting-dd", targetNamespace),
+			newDeletingDPUDeployment("deleting-dd", targetNamespace),
+			newTestProvisioner("active-provisioner", targetNamespace, "active-dd", targetNamespace),
+			newTestDPUDeployment("active-dd", targetNamespace),
+		)
+		fakeClient = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(objects...).
+			WithStatusSubresource(prereqs[0]).
+			Build()
+		reconciler = &dpuservicetemplate.DPUServiceTemplateReconciler{
+			Client: fakeClient,
+			Scheme: scheme,
+			Manager: dpuservicetemplate.NewDPUServiceTemplateManager(
+				fakeClient, fakeClient, &fakeReleaseImageReader{image: arm64OVNImage}, testOperatorNamespace,
+			),
+		}
+
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Name: targetNamespace},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		ovnTemplate := &dpuservicev1alpha1.DPUServiceTemplate{}
+		err = fakeClient.Get(ctx, types.NamespacedName{
+			Name:      "ovn",
+			Namespace: targetNamespace,
+		}, ovnTemplate)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })
