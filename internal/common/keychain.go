@@ -35,7 +35,14 @@ type dockerConfigKeychain struct {
 	auths map[string]authn.AuthConfig
 }
 
+// Resolve returns credentials for target. The repository key is checked before
+// the registry key, so "quay.io/edge-infrastructure/bluefield-ocp" wins over
+// "quay.io". Matching only the registry sends the generic robot to a private
+// repository, and the registry rejects the request with 401.
 func (k *dockerConfigKeychain) Resolve(target authn.Resource) (authn.Authenticator, error) {
+	if authConfig, ok := k.auths[target.String()]; ok {
+		return authn.FromConfig(authConfig), nil
+	}
 	if authConfig, ok := k.auths[target.RegistryStr()]; ok {
 		return authn.FromConfig(authConfig), nil
 	}
