@@ -132,7 +132,7 @@ var _ = Describe("MetalLB Manager", func() {
 				pool := &metallbv1beta1.IPAddressPool{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, pool)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pool.Spec.Addresses).To(Equal([]string{"192.168.1.100/32"}))
@@ -145,7 +145,7 @@ var _ = Describe("MetalLB Manager", func() {
 				advert := &metallbv1beta1.L2Advertisement{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "advertise-test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, advert)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(advert.Spec.IPAddressPools).To(Equal([]string{"test-provisioner"}))
@@ -180,7 +180,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingPool := &metallbv1beta1.IPAddressPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -198,7 +198,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingAdvert := &metallbv1beta1.L2Advertisement{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -247,7 +247,7 @@ var _ = Describe("MetalLB Manager", func() {
 				driftedPool := &metallbv1beta1.IPAddressPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -265,7 +265,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingAdvert := &metallbv1beta1.L2Advertisement{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -294,7 +294,7 @@ var _ = Describe("MetalLB Manager", func() {
 				pool := &metallbv1beta1.IPAddressPool{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, pool)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pool.Spec.Addresses).To(Equal([]string{"192.168.1.100/32"}))
@@ -319,7 +319,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingPool := &metallbv1beta1.IPAddressPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -337,7 +337,7 @@ var _ = Describe("MetalLB Manager", func() {
 				driftedAdvert := &metallbv1beta1.L2Advertisement{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -366,7 +366,7 @@ var _ = Describe("MetalLB Manager", func() {
 				advert := &metallbv1beta1.L2Advertisement{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "advertise-test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, advert)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(advert.Spec.IPAddressPools).To(Equal([]string{"test-provisioner"}))
@@ -455,7 +455,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingPool := &metallbv1beta1.IPAddressPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -469,7 +469,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingAdvert := &metallbv1beta1.L2Advertisement{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -552,7 +552,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingPool := &metallbv1beta1.IPAddressPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -596,7 +596,7 @@ var _ = Describe("MetalLB Manager", func() {
 				existingAdvert := &metallbv1beta1.L2Advertisement{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -696,7 +696,7 @@ var _ = Describe("MetalLB Manager", func() {
 				pool := &metallbv1beta1.IPAddressPool{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, pool)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pool.Spec.Addresses).To(Equal([]string{"10.0.0.100/32"}))
@@ -735,7 +735,7 @@ var _ = Describe("MetalLB Manager", func() {
 				advert := &metallbv1beta1.L2Advertisement{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "advertise-test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, advert)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(advert.Spec.IPAddressPools).To(Equal([]string{"test-provisioner"}))
@@ -775,7 +775,7 @@ var _ = Describe("MetalLB Manager", func() {
 				pool := &metallbv1beta1.IPAddressPool{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, pool)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -798,7 +798,7 @@ var _ = Describe("MetalLB Manager", func() {
 				unownedPool := &metallbv1beta1.IPAddressPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels:    map[string]string{}, // Missing ownership labels!
 					},
 					Spec: metallbv1beta1.IPAddressPoolSpec{
@@ -826,7 +826,7 @@ var _ = Describe("MetalLB Manager", func() {
 				pool := &metallbv1beta1.IPAddressPool{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, pool)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pool.Labels).To(BeEmpty()) // Labels still empty - didn't claim ownership
@@ -851,7 +851,7 @@ var _ = Describe("MetalLB Manager", func() {
 				ownedPool := &metallbv1beta1.IPAddressPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels: map[string]string{
 							common.LabelDPFHCPProvisionerName:      "test-provisioner",
 							common.LabelDPFHCPProvisionerNamespace: "test-ns",
@@ -870,7 +870,7 @@ var _ = Describe("MetalLB Manager", func() {
 				unownedAdvert := &metallbv1beta1.L2Advertisement{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "advertise-test-provisioner",
-						Namespace: common.MetalLBNamespace,
+						Namespace: common.OpenshiftOperatorsNamespace,
 						Labels:    map[string]string{}, // Missing ownership labels!
 					},
 					Spec: metallbv1beta1.L2AdvertisementSpec{
@@ -898,7 +898,7 @@ var _ = Describe("MetalLB Manager", func() {
 				advert := &metallbv1beta1.L2Advertisement{}
 				err = fakeClient.Get(ctx, types.NamespacedName{
 					Name:      "advertise-test-provisioner",
-					Namespace: common.MetalLBNamespace,
+					Namespace: common.OpenshiftOperatorsNamespace,
 				}, advert)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(advert.Labels).To(BeEmpty()) // Labels still empty

@@ -48,7 +48,7 @@ const (
 
 // Namespace constants
 const (
-	// MetalLBNamespace is the namespace where the MetalLB operator's operand
-	// resources (IPAddressPool and L2Advertisement) are admitted by default.
-	MetalLBNamespace = "metallb-system"
+	// OpenshiftOperatorsNamespace is the namespace for OpenShift operator resources
+	// Used for MetalLB resources and other operator-managed resources
+	OpenshiftOperatorsNamespace = "openshift-operators"
 )

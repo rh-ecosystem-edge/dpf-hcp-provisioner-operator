@@ -78,7 +78,7 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	pool := &metallbv1beta1.IPAddressPool{}
 	err := h.client.Get(ctx, client.ObjectKey{
 		Name:      cr.Name,
-		Namespace: common.MetalLBNamespace,
+		Namespace: common.OpenshiftOperatorsNamespace,
 	}, pool)
 
 	if err != nil {
@@ -118,7 +118,7 @@ func (h *CleanupHandler) Cleanup(ctx context.Context, cr *provisioningv1alpha1.D
 	advert := &metallbv1beta1.L2Advertisement{}
 	err = h.client.Get(ctx, client.ObjectKey{
 		Name:      fmt.Sprintf("advertise-%s", cr.Name),
-		Namespace: common.MetalLBNamespace,
+		Namespace: common.OpenshiftOperatorsNamespace,
 	}, advert)
 
 	if err != nil {
