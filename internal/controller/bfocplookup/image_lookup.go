@@ -18,9 +18,11 @@ package bfocplookup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -41,6 +43,14 @@ const (
 	// OCPReleaseLabel is the OCI image label that contains the OCP version string on an OCP release image
 	OCPReleaseLabel = "io.openshift.release"
 
+	// OCPLayerOCPVersionLabel is the label that contains the OCP version string
+	// on a BlueField OCP layer image
+	OCPLayerOCPVersionLabel = "OCP.version"
+
+	// OCPLayerDOCAVersionLabel is the label that contains the full DOCA version
+	// string on a BlueField OCP layer image
+	OCPLayerDOCAVersionLabel = "NVIDIA.DOCA.version"
+
 	// Reason codes
 	reasonImageFound                  = "ImageFound"
 	reasonRegistryAccessError         = "RegistryAccessError"
@@ -48,43 +58,78 @@ const (
 	reasonInvalidImageFormat          = "InvalidImageFormat"
 	reasonVersionNotFound             = "VersionNotFound"
 	reasonInvalidBlueFieldOCPLayerURL = "InvalidBlueFieldOCPLayerImageURL"
+	reasonUnsupportedDPFVersion       = "UnsupportedDPFVersion"
+	reasonDPFVersionNotFound          = "DPFVersionNotFound"
+	reasonLabelMismatch               = "LabelMismatch"
 )
 
-// ImageChecker abstracts checking whether a specific image tag exists in a registry
-type ImageChecker interface {
-	CheckTag(ctx context.Context, ref name.Reference, keychain authn.Keychain) error
+// TagLister abstracts listing the tags of a container registry repository
+type TagLister interface {
+	ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error)
 }
 
-// RemoteImageChecker is the production implementation that checks a real container registry
-type RemoteImageChecker struct{}
+// RemoteTagLister is the production implementation that lists tags from a real container registry
+type RemoteTagLister struct{}
 
-// CheckTag checks if a specific tag exists by making a HEAD request to the registry.
-// Returns nil if the tag exists, or an error if not found or inaccessible.
-func (r *RemoteImageChecker) CheckTag(ctx context.Context, ref name.Reference, keychain authn.Keychain) error {
-	_, err := remote.Head(ref, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
-	return err
+// ListTags lists all tags in the repository via the registry tags list API
+func (r *RemoteTagLister) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
+	return remote.List(repo, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
+}
+
+// LabelFetcher abstracts fetching the config labels of a single image
+type LabelFetcher interface {
+	FetchLabels(ctx context.Context, image string, keychain authn.Keychain) (map[string]string, error)
+}
+
+// RemoteLabelFetcher is the production implementation that reads image config
+// labels from a real container registry
+type RemoteLabelFetcher struct{}
+
+// FetchLabels fetches the image config (manifest + config blob) and returns its labels
+func (f *RemoteLabelFetcher) FetchLabels(ctx context.Context, image string, keychain authn.Keychain) (map[string]string, error) {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse image reference %s: %w", image, err)
+	}
+	desc, err := remote.Get(ref, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+	img, err := desc.Image()
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := img.ConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	return cfg.Config.Labels, nil
 }
 
 // ImageLookup handles BlueField OCP layer image lookup by querying a container registry
 type ImageLookup struct {
 	client.Client
-	Recorder     record.EventRecorder
-	ImageChecker ImageChecker
-	Repository   string
+	Recorder   record.EventRecorder
+	TagLister  TagLister
+	Labels     LabelFetcher
+	Repository string
 }
 
 // NewImageLookup creates a new ImageLookup
 func NewImageLookup(c client.Client, recorder record.EventRecorder) *ImageLookup {
 	return &ImageLookup{
-		Client:       c,
-		Recorder:     recorder,
-		ImageChecker: &RemoteImageChecker{},
+		Client:    c,
+		Recorder:  recorder,
+		TagLister: &RemoteTagLister{},
+		Labels:    &RemoteLabelFetcher{},
 	}
 }
 
 // LookupBlueFieldOCPLayerImage is the main function for BlueField OCP layer image lookup.
-// It extracts the OCP version from the ocpReleaseImage, queries the container registry
-// to find a matching tag, and updates the CR status with the found image reference.
+// It extracts the OCP version from the ocpReleaseImage, resolves the compatible DOCA
+// version from the DPF/DOCA compatibility matrix (based on the installed DPF version),
+// queries the container registry for a tag matching both, and updates the CR status
+// with the found image reference.
 func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger = logger.WithValues("feature", "bluefield-ocp-layer-lookup")
@@ -94,7 +139,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 	if ocpReleaseImage == "" {
 		err := fmt.Errorf("ocpReleaseImage is required but empty")
 		logger.Error(err, "Missing required field")
-		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
+		return r.handlePermanentError(ctx, cr, &InvalidImageFormatError{
 			Message: "ocpReleaseImage is required but empty",
 			URL:     "",
 		})
@@ -110,7 +155,7 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 		return r.handlePermanentError(ctx, cr, &RegistryAuthError{
 			Repository: repository,
 			Err:        err,
-		}, "")
+		})
 	}
 
 	// Extract OCP version (tag parsing first, then registry label for digest images)
@@ -122,28 +167,43 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 			return r.handlePermanentError(ctx, cr, &RegistryAuthError{
 				Repository: ocpReleaseImage,
 				Err:        err,
-			}, "")
+			})
 		}
 		// Transient registry errors — return error to trigger controller-runtime backoff requeue
 		if strings.Contains(err.Error(), "failed to fetch") || strings.Contains(err.Error(), "failed to get") {
 			return r.handleTransientError(ctx, cr, err)
 		}
-		return r.handleValidationError(ctx, cr, &InvalidImageFormatError{
+		return r.handlePermanentError(ctx, cr, &InvalidImageFormatError{
 			Message: err.Error(),
 			URL:     ocpReleaseImage,
 		})
 	}
 	logger.V(1).Info("Extracted OCP version", "version", version)
 
-	// Query registry for matching tag
-	logger.V(1).Info("Querying registry for BlueField OCP layer image", "repository", repository, "version", version)
-	blueFieldOCPLayerImage, err := r.validateTagExists(ctx, repository, version, keychain)
+	// Resolve the compatible DOCA version from the DPF/DOCA compatibility matrix
+	dpfMajorMinor, err := common.GetDPFMajorMinorVersion(ctx, r.Client)
+	if err != nil {
+		logger.Error(err, "Failed to determine DPF version from DPFOperatorConfig")
+		return r.handleTransientError(ctx, cr, &DPFVersionError{Err: err})
+	}
+
+	docaMajorMinor, err := DocaVersionForDPF(dpfMajorMinor)
+	if err != nil {
+		logger.Error(err, "No compatible DOCA version for DPF version", "dpfVersion", dpfMajorMinor)
+		return r.handlePermanentError(ctx, cr, &UnsupportedDPFVersionError{
+			DPFVersion: dpfMajorMinor,
+			Supported:  SupportedDPFVersions(),
+		})
+	}
+	logger.V(1).Info("Resolved compatible DOCA version", "dpfVersion", dpfMajorMinor, "docaVersion", docaMajorMinor)
+
+	// Query registry for a tag matching the OCP version and DOCA version
+	logger.V(1).Info("Querying registry for BlueField OCP layer image", "repository", repository, "version", version, "docaVersion", docaMajorMinor)
+	blueFieldOCPLayerImage, err := r.selectImageTag(ctx, repository, version, docaMajorMinor, keychain)
 	if err != nil {
 		switch err.(type) {
-		case *VersionNotFoundError:
-			return r.handlePermanentError(ctx, cr, err, version)
-		case *RegistryAuthError:
-			return r.handlePermanentError(ctx, cr, err, version)
+		case *VersionNotFoundError, *RegistryAuthError, *LabelMismatchError:
+			return r.handlePermanentError(ctx, cr, err)
 		default:
 			// Registry access errors are transient
 			return r.handleTransientError(ctx, cr, err)
@@ -154,14 +214,15 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 	logger.V(1).Info("Validating BlueField OCP layer image URL", "blueFieldOCPLayerImage", blueFieldOCPLayerImage)
 	if err := validateBlueFieldOCPLayerImageURL(blueFieldOCPLayerImage, version); err != nil {
 		logger.Error(err, "BlueField OCP layer image URL validation failed", "blueFieldOCPLayerImage", blueFieldOCPLayerImage)
-		return r.handlePermanentError(ctx, cr, err, version)
+		return r.handlePermanentError(ctx, cr, err)
 	}
 
 	// Update status on success
 	logger.Info("BlueField OCP layer image found successfully",
 		"version", version,
+		"docaVersion", docaMajorMinor,
 		"blueFieldOCPLayerImage", blueFieldOCPLayerImage)
-	return r.updateStatusOnSuccess(ctx, cr, blueFieldOCPLayerImage, version)
+	return r.updateStatusOnSuccess(ctx, cr, blueFieldOCPLayerImage, version, docaMajorMinor)
 }
 
 // extractVersionFromTag is an internal helper that extracts OCP version from a tagged image URL.
@@ -231,28 +292,20 @@ func (r *ImageLookup) getKeychain(ctx context.Context, cr *provisioningv1alpha1.
 	return common.KeychainFromPullSecret(ctx, r.Client, cr.Spec.PullSecretRef.Name, cr.Namespace)
 }
 
-// buildImageReference constructs a full image reference string and parses it into a name.Reference.
-func buildImageReference(repository, version string) (string, name.Reference, error) {
-	imageRef := fmt.Sprintf("%s:%s", repository, version)
-	ref, err := name.ParseReference(imageRef)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid image reference %s: %w", imageRef, err)
-	}
-	return imageRef, ref, nil
-}
-
-// validateTagExists checks if a specific tag exists in the container registry via a HEAD request.
+// selectImageTag lists the tags in the repository, selects the BlueField OCP layer
+// image tag matching the OCP version and the compatible DOCA version, and verifies
+// the selected image's version labels against its tag.
 // Returns the full image reference (repository:tag) if found.
-func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version string, keychain authn.Keychain) (string, error) {
-	imageRef, ref, err := buildImageReference(repository, version)
+func (r *ImageLookup) selectImageTag(ctx context.Context, repository, ocpVersion, docaMajorMinor string, keychain authn.Keychain) (string, error) {
+	repo, err := name.NewRepository(repository)
 	if err != nil {
 		return "", &RegistryAccessError{
 			Repository: repository,
-			Err:        err,
+			Err:        fmt.Errorf("invalid repository %s: %w", repository, err),
 		}
 	}
 
-	err = r.ImageChecker.CheckTag(ctx, ref, keychain)
+	tags, err := r.TagLister.ListTags(ctx, repo, keychain)
 	if err != nil {
 		if isAuthError(err) {
 			return "", &RegistryAuthError{
@@ -260,19 +313,116 @@ func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version
 				Err:        err,
 			}
 		}
-		if isNotFoundError(err) {
-			return "", &VersionNotFoundError{
-				Version:    version,
-				Repository: repository,
-			}
-		}
 		return "", &RegistryAccessError{
 			Repository: repository,
 			Err:        err,
 		}
 	}
 
-	return imageRef, nil
+	tag, found := findBlueFieldOCPLayerTag(tags, ocpVersion, docaMajorMinor)
+	if !found {
+		return "", &VersionNotFoundError{
+			Version:     ocpVersion,
+			DocaVersion: docaMajorMinor,
+			Repository:  repository,
+		}
+	}
+
+	image := repository + ":" + tag
+	if err := r.verifyImageLabels(ctx, image, ocpVersion, docaMajorMinor, keychain); err != nil {
+		return "", err
+	}
+
+	return image, nil
+}
+
+// verifyImageLabels fetches the selected image's config and checks its OCP and
+// DOCA version labels against the versions the tag was selected by. Labels are
+// only checked when present: a missing label does not fail the lookup, but a
+// label that disagrees with the tag marks the image as mis-pushed.
+func (r *ImageLookup) verifyImageLabels(ctx context.Context, image, ocpVersion, docaMajorMinor string, keychain authn.Keychain) error {
+	labels, err := r.Labels.FetchLabels(ctx, image, keychain)
+	if err != nil {
+		if isAuthError(err) {
+			return &RegistryAuthError{
+				Repository: image,
+				Err:        err,
+			}
+		}
+		return &RegistryAccessError{
+			Repository: image,
+			Err:        err,
+		}
+	}
+
+	if ocp, ok := labels[OCPLayerOCPVersionLabel]; ok && ocp != ocpVersion {
+		return &LabelMismatchError{
+			Image:      image,
+			Label:      OCPLayerOCPVersionLabel,
+			LabelValue: ocp,
+			Expected:   ocpVersion,
+		}
+	}
+
+	if doca, ok := labels[OCPLayerDOCAVersionLabel]; ok && !docaVersionMatches(doca, docaMajorMinor) {
+		return &LabelMismatchError{
+			Image:      image,
+			Label:      OCPLayerDOCAVersionLabel,
+			LabelValue: doca,
+			Expected:   docaMajorMinor + ".x",
+		}
+	}
+
+	return nil
+}
+
+// docaVersionMatches reports whether the DOCA version in label (e.g. "3.4.2")
+// belongs to the target DOCA major.minor (e.g. "3.4").
+func docaVersionMatches(label, targetMajorMinor string) bool {
+	target, err := semver.ParseTolerant(targetMajorMinor)
+	if err != nil {
+		return false
+	}
+	version, err := semver.ParseTolerant(label)
+	if err != nil {
+		return false
+	}
+	return version.Major == target.Major && version.Minor == target.Minor
+}
+
+// findBlueFieldOCPLayerTag selects the tag that matches the OCP version and the
+// compatible DOCA major.minor version. Tags are expected in the format
+// "<ocpVersion>-doca<docaVersion>" (e.g. "4.22.11-doca3.4.2").
+// If multiple tags match (e.g. different DOCA patch releases), the highest
+// DOCA version wins.
+func findBlueFieldOCPLayerTag(tags []string, ocpVersion, docaMajorMinor string) (string, bool) {
+	target, err := semver.ParseTolerant(docaMajorMinor)
+	if err != nil {
+		return "", false
+	}
+
+	// Multiple tags may match the same DOCA major.minor with different patch
+	// releases (e.g. 4.22.11-doca3.4.1 and 4.22.11-doca3.4.2), so keep
+	// scanning after the first match and keep the highest DOCA version.
+	prefix := ocpVersion + "-doca"
+	var bestTag string
+	var bestDoca semver.Version
+	for _, tag := range tags {
+		if !strings.HasPrefix(tag, prefix) {
+			continue
+		}
+		docaVersion, err := semver.ParseTolerant(tag[len(prefix):])
+		if err != nil {
+			continue
+		}
+		if docaVersion.Major != target.Major || docaVersion.Minor != target.Minor {
+			continue
+		}
+		if docaVersion.GT(bestDoca) {
+			bestTag, bestDoca = tag, docaVersion
+		}
+	}
+	return bestTag, bestTag != ""
 }
 
 // isAuthError checks if an error is an authentication/authorization error
@@ -283,16 +433,6 @@ func isAuthError(err error) bool {
 		strings.Contains(errStr, "DENIED") ||
 		strings.Contains(errStr, "denied") ||
 		strings.Contains(errStr, "403")
-}
-
-// isNotFoundError checks if an error indicates the image tag was not found
-func isNotFoundError(err error) bool {
-	errStr := err.Error()
-	return strings.Contains(errStr, "NOT_FOUND") ||
-		strings.Contains(errStr, "not found") ||
-		strings.Contains(errStr, "MANIFEST_UNKNOWN") ||
-		strings.Contains(errStr, "manifest unknown") ||
-		strings.Contains(errStr, "404")
 }
 
 // validateBlueFieldOCPLayerImageURL validates the BlueField OCP layer image URL format.
@@ -319,7 +459,7 @@ func validateBlueFieldOCPLayerImageURL(url string, version string) error {
 }
 
 // updateStatusOnSuccess updates the CR status when BlueField OCP layer image lookup succeeds
-func (r *ImageLookup) updateStatusOnSuccess(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, blueFieldOCPLayerImage, version string) (ctrl.Result, error) {
+func (r *ImageLookup) updateStatusOnSuccess(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, blueFieldOCPLayerImage, version, docaMajorMinor string) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	// Update status field
@@ -338,7 +478,7 @@ func (r *ImageLookup) updateStatusOnSuccess(ctx context.Context, cr *provisionin
 	// Emit event only if condition status/reason changed
 	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
 		r.Recorder.Event(cr, corev1.EventTypeNormal, reasonImageFound,
-			fmt.Sprintf("BlueField OCP layer image found for OCP version %s: %s", version, blueFieldOCPLayerImage))
+			fmt.Sprintf("BlueField OCP layer image found for OCP version %s (DOCA %s.x): %s", version, docaMajorMinor, blueFieldOCPLayerImage))
 	}
 
 	// Persist status
@@ -355,123 +495,52 @@ func (r *ImageLookup) updateStatusOnSuccess(ctx context.Context, cr *provisionin
 	return ctrl.Result{}, nil
 }
 
-// handleValidationError handles permanent validation errors
-func (r *ImageLookup) handleValidationError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-	logger.V(1).Info("Validation error - check CR spec", "error", err.Error())
-
-	// Clear status field
-	cr.Status.BlueFieldOCPLayerImage = ""
-
-	var reason, message string
-	switch e := err.(type) {
-	case *InvalidImageFormatError:
-		reason = reasonInvalidImageFormat
-		message = e.Error()
-	default:
-		reason = reasonInvalidImageFormat
-		message = err.Error()
-	}
-
-	condition := metav1.Condition{
-		Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
-		Status:             metav1.ConditionFalse,
-		Reason:             reason,
-		Message:            message,
-		LastTransitionTime: metav1.Now(),
-		ObservedGeneration: cr.Generation,
-	}
-
-	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
-		r.Recorder.Event(cr, corev1.EventTypeWarning, reason, message)
-	}
-
-	if updateErr := r.Status().Update(ctx, cr); updateErr != nil {
-		logger.Error(updateErr, "Failed to update status after validation error")
-	}
-
+// handlePermanentError records a permanent failure (user action required) on
+// the CR and does not requeue.
+func (r *ImageLookup) handlePermanentError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
+	r.recordFailure(ctx, cr, err)
 	// Do NOT requeue - permanent error
 	return ctrl.Result{}, nil
 }
 
-// handlePermanentError handles permanent errors (version not found, auth denied, invalid URL)
-func (r *ImageLookup) handlePermanentError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error, version string) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-	logger.V(1).Info("Permanent error - user action required", "version", version, "error", err.Error())
-
-	// Clear status field
-	cr.Status.BlueFieldOCPLayerImage = ""
-
-	var reason, message string
-	switch err.(type) {
-	case *VersionNotFoundError:
-		reason = reasonVersionNotFound
-		message = err.Error()
-	case *RegistryAuthError:
-		reason = reasonRegistryAuthError
-		message = err.Error()
-	case *InvalidBlueFieldOCPLayerImageURLError:
-		reason = reasonInvalidBlueFieldOCPLayerURL
-		message = err.Error()
-	default:
-		reason = reasonVersionNotFound
-		message = err.Error()
-	}
-
-	condition := metav1.Condition{
-		Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
-		Status:             metav1.ConditionFalse,
-		Reason:             reason,
-		Message:            message,
-		LastTransitionTime: metav1.Now(),
-		ObservedGeneration: cr.Generation,
-	}
-
-	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
-		r.Recorder.Event(cr, corev1.EventTypeWarning, reason, message)
-	}
-
-	if updateErr := r.Status().Update(ctx, cr); updateErr != nil {
-		logger.Error(updateErr, "Failed to update status after permanent error")
-	}
-
-	// Do NOT requeue - permanent error
-	return ctrl.Result{}, nil
-}
-
-// handleTransientError handles transient errors
+// handleTransientError records a transient failure on the CR and returns the
+// error so controller-runtime requeues with exponential backoff.
 func (r *ImageLookup) handleTransientError(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	r.recordFailure(ctx, cr, err)
+	return ctrl.Result{}, err
+}
 
-	var reason, message string
-	switch e := err.(type) {
-	case *RegistryAccessError:
-		reason = reasonRegistryAccessError
-		message = e.Error()
-	default:
-		reason = reasonRegistryAccessError
-		message = fmt.Sprintf("Transient error accessing registry: %v", err)
-	}
+// recordFailure reports a lookup failure on the CR: it clears the resolved
+// image, sets the BlueFieldOCPLayerImageFound condition to False with the
+// error's reason, emits an event when the condition changes, and persists the
+// status.
+func (r *ImageLookup) recordFailure(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, err error) {
+	cr.Status.BlueFieldOCPLayerImage = ""
 
 	condition := metav1.Condition{
 		Type:               provisioningv1alpha1.BlueFieldOCPLayerImageFound,
 		Status:             metav1.ConditionFalse,
-		Reason:             reason,
-		Message:            message,
+		Reason:             reasonForError(err),
+		Message:            err.Error(),
 		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: cr.Generation,
 	}
 
 	if changed := meta.SetStatusCondition(&cr.Status.Conditions, condition); changed {
-		r.Recorder.Event(cr, corev1.EventTypeWarning, reason, message)
+		r.Recorder.Event(cr, corev1.EventTypeWarning, condition.Reason, condition.Message)
 	}
 
 	if updateErr := r.Status().Update(ctx, cr); updateErr != nil {
-		logger.Error(updateErr, "Failed to update status after transient error")
+		log.FromContext(ctx).Error(updateErr, "Failed to update status after lookup failure", "error", err)
 	}
+}
 
-	logger.V(1).Info("Transient error, returning error for native retry with exponential backoff", "error", err)
-
-	// Return error to trigger controller-runtime's native exponential backoff
-	return ctrl.Result{}, err
+// reasonForError returns the condition reason for err. Errors that carry their
+// own reason use it; anything else is reported as a registry access error.
+func reasonForError(err error) string {
+	var re interface{ Reason() string }
+	if errors.As(err, &re) {
+		return re.Reason()
+	}
+	return reasonRegistryAccessError
 }

@@ -19,6 +19,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
@@ -85,4 +86,40 @@ func GetSingletonDPFOperatorConfig(ctx context.Context, c client.Client) (*opera
 	}
 
 	return &list.Items[0], nil
+}
+
+// GetDPFVersion returns the DPF operator version string from
+// DPFOperatorConfig.status.version (e.g. "v26.4.1").
+func GetDPFVersion(ctx context.Context, c client.Client) (string, error) {
+	config, err := GetSingletonDPFOperatorConfig(ctx, c)
+	if err != nil {
+		return "", err
+	}
+
+	if config.Status.Version == nil || *config.Status.Version == "" {
+		return "", fmt.Errorf("DPFOperatorConfig.status.version is not set")
+	}
+
+	return *config.Status.Version, nil
+}
+
+// DPFMajorMinorFromVersion returns the major.minor component of a DPF version
+// string (e.g. "v26.4.1" -> "26.4").
+func DPFMajorMinorFromVersion(version string) (string, error) {
+	v := strings.TrimPrefix(version, "v")
+	parts := strings.SplitN(v, ".", 3)
+	if len(parts) < 2 {
+		return "", fmt.Errorf("DPF version %q does not contain a minor component", version)
+	}
+	return parts[0] + "." + parts[1], nil
+}
+
+// GetDPFMajorMinorVersion returns the DPF major.minor version (e.g. "26.4") read
+// from DPFOperatorConfig.status.version.
+func GetDPFMajorMinorVersion(ctx context.Context, c client.Client) (string, error) {
+	version, err := GetDPFVersion(ctx, c)
+	if err != nil {
+		return "", err
+	}
+	return DPFMajorMinorFromVersion(version)
 }

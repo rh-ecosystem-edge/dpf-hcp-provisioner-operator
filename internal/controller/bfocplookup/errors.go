@@ -16,13 +16,20 @@ limitations under the License.
 
 package bfocplookup
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // RegistryAccessError indicates the operator failed to access the container registry
 // This is a transient error - the registry might be temporarily unavailable
 type RegistryAccessError struct {
 	Repository string
 	Err        error
+}
+
+func (e *RegistryAccessError) Reason() string {
+	return reasonRegistryAccessError
 }
 
 func (e *RegistryAccessError) Error() string {
@@ -40,6 +47,10 @@ type RegistryAuthError struct {
 	Err        error
 }
 
+func (e *RegistryAuthError) Reason() string {
+	return reasonRegistryAuthError
+}
+
 func (e *RegistryAuthError) Error() string {
 	return fmt.Sprintf("authentication failed for registry repository %s: %v", e.Repository, e.Err)
 }
@@ -48,15 +59,77 @@ func (e *RegistryAuthError) Unwrap() error {
 	return e.Err
 }
 
-// VersionNotFoundError indicates the OCP version tag was not found in the registry
-// This is a permanent error - the BlueField OCP layer image for this version hasn't been pushed yet
+// VersionNotFoundError indicates no BlueField OCP layer image tag was found in the
+// registry matching the OCP version and the compatible DOCA version
+// This is a permanent error - the image for this version hasn't been pushed yet
 type VersionNotFoundError struct {
-	Version    string
-	Repository string
+	Version     string
+	DocaVersion string
+	Repository  string
+}
+
+func (e *VersionNotFoundError) Reason() string {
+	return reasonVersionNotFound
 }
 
 func (e *VersionNotFoundError) Error() string {
-	return fmt.Sprintf("BlueField OCP layer image not found for OCP version %s in repository %s", e.Version, e.Repository)
+	return fmt.Sprintf("BlueField OCP layer image not found for OCP version %s with DOCA version %s.x in repository %s",
+		e.Version, e.DocaVersion, e.Repository)
+}
+
+// UnsupportedDPFVersionError indicates the running DPF version has no entry in the
+// DPF/DOCA compatibility matrix
+// This is a permanent error - the operator needs an updated compatibility matrix
+type UnsupportedDPFVersionError struct {
+	DPFVersion string
+	Supported  []string
+}
+
+func (e *UnsupportedDPFVersionError) Reason() string {
+	return reasonUnsupportedDPFVersion
+}
+
+func (e *UnsupportedDPFVersionError) Error() string {
+	return fmt.Sprintf("DPF version %s has no compatible DOCA version, supported DPF versions: %s",
+		e.DPFVersion, strings.Join(e.Supported, ", "))
+}
+
+// DPFVersionError indicates the DPF version could not be determined from
+// DPFOperatorConfig (missing CR, status.version not set, etc.)
+// This is treated as a transient error - the DPF operator may still be updating its status
+type DPFVersionError struct {
+	Err error
+}
+
+func (e *DPFVersionError) Reason() string {
+	return reasonDPFVersionNotFound
+}
+
+func (e *DPFVersionError) Error() string {
+	return fmt.Sprintf("failed to determine DPF version: %v", e.Err)
+}
+
+func (e *DPFVersionError) Unwrap() error {
+	return e.Err
+}
+
+// LabelMismatchError indicates the selected BlueField OCP layer image carries a
+// version label that disagrees with the version its tag claims (e.g. a mis-pushed tag)
+// This is a permanent error - the image content does not match its tag
+type LabelMismatchError struct {
+	Image      string
+	Label      string
+	LabelValue string
+	Expected   string
+}
+
+func (e *LabelMismatchError) Reason() string {
+	return reasonLabelMismatch
+}
+
+func (e *LabelMismatchError) Error() string {
+	return fmt.Sprintf("BlueField OCP layer image %s has label %s=%q which disagrees with expected %q",
+		e.Image, e.Label, e.LabelValue, e.Expected)
 }
 
 // InvalidImageFormatError indicates the ocpReleaseImage URL is malformed
@@ -64,6 +137,10 @@ func (e *VersionNotFoundError) Error() string {
 type InvalidImageFormatError struct {
 	Message string
 	URL     string
+}
+
+func (e *InvalidImageFormatError) Reason() string {
+	return reasonInvalidImageFormat
 }
 
 func (e *InvalidImageFormatError) Error() string {
@@ -76,6 +153,10 @@ type InvalidBlueFieldOCPLayerImageURLError struct {
 	Version string
 	URL     string
 	Message string
+}
+
+func (e *InvalidBlueFieldOCPLayerImageURLError) Reason() string {
+	return reasonInvalidBlueFieldOCPLayerURL
 }
 
 func (e *InvalidBlueFieldOCPLayerImageURLError) Error() string {

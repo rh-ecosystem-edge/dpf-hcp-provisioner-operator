@@ -105,6 +105,7 @@ generate-test-crds: controller-gen ## Generate external CRDs for unit tests from
 	mkdir -p internal/controller/testdata/crds
 	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
 	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
+	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/operator/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
 	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/openshift/hypershift/api/hypershift/v1beta1/..." output:crd:dir=internal/controller/testdata/crds
 
 .PHONY: verify-generate

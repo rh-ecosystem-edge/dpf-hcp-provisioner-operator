@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"sort"
 
@@ -143,38 +142,10 @@ func (m *DPUServiceTemplateManager) DeleteTemplates(ctx context.Context, namespa
 	return nil
 }
 
-// getDPFVersion reads the DPF version from DPFOperatorConfig.status.version
-func (m *DPUServiceTemplateManager) getDPFVersion(ctx context.Context) (string, error) {
-	config, err := common.GetSingletonDPFOperatorConfig(ctx, m.client)
-	if err != nil {
-		return "", err
-	}
-
-	if config.Status.Version == nil || *config.Status.Version == "" {
-		return "", fmt.Errorf("DPFOperatorConfig.status.version is not set")
-	}
-
-	return *config.Status.Version, nil
-}
-
-// getDPFMajorMinorVersion reads the DPF version and returns the major.minor component (e.g. "26.4").
-func (m *DPUServiceTemplateManager) getDPFMajorMinorVersion(ctx context.Context) (string, error) {
-	dpfVersion, err := m.getDPFVersion(ctx)
-	if err != nil {
-		return "", fmt.Errorf("determining DPF version: %w", err)
-	}
-	version := strings.TrimPrefix(dpfVersion, "v")
-	parts := strings.SplitN(version, ".", 3)
-	if len(parts) < 2 {
-		return "", fmt.Errorf("DPF version %q does not contain a minor component", dpfVersion)
-	}
-	return parts[0] + "." + parts[1], nil
-}
-
 // getDPUServiceTemplateValuesForCurrentDPF determines the running DPF major.minor version and
 // returns the matching template values with any user overrides applied.
 func (m *DPUServiceTemplateManager) getDPUServiceTemplateValuesForCurrentDPF(ctx context.Context) (*DPUServiceTemplateValues, error) {
-	version, err := m.getDPFMajorMinorVersion(ctx)
+	version, err := common.GetDPFMajorMinorVersion(ctx, m.client)
 	if err != nil {
 		return nil, err
 	}
