@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	"net"
 	"net/http"
 	"sort"
 	"strings"
@@ -902,28 +903,42 @@ func (ig *IgnitionGenerator) resolveBFBRegistryURL(ctx context.Context, dpfOpera
 		return "", fmt.Errorf("bfb-registry service %s has no NodePort", svcKey)
 	}
 
-	nodeList := &corev1.NodeList{}
-	if err := ig.Client.List(ctx, nodeList); err != nil {
-		return "", fmt.Errorf("failed to list nodes: %w", err)
+	// DPF's KubernetesAPIServerVIP is the stable management address used by
+	// components that cannot rely on the cluster service network. Prefer it
+	// over an arbitrary node address; the latter can be a worker or a node
+	// that is no longer reachable from the DPU BMC.
+	var nodeIP string
+	if dpfOperatorConfig.Spec.Overrides != nil &&
+		dpfOperatorConfig.Spec.Overrides.KubernetesAPIServerVIP != nil {
+		nodeIP = strings.TrimSpace(*dpfOperatorConfig.Spec.Overrides.KubernetesAPIServerVIP)
+		if nodeIP != "" {
+			log.Info("Using KubernetesAPIServerVIP for bfb-registry NodePort", "address", nodeIP)
+		}
 	}
 
-	var nodeIP string
-	for i := range nodeList.Items {
-		for _, addr := range nodeList.Items[i].Status.Addresses {
-			if addr.Type == corev1.NodeInternalIP {
-				nodeIP = addr.Address
+	if nodeIP == "" {
+		nodeList := &corev1.NodeList{}
+		if err := ig.Client.List(ctx, nodeList); err != nil {
+			return "", fmt.Errorf("failed to list nodes: %w", err)
+		}
+
+		for i := range nodeList.Items {
+			for _, addr := range nodeList.Items[i].Status.Addresses {
+				if addr.Type == corev1.NodeInternalIP {
+					nodeIP = addr.Address
+					break
+				}
+			}
+			if nodeIP != "" {
 				break
 			}
-		}
-		if nodeIP != "" {
-			break
 		}
 	}
 	if nodeIP == "" {
 		return "", fmt.Errorf("no node with InternalIP found")
 	}
 
-	url := fmt.Sprintf("http://%s:%d", nodeIP, nodePort)
+	url := fmt.Sprintf("http://%s", net.JoinHostPort(nodeIP, fmt.Sprintf("%d", nodePort)))
 	log.Info("Discovered bfb-registry via NodePort", "url", url, "service", svcKey)
 	return url, nil
 }

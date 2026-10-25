@@ -477,6 +477,50 @@ var _ = Describe("GetSingletonDPFOperatorConfig", func() {
 	})
 })
 
+var _ = Describe("resolveBFBRegistryURL", func() {
+	It("uses the configured management VIP before an arbitrary node address", func() {
+		ctx := context.TODO()
+		scheme := newTestScheme()
+		vip := "10.6.135.50"
+		config := &operatorv1alpha1.DPFOperatorConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dpfoperatorconfig",
+				Namespace: "dpf-operator-system",
+			},
+			Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+				DeploymentMode: operatorv1alpha1.DeploymentModeZeroTrust,
+				Overrides: &operatorv1alpha1.Overrides{
+					KubernetesAPIServerVIP: &vip,
+				},
+				ProvisioningController: &operatorv1alpha1.ProvisioningControllerConfiguration{},
+			},
+		}
+		service := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      operatorv1alpha1.BFBRegistryName.String(),
+				Namespace: "dpf-operator-system",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{{NodePort: 30679}},
+			},
+		}
+		worker := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "worker"},
+			Status:     corev1.NodeStatus{Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "10.6.135.56"}}},
+		}
+		management := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "management"},
+			Status:     corev1.NodeStatus{Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vip}}},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(config, service, worker, management).Build()
+		ig := &IgnitionGenerator{Client: fakeClient}
+
+		result, err := ig.resolveBFBRegistryURL(ctx, config)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal("http://10.6.135.50:30679"))
+	})
+})
+
 var _ = Describe("buildTargetIgnition", func() {
 	var ig *IgnitionGenerator
 
