@@ -37,24 +37,20 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
-// fakeTagLister implements TagLister for testing
-type fakeTagLister struct {
-	tags []string
-	err  error
+// fakeRegistry implements Registry for testing
+type fakeRegistry struct {
+	tags      []string
+	tagsErr   error
+	labels    map[string]string
+	labelsErr error
 }
 
-func (f *fakeTagLister) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
-	return f.tags, f.err
+func (f *fakeRegistry) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
+	return f.tags, f.tagsErr
 }
 
-// fakeLabelFetcher implements LabelFetcher for testing
-type fakeLabelFetcher struct {
-	labels map[string]string
-	err    error
-}
-
-func (f *fakeLabelFetcher) FetchLabels(ctx context.Context, image string, keychain authn.Keychain) (map[string]string, error) {
-	return f.labels, f.err
+func (f *fakeRegistry) FetchLabels(ctx context.Context, image string, keychain authn.Keychain) (map[string]string, error) {
+	return f.labels, f.labelsErr
 }
 
 const testRepository = "quay.io/test-org/bluefield-os"
@@ -174,17 +170,19 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 	})
 
 	Describe("Registry Tag Selection via selectImageTag", func() {
-		var lookup *ImageLookup
+		var (
+			lookup   *ImageLookup
+			registry *fakeRegistry
+		)
 
 		BeforeEach(func() {
-			lookup = &ImageLookup{
-				Labels: &fakeLabelFetcher{labels: sampleImageLabels},
-			}
+			registry = &fakeRegistry{labels: sampleImageLabels}
+			lookup = &ImageLookup{Registry: registry}
 		})
 
 		Context("When a matching tag exists in registry", func() {
 			It("should return the full image reference", func() {
-				lookup.TagLister = &fakeTagLister{tags: sampleRegistryTags}
+				registry.tags = sampleRegistryTags
 				image, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(image).To(Equal(testRepository + ":4.22.11-doca3.4.2"))
@@ -193,7 +191,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When no matching tag exists in registry", func() {
 			It("should return VersionNotFoundError", func() {
-				lookup.TagLister = &fakeTagLister{tags: []string{"4.20.0-ec.1", "4.20.0-ec.1-doca3.4.2"}}
+				registry.tags = []string{"4.20.0-ec.1", "4.20.0-ec.1-doca3.4.2"}
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var versionNotFoundErr *VersionNotFoundError
@@ -203,7 +201,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When registry returns an auth error", func() {
 			It("should return RegistryAuthError", func() {
-				lookup.TagLister = &fakeTagLister{err: fmt.Errorf("UNAUTHORIZED: authentication required")}
+				registry.tagsErr = fmt.Errorf("UNAUTHORIZED: authentication required")
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var authErr *RegistryAuthError
@@ -213,7 +211,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When registry returns a transient error", func() {
 			It("should return RegistryAccessError", func() {
-				lookup.TagLister = &fakeTagLister{err: fmt.Errorf("connection refused")}
+				registry.tagsErr = fmt.Errorf("connection refused")
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var accessErr *RegistryAccessError
@@ -223,7 +221,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When the repository is malformed", func() {
 			It("should return RegistryAccessError", func() {
-				lookup.TagLister = &fakeTagLister{tags: sampleRegistryTags}
+				registry.tags = sampleRegistryTags
 				_, err := lookup.selectImageTag(context.Background(), "quay.io/a b", "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var accessErr *RegistryAccessError
@@ -233,11 +231,11 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When the selected image's OCP label disagrees with its tag", func() {
 			It("should return LabelMismatchError", func() {
-				lookup.TagLister = &fakeTagLister{tags: sampleRegistryTags}
-				lookup.Labels = &fakeLabelFetcher{labels: map[string]string{
+				registry.tags = sampleRegistryTags
+				registry.labels = map[string]string{
 					"OCP.version":         "4.22.10",
 					"NVIDIA.DOCA.version": "3.4.2",
-				}}
+				}
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var mismatchErr *LabelMismatchError
@@ -248,11 +246,11 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When the selected image's DOCA label disagrees with its tag", func() {
 			It("should return LabelMismatchError", func() {
-				lookup.TagLister = &fakeTagLister{tags: sampleRegistryTags}
-				lookup.Labels = &fakeLabelFetcher{labels: map[string]string{
+				registry.tags = sampleRegistryTags
+				registry.labels = map[string]string{
 					"OCP.version":         "4.22.11",
 					"NVIDIA.DOCA.version": "3.5.0",
-				}}
+				}
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var mismatchErr *LabelMismatchError
@@ -263,8 +261,8 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When the selected image has no version labels", func() {
 			It("should accept the tag (labels are advisory)", func() {
-				lookup.TagLister = &fakeTagLister{tags: sampleRegistryTags}
-				lookup.Labels = &fakeLabelFetcher{labels: map[string]string{}}
+				registry.tags = sampleRegistryTags
+				registry.labels = map[string]string{}
 				image, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(image).To(Equal(testRepository + ":4.22.11-doca3.4.2"))
@@ -273,8 +271,8 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When label fetching fails with a transient error", func() {
 			It("should return RegistryAccessError", func() {
-				lookup.TagLister = &fakeTagLister{tags: sampleRegistryTags}
-				lookup.Labels = &fakeLabelFetcher{err: fmt.Errorf("connection refused")}
+				registry.tags = sampleRegistryTags
+				registry.labelsErr = fmt.Errorf("connection refused")
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var accessErr *RegistryAccessError
@@ -284,8 +282,8 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		Context("When label fetching fails with an auth error", func() {
 			It("should return RegistryAuthError", func() {
-				lookup.TagLister = &fakeTagLister{tags: sampleRegistryTags}
-				lookup.Labels = &fakeLabelFetcher{err: fmt.Errorf("UNAUTHORIZED: authentication required")}
+				registry.tags = sampleRegistryTags
+				registry.labelsErr = fmt.Errorf("UNAUTHORIZED: authentication required")
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var authErr *RegistryAuthError
@@ -315,6 +313,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		var (
 			fc         client.Client
 			lookup     *ImageLookup
+			registry   *fakeRegistry
 			cr         *provisioningv1alpha1.DPFHCPProvisioner
 			pullSecret *corev1.Secret
 		)
@@ -363,11 +362,11 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 				WithObjects(cr, newDPFOperatorConfig(&version), pullSecret).
 				WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
 				Build()
+			registry = &fakeRegistry{tags: sampleRegistryTags, labels: sampleImageLabels}
 			lookup = &ImageLookup{
 				Client:     fc,
 				Recorder:   record.NewFakeRecorder(10),
-				TagLister:  &fakeTagLister{tags: sampleRegistryTags},
-				Labels:     &fakeLabelFetcher{labels: sampleImageLabels},
+				Registry:   registry,
 				Repository: testRepository,
 			}
 		})
@@ -385,7 +384,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		It("should fail permanently when no tag matches the DOCA version", func() {
-			lookup.TagLister = &fakeTagLister{tags: []string{"4.22.11"}}
+			registry.tags = []string{"4.22.11"}
 			_, err := lookup.LookupBlueFieldOCPLayerImage(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -437,7 +436,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		It("should retry when the registry is unreachable", func() {
-			lookup.TagLister = &fakeTagLister{err: fmt.Errorf("connection refused")}
+			registry.tagsErr = fmt.Errorf("connection refused")
 			_, err := lookup.LookupBlueFieldOCPLayerImage(context.Background(), cr)
 			Expect(err).To(HaveOccurred())
 
@@ -448,10 +447,10 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		It("should fail permanently when the selected image's labels disagree with its tag", func() {
-			lookup.Labels = &fakeLabelFetcher{labels: map[string]string{
+			registry.labels = map[string]string{
 				"OCP.version":         "4.22.10",
 				"NVIDIA.DOCA.version": "3.4.2",
-			}}
+			}
 			_, err := lookup.LookupBlueFieldOCPLayerImage(context.Background(), cr)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -463,7 +462,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		It("should retry when label fetching is unreachable", func() {
-			lookup.Labels = &fakeLabelFetcher{err: fmt.Errorf("connection refused")}
+			registry.labelsErr = fmt.Errorf("connection refused")
 			_, err := lookup.LookupBlueFieldOCPLayerImage(context.Background(), cr)
 			Expect(err).To(HaveOccurred())
 

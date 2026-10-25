@@ -69,22 +69,18 @@ var (
 	k8sManager ctrl.Manager
 )
 
-// fakeTagLister implements bfocplookup.TagLister for testing
+// fakeRegistry implements bfocplookup.Registry for testing
 // to avoid hitting real container registries in unit/integration tests.
-type fakeTagLister struct {
+// FetchLabels derives version labels from the image tag so any selected tag verifies.
+type fakeRegistry struct {
 	tags []string
 }
 
-func (f *fakeTagLister) ListTags(_ context.Context, _ name.Repository, _ authn.Keychain) ([]string, error) {
+func (f *fakeRegistry) ListTags(_ context.Context, _ name.Repository, _ authn.Keychain) ([]string, error) {
 	return f.tags, nil
 }
 
-// fakeLabelFetcher implements bfocplookup.LabelFetcher for testing
-// to avoid hitting real container registries in unit/integration tests.
-// It derives version labels from the image tag so any selected tag verifies.
-type fakeLabelFetcher struct{}
-
-func (f *fakeLabelFetcher) FetchLabels(_ context.Context, image string, _ authn.Keychain) (map[string]string, error) {
+func (f *fakeRegistry) FetchLabels(_ context.Context, image string, _ authn.Keychain) (map[string]string, error) {
 	idx := strings.LastIndex(image, ":")
 	if idx < 0 {
 		return map[string]string{}, nil
@@ -226,14 +222,13 @@ var _ = BeforeSuite(func() {
 		Recorder: k8sManager.GetEventRecorderFor(common.ProvisionerControllerName),
 		ImageLookup: func() *bfocplookup.ImageLookup {
 			lookup := bfocplookup.NewImageLookup(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-ocp-layer-lookup"))
-			lookup.TagLister = &fakeTagLister{tags: []string{
+			lookup.Registry = &fakeRegistry{tags: []string{
 				"4.17.0", "4.17.0-doca3.4.2",
 				"4.19.0", "4.19.0-doca3.4.2",
 				"4.19.0-ec.5", "4.19.0-ec.5-doca3.4.2",
 				"4.19.0-ec.6", "4.19.0-ec.6-doca3.4.2",
 				"4.22.11", "4.22.11-doca3.4.2",
 			}}
-			lookup.Labels = &fakeLabelFetcher{}
 			return lookup
 		}(),
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),

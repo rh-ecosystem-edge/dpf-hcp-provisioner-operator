@@ -64,30 +64,22 @@ const (
 	reasonLabelMismatch               = "LabelMismatch"
 )
 
-// TagLister abstracts listing the tags of a container registry repository
-type TagLister interface {
+// Registry abstracts the container registry calls used by the image lookup
+type Registry interface {
 	ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error)
-}
-
-// RemoteTagLister is the production implementation that lists tags from a real container registry
-type RemoteTagLister struct{}
-
-// ListTags lists all tags in the repository via the registry tags list API
-func (r *RemoteTagLister) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
-	return remote.List(repo, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
-}
-
-// LabelFetcher abstracts fetching the config labels of a single image
-type LabelFetcher interface {
 	FetchLabels(ctx context.Context, image string, keychain authn.Keychain) (map[string]string, error)
 }
 
-// RemoteLabelFetcher is the production implementation that reads image config
-// labels from a real container registry
-type RemoteLabelFetcher struct{}
+// RemoteRegistry is the production implementation that talks to a real container registry
+type RemoteRegistry struct{}
+
+// ListTags lists all tags in the repository via the registry tags list API
+func (r *RemoteRegistry) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
+	return remote.List(repo, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
+}
 
 // FetchLabels fetches the image config (manifest + config blob) and returns its labels
-func (f *RemoteLabelFetcher) FetchLabels(ctx context.Context, image string, keychain authn.Keychain) (map[string]string, error) {
+func (r *RemoteRegistry) FetchLabels(ctx context.Context, image string, keychain authn.Keychain) (map[string]string, error) {
 	ref, err := name.ParseReference(image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image reference %s: %w", image, err)
@@ -111,18 +103,16 @@ func (f *RemoteLabelFetcher) FetchLabels(ctx context.Context, image string, keyc
 type ImageLookup struct {
 	client.Client
 	Recorder   record.EventRecorder
-	TagLister  TagLister
-	Labels     LabelFetcher
+	Registry   Registry
 	Repository string
 }
 
 // NewImageLookup creates a new ImageLookup
 func NewImageLookup(c client.Client, recorder record.EventRecorder) *ImageLookup {
 	return &ImageLookup{
-		Client:    c,
-		Recorder:  recorder,
-		TagLister: &RemoteTagLister{},
-		Labels:    &RemoteLabelFetcher{},
+		Client:   c,
+		Recorder: recorder,
+		Registry: &RemoteRegistry{},
 	}
 }
 
@@ -310,7 +300,7 @@ func (r *ImageLookup) selectImageTag(ctx context.Context, repository, ocpVersion
 		}
 	}
 
-	tags, err := r.TagLister.ListTags(ctx, repo, keychain)
+	tags, err := r.Registry.ListTags(ctx, repo, keychain)
 	if err != nil {
 		if isAuthError(err) {
 			return "", &RegistryAuthError{
@@ -346,7 +336,7 @@ func (r *ImageLookup) selectImageTag(ctx context.Context, repository, ocpVersion
 // only checked when present: a missing label does not fail the lookup, but a
 // label that disagrees with the tag marks the image as mis-pushed.
 func (r *ImageLookup) verifyImageLabels(ctx context.Context, image, ocpVersion, docaMajorMinor string, keychain authn.Keychain) error {
-	labels, err := r.Labels.FetchLabels(ctx, image, keychain)
+	labels, err := r.Registry.FetchLabels(ctx, image, keychain)
 	if err != nil {
 		if isAuthError(err) {
 			return &RegistryAuthError{
