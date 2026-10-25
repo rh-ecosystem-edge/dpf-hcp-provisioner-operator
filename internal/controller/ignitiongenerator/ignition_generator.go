@@ -903,20 +903,42 @@ func (ig *IgnitionGenerator) resolveBFBRegistryURL(ctx context.Context, dpfOpera
 		return "", fmt.Errorf("bfb-registry service %s has no NodePort", svcKey)
 	}
 
-	// DPF's KubernetesAPIServerVIP is the stable management address used by
-	// components that cannot rely on the cluster service network. Prefer it
-	// over an arbitrary node address; the latter can be a worker or a node
-	// that is no longer reachable from the DPU BMC.
 	var nodeIP string
-	if dpfOperatorConfig.Spec.Overrides != nil &&
-		dpfOperatorConfig.Spec.Overrides.KubernetesAPIServerVIP != nil {
-		nodeIP = strings.TrimSpace(*dpfOperatorConfig.Spec.Overrides.KubernetesAPIServerVIP)
-		if nodeIP != "" {
-			log.Info("Using KubernetesAPIServerVIP for bfb-registry NodePort", "address", nodeIP)
+
+	// Prefer the node hosting the registry pod. This avoids selecting an
+	// arbitrary worker that may not be reachable from the DPU BMC, while still
+	// using the service's externally published NodePort.
+	if len(svc.Spec.Selector) > 0 {
+		pods := &corev1.PodList{}
+		if err := ig.Client.List(ctx, pods,
+			client.InNamespace(dpfOperatorConfig.Namespace),
+			client.MatchingLabels(svc.Spec.Selector)); err != nil {
+			return "", fmt.Errorf("failed to list bfb-registry pods: %w", err)
+		}
+		for i := range pods.Items {
+			if pods.Items[i].Spec.NodeName == "" {
+				continue
+			}
+			node := &corev1.Node{}
+			if err := ig.Client.Get(ctx, types.NamespacedName{Name: pods.Items[i].Spec.NodeName}, node); err != nil {
+				continue
+			}
+			for _, addr := range node.Status.Addresses {
+				if addr.Type == corev1.NodeInternalIP {
+					nodeIP = addr.Address
+					break
+				}
+			}
+			if nodeIP != "" {
+				log.Info("Using node hosting bfb-registry for NodePort", "node", node.Name, "address", nodeIP)
+				break
+			}
 		}
 	}
 
 	if nodeIP == "" {
+		// Keep compatibility with clusters where the registry pod is not yet
+		// observable through the client, or where the service has no selector.
 		nodeList := &corev1.NodeList{}
 		if err := ig.Client.List(ctx, nodeList); err != nil {
 			return "", fmt.Errorf("failed to list nodes: %w", err)

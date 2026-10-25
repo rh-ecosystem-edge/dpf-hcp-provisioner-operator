@@ -478,7 +478,7 @@ var _ = Describe("GetSingletonDPFOperatorConfig", func() {
 })
 
 var _ = Describe("resolveBFBRegistryURL", func() {
-	It("uses the configured management VIP before an arbitrary node address", func() {
+	It("uses the registry pod node before an arbitrary node address", func() {
 		ctx := context.TODO()
 		scheme := newTestScheme()
 		vip := "10.6.135.50"
@@ -501,7 +501,8 @@ var _ = Describe("resolveBFBRegistryURL", func() {
 				Namespace: "dpf-operator-system",
 			},
 			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{NodePort: 30679}},
+				Ports:    []corev1.ServicePort{{NodePort: 30679}},
+				Selector: map[string]string{"app": "bfb-registry"},
 			},
 		}
 		worker := &corev1.Node{
@@ -510,14 +511,22 @@ var _ = Describe("resolveBFBRegistryURL", func() {
 		}
 		management := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{Name: "management"},
-			Status:     corev1.NodeStatus{Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vip}}},
+			Status:     corev1.NodeStatus{Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "10.6.135.51"}}},
 		}
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(config, service, worker, management).Build()
+		registryPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bfb-registry",
+				Namespace: "dpf-operator-system",
+				Labels:    map[string]string{"app": "bfb-registry"},
+			},
+			Spec: corev1.PodSpec{NodeName: "management"},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(config, service, worker, management, registryPod).Build()
 		ig := &IgnitionGenerator{Client: fakeClient}
 
 		result, err := ig.resolveBFBRegistryURL(ctx, config)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal("http://10.6.135.50:30679"))
+		Expect(result).To(Equal("http://10.6.135.51:30679"))
 	})
 })
 
