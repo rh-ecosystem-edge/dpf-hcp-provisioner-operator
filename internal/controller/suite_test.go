@@ -18,8 +18,13 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -39,6 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
+	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
@@ -63,12 +69,30 @@ var (
 	k8sManager ctrl.Manager
 )
 
-// fakeImageChecker implements bfocplookup.ImageChecker for testing
+// fakeRegistry implements bfocplookup.Registry for testing
 // to avoid hitting real container registries in unit/integration tests.
-type fakeImageChecker struct{}
+// FetchLabels derives version labels from the image tag so any selected tag verifies.
+type fakeRegistry struct {
+	tags []string
+}
 
-func (f *fakeImageChecker) CheckTag(_ context.Context, _ name.Reference, _ authn.Keychain) error {
-	return nil
+func (f *fakeRegistry) ListTags(_ context.Context, _ name.Repository, _ authn.Keychain) ([]string, error) {
+	return f.tags, nil
+}
+
+func (f *fakeRegistry) FetchLabels(_ context.Context, image string, _ authn.Keychain) (map[string]string, error) {
+	idx := strings.LastIndex(image, ":")
+	if idx < 0 {
+		return map[string]string{}, nil
+	}
+	ocp, doca, found := strings.Cut(image[idx+1:], "-doca")
+	if !found {
+		return map[string]string{"OCP.version": ocp}, nil
+	}
+	return map[string]string{
+		"OCP.version":         ocp,
+		"NVIDIA.DOCA.version": doca,
+	}, nil
 }
 
 func TestControllers(t *testing.T) {
@@ -98,13 +122,21 @@ var _ = BeforeSuite(func() {
 	err = dpuservicev1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = operatorv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:scheme
+
+	docaPlatformDir, err := docaPlatformModuleDir()
+	Expect(err).NotTo(HaveOccurred())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "crd", "bases"),
 			filepath.Join("testdata", "crds"), // External CRDs for testing (DPUCluster, etc.)
+			// DPFOperatorConfig CRD as shipped by the imported doca-platform module
+			filepath.Join(docaPlatformDir, "config", "operator-crds", "operator.dpu.nvidia.com_dpfoperatorconfigs.yaml"),
 		},
 		ErrorIfCRDPathMissing: true,
 	}
@@ -147,6 +179,24 @@ var _ = BeforeSuite(func() {
 	err = k8sClient.Create(ctx, dpfNs)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("creating DPFOperatorConfig CR")
+	dpfVersion := "v26.4.1"
+	dpfConfig := &operatorv1alpha1.DPFOperatorConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dpfoperatorconfig",
+			Namespace: "dpf-operator-system",
+		},
+		Spec: operatorv1alpha1.DPFOperatorConfigSpec{
+			DeploymentMode:         operatorv1alpha1.DeploymentModeHostTrusted,
+			ProvisioningController: &operatorv1alpha1.ProvisioningControllerConfiguration{},
+		},
+	}
+	err = k8sClient.Create(ctx, dpfConfig)
+	Expect(err).NotTo(HaveOccurred())
+	dpfConfig.Status.Version = &dpfVersion
+	err = k8sClient.Status().Update(ctx, dpfConfig)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("creating DPFHCPProvisionerConfig CR")
 	configCR := &provisioningv1alpha1.DPFHCPProvisionerConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -172,7 +222,13 @@ var _ = BeforeSuite(func() {
 		Recorder: k8sManager.GetEventRecorderFor(common.ProvisionerControllerName),
 		ImageLookup: func() *bfocplookup.ImageLookup {
 			lookup := bfocplookup.NewImageLookup(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-ocp-layer-lookup"))
-			lookup.ImageChecker = &fakeImageChecker{}
+			lookup.Registry = &fakeRegistry{tags: []string{
+				"4.17.0", "4.17.0-doca3.4.2",
+				"4.19.0", "4.19.0-doca3.4.2",
+				"4.19.0-ec.5", "4.19.0-ec.5-doca3.4.2",
+				"4.19.0-ec.6", "4.19.0-ec.6-doca3.4.2",
+				"4.22.11", "4.22.11-doca3.4.2",
+			}}
 			return lookup
 		}(),
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),
@@ -201,6 +257,22 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+// docaPlatformModuleDir returns the module cache directory of the imported
+// doca-platform module, so envtest can load the CRDs it ships. The module is
+// vendored, but vendoring only copies Go packages, not the CRD manifests.
+func docaPlatformModuleDir() (string, error) {
+	// On failure go still prints the JSON, with the reason in its Error field
+	out, runErr := exec.Command("go", "mod", "download", "-json", "github.com/nvidia/doca-platform").Output()
+	var mod struct{ Dir, Error string }
+	if err := json.Unmarshal(out, &mod); err != nil {
+		return "", fmt.Errorf("go mod download github.com/nvidia/doca-platform: %v (output: %q)", errors.Join(runErr, err), out)
+	}
+	if mod.Error != "" || mod.Dir == "" {
+		return "", fmt.Errorf("go mod download github.com/nvidia/doca-platform: %s", mod.Error)
+	}
+	return mod.Dir, nil
+}
 
 // getFirstFoundEnvTestBinaryDir locates the first binary in the specified path.
 // ENVTEST-based tests depend on specific binaries, usually located in paths set by

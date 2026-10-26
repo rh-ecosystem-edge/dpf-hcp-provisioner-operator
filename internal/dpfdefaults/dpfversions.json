@@ -1,5 +1,6 @@
 {
   "26.4": {
+    "docaVersion": "3.4",
     "ovn": {
       "chartRepoURL": "oci://ghcr.io/mellanox/charts",
       "chartName": "ovn-kubernetes-chart",
@@ -22,6 +23,7 @@
     }
   },
   "default": {
+    "docaVersion": "3.4",
     "ovn": {
       "chartRepoURL": "oci://ghcr.io/mellanox/charts",
       "chartName": "ovn-kubernetes-chart",
