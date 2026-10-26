@@ -19,7 +19,6 @@ package dpuservicetemplate
 import (
 	"bytes"
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 
@@ -27,92 +26,17 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/dpfdefaults"
 )
-
-//go:embed dpuservicetemplate_values.json
-var dpuServiceTemplateValuesJSON []byte
-
-// OVNTemplateValues holds the chart settings for the OVN DPUServiceTemplate.
-type OVNTemplateValues struct {
-	ChartRepoURL string `json:"chartRepoURL"`
-	ChartName    string `json:"chartName"`
-	ChartVersion string `json:"chartVersion"`
-}
-
-// DTSTemplateValues holds the chart and image settings for the DOCA Telemetry Service DPUServiceTemplate.
-type DTSTemplateValues struct {
-	ChartRepoURL   string `json:"chartRepoURL"`
-	ChartName      string `json:"chartName"`
-	ChartVersion   string `json:"chartVersion"`
-	ImageDTS       string `json:"imageDTS"`
-	PrometheusPort int32  `json:"prometheusPort"`
-}
-
-// HBNTemplateValues holds the chart and image settings for the HBN DPUServiceTemplate.
-type HBNTemplateValues struct {
-	ChartRepoURL string `json:"chartRepoURL"`
-	ChartName    string `json:"chartName"`
-	ChartVersion string `json:"chartVersion"`
-	ImageRepo    string `json:"imageRepo"`
-	ImageTag     string `json:"imageTag"`
-	BFSFCount    int32  `json:"bfSFCount"`
-}
-
-// DPUServiceTemplateValues holds all values for creating DPUServiceTemplates in a particular DPF version
-type DPUServiceTemplateValues struct {
-	OVN             OVNTemplateValues `json:"ovn"`
-	DTS             DTSTemplateValues `json:"dts"`
-	HBN             HBNTemplateValues `json:"hbn"`
-	ImagePullSecret string            `json:"-"`
-}
-
-// embeddedDefaultDPFVersionKey is the JSON map key for DPUServiceTemplate defaults used when the
-// running DPF major.minor version has no dedicated entry (e.g. DPF master or a new GA minor).
-const embeddedDefaultDPFVersionKey = "default"
-
-// dpfVersionToDPUServiceTemplateValuesMap maps DPF major.minor versions (e.g. "26.4") to their corresponding DPUServiceTemplate values.
-// When a new DPF version is released with different chart/image versions, add a new entry to dpuservicetemplate_values.json.
-var dpfVersionToDPUServiceTemplateValuesMap map[string]DPUServiceTemplateValues
-
-func init() {
-	if err := json.Unmarshal(dpuServiceTemplateValuesJSON, &dpfVersionToDPUServiceTemplateValuesMap); err != nil {
-		panic(fmt.Sprintf("failed to parse embedded dpuservicetemplate_values.json: %v", err))
-	}
-}
-
-// DPUServiceTemplateValuesForVersion returns embedded DPUServiceTemplateValues for the given DPF
-// major.minor version (e.g. "26.4"). Versions without a dedicated entry use the "default" row.
-func DPUServiceTemplateValuesForVersion(version string) (*DPUServiceTemplateValues, error) {
-	return resolveEmbeddedDPUServiceTemplateValues(context.Background(), version)
-}
-
-// resolveEmbeddedDPUServiceTemplateValues returns embedded values for version.
-// Versions without a dedicated entry use the "default" row.
-func resolveEmbeddedDPUServiceTemplateValues(ctx context.Context, version string) (*DPUServiceTemplateValues, error) {
-	if version == "" {
-		return nil, fmt.Errorf("unsupported DPF version %q", version)
-	}
-
-	if dpuServiceTemplateValues, ok := dpfVersionToDPUServiceTemplateValuesMap[version]; ok {
-		return &dpuServiceTemplateValues, nil
-	}
-
-	if dpuServiceTemplateValues, ok := dpfVersionToDPUServiceTemplateValuesMap[embeddedDefaultDPFVersionKey]; ok {
-		logf.FromContext(ctx).Info("No embedded DPUServiceTemplate defaults for DPF version; using default",
-			"requestedVersion", version)
-		return &dpuServiceTemplateValues, nil
-	}
-
-	return nil, fmt.Errorf("unsupported DPF version %q: no embedded entry and no %q defaults", version, embeddedDefaultDPFVersionKey)
-}
 
 const overridesConfigMapName = "dpuservicetemplate-overrides"
 
 // applyOverridesFromConfigMap reads the [[overridesConfigMapName]] ConfigMap
 // from the operator namespace and merges any matching version overrides
-// on top of the given hard-coded operator values. If the ConfigMap doesn't
-// exist, the hard-coded values are returned unchanged.
-func applyOverridesFromConfigMap(ctx context.Context, c client.Reader, operatorNamespace, version string, currentDPUServiceTemplateValues *DPUServiceTemplateValues) error {
+// on top of the given embedded values. If the ConfigMap doesn't
+// exist, the embedded values are returned unchanged.
+func applyOverridesFromConfigMap(ctx context.Context, c client.Reader, operatorNamespace, version string, currentDPUServiceTemplateValues *dpfdefaults.DPUServiceTemplateValues) error {
 	log := logf.FromContext(ctx)
 
 	var cm corev1.ConfigMap
