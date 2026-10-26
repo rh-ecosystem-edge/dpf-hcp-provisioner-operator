@@ -57,11 +57,18 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 	}
 
 	if zeroTrust {
-		files = append(files, content.FileDefinition{
-			Path:          "/var/lib/dpf/dpuagent/bootstrap-kubeconfig",
-			Mode:          0600,
-			ContentSource: "data:;base64,{{ .BootstrapKubeconfig | b64enc }}",
-		})
+		files = append(files,
+			content.FileDefinition{
+				Path:          "/var/lib/dpf/dpuagent/bootstrap-kubeconfig",
+				Mode:          0600,
+				ContentSource: "data:;base64,{{ .BootstrapKubeconfig | b64enc }}",
+			},
+			content.FileDefinition{
+				Path:          "/etc/dpf/bfb-registry",
+				Mode:          0644,
+				ContentSource: "data:,BFBRegistryURL={{ .BFBRegistryURL }}" + nl,
+			},
+		)
 	}
 
 	return &content.EmbeddedProvider{

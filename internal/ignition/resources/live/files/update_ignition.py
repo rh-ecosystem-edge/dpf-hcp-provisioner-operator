@@ -8,6 +8,7 @@ import sys
 IGNITION_FILE = sys.argv[1]
 ENV_FILE = '/etc/dpf/environment'
 BOOTSTRAP_KUBECONFIG = '/var/lib/dpf/dpuagent/bootstrap-kubeconfig'
+BFB_REGISTRY_FILE = '/etc/dpf/bfb-registry'
 
 ignition = json.load(open(IGNITION_FILE))
 
@@ -43,6 +44,19 @@ if os.path.exists(BOOTSTRAP_KUBECONFIG):
             'mode': 384,
             'contents': {
                 'source': 'data:;base64,' + kc_b64
+            }
+        })
+
+if os.path.exists(BFB_REGISTRY_FILE):
+    bfb_registry = open(BFB_REGISTRY_FILE).read()
+    if bfb_registry.strip():
+        bfb_registry_b64 = base64.b64encode(bfb_registry.encode()).decode()
+        ignition['storage']['files'].append({
+            'path': BFB_REGISTRY_FILE,
+            'overwrite': True,
+            'mode': 420,
+            'contents': {
+                'source': 'data:;base64,' + bfb_registry_b64
             }
         })
 
