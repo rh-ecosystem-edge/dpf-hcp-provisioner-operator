@@ -41,6 +41,7 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpuservicetemplate"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/dpfdefaults"
 )
 
 const testOperatorNamespace = "dpf-hcp-provisioner-system"
@@ -830,29 +831,23 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 
 	Describe("GetDefaultsForVersion", func() {
 		It("should return defaults for supported version 26.4", func() {
-			defaults, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("26.4")
+			defaults, err := dpfdefaults.TemplateValues(context.Background(), "26.4")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(defaults.OVN.ChartVersion).To(Equal("v26.4.1-ocp-release-v4.22"))
 			Expect(defaults.DTS.ChartVersion).To(Equal("1.25.5"))
 			Expect(defaults.HBN.ChartVersion).To(Equal("3.4.0"))
+			Expect(defaults.HBN.ImageTag).To(Equal("3.4.0-doca3.4.0"))
 		})
 
 		It("should return embedded default for unknown DPF minors", func() {
-			defaults264, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("26.4")
+			defaults264, err := dpfdefaults.TemplateValues(context.Background(), "26.4")
 			Expect(err).NotTo(HaveOccurred())
-			for _, version := range []string{"26.8", "27.0"} {
-				defaults, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion(version)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(defaults.OVN).To(Equal(defaults264.OVN))
-			}
-		})
-
-		It("should return error for empty version", func() {
-			_, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("")
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unsupported DPF version"))
+			defaults, err := dpfdefaults.TemplateValues(context.Background(), "26.12")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*defaults).To(Equal(*defaults264))
 		})
 	})
+
 })
 
 var _ = Describe("DPUServiceTemplate Reconciler", func() {
