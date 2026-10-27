@@ -14,12 +14,23 @@ var systemdFS embed.FS
 
 const nl = "%0A" // URL-encoded newline for data URIs
 
-func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
+func NewProvider(zeroTrust, installViaRedfish bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
 
 	dpuMode := "trusted"
 	if zeroTrust {
 		dpuMode = "zero-trust"
+	}
+
+	envSource := "data:," +
+		"DPUName={{.DPUName}}" + nl +
+		"DPUNamespace={{.DPUNamespace}}" + nl +
+		"DPUUID={{.DPUUID}}" + nl +
+		"DPUMode=" + dpuMode + nl +
+		"ControlPlaneMTU={{.ControlPlaneMTU}}" + nl
+	// DPF only populates BFBRegistryURL for Redfish installs, independently of security mode.
+	if installViaRedfish {
+		envSource += "BFBRegistryURL={{.BFBRegistryURL}}" + nl
 	}
 
 	files := []content.FileDefinition{
@@ -35,14 +46,9 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 			ContentSource: "data:,{{.DPUHostName}}",
 		},
 		{
-			Path: "/etc/dpf/environment",
-			Mode: 0644,
-			ContentSource: "data:," +
-				"DPUName={{.DPUName}}" + nl +
-				"DPUNamespace={{.DPUNamespace}}" + nl +
-				"DPUUID={{.DPUUID}}" + nl +
-				"DPUMode=" + dpuMode + nl +
-				"ControlPlaneMTU={{.ControlPlaneMTU}}" + nl,
+			Path:          "/etc/dpf/environment",
+			Mode:          0644,
+			ContentSource: envSource,
 		},
 		{
 			Path:          "/usr/local/bin/install-rhcos-dpf.sh",
