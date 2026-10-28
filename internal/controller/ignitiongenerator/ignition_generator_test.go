@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -546,6 +547,29 @@ var _ = Describe("buildTargetIgnition", func() {
 		Expect(*dpuAgentUnit.Contents).To(ContainSubstring("--control-plane-mtu $ControlPlaneMTU"))
 	})
 
+	DescribeTable("should always configure dpu-agent with a bootstrap kubeconfig",
+		func(zeroTrust bool) {
+			result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, zeroTrust, "")
+			Expect(err).NotTo(HaveOccurred())
+
+			var dpuAgentUnit *igntypes.Unit
+			for i := range result.Systemd.Units {
+				if result.Systemd.Units[i].Name == "dpu-agent.service" {
+					dpuAgentUnit = &result.Systemd.Units[i]
+					break
+				}
+			}
+			Expect(dpuAgentUnit).NotTo(BeNil())
+			Expect(dpuAgentUnit.Contents).NotTo(BeNil())
+			unit := *dpuAgentUnit.Contents
+			Expect(strings.Count(unit, "--bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig")).To(Equal(1))
+			Expect(strings.Contains(unit, "--zero-trust-mode")).To(Equal(zeroTrust))
+			Expect(unit).NotTo(ContainSubstring("{{"))
+		},
+		Entry("trusted", false),
+		Entry("zero-trust", true),
+	)
+
 	It("should preserve HCP ignition version from upstream", func() {
 		// HCP ignition may come with older spec versions (e.g. 3.2.0).
 		// buildTargetIgnition preserves the original version — validation
@@ -751,6 +775,30 @@ var _ = Describe("buildLiveIgnition", func() {
 		Expect(envFile).NotTo(BeNil())
 		Expect(*envFile.Contents.Source).To(ContainSubstring("ControlPlaneMTU={{.ControlPlaneMTU}}"))
 	})
+
+	DescribeTable("should always embed the bootstrap kubeconfig template",
+		func(zeroTrust bool) {
+			targetIgnition := ignition.NewEmptyIgnition("3.4.0")
+			hcpJSON, err := json.Marshal(ignition.NewEmptyIgnition("3.4.0"))
+			Expect(err).NotTo(HaveOccurred())
+			result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, &dpuprovisioningv1alpha1.DPUFlavor{}, zeroTrust)
+			Expect(err).NotTo(HaveOccurred())
+
+			var kubeconfigs []igntypes.File
+			for _, file := range result.Storage.Files {
+				if file.Path == "/var/lib/dpf/dpuagent/bootstrap-kubeconfig" {
+					kubeconfigs = append(kubeconfigs, file)
+				}
+			}
+			Expect(kubeconfigs).To(HaveLen(1))
+			Expect(kubeconfigs[0].Mode).To(Equal(ptr.To(0600)))
+			Expect(kubeconfigs[0].Overwrite).To(Equal(ptr.To(true)))
+			Expect(kubeconfigs[0].Contents.Source).To(Equal(ptr.To("data:;base64,{{ .BootstrapKubeconfig | b64enc }}")))
+			Expect(kubeconfigs[0].Contents.Compression).To(BeNil(), "DPF must substitute the template before decoding")
+		},
+		Entry("trusted", false),
+		Entry("zero-trust", true),
+	)
 
 	It("should copy passwd from HCP ignition", func() {
 		targetIgnition := ignition.NewEmptyIgnition("3.4.0")

@@ -18,6 +18,7 @@ package ignitiongenerator
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -667,6 +668,11 @@ var _ = Describe("generateIgnition integration", func() {
 		resolved = strings.ReplaceAll(resolved, "{{.DPUUID}}", "12345678-1234-1234-1234-123456789abc")
 		resolved = strings.ReplaceAll(resolved, "{{.KernelParameters}}", "console=ttyAMA0")
 		resolved = strings.ReplaceAll(resolved, "{{.ControlPlaneMTU}}", "1500")
+		// This pipeline uses host-trusted mode; bootstrap credentials must still be present.
+		Expect(resolved).To(ContainSubstring("{{ .BootstrapKubeconfig | b64enc }}"))
+		bootstrapKubeconfig := "apiVersion: v1\nkind: Config\n"
+		bootstrapKubeconfigB64 := base64.StdEncoding.EncodeToString([]byte(bootstrapKubeconfig))
+		resolved = strings.ReplaceAll(resolved, "{{ .BootstrapKubeconfig | b64enc }}", bootstrapKubeconfigB64)
 
 		// Parse the resolved live ignition
 		liveIgn := &igntypes.Config{}
@@ -687,5 +693,15 @@ var _ = Describe("generateIgnition integration", func() {
 			filePaths[f.Path] = true
 		}
 		Expect(filePaths).To(HaveKey("/var/target.ign"), "should embed target ignition")
+		Expect(filePaths).To(HaveKey("/var/lib/dpf/dpuagent/bootstrap-kubeconfig"))
+		for _, file := range liveIgn.Storage.Files {
+			if file.Path == "/var/lib/dpf/dpuagent/bootstrap-kubeconfig" {
+				Expect(file.Mode).To(Equal(ptr.To(0600)))
+				Expect(file.Contents.Source).To(Equal(ptr.To("data:;base64," + bootstrapKubeconfigB64)))
+				decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*file.Contents.Source, "data:;base64,"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(decoded)).To(Equal(bootstrapKubeconfig))
+			}
+		}
 	})
 })
