@@ -11,8 +11,8 @@ NVCONFIG_CHANGED=false
 log() {
     msg="[$(date +%H:%M:%S)] $*"
     echo "$msg"
+    # Reserve the small rshim boot-log buffer for bfupsignal.sh completion markers.
     echo "$msg" >/dev/kmsg
-    /usr/local/bin/bflog.sh "$msg"
 }
 
 if is_zero_trust; then
