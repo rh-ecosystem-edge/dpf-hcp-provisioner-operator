@@ -81,9 +81,18 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		Context("When version tag exists in registry", func() {
 			It("should return the full image reference", func() {
 				lookup.ImageChecker = &fakeImageChecker{err: nil}
-				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", "", authn.DefaultKeychain)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(image).To(Equal(testRepository + ":4.19.0-ec.5"))
+			})
+		})
+
+		Context("When version tag with variant exists in registry", func() {
+			It("should return the full image reference with variant suffix", func() {
+				lookup.ImageChecker = &fakeImageChecker{err: nil}
+				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", "hotfix1", authn.DefaultKeychain)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(image).To(Equal(testRepository + ":4.19.0-ec.5-hotfix1"))
 			})
 		})
 
@@ -92,7 +101,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
 				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.20.0-ec.1", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.20.0-ec.1", "", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var versionNotFoundErr *VersionNotFoundError
 				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
@@ -104,7 +113,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("unexpected status code 404 not found"),
 				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", "", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var versionNotFoundErr *VersionNotFoundError
 				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
@@ -116,7 +125,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("UNAUTHORIZED: authentication required"),
 				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", "", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var authErr *RegistryAuthError
 				Expect(err).To(BeAssignableToTypeOf(authErr))
@@ -128,7 +137,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 				lookup.ImageChecker = &fakeImageChecker{
 					err: fmt.Errorf("connection refused"),
 				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", "", authn.DefaultKeychain)
 				Expect(err).To(HaveOccurred())
 				var accessErr *RegistryAccessError
 				Expect(err).To(BeAssignableToTypeOf(accessErr))
