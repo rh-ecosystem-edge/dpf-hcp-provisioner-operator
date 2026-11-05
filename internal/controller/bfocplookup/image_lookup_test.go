@@ -18,6 +18,7 @@ package bfocplookup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -190,71 +191,59 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		Context("When no matching tag exists in registry", func() {
-			It("should return VersionNotFoundError", func() {
+			It("should return a permanent VersionNotFound error", func() {
 				registry.tags = []string{"4.20.0-ec.1", "4.20.0-ec.1-doca3.4.2"}
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var versionNotFoundErr *VersionNotFoundError
-				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
+				expectLookupError(err, reasonVersionNotFound, true)
 			})
 		})
 
 		Context("When registry returns an auth error", func() {
-			It("should return RegistryAuthError", func() {
-				registry.tagsErr = fmt.Errorf("UNAUTHORIZED: authentication required")
+			It("should return a permanent RegistryAuthError error", func() {
+				registry.tagsErr = registryError(testRepository, fmt.Errorf("UNAUTHORIZED: authentication required"))
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var authErr *RegistryAuthError
-				Expect(err).To(BeAssignableToTypeOf(authErr))
+				expectLookupError(err, reasonRegistryAuthError, true)
 			})
 		})
 
 		Context("When registry returns a transient error", func() {
-			It("should return RegistryAccessError", func() {
-				registry.tagsErr = fmt.Errorf("connection refused")
+			It("should return a transient RegistryAccessError error", func() {
+				registry.tagsErr = registryError(testRepository, fmt.Errorf("connection refused"))
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var accessErr *RegistryAccessError
-				Expect(err).To(BeAssignableToTypeOf(accessErr))
+				expectLookupError(err, reasonRegistryAccessError, false)
 			})
 		})
 
 		Context("When the repository is malformed", func() {
-			It("should return RegistryAccessError", func() {
+			It("should return a transient RegistryAccessError error", func() {
 				registry.tags = sampleRegistryTags
 				_, err := lookup.selectImageTag(context.Background(), "quay.io/a b", "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var accessErr *RegistryAccessError
-				Expect(err).To(BeAssignableToTypeOf(accessErr))
+				expectLookupError(err, reasonRegistryAccessError, false)
 			})
 		})
 
 		Context("When the selected image's OCP label disagrees with its tag", func() {
-			It("should return LabelMismatchError", func() {
+			It("should return a permanent LabelMismatch error", func() {
 				registry.tags = sampleRegistryTags
 				registry.labels = map[string]string{
 					"OCP.version":         "4.22.10",
 					"NVIDIA.DOCA.version": "3.4.2",
 				}
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var mismatchErr *LabelMismatchError
-				Expect(err).To(BeAssignableToTypeOf(mismatchErr))
+				expectLookupError(err, reasonLabelMismatch, true)
 				Expect(err.Error()).To(ContainSubstring("OCP.version"))
 			})
 		})
 
 		Context("When the selected image's DOCA label disagrees with its tag", func() {
-			It("should return LabelMismatchError", func() {
+			It("should return a permanent LabelMismatch error", func() {
 				registry.tags = sampleRegistryTags
 				registry.labels = map[string]string{
 					"OCP.version":         "4.22.11",
 					"NVIDIA.DOCA.version": "3.5.0",
 				}
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var mismatchErr *LabelMismatchError
-				Expect(err).To(BeAssignableToTypeOf(mismatchErr))
+				expectLookupError(err, reasonLabelMismatch, true)
 				Expect(err.Error()).To(ContainSubstring("NVIDIA.DOCA.version"))
 			})
 		})
@@ -270,24 +259,20 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		Context("When label fetching fails with a transient error", func() {
-			It("should return RegistryAccessError", func() {
+			It("should return a transient RegistryAccessError error", func() {
 				registry.tags = sampleRegistryTags
-				registry.labelsErr = fmt.Errorf("connection refused")
+				registry.labelsErr = registryError(testRepository, fmt.Errorf("connection refused"))
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var accessErr *RegistryAccessError
-				Expect(err).To(BeAssignableToTypeOf(accessErr))
+				expectLookupError(err, reasonRegistryAccessError, false)
 			})
 		})
 
 		Context("When label fetching fails with an auth error", func() {
-			It("should return RegistryAuthError", func() {
+			It("should return a permanent RegistryAuthError error", func() {
 				registry.tags = sampleRegistryTags
-				registry.labelsErr = fmt.Errorf("UNAUTHORIZED: authentication required")
+				registry.labelsErr = registryError(testRepository, fmt.Errorf("UNAUTHORIZED: authentication required"))
 				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var authErr *RegistryAuthError
-				Expect(err).To(BeAssignableToTypeOf(authErr))
+				expectLookupError(err, reasonRegistryAuthError, true)
 			})
 		})
 	})
@@ -436,7 +421,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		It("should retry when the registry is unreachable", func() {
-			registry.tagsErr = fmt.Errorf("connection refused")
+			registry.tagsErr = registryError(testRepository, fmt.Errorf("connection refused"))
 			_, err := lookup.LookupBlueFieldOCPLayerImage(context.Background(), cr)
 			Expect(err).To(HaveOccurred())
 
@@ -462,7 +447,7 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		It("should retry when label fetching is unreachable", func() {
-			registry.labelsErr = fmt.Errorf("connection refused")
+			registry.labelsErr = registryError(testRepository, fmt.Errorf("connection refused"))
 			_, err := lookup.LookupBlueFieldOCPLayerImage(context.Background(), cr)
 			Expect(err).To(HaveOccurred())
 
@@ -502,116 +487,28 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 
 		Context("When URL is empty", func() {
-			It("should return InvalidBlueFieldOCPLayerImageURLError", func() {
+			It("should return a permanent InvalidBlueFieldOCPLayerURL error", func() {
 				err := validateBlueFieldOCPLayerImageURL("", "4.19.0-ec.5")
-				Expect(err).To(HaveOccurred())
-				var invalidURLErr *InvalidBlueFieldOCPLayerImageURLError
-				Expect(err).To(BeAssignableToTypeOf(invalidURLErr))
+				expectLookupError(err, reasonInvalidBlueFieldOCPLayerURL, true)
 			})
 		})
 
 		Context("When URL is missing colon separator", func() {
-			It("should return InvalidBlueFieldOCPLayerImageURLError", func() {
+			It("should return a permanent InvalidBlueFieldOCPLayerURL error", func() {
 				url := "quay.io/edge-infrastructure/bluefield-rhcos"
 				err := validateBlueFieldOCPLayerImageURL(url, "4.19.0-ec.5")
-				Expect(err).To(HaveOccurred())
-				var invalidURLErr *InvalidBlueFieldOCPLayerImageURLError
-				Expect(err).To(BeAssignableToTypeOf(invalidURLErr))
+				expectLookupError(err, reasonInvalidBlueFieldOCPLayerURL, true)
 			})
 		})
 	})
 
-	Describe("Error Types", func() {
-		Context("RegistryAccessError", func() {
-			It("should have a descriptive error message", func() {
-				err := &RegistryAccessError{
-					Repository: testRepository,
-					Err:        fmt.Errorf("connection refused"),
-				}
-				Expect(err.Error()).To(ContainSubstring("failed to access registry"))
-				Expect(err.Error()).To(ContainSubstring(testRepository))
-			})
+	Describe("registryError", func() {
+		It("should classify auth failures as permanent", func() {
+			expectLookupError(registryError(testRepository, fmt.Errorf("UNAUTHORIZED: authentication required")), reasonRegistryAuthError, true)
 		})
 
-		Context("RegistryAuthError", func() {
-			It("should have a descriptive error message", func() {
-				err := &RegistryAuthError{
-					Repository: testRepository,
-					Err:        fmt.Errorf("UNAUTHORIZED"),
-				}
-				Expect(err.Error()).To(ContainSubstring("authentication failed"))
-				Expect(err.Error()).To(ContainSubstring(testRepository))
-			})
-		})
-
-		Context("VersionNotFoundError", func() {
-			It("should include OCP version, DOCA version and repository in error message", func() {
-				err := &VersionNotFoundError{
-					Version:     "4.22.11",
-					DocaVersion: "3.4",
-					Repository:  testRepository,
-				}
-				Expect(err.Error()).To(ContainSubstring("4.22.11"))
-				Expect(err.Error()).To(ContainSubstring("3.4"))
-				Expect(err.Error()).To(ContainSubstring(testRepository))
-			})
-		})
-
-		Context("LabelMismatchError", func() {
-			It("should include the image, label, label value and expected value in error message", func() {
-				err := &LabelMismatchError{
-					Image:      testRepository + ":4.22.11-doca3.4.2",
-					Label:      OCPLayerOCPVersionLabel,
-					LabelValue: "4.22.10",
-					Expected:   "4.22.11",
-				}
-				Expect(err.Error()).To(ContainSubstring("4.22.11-doca3.4.2"))
-				Expect(err.Error()).To(ContainSubstring("OCP.version"))
-				Expect(err.Error()).To(ContainSubstring("4.22.10"))
-			})
-		})
-
-		Context("UnsupportedDPFVersionError", func() {
-			It("should include the DPF version and wrap the underlying error", func() {
-				cause := fmt.Errorf("no embedded entry and no \"default\" defaults")
-				err := &UnsupportedDPFVersionError{DPFVersion: "26.12", Err: cause}
-				Expect(err.Error()).To(ContainSubstring("26.12"))
-				Expect(err.Reason()).To(Equal("UnsupportedDPFVersion"))
-				Expect(err.Unwrap()).To(Equal(cause))
-			})
-		})
-
-		Context("DPFVersionError", func() {
-			It("should wrap the underlying error", func() {
-				cause := fmt.Errorf("DPFOperatorConfig.status.version is not set")
-				err := &DPFVersionError{Err: cause}
-				Expect(err.Error()).To(ContainSubstring("failed to determine DPF version"))
-				Expect(err.Error()).To(ContainSubstring("DPFOperatorConfig.status.version is not set"))
-				Expect(err.Unwrap()).To(Equal(cause))
-			})
-		})
-
-		Context("InvalidImageFormatError", func() {
-			It("should include the message and URL in error message", func() {
-				err := &InvalidImageFormatError{
-					Message: "missing tag separator",
-					URL:     "quay.io/test/image",
-				}
-				Expect(err.Error()).To(ContainSubstring("missing tag separator"))
-				Expect(err.Error()).To(ContainSubstring("quay.io/test/image"))
-			})
-		})
-
-		Context("InvalidBlueFieldOCPLayerImageURLError", func() {
-			It("should include version and message in error message", func() {
-				err := &InvalidBlueFieldOCPLayerImageURLError{
-					Version: "4.19.0-ec.5",
-					URL:     "",
-					Message: "BlueField OCP layer image URL is empty",
-				}
-				Expect(err.Error()).To(ContainSubstring("4.19.0-ec.5"))
-				Expect(err.Error()).To(ContainSubstring("empty"))
-			})
+		It("should classify other failures as transient", func() {
+			expectLookupError(registryError(testRepository, fmt.Errorf("connection refused")), reasonRegistryAccessError, false)
 		})
 	})
 
@@ -633,3 +530,10 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 	})
 })
+
+func expectLookupError(err error, reason string, permanent bool) {
+	var lerr *lookupError
+	ExpectWithOffset(1, errors.As(err, &lerr)).To(BeTrue(), "expected a lookupError, got %v", err)
+	ExpectWithOffset(1, lerr.reason).To(Equal(reason))
+	ExpectWithOffset(1, lerr.permanent).To(Equal(permanent))
+}
