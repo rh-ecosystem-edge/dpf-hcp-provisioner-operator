@@ -54,14 +54,12 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 			Mode:          0755,
 			ContentSource: f("update_ignition.py"),
 		},
-	}
-
-	if zeroTrust {
-		files = append(files, content.FileDefinition{
+		{
+			// DPF provisioning substitutes the bootstrap kubeconfig in every DPU mode.
 			Path:          "/var/lib/dpf/dpuagent/bootstrap-kubeconfig",
 			Mode:          0600,
 			ContentSource: "data:;base64,{{ .BootstrapKubeconfig | b64enc }}",
-		})
+		},
 	}
 
 	return &content.EmbeddedProvider{
