@@ -544,6 +544,7 @@ var _ = Describe("buildTargetIgnition", func() {
 		}
 		Expect(dpuAgentUnit).NotTo(BeNil())
 		Expect(*dpuAgentUnit.Contents).To(ContainSubstring("--control-plane-mtu $ControlPlaneMTU"))
+		Expect(*dpuAgentUnit.Contents).NotTo(ContainSubstring("--dpuflavor"))
 	})
 
 	It("should preserve HCP ignition version from upstream", func() {
