@@ -18,6 +18,7 @@ package ignitiongenerator
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -335,6 +336,82 @@ var _ = Describe("generateIgnition integration", func() {
 		event := <-recorder.Events
 		Expect(event).To(ContainSubstring("IgnitionConfigured"))
 	})
+
+	DescribeTable("should select the registry template from the configured install interface",
+		func(provisioning *operatorv1alpha1.ProvisioningControllerConfiguration, wantTemplate bool) {
+			for _, deploymentMode := range []operatorv1alpha1.DeploymentMode{
+				operatorv1alpha1.DeploymentModeHostTrusted,
+				operatorv1alpha1.DeploymentModeZeroTrust,
+			} {
+				By(fmt.Sprintf("generating ignition for deployment mode %s", deploymentMode))
+				hcpJSON := buildRealisticHCPIgnition()
+				server, caCert := startIgnitionServer(hcpJSON)
+				defer server.Close()
+
+				cr, objects := setupClusterObjects(server, caCert)
+				operatorConfig := objects[5].(*operatorv1alpha1.DPFOperatorConfig)
+				operatorConfig.Spec.DeploymentMode = deploymentMode
+				operatorConfig.Spec.ProvisioningController = provisioning
+				scheme := newTestScheme()
+				fakeClient := fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithStatusSubresource(cr).
+					WithObjects(
+						cr,
+						objects[0].(*corev1.Secret),
+						objects[1].(*corev1.Secret),
+						objects[2].(*hyperv1.HostedCluster),
+						objects[3].(*dpuservicev1alpha1.DPUDeployment),
+						objects[4].(*dpuprovisioningv1alpha1.DPUFlavor),
+						operatorConfig,
+					).
+					Build()
+				ig := NewIgnitionGenerator(fakeClient, scheme, recorder)
+				result, err := ig.GenerateIgnition(ctx, cr)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeZero())
+
+				cm := &corev1.ConfigMap{}
+				Expect(fakeClient.Get(ctx, types.NamespacedName{
+					Name: ConfigMapName("dpucluster-1"), Namespace: "dpf-operator-system",
+				}, cm)).To(Succeed())
+				liveIgn := &igntypes.Config{}
+				Expect(json.Unmarshal([]byte(cm.Data[configMapKeyName]), liveIgn)).To(Succeed())
+				var envSource string
+				for _, file := range liveIgn.Storage.Files {
+					if file.Path == dpfEnvironmentIgnitionPath {
+						envSource = *file.Contents.Source
+						break
+					}
+				}
+				Expect(envSource).NotTo(BeEmpty())
+				if wantTemplate {
+					Expect(envSource).To(ContainSubstring("BFBRegistryURL={{.BFBRegistryURL}}"))
+				} else {
+					Expect(envSource).NotTo(ContainSubstring("BFBRegistryURL="))
+				}
+				if deploymentMode == operatorv1alpha1.DeploymentModeZeroTrust {
+					Expect(envSource).To(ContainSubstring("DPUMode=zero-trust"))
+				} else {
+					Expect(envSource).To(ContainSubstring("DPUMode=trusted"))
+				}
+			}
+		},
+		Entry("missing provisioning configuration", (*operatorv1alpha1.ProvisioningControllerConfiguration)(nil), false),
+		Entry("missing install interface", &operatorv1alpha1.ProvisioningControllerConfiguration{}, false),
+		Entry("empty install interface", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{},
+		}, false),
+		Entry("hostagent", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{}},
+		}, false),
+		Entry("legacy GNOI", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaGNOI: &operatorv1alpha1.InstallViaGNOI{}},
+		}, false),
+		Entry("Redfish", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{}},
+		}, true),
+	)
 
 	It("should produce validated ignition with MTU=1500 (no NM connections)", func() {
 		hcpJSON := buildRealisticHCPIgnition()
@@ -667,6 +744,9 @@ var _ = Describe("generateIgnition integration", func() {
 		resolved = strings.ReplaceAll(resolved, "{{.DPUUID}}", "12345678-1234-1234-1234-123456789abc")
 		resolved = strings.ReplaceAll(resolved, "{{.KernelParameters}}", "console=ttyAMA0")
 		resolved = strings.ReplaceAll(resolved, "{{.ControlPlaneMTU}}", "1500")
+		resolved = strings.ReplaceAll(resolved, "{{.BFBRegistryURL}}", "http://192.168.1.1:30080")
+		bootstrapKubeconfigB64 := base64.StdEncoding.EncodeToString([]byte("apiVersion: v1\nkind: Config\n"))
+		resolved = strings.ReplaceAll(resolved, "{{ .BootstrapKubeconfig | b64enc }}", bootstrapKubeconfigB64)
 
 		// Parse the resolved live ignition
 		liveIgn := &igntypes.Config{}

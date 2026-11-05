@@ -75,12 +75,12 @@ func (p *EmbeddedProvider) GetSystemdUnits() ([]SystemdUnitDefinition, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(p.SkipUnits) == 0 {
-		return units, nil
-	}
 	skip := make(map[string]bool, len(p.SkipUnits))
 	for _, name := range p.SkipUnits {
 		skip[name] = true
+	}
+	if len(p.SkipUnits) == 0 {
+		return units, nil
 	}
 	filtered := make([]SystemdUnitDefinition, 0, len(units))
 	for _, u := range units {
