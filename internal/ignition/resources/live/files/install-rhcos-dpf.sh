@@ -259,7 +259,6 @@ set_nvconfig
 
 install_rhcos
 setup_RHCOS_EFI_record
-sync
 
 log "INFO: Installation complete."
 
@@ -271,7 +270,14 @@ if ! is_zero_trust; then
     until [ "$(dpu_agent get-dpu-phase)" = "DPU Config" ]; do
         sleep 5
     done
+fi
 
+if ! /usr/local/bin/save-live-journal.sh "$BLOCK_DEVICE"; then
+    log "WARN: Could not save the live boot journal on installed RHCOS."
+fi
+sync
+
+if ! is_zero_trust; then
     wait_for_host_reboot_if_required
 fi
 
