@@ -90,6 +90,8 @@ const (
 	BfcfgTemplateDPUFlavorNameAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-name"
 	// BfcfgTemplateDPUFlavorNamespaceAnnotation is the annotation specifying the target DPUFlavor namespace.
 	BfcfgTemplateDPUFlavorNamespaceAnnotation = dpuProvisioningPrefix + "bfcfg-template-dpuflavor-namespace"
+	// skipBFCFGSizeCheckAnnotation opts an HCP-managed DPUFlavor out of DPF's bf.cfg size guard.
+	skipBFCFGSizeCheckAnnotation = dpuProvisioningPrefix + "skip-bfcfg-size-check"
 	// bfcfgTemplateMachineOSURLAnnotation is the annotation specifying the machine OS image URL used in the ignition.
 	bfcfgTemplateMachineOSURLAnnotation = operatorcommon.AnnotationPrefix + "bfcfg-template-machine-os-url"
 )
@@ -226,11 +228,15 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	if dpuFlavor == nil {
 		return fmt.Errorf("retrieved DPU Flavor is nil")
 	}
-
 	zeroTrust, dpuMode, err := isZeroTrustMode(dpfOperatorConfig, dpuFlavor)
 	if err != nil {
 		log.Error(err, "Failed to detect DPU mode for ignition")
 		return fmt.Errorf("failed to detect DPU mode: %w", err)
+	}
+	if zeroTrust {
+		if err := ig.ensureBFCFGSizeCheckSkipped(ctx, dpuFlavor); err != nil {
+			return fmt.Errorf("failed to mark HCP DPU Flavor for large bf.cfg: %w", err)
+		}
 	}
 	log.Info("DPU mode detected for ignition",
 		"mode", dpuMode,
@@ -643,6 +649,24 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 	}
 
 	return dpuFlavor, nil
+}
+
+// ensureBFCFGSizeCheckSkipped opts the DPUFlavor referenced by this HCP
+// provisioner out of DPF's MaxBFSize guard. Keep this scoped to HCP's flavor
+// instead of disabling the guard for every flavor NICo creates.
+func (ig *IgnitionGenerator) ensureBFCFGSizeCheckSkipped(ctx context.Context, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor) error {
+	if _, ok := dpuFlavor.Annotations[skipBFCFGSizeCheckAnnotation]; ok {
+		return nil
+	}
+	base := dpuFlavor.DeepCopy()
+	if dpuFlavor.Annotations == nil {
+		dpuFlavor.Annotations = make(map[string]string)
+	}
+	dpuFlavor.Annotations[skipBFCFGSizeCheckAnnotation] = ""
+	if err := ig.Client.Patch(ctx, dpuFlavor, client.MergeFrom(base)); err != nil {
+		return fmt.Errorf("failed to patch DPUFlavor %s/%s: %w", dpuFlavor.Namespace, dpuFlavor.Name, err)
+	}
+	return nil
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications

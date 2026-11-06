@@ -431,6 +431,34 @@ var _ = Describe("retrieveDPUFlavor", func() {
 	})
 })
 
+var _ = Describe("ensureBFCFGSizeCheckSkipped", func() {
+	It("adds the DPF annotation without replacing existing annotations", func() {
+		ctx := context.TODO()
+		scheme := newTestScheme()
+		flavor := &dpuprovisioningv1alpha1.DPUFlavor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-flavor",
+				Namespace: "dpf-operator-system",
+				Annotations: map[string]string{
+					"example.com/preserve": "existing",
+				},
+			},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(flavor).Build()
+		ig := &IgnitionGenerator{Client: fakeClient}
+
+		Expect(ig.ensureBFCFGSizeCheckSkipped(ctx, flavor)).To(Succeed())
+		Expect(flavor.Annotations).To(HaveKeyWithValue(skipBFCFGSizeCheckAnnotation, ""))
+		Expect(flavor.Annotations).To(HaveKeyWithValue("example.com/preserve", "existing"))
+
+		storedFlavor := &dpuprovisioningv1alpha1.DPUFlavor{}
+		key := types.NamespacedName{Name: "test-flavor", Namespace: "dpf-operator-system"}
+		Expect(fakeClient.Get(ctx, key, storedFlavor)).To(Succeed())
+		Expect(storedFlavor.Annotations).To(HaveKeyWithValue(skipBFCFGSizeCheckAnnotation, ""))
+		Expect(storedFlavor.Annotations).To(HaveKeyWithValue("example.com/preserve", "existing"))
+	})
+})
+
 var _ = Describe("GetSingletonDPFOperatorConfig", func() {
 	var (
 		ctx    context.Context
