@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -65,11 +66,25 @@ func (r *RemoteImageChecker) CheckTag(ctx context.Context, ref name.Reference, k
 	return err
 }
 
+// TagLister abstracts listing tags from a container registry repository
+type TagLister interface {
+	ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error)
+}
+
+// RemoteTagLister is the production implementation that lists tags from a real container registry
+type RemoteTagLister struct{}
+
+// ListTags lists all tags in a repository by calling the registry's /tags/list endpoint.
+func (r *RemoteTagLister) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
+	return remote.List(repo, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
+}
+
 // ImageLookup handles BlueField OCP layer image lookup by querying a container registry
 type ImageLookup struct {
 	client.Client
 	Recorder     record.EventRecorder
 	ImageChecker ImageChecker
+	TagLister    TagLister
 	Repository   string
 }
 
@@ -79,6 +94,7 @@ func NewImageLookup(c client.Client, recorder record.EventRecorder) *ImageLookup
 		Client:       c,
 		Recorder:     recorder,
 		ImageChecker: &RemoteImageChecker{},
+		TagLister:    &RemoteTagLister{},
 	}
 }
 
@@ -242,8 +258,11 @@ func buildImageReference(repository, version string) (string, name.Reference, er
 }
 
 // validateTagExists checks if a specific tag exists in the container registry via a HEAD request.
-// Returns the full image reference (repository:tag) if found.
+// If the exact tag is not found, it falls back to finding the latest compatible tag with the same
+// major.minor version. Returns the full image reference (repository:tag) if found.
 func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version string, keychain authn.Keychain) (string, error) {
+	logger := log.FromContext(ctx)
+
 	imageRef, ref, err := buildImageReference(repository, version)
 	if err != nil {
 		return "", &RegistryAccessError{
@@ -261,6 +280,25 @@ func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version
 			}
 		}
 		if isNotFoundError(err) {
+			// Attempt fallback to the latest compatible tag with the same major.minor version
+			if r.TagLister != nil {
+				fallbackRef, fallbackErr := r.findLatestCompatibleTag(ctx, repository, version, keychain)
+				if fallbackErr == nil {
+					logger.Info("WARNING: Exact OCP version tag not found, falling back to latest compatible version",
+						"requestedVersion", version,
+						"fallbackImage", fallbackRef,
+						"repository", repository)
+					return fallbackRef, nil
+				}
+				// Propagate RegistryAccessError and RegistryAuthError so the controller
+				// surfaces the correct error instead of a misleading "version not found".
+				switch fallbackErr.(type) {
+				case *RegistryAccessError, *RegistryAuthError:
+					return "", fallbackErr
+				}
+				// If fallback also failed, log it and return the original not-found error
+				logger.V(1).Info("Fallback tag lookup also failed", "error", fallbackErr)
+			}
 			return "", &VersionNotFoundError{
 				Version:    version,
 				Repository: repository,
@@ -273,6 +311,72 @@ func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version
 	}
 
 	return imageRef, nil
+}
+
+// findLatestCompatibleTag lists all tags in the repository, filters to those matching
+// the same major.minor version as the requested version, and returns the latest one
+// sorted by semver descending.
+func (r *ImageLookup) findLatestCompatibleTag(ctx context.Context, repository, version string, keychain authn.Keychain) (string, error) {
+	// Parse the requested version to extract major.minor
+	requestedVersion, err := semver.Parse(version)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse version %s as semver: %w", version, err)
+	}
+	majorMinorPrefix := fmt.Sprintf("%d.%d.", requestedVersion.Major, requestedVersion.Minor)
+
+	// Parse repository name for listing
+	repo, err := name.NewRepository(repository)
+	if err != nil {
+		return "", &RegistryAccessError{
+			Repository: repository,
+			Err:        fmt.Errorf("failed to parse repository name: %w", err),
+		}
+	}
+
+	// List all tags from the registry
+	tags, err := r.TagLister.ListTags(ctx, repo, keychain)
+	if err != nil {
+		if isAuthError(err) {
+			return "", &RegistryAuthError{
+				Repository: repository,
+				Err:        err,
+			}
+		}
+		return "", &RegistryAccessError{
+			Repository: repository,
+			Err:        err,
+		}
+	}
+
+	// Filter tags matching the same major.minor and parse as semver
+	var compatibleVersions semver.Versions
+	for _, tag := range tags {
+		if !strings.HasPrefix(tag, majorMinorPrefix) {
+			continue
+		}
+		v, parseErr := semver.Parse(tag)
+		if parseErr != nil {
+			continue // skip tags that aren't valid semver
+		}
+		if len(requestedVersion.Pre) == 0 && len(v.Pre) > 0 {
+			continue // do not fall back to a prerelease for a stable request
+		}
+		compatibleVersions = append(compatibleVersions, v)
+	}
+
+	if len(compatibleVersions) == 0 {
+		return "", &VersionNotFoundError{
+			Version:    version,
+			Repository: repository,
+		}
+	}
+
+	// Sort ascending and pick the last (highest) version
+	semver.Sort(compatibleVersions)
+	latestVersion := compatibleVersions[len(compatibleVersions)-1]
+	latestTag := latestVersion.String()
+
+	return fmt.Sprintf("%s:%s", repository, latestTag), nil
 }
 
 // isAuthError checks if an error is an authentication/authorization error

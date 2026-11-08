@@ -35,6 +35,16 @@ func (f *fakeImageChecker) CheckTag(ctx context.Context, ref name.Reference, key
 	return f.err
 }
 
+// fakeTagLister implements TagLister for testing
+type fakeTagLister struct {
+	tags []string
+	err  error
+}
+
+func (f *fakeTagLister) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
+	return f.tags, f.err
+}
+
 const testRepository = "quay.io/test-org/bluefield-os"
 
 var _ = Describe("BlueField OCP Layer Image Lookup", func() {
@@ -132,6 +142,125 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 				Expect(err).To(HaveOccurred())
 				var accessErr *RegistryAccessError
 				Expect(err).To(BeAssignableToTypeOf(accessErr))
+			})
+		})
+
+		Context("When exact tag is not found but compatible tags exist (fallback)", func() {
+			It("should return the latest compatible tag with the same major.minor", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					tags: []string{"4.22.10", "4.22.15", "4.22.17", "4.21.5", "4.23.1"},
+				}
+				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(image).To(Equal(testRepository + ":4.22.17"))
+			})
+
+			It("should handle pre-release versions in the fallback", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					tags: []string{"4.19.0-ec.3", "4.19.0-ec.4", "4.19.0-ec.5", "4.18.2"},
+				}
+				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.7", authn.DefaultKeychain)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(image).To(Equal(testRepository + ":4.19.0-ec.5"))
+			})
+
+			It("should skip non-semver tags during fallback", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					tags: []string{"4.22.10", "4.22.latest", "4.22.17", "latest"},
+				}
+				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(image).To(Equal(testRepository + ":4.22.17"))
+			})
+
+			It("should exclude prerelease tags when the requested version is stable", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					tags: []string{"4.22.10", "4.22.15", "4.22.17", "4.22.18-rc.1"},
+				}
+				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(image).To(Equal(testRepository + ":4.22.17"))
+			})
+		})
+
+		Context("When exact tag is not found and no compatible tags exist", func() {
+			It("should return VersionNotFoundError when tag list has no matching major.minor", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					tags: []string{"4.21.5", "4.23.1", "4.20.3"},
+				}
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).To(HaveOccurred())
+				var versionNotFoundErr *VersionNotFoundError
+				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
+			})
+
+			It("should return VersionNotFoundError when tag list is empty", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					tags: []string{},
+				}
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).To(HaveOccurred())
+				var versionNotFoundErr *VersionNotFoundError
+				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
+			})
+		})
+
+		Context("When exact tag is not found and tag listing fails", func() {
+			It("should propagate RegistryAccessError when tag listing returns a transient error", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					err: fmt.Errorf("connection refused"),
+				}
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).To(HaveOccurred())
+				var accessErr *RegistryAccessError
+				Expect(err).To(BeAssignableToTypeOf(accessErr))
+			})
+
+			It("should propagate RegistryAuthError when tag listing returns an auth error", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = &fakeTagLister{
+					err: fmt.Errorf("UNAUTHORIZED: authentication required"),
+				}
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).To(HaveOccurred())
+				var authErr *RegistryAuthError
+				Expect(err).To(BeAssignableToTypeOf(authErr))
+			})
+		})
+
+		Context("When TagLister is nil (fallback disabled)", func() {
+			It("should return VersionNotFoundError without attempting fallback", func() {
+				lookup.ImageChecker = &fakeImageChecker{
+					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
+				}
+				lookup.TagLister = nil
+				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.22.22", authn.DefaultKeychain)
+				Expect(err).To(HaveOccurred())
+				var versionNotFoundErr *VersionNotFoundError
+				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
 			})
 		})
 	})
