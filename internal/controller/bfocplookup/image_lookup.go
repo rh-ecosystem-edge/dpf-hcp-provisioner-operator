@@ -19,8 +19,10 @@ package bfocplookup
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -35,6 +37,7 @@ import (
 
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/dpfdefaults"
 )
 
 const (
@@ -48,21 +51,20 @@ const (
 	reasonInvalidImageFormat          = "InvalidImageFormat"
 	reasonVersionNotFound             = "VersionNotFound"
 	reasonInvalidBlueFieldOCPLayerURL = "InvalidBlueFieldOCPLayerImageURL"
+	reasonDPFVersionNotFound          = "DPFVersionNotFound"
 )
 
-// ImageChecker abstracts checking whether a specific image tag exists in a registry
+// ImageChecker abstracts listing the image tags in a registry
 type ImageChecker interface {
-	CheckTag(ctx context.Context, ref name.Reference, keychain authn.Keychain) error
+	ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error)
 }
 
 // RemoteImageChecker is the production implementation that checks a real container registry
 type RemoteImageChecker struct{}
 
-// CheckTag checks if a specific tag exists by making a HEAD request to the registry.
-// Returns nil if the tag exists, or an error if not found or inaccessible.
-func (r *RemoteImageChecker) CheckTag(ctx context.Context, ref name.Reference, keychain authn.Keychain) error {
-	_, err := remote.Head(ref, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
-	return err
+// ListTags lists all tags in the repository via the registry tags list API
+func (r *RemoteImageChecker) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
+	return remote.List(repo, remote.WithAuthFromKeychain(keychain), remote.WithContext(ctx))
 }
 
 // ImageLookup handles BlueField OCP layer image lookup by querying a container registry
@@ -83,8 +85,9 @@ func NewImageLookup(c client.Client, recorder record.EventRecorder) *ImageLookup
 }
 
 // LookupBlueFieldOCPLayerImage is the main function for BlueField OCP layer image lookup.
-// It extracts the OCP version from the ocpReleaseImage, queries the container registry
-// to find a matching tag, and updates the CR status with the found image reference.
+// It extracts the OCP version from the ocpReleaseImage, resolves the DOCA version for
+// the installed DPF version, queries the container registry for a tag matching both,
+// and updates the CR status with the found image reference.
 func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger = logger.WithValues("feature", "bluefield-ocp-layer-lookup")
@@ -135,9 +138,15 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 	}
 	logger.V(1).Info("Extracted OCP version", "version", version)
 
-	// Query registry for matching tag
-	logger.V(1).Info("Querying registry for BlueField OCP layer image", "repository", repository, "version", version)
-	blueFieldOCPLayerImage, err := r.validateTagExists(ctx, repository, version, keychain)
+	docaMajorMinor, err := r.docaVersion(ctx)
+	if err != nil {
+		logger.Error(err, "Failed to resolve the DOCA version for the installed DPF version")
+		return r.handleTransientError(ctx, cr, &DPFVersionError{Err: err})
+	}
+
+	// Query registry for a tag matching the OCP version and DOCA version
+	logger.V(1).Info("Querying registry for BlueField OCP layer image", "repository", repository, "version", version, "docaVersion", docaMajorMinor)
+	blueFieldOCPLayerImage, err := r.selectImageTag(ctx, repository, version, docaMajorMinor, keychain)
 	if err != nil {
 		switch err.(type) {
 		case *VersionNotFoundError:
@@ -160,8 +169,24 @@ func (r *ImageLookup) LookupBlueFieldOCPLayerImage(ctx context.Context, cr *prov
 	// Update status on success
 	logger.Info("BlueField OCP layer image found successfully",
 		"version", version,
+		"docaVersion", docaMajorMinor,
 		"blueFieldOCPLayerImage", blueFieldOCPLayerImage)
 	return r.updateStatusOnSuccess(ctx, cr, blueFieldOCPLayerImage, version)
+}
+
+// docaVersion returns the DOCA major.minor for the installed DPF version, read
+// from DPFOperatorConfig. Unknown DPF versions (e.g. DPF main) get the DOCA
+// version of the default row in the dpfdefaults table.
+func (r *ImageLookup) docaVersion(ctx context.Context) (string, error) {
+	dpfVersion, err := common.GetDPFVersion(ctx, r.Client)
+	if err != nil {
+		return "", err
+	}
+	dpfMajorMinor, err := common.DPFMajorMinorFromVersion(dpfVersion)
+	if err != nil {
+		return "", err
+	}
+	return dpfdefaults.DocaVersion(ctx, dpfMajorMinor)
 }
 
 // extractVersionFromTag is an internal helper that extracts OCP version from a tagged image URL.
@@ -231,20 +256,15 @@ func (r *ImageLookup) getKeychain(ctx context.Context, cr *provisioningv1alpha1.
 	return common.KeychainFromPullSecret(ctx, r.Client, cr.Spec.PullSecretRef.Name, cr.Namespace)
 }
 
-// buildImageReference constructs a full image reference string and parses it into a name.Reference.
-func buildImageReference(repository, version string) (string, name.Reference, error) {
-	imageRef := fmt.Sprintf("%s:%s", repository, version)
-	ref, err := name.ParseReference(imageRef)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid image reference %s: %w", imageRef, err)
-	}
-	return imageRef, ref, nil
-}
-
-// validateTagExists checks if a specific tag exists in the container registry via a HEAD request.
-// Returns the full image reference (repository:tag) if found.
-func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version string, keychain authn.Keychain) (string, error) {
-	imageRef, ref, err := buildImageReference(repository, version)
+// selectImageTag lists the tags in the repository and selects the tag named
+// "<ocpVersion>-doca<docaVersion>" or "<ocpVersion>-4k-doca<docaVersion>"
+// (e.g. "4.22.17-4k-doca3.4.2" or "4.22.17-4k-doca3.4") whose DOCA version
+// matches the DOCA major.minor. If several tags match, the highest DOCA version
+// wins, then the 4k build. If no tag names the DOCA version, the tag named after
+// the OCP version alone (e.g. "4.22.7") is used. Returns the full image reference
+// (repository:tag) if found.
+func (r *ImageLookup) selectImageTag(ctx context.Context, repository, ocpVersion, docaMajorMinor string, keychain authn.Keychain) (string, error) {
+	repo, err := name.NewRepository(repository)
 	if err != nil {
 		return "", &RegistryAccessError{
 			Repository: repository,
@@ -252,7 +272,7 @@ func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version
 		}
 	}
 
-	err = r.ImageChecker.CheckTag(ctx, ref, keychain)
+	tags, err := r.ImageChecker.ListTags(ctx, repo, keychain)
 	if err != nil {
 		if isAuthError(err) {
 			return "", &RegistryAuthError{
@@ -260,19 +280,57 @@ func (r *ImageLookup) validateTagExists(ctx context.Context, repository, version
 				Err:        err,
 			}
 		}
-		if isNotFoundError(err) {
-			return "", &VersionNotFoundError{
-				Version:    version,
-				Repository: repository,
-			}
-		}
 		return "", &RegistryAccessError{
 			Repository: repository,
 			Err:        err,
 		}
 	}
 
-	return imageRef, nil
+	var bestTag string
+	var bestDoca semver.Version
+	var best4k bool
+	for _, tag := range tags {
+		rest, ok := strings.CutPrefix(tag, ocpVersion+"-")
+		if !ok {
+			continue
+		}
+		rest, is4k := strings.CutPrefix(rest, "4k-")
+		rest, ok = strings.CutPrefix(rest, "doca")
+		// Skip timestamped aliases such as "4.22.17-4k-doca3.4.2-1792683047":
+		// the plain tag points to the same image.
+		if !ok || strings.Contains(rest, "-") {
+			continue
+		}
+		docaVersion, err := semver.ParseTolerant(rest) // "3.4.2", or "3.4" as 3.4.0
+		if err != nil || fmt.Sprintf("%d.%d", docaVersion.Major, docaVersion.Minor) != docaMajorMinor {
+			continue
+		}
+		if bestTag != "" {
+			if docaVersion.LT(bestDoca) {
+				continue
+			}
+			// Same DOCA version: prefer the 4k build. "4k" marks images built
+			// with the 4k page size kernel, the default aarch64 kernel.
+			if docaVersion.EQ(bestDoca) && (best4k || !is4k) {
+				continue
+			}
+		}
+		bestTag, bestDoca, best4k = tag, docaVersion, is4k
+	}
+
+	// Some images are tagged with the OCP version only, without the DOCA version
+	if bestTag == "" && slices.Contains(tags, ocpVersion) {
+		bestTag = ocpVersion
+	}
+
+	if bestTag == "" {
+		return "", &VersionNotFoundError{
+			Version:     ocpVersion,
+			DocaVersion: docaMajorMinor,
+			Repository:  repository,
+		}
+	}
+	return repository + ":" + bestTag, nil
 }
 
 // isAuthError checks if an error is an authentication/authorization error
@@ -283,16 +341,6 @@ func isAuthError(err error) bool {
 		strings.Contains(errStr, "DENIED") ||
 		strings.Contains(errStr, "denied") ||
 		strings.Contains(errStr, "403")
-}
-
-// isNotFoundError checks if an error indicates the image tag was not found
-func isNotFoundError(err error) bool {
-	errStr := err.Error()
-	return strings.Contains(errStr, "NOT_FOUND") ||
-		strings.Contains(errStr, "not found") ||
-		strings.Contains(errStr, "MANIFEST_UNKNOWN") ||
-		strings.Contains(errStr, "manifest unknown") ||
-		strings.Contains(errStr, "404")
 }
 
 // validateBlueFieldOCPLayerImageURL validates the BlueField OCP layer image URL format.
@@ -447,6 +495,9 @@ func (r *ImageLookup) handleTransientError(ctx context.Context, cr *provisioning
 	switch e := err.(type) {
 	case *RegistryAccessError:
 		reason = reasonRegistryAccessError
+		message = e.Error()
+	case *DPFVersionError:
+		reason = reasonDPFVersionNotFound
 		message = e.Error()
 	default:
 		reason = reasonRegistryAccessError
