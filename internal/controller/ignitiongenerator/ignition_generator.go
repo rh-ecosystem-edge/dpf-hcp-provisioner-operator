@@ -239,10 +239,14 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		"description", dpuModeDescription(dpuMode),
 		"zeroTrust", zeroTrust)
 
-	// Temporary gate: host-trusted mode only supports the bootstrap kubeconfig
-	// on DPF newer than 26.4; 26.4 and older only in zero-trust mode.
+	// Temporary gates: DPF newer than 26.4 changed the dpu-agent interface —
+	// it loads the DPUFlavor from the Kubernetes API (deprecating --dpuflavor)
+	// and supports --bootstrap-kubeconfig in every mode; 26.4 and older keep
+	// the legacy flags.
 	dpfVersion := ptr.Deref(dpfOperatorConfig.Status.Version, "")
-	bootstrapKubeconfig := zeroTrust || operatorcommon.DPFVersionGreaterThan(dpfVersion, "26.4")
+	dpfNewerThan26x4 := operatorcommon.DPFVersionGreaterThan(dpfVersion, "26.4")
+	bootstrapKubeconfig := zeroTrust || dpfNewerThan26x4
+	dpuFlavorFlag := !dpfNewerThan26x4
 
 	// Build target ignition (HCP + DPF modifications)
 	log.V(1).Info("Building target ignition")
@@ -274,7 +278,7 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		log.Info("Resolved bfb-registry URL for zero-trust mode", "url", bfbRegistryURL)
 	}
 
-	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, zeroTrust, bootstrapKubeconfig, bfbRegistryURL)
+	targetIgnition, err := ig.buildTargetIgnition(hcpIgnitionBytes, dpuFlavor, machineOSURL, mtu, zeroTrust, bootstrapKubeconfig, dpuFlavorFlag, bfbRegistryURL)
 	if err != nil {
 		return fmt.Errorf("failed to build target ignition: %w", err)
 	}
@@ -651,7 +655,7 @@ func (ig *IgnitionGenerator) retrieveDPUFlavor(ctx context.Context, cr *provisio
 }
 
 // buildTargetIgnition builds the target ignition with HCP ignition + DPF modifications
-func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, zeroTrust, bootstrapKubeconfig bool, bfbRegistryURL string) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, machineOSURL string, mtu uint16, zeroTrust, bootstrapKubeconfig, dpuFlavorFlag bool, bfbRegistryURL string) (*igntypes.Config, error) {
 	// Parse HCP ignition
 	targetIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, targetIgnition); err != nil {
@@ -670,7 +674,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 	}
 
 	// Add templated dpu-agent.service unit (ZT mode adds extra flags)
-	unitName, unitContents, err := target.RenderDPUAgentServiceUnit(zeroTrust, bootstrapKubeconfig)
+	unitName, unitContents, err := target.RenderDPUAgentServiceUnit(zeroTrust, bootstrapKubeconfig, dpuFlavorFlag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render dpu-agent.service: %w", err)
 	}
