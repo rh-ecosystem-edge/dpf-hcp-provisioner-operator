@@ -269,8 +269,12 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 		return fmt.Errorf("no machine OS URL available: spec.machineOSURL is empty and status.blueFieldOCPLayerImage is not set")
 	}
 
+	// Legacy path for DPF 26.4 and older (zero-trust mode): the operator
+	// resolves the bfb-registry URL and embeds it as a target environment
+	// file. DPF newer than 26.4 consumes the BFBRegistryURL template
+	// parameter instead (see the live ignition gate below).
 	var bfbRegistryURL string
-	if zeroTrust {
+	if zeroTrust && !dpfNewerThan26x4 {
 		bfbRegistryURL, err = ig.resolveBFBRegistryURL(ctx, dpfOperatorConfig)
 		if err != nil {
 			return fmt.Errorf("failed to resolve bfb-registry URL for zero-trust mode: %w", err)
@@ -298,7 +302,11 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	log.V(1).Info("Building live ignition")
 	// We are adding DPU Flavor in JSON format for early setup tasks, such as nvconfig parameters setup.
 	// JSON is easier to parse with the tooling we have in Live RHCOS install media.
-	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, zeroTrust, bootstrapKubeconfig)
+	// Temporary gate: include the BFBRegistryURL template parameter only when
+	// DPF populates it — Redfish installs on DPF newer than 26.4. Older
+	// versions leave the parameter unresolved.
+	bfbRegistryURLTemplate := isRedfishInstall(dpfOperatorConfig) && dpfNewerThan26x4
+	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to build live ignition: %w", err)
 	}
@@ -673,7 +681,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 		return nil, fmt.Errorf("failed to add target content: %w", err)
 	}
 
-	// Add templated dpu-agent.service unit (ZT mode adds extra flags)
+	// Add templated dpu-agent.service unit (ZT mode adds --zero-trust-mode)
 	unitName, unitContents, err := target.RenderDPUAgentServiceUnit(zeroTrust, bootstrapKubeconfig, dpuFlavorFlag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render dpu-agent.service: %w", err)
@@ -707,6 +715,8 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 		ignition.EnableMTU(targetIgnition, mtu)
 	}
 
+	// Legacy path for DPF 26.4 and older: bfb-registry URL as a target
+	// environment file consumed by install-dpu-agent.service.
 	if bfbRegistryURL != "" {
 		source := fmt.Sprintf("data:,BFBRegistryURL=%s%%0A", bfbRegistryURL)
 		targetIgnition.Storage.Files = append(targetIgnition.Storage.Files, igntypes.File{
@@ -727,7 +737,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 }
 
 // buildLiveIgnition builds the live ignition with embedded target ignition
-func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, zeroTrust, bootstrapKubeconfig bool) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate bool) (*igntypes.Config, error) {
 	// Parse HCP to extract passwd
 	hcpIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, hcpIgnition); err != nil {
@@ -743,7 +753,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 	}
 
 	// Add live content files and systemd units
-	liveProvider := live.NewProvider(zeroTrust, bootstrapKubeconfig)
+	liveProvider := live.NewProvider(zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate)
 	if err := igncontent.AddContent(liveIgnition, liveProvider); err != nil {
 		return nil, fmt.Errorf("failed to add live content: %w", err)
 	}
@@ -872,9 +882,9 @@ func (ig *IgnitionGenerator) createOrUpdateConfigMap(ctx context.Context, cr *pr
 	return nil
 }
 
-// resolveBFBRegistryURL resolves the bfb-registry URL for zero-trust mode.
-// It checks the DPFOperatorConfig registry configuration first, then falls back
-// to discovering the bfb-registry NodePort service.
+// resolveBFBRegistryURL resolves the bfb-registry URL for zero-trust mode on
+// DPF 26.4 and older. It checks the DPFOperatorConfig registry configuration
+// first, then falls back to discovering the bfb-registry NodePort service.
 func (ig *IgnitionGenerator) resolveBFBRegistryURL(ctx context.Context, dpfOperatorConfig *operatorv1alpha1.DPFOperatorConfig) (string, error) {
 	log := logf.FromContext(ctx)
 

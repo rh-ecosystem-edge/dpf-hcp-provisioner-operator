@@ -24,6 +24,59 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func TestIsRedfishInstall(t *testing.T) {
+	t.Run("nil operator config", func(t *testing.T) {
+		if isRedfishInstall(nil) {
+			t.Fatal("nil operator config must not select Redfish")
+		}
+	})
+
+	tests := []struct {
+		name         string
+		provisioning *operatorv1alpha1.ProvisioningControllerConfiguration
+		want         bool
+	}{
+		{name: "missing provisioning configuration"},
+		{name: "missing install interface", provisioning: &operatorv1alpha1.ProvisioningControllerConfiguration{}},
+		{
+			name: "empty install interface",
+			provisioning: &operatorv1alpha1.ProvisioningControllerConfiguration{
+				InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{},
+			},
+		},
+		{
+			name: "hostagent",
+			provisioning: &operatorv1alpha1.ProvisioningControllerConfiguration{
+				InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{}},
+			},
+		},
+		{
+			name: "legacy GNOI",
+			provisioning: &operatorv1alpha1.ProvisioningControllerConfiguration{
+				InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaGNOI: &operatorv1alpha1.InstallViaGNOI{}},
+			},
+		},
+		{
+			name: "Redfish",
+			provisioning: &operatorv1alpha1.ProvisioningControllerConfiguration{
+				InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{}},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &operatorv1alpha1.DPFOperatorConfig{
+				Spec: operatorv1alpha1.DPFOperatorConfigSpec{ProvisioningController: tt.provisioning},
+			}
+			if got := isRedfishInstall(cfg); got != tt.want {
+				t.Fatalf("isRedfishInstall: want %v, got %v", tt.want, got)
+			}
+		})
+	}
+}
+
 func TestDPUModeFromFlavor(t *testing.T) {
 	tests := []struct {
 		name          string
