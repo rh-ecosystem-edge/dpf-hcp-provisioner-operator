@@ -8,6 +8,8 @@ publish.workspace = true
 [dependencies]
 ctrlrt = { path = "../ctrlrt" }
 apis = { path = "../apis" }
+registry = { path = "../registry" }
+k8s-openapi.workspace = true
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

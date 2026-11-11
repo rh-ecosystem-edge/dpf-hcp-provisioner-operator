@@ -364,6 +364,8 @@ dependencies = [
  "apis",
  "ctrlrt",
  "ctrlrt-fake",
+ "k8s-openapi",
+ "registry",
  "serde",
  "serde_json",
  "tokio",
