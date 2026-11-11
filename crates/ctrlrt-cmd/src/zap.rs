@@ -1,6 +1,6 @@
 //! controller-runtime's `pkg/log/zap` (zap + zapr) as a [`ctrlrt::log::LogSink`].
 //!
-//! ```ignore
+//! ```text
 //! let mut opts = ZapOptions { development: true, ..Default::default() };
 //! opts.bind_flags(&mut fs);
 //! fs.parse_env();

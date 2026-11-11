@@ -9,7 +9,7 @@
 //! Both expose themselves as a [`ctrlrt::Client`] (via [`ctrlrt::ClientBackend`]); they are
 //! cheap to clone, `Send + Sync`, and usable from multiple tokio tasks.
 //!
-//! ```ignore
+//! ```text
 //! let scheme = Scheme::new().register::<DPFHCPProvisioner>().register::<Secret>();
 //! let c = FakeClientBuilder::new()
 //!     .with_scheme(scheme)

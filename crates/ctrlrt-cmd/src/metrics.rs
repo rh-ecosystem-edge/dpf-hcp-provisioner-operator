@@ -2,7 +2,7 @@
 //! `/metrics` over HTTP or HTTPS, optionally behind a filter (authn/authz, see
 //! [`crate::filters`]).
 //!
-//! ```ignore
+//! ```text
 //! let mut opts = MetricsServerOptions {
 //!     bind_address: flags.metrics_addr.clone(),
 //!     secure_serving: flags.secure_metrics,

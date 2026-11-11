@@ -5,7 +5,7 @@
 //! [`Secret`] (anything else behaves like a failed type assertion). The main controller uses
 //! them with `K = Secret`:
 //!
-//! ```ignore
+//! ```text
 //! builder.watches::<Secret>(
 //!     find_provisioner_for_kubeconfig_secret_map_fn(client),
 //!     vec![Arc::new(is_hosted_cluster_kubeconfig_secret_predicate::<Secret>())],

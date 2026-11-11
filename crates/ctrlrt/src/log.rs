@@ -1,6 +1,6 @@
 //! logr-style structured logging (`logr.Logger`) with a pluggable sink.
 //!
-//! ```ignore
+//! ```text
 //! log.info("Reconciling", kv!["namespace" => ns, "name" => name]);
 //! log.v(1).info("details", kv![]);
 //! log.error(&err, "Failed to update status", kv!["phase" => phase]);

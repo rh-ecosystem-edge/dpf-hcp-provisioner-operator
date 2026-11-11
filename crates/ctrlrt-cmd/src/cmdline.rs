@@ -2,7 +2,7 @@
 //! `--kubeconfig` (registered by `sigs.k8s.io/controller-runtime/pkg/client/config`'s `init`)
 //! and the zap flags (`zap.Options.BindFlags`), parsed with Go `flag` semantics.
 //!
-//! ```ignore
+//! ```text
 //! let flags = ManagerFlags::parse_command_line();   // flag.Parse(); exits 0/2 like Go
 //! ctrlrt_cmd::setup_log(&flags.zap);                 // ctrl.SetLogger(zap.New(...))
 //! ```

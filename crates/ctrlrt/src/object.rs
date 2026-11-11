@@ -214,7 +214,7 @@ impl std::fmt::Display for ObjectKey {
 
 /// Declare `kube::Resource` for a CRD type whose struct has a `metadata: ObjectMeta` field.
 ///
-/// ```ignore
+/// ```text
 /// ctrlrt::impl_resource!(DPUCluster, "provisioning.dpu.nvidia.com", "v1alpha1", "DPUCluster", "dpuclusters", Namespaced);
 /// ```
 #[macro_export]

@@ -12,7 +12,7 @@
 //! * Any other error prints `<message>\n` followed by the usage to the output (stderr by
 //!   default) and returns [`FlagError::Invalid`] (exit code 2 with `ExitOnError`).
 //!
-//! ```ignore
+//! ```text
 //! let mut fs = FlagSet::command_line();
 //! fs.string("metrics-bind-address", "0", "The address ...");
 //! fs.bool("leader-elect", false, "Enable leader election ...");

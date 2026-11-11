@@ -2,7 +2,7 @@
 //! `EventCorrelator` with aggregation, de-duplication and spam filtering, retrying sink) as
 //! hosted by controller-runtime's recorder `Provider` (`mgr.GetEventRecorderFor(name)`).
 //!
-//! ```ignore
+//! ```text
 //! let provider = RecorderProvider::new(client.clone(), Logger::root().with_name("events"));
 //! let recorder: ctrlrt::Recorder = provider.get_event_recorder_for("dpfhcpprovisioner-controller");
 //! recorder.event(&obj, "Normal", "Created", "message");   // RecorderExt

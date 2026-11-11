@@ -1,7 +1,7 @@
 //! controller-runtime `pkg/certwatcher`: keeps a TLS certificate/key pair loaded from disk
 //! and reloads it on file system events (inotify) and on a 10s polling interval.
 //!
-//! ```ignore
+//! ```text
 //! let cw = CertWatcher::new("/certs/tls.crt", "/certs/tls.key")?;   // certwatcher.New
 //! tokio::spawn({ let cw = cw.clone(); async move { cw.start(cancel).await } }); // mgr.Add(cw)
 //! let tls = rustls::ServerConfig::builder().with_no_client_auth().with_cert_resolver(Arc::new(cw));
