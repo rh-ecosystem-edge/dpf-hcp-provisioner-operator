@@ -24,7 +24,13 @@ COPY --from=oc-cli /usr/bin/oc /usr/bin/oc
 # Create kubectl symlink (oc provides kubectl functionality)
 RUN ln -s /usr/bin/oc /usr/bin/kubectl
 
-# Copy Go module files (required for go test to resolve module imports)
+# Rust toolchain (the e2e suite is the `e2e` crate: `cargo test -p e2e`)
+ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+      sh -s -- -y --profile minimal --default-toolchain 1.99 && \
+    chmod -R a+rwX /opt/rustup /opt/cargo
+
+# Copy Go module files (controller-gen generates the e2e CRDs from vendored Go types)
 COPY --chown=1001:0 go.mod go.sum ./
 
 # Copy vendor directory (contains all dependencies including ginkgo/gomega test frameworks and NVIDIA doca-platform for CRD generation)
@@ -47,6 +53,14 @@ COPY --chown=1001:0 internal/controller/testdata/crds/ ./internal/controller/tes
 
 # Copy all test code (e2e tests, utils, scripts)
 COPY --chown=1001:0 test/ ./test/
+
+# Copy the Cargo workspace (the e2e suite and the crates it depends on) and data files
+# embedded at compile time, then pre-build the suite so test runs start immediately.
+COPY --chown=1001:0 Cargo.toml Cargo.lock ./
+COPY --chown=1001:0 crates/ ./crates/
+COPY --chown=1001:0 internal/dpfdefaults/dpfversions.json ./internal/dpfdefaults/dpfversions.json
+COPY --chown=1001:0 internal/ignition/resources/ ./internal/ignition/resources/
+RUN cargo test --locked -p e2e --test e2e_suite --no-run
 
 # Copy helm chart (used to deploy operator during tests)
 COPY --chown=1001:0 helm/ ./helm/

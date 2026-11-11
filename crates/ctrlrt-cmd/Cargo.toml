@@ -3,6 +3,7 @@ name = "ctrlrt-cmd"
 description = "Process-level pieces of controller-runtime / Go stdlib used by cmd/main.go: Go flag parsing, zap logging, metrics server, cert watcher, event recorder"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 

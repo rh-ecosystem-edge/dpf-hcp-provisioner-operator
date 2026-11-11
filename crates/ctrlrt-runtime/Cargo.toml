@@ -2,6 +2,7 @@
 name = "ctrlrt-runtime"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 description = "Runtime half of controller-runtime: real API client, informer cache, controllers, work queue, manager, leader election, health probes"

@@ -209,15 +209,22 @@ For a full guide on common issues and debugging, see [docs/troubleshooting.md](d
 
 ## Development
 
+The operator is written in Rust (Cargo workspace under `crates/`, one crate per former Go
+package; see [docs/rust-port/CONVENTIONS.md](docs/rust-port/CONVENTIONS.md)). The manager is
+built as a fully static (musl) binary.
+
 ```bash
-# Build the operator binary
+# Build the static operator binary (bin/manager)
 make build
 
-# Run unit tests
+# Run unit and envtest integration tests (downloads kube-apiserver/etcd via setup-envtest)
 make test
 
-# Run linter
+# Run linter (clippy with -D warnings + rustfmt check)
 make lint
+
+# Regenerate the Rust API types (crates/apis) from the CRDs with kopium
+make generate-rust-apis
 
 # Build container image
 make docker-build IMG=<registry/image:tag>

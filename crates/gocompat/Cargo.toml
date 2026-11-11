@@ -3,6 +3,7 @@ name = "gocompat"
 description = "Byte-compatible ports of the Go standard-library behaviour the operator's output depends on"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
