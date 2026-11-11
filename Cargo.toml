@@ -21,3 +21,11 @@ anyhow = "1"
 thiserror = "2"
 futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
+
+# Release builds (the manager image and `make build`): whole-program optimisation for a
+# smaller and faster binary. `panic` stays `unwind`: the controller runtime recovers panics
+# in reconcilers like controller-runtime does (`panic: ... [recovered]`).
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true
