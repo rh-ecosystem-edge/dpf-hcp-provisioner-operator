@@ -378,6 +378,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be95d4a884358a21a199689323c29e9256b4a1b315e22f183d155422041d3a9a"
 
 [[package]]
+name = "controller"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrl-bfocplookup",
+ "ctrl-dpucluster",
+ "ctrl-finalizer",
+ "ctrl-hostedcluster",
+ "ctrl-ignitiongenerator",
+ "ctrl-kubeconfiginjection",
+ "ctrl-metallb",
+ "ctrl-ovshugepages",
+ "ctrl-secrets",
+ "ctrlrt",
+ "ctrlrt-envtest",
+ "ctrlrt-fake",
+ "ctrlrt-runtime",
+ "futures",
+ "k8s-openapi",
+ "kube",
+ "registry",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -567,6 +597,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctrl-ignitiongenerator"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrl-hostedcluster",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "gocompat",
+ "ignition",
+ "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "ctrl-kubeconfiginjection"
 version = "0.0.1"
 dependencies = [
@@ -597,6 +646,26 @@ dependencies = [
  "ctrlrt-fake",
  "futures",
  "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ctrl-ovshugepages"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrl-bfocplookup",
+ "ctrl-dpuservicetemplate",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "hostedclient",
+ "k8s-openapi",
+ "registry",
  "serde",
  "serde_json",
  "tokio",
