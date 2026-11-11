@@ -39,6 +39,7 @@ import (
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/controller/dpuservicetemplate"
+	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/dpfdefaults"
 )
 
 const testOperatorNamespace = "dpf-hcp-provisioner-system"
@@ -501,8 +502,8 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 			})
 		})
 
-		Context("when DPF version is unsupported", func() {
-			It("should return error", func() {
+		Context("when DPF version has no dedicated embedded row", func() {
+			It("should use embedded default values", func() {
 				dpfConfig := newDPFOperatorConfig("99.0.0-unknown")
 
 				fakeClient = fake.NewClientBuilder().
@@ -520,7 +521,7 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 				manager = dpuservicetemplate.NewDPUServiceTemplateManager(fakeClient, fakeClient, reader, testOperatorNamespace)
 
 				err := manager.EnsureTemplates(ctx, targetNamespace, &common.OperatorConfig{})
-				Expect(err).To(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -713,24 +714,21 @@ var _ = Describe("DPUServiceTemplate Manager", func() {
 	})
 
 	Describe("GetDefaultsForVersion", func() {
-		It("should return defaults for supported version", func() {
-			defaults, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("26.4")
+		It("should return defaults for supported version 26.4", func() {
+			defaults, err := dpfdefaults.TemplateValues(context.Background(), "26.4")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(defaults.OVN.ChartVersion).To(Equal("v26.4.1-ocp-release-v4.22"))
 			Expect(defaults.DTS.ChartVersion).To(Equal("1.25.5"))
 			Expect(defaults.HBN.ChartVersion).To(Equal("3.4.0"))
+			Expect(defaults.HBN.ImageTag).To(Equal("3.4.0-doca3.4.0"))
 		})
 
-		It("should return error for unsupported version", func() {
-			_, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("99")
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unsupported DPF version"))
-		})
-
-		It("should return error for empty version", func() {
-			_, err := dpuservicetemplate.DPUServiceTemplateValuesForVersion("")
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unsupported DPF version"))
+		It("should return embedded default for unknown DPF minors", func() {
+			defaults264, err := dpfdefaults.TemplateValues(context.Background(), "26.4")
+			Expect(err).NotTo(HaveOccurred())
+			defaults, err := dpfdefaults.TemplateValues(context.Background(), "26.12")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*defaults).To(Equal(*defaults264))
 		})
 	})
 })
