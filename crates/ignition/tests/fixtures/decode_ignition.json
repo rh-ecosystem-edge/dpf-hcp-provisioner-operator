@@ -1,0 +1,57 @@
+[
+ {
+  "input": "not-valid-base64!!!",
+  "raw": "",
+  "err": "failed to base64 decode: illegal base64 data at input byte 3"
+ },
+ {
+  "input": "dGhpcyBpcyBub3QgZ3ppcA==",
+  "raw": "",
+  "err": "failed to create gzip reader: gzip: invalid header"
+ },
+ {
+  "input": "",
+  "raw": "",
+  "err": "failed to create gzip reader: EOF"
+ },
+ {
+  "input": "H4sIAAAAAAAC/6pWykzPyyzJzM9TsqpWKkstKgYzlYz1TPQMlGp1lIpL8osS01NBsmmZOanFSlbR1UoFiSUZSlZK+qklyfolqcUlSrWxtbWAAAAA//8ULeALSwAAAA==",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/test\",\"user\":{},\"contents\":{\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "H4sIAAAAAAAC/6pOSkwBBAAA//9oGBDgBAAAAA==",
+  "raw": "",
+  "err": "failed to unmarshal ignition: invalid character 'b' looking for beginning of object key string"
+ },
+ {
+  "input": "H4sIAAAAAAAC/4qOBQQAAP//KbtMDQIAAAA=",
+  "raw": "",
+  "err": "failed to unmarshal ignition: json: cannot unmarshal array into Go value of type types.Config"
+ },
+ {
+  "input": "H4sIAAAAAAAC/6pWKi7JL0pMT1WyqlZKy8xJLVayiq5WKkgsyVCyMqyNra0FBAAA///DyN/RIgAAAA==",
+  "raw": "",
+  "err": "failed to unmarshal ignition: json: cannot unmarshal number into Go struct field File.storage.files.Node.path of type string"
+ },
+ {
+  "input": "H4sIAAAAAAAC/6pWqlCy",
+  "raw": "",
+  "err": "failed to decompress: unexpected EOF"
+ },
+ {
+  "input": "H4sIAAAAAAAC/6quBQQAAP//Q78AAAAAAAAAAA==",
+  "raw": "",
+  "err": "failed to decompress: gzip: invalid checksum"
+ },
+ {
+  "input": "aGk",
+  "raw": "",
+  "err": "failed to base64 decode: illegal base64 data at input byte 0"
+ },
+ {
+  "input": "aGk=\n",
+  "raw": "",
+  "err": "failed to create gzip reader: unexpected EOF"
+ }
+]

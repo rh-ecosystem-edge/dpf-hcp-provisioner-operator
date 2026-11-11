@@ -1,0 +1,12 @@
+[
+ {
+  "zero_trust": false,
+  "name": "dpu-agent.service",
+  "contents": "[Unit]\nDescription=DPF DPU Agent - Provisioning and Configuration\nAfter=tmfifo-agent-link.service install-dpu-agent.service dpu-fw-upgrade.service\nBefore=nodeip-configuration.service kubelet-dependencies.target ovs-configuration.service\nRequires=tmfifo-agent-link.service\nWants=install-dpu-agent.service dpu-fw-upgrade.service\nConditionPathExists=/etc/mlnx-release\nConditionPathExists=/usr/local/bin/dpu-agent\n\n[Service]\nType=simple\nEnvironmentFile=/etc/dpf/environment\nExecStart=/usr/local/bin/dpu-agent \\\n  --dpu-name $DPUName \\\n  --dpu-namespace $DPUNamespace \\\n  --dpu-uid $DPUUID \\\n  --dpuflavor /etc/dpf/dpuflavor.yaml \\\n  --control-plane-mtu $ControlPlaneMTU \\\n  --skip-containerd-config \\\n  --skip-dns-config \\\n  --skip-kernel-cmd-line \\\n  --skip-network-config \\\n  --skip-remove-builtin-kubelet \\\n  --skip-configure-kubelet \\\n  --skip-start-kubelet \\\n  --skip-ovs-raw-script \\\n  --kubeadm-secret-name=unused\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n"
+ },
+ {
+  "zero_trust": true,
+  "name": "dpu-agent.service",
+  "contents": "[Unit]\nDescription=DPF DPU Agent - Provisioning and Configuration\nAfter=tmfifo-agent-link.service install-dpu-agent.service dpu-fw-upgrade.service\nBefore=nodeip-configuration.service kubelet-dependencies.target ovs-configuration.service\nRequires=tmfifo-agent-link.service\nWants=install-dpu-agent.service dpu-fw-upgrade.service\nConditionPathExists=/etc/mlnx-release\nConditionPathExists=/usr/local/bin/dpu-agent\n\n[Service]\nType=simple\nEnvironmentFile=/etc/dpf/environment\nExecStart=/usr/local/bin/dpu-agent \\\n  --dpu-name $DPUName \\\n  --dpu-namespace $DPUNamespace \\\n  --dpu-uid $DPUUID \\\n  --dpuflavor /etc/dpf/dpuflavor.yaml \\\n  --control-plane-mtu $ControlPlaneMTU \\\n  --skip-containerd-config \\\n  --skip-dns-config \\\n  --skip-kernel-cmd-line \\\n  --skip-network-config \\\n  --skip-remove-builtin-kubelet \\\n  --skip-configure-kubelet \\\n  --skip-start-kubelet \\\n  --skip-ovs-raw-script \\\n  --kubeadm-secret-name=unused \\\n  --zero-trust-mode \\\n  --bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig\nRestart=on-failure\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n"
+ }
+]

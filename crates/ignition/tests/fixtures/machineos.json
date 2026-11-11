@@ -1,0 +1,114 @@
+[
+ {
+  "name": "array_json",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,[1]\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,[1]\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "failed to unmarshal machine config: json: cannot unmarshal array into Go value of type map[string]interface {}"
+ },
+ {
+  "name": "bad_escape",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%zz\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%zz\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "failed to decode data URI: invalid URL escape \"%zz\""
+ },
+ {
+  "name": "bad_json",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,not-json\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,not-json\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "failed to unmarshal machine config: invalid character 'o' in literal null (expecting 'u')"
+ },
+ {
+  "name": "bad_prefix",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"not-a-data-uri\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"not-a-data-uri\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "unexpected data URI format"
+ },
+ {
+  "name": "big_number",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22x%22%3A1e999%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22x%22%3A1e999%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "failed to unmarshal machine config: json: cannot unmarshal number 1e999 into Go value of type float64"
+ },
+ {
+  "name": "empty",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}",
+  "err": "machine OS URL file not found"
+ },
+ {
+  "name": "invalid_utf8",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22x%22%3A%22%FF%22%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22osImageURL%22%3A%22quay.io%2Fnew%40sha256%3Aabc%5Cu0026x%3D%5Cu003cy%5Cu003e%22%2C%22x%22%3A%22%EF%BF%BD%22%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "name": "nil_source",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "unexpected data URI format"
+ },
+ {
+  "name": "no_file",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/other\",\"user\":{},\"contents\":{\"source\":\"data:,x\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/other\",\"user\":{},\"contents\":{\"source\":\"data:,x\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "machine OS URL file not found"
+ },
+ {
+  "name": "no_spec",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22kind%22%3A%22x%22%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22kind%22%3A%22x%22%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "spec not found in machine config"
+ },
+ {
+  "name": "null_json",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,null\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,null\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "spec not found in machine config"
+ },
+ {
+  "name": "ok",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/other\",\"user\":{},\"contents\":{\"source\":\"data:,x\",\"verification\":{}}},{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22kind%22%3A%22MachineConfig%22%2C%22spec%22%3A%7B%22f%22%3A1.5%2C%22h%22%3A%22%5Cu003c%5Cu0026%5Cu003e%22%2C%22i%22%3A12345678901234567%2C%22n%22%3A1e%2B21%2C%22osImageURL%22%3A%22old%22%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/other\",\"user\":{},\"contents\":{\"source\":\"data:,x\",\"verification\":{}}},{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22kind%22%3A%22MachineConfig%22%2C%22spec%22%3A%7B%22f%22%3A1.5%2C%22h%22%3A%22%5Cu003c%5Cu0026%5Cu003e%22%2C%22i%22%3A12345678901234568%2C%22n%22%3A1e%2B21%2C%22osImageURL%22%3A%22quay.io%2Fnew%40sha256%3Aabc%5Cu0026x%3D%5Cu003cy%5Cu003e%22%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "name": "plus_spaces",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,{\\\"spec\\\":{\\\"x\\\":\\\"a+b c\\\"}}\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22osImageURL%22%3A%22quay.io%2Fnew%40sha256%3Aabc%5Cu0026x%3D%5Cu003cy%5Cu003e%22%2C%22x%22%3A%22a+b+c%22%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "name": "spec_null",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3Anull%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3Anull%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "spec not found in machine config"
+ },
+ {
+  "name": "spec_string",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%22x%22%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%22x%22%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": "spec not found in machine config"
+ },
+ {
+  "name": "two_files",
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%7D%7D\",\"verification\":{}}},{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22a%22%3A1%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "arg": "quay.io/new@sha256:abc\u0026x=\u003cy\u003e",
+  "result": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22osImageURL%22%3A%22quay.io%2Fnew%40sha256%3Aabc%5Cu0026x%3D%5Cu003cy%5Cu003e%22%7D%7D\",\"verification\":{}}},{\"group\":{},\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22a%22%3A1%7D%7D\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ }
+]

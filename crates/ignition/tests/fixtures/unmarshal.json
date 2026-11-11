@@ -1,0 +1,252 @@
+[
+ {
+  "input": "{}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "null",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "[]",
+  "raw": "",
+  "err": "json: cannot unmarshal array into Go value of type types.Config"
+ },
+ {
+  "input": "\"x\"",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go value of type types.Config"
+ },
+ {
+  "input": "1",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go value of type types.Config"
+ },
+ {
+  "input": "true",
+  "raw": "",
+  "err": "json: cannot unmarshal bool into Go value of type types.Config"
+ },
+ {
+  "input": "",
+  "raw": "",
+  "err": "unexpected end of JSON input"
+ },
+ {
+  "input": "{",
+  "raw": "",
+  "err": "unexpected end of JSON input"
+ },
+ {
+  "input": "{\"ignition\":1}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field Config.ignition of type types.Ignition"
+ },
+ {
+  "input": "{\"ignition\":{\"version\":1}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field Ignition.ignition.version of type string"
+ },
+ {
+  "input": "{\"ignition\":{\"version\":\"3.4.0\"},\"storage\":{\"files\":{}}}",
+  "raw": "",
+  "err": "json: cannot unmarshal object into Go struct field Storage.storage.files of type []types.File"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[1]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field Storage.storage.files of type types.File"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"path\":1}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field File.storage.files.Node.path of type string"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"mode\":\"x\"}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go struct field File.storage.files.FileEmbedded1.mode of type int"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"mode\":1.5}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number 1.5 into Go struct field File.storage.files.FileEmbedded1.mode of type int"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"mode\":1e2}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number 1e2 into Go struct field File.storage.files.FileEmbedded1.mode of type int"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"mode\":99999999999999999999}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number 99999999999999999999 into Go struct field File.storage.files.FileEmbedded1.mode of type int"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"mode\":-0}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"\",\"user\":{},\"contents\":{\"verification\":{}},\"mode\":0}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"overwrite\":\"true\"}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go struct field File.storage.files.Node.overwrite of type bool"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"contents\":\"x\"}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go struct field File.storage.files.FileEmbedded1.contents of type types.Resource"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"contents\":{\"httpHeaders\":{}}}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal object into Go struct field Resource.storage.files.FileEmbedded1.contents.httpHeaders of type types.HTTPHeaders"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"contents\":{\"httpHeaders\":[{\"name\":1}]}}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field HTTPHeader.storage.files.FileEmbedded1.contents.httpHeaders.name of type string"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"append\":[{\"source\":true}]}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal bool into Go struct field Resource.storage.files.FileEmbedded1.append.source of type string"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"user\":{\"id\":\"1\"}}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go struct field NodeUser.storage.files.Node.user.id of type int"
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"group\":[]}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal array into Go struct field File.storage.files.Node.group of type types.NodeGroup"
+ },
+ {
+  "input": "{\"storage\":{\"disks\":[{\"partitions\":[{\"number\":\"1\"}]}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go struct field Partition.storage.disks.partitions.number of type int"
+ },
+ {
+  "input": "{\"storage\":{\"disks\":[{\"partitions\":[{\"number\":1.0}]}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number 1.0 into Go struct field Partition.storage.disks.partitions.number of type int"
+ },
+ {
+  "input": "{\"kernelArguments\":{\"shouldExist\":[1]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field KernelArguments.kernelArguments.shouldExist of type types.KernelArgument"
+ },
+ {
+  "input": "{\"passwd\":{\"users\":[{\"sshAuthorizedKeys\":\"k\"}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go struct field PasswdUser.passwd.users.sshAuthorizedKeys of type []types.SSHAuthorizedKey"
+ },
+ {
+  "input": "{\"systemd\":{\"units\":[{\"enabled\":1}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field Unit.systemd.units.enabled of type bool"
+ },
+ {
+  "input": "{\"systemd\":{\"units\":[5]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field Systemd.systemd.units of type types.Unit"
+ },
+ {
+  "input": "{\"ignition\":{\"timeouts\":{\"httpTotal\":\"5\"}}}",
+  "raw": "",
+  "err": "json: cannot unmarshal string into Go struct field Timeouts.ignition.timeouts.httpTotal of type int"
+ },
+ {
+  "input": "{\"ignition\":{\"proxy\":{\"noProxy\":[{}]}}}",
+  "raw": "",
+  "err": "json: cannot unmarshal object into Go struct field Proxy.ignition.proxy.noProxy of type types.NoProxyItem"
+ },
+ {
+  "input": "{\"luks\":[1],\"storage\":{\"luks\":[{\"clevis\":{\"tang\":[{\"url\":1}]}}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field Tang.storage.luks.clevis.tang.url of type string"
+ },
+ {
+  "input": "{\"IGNITION\":{\"VERSION\":\"3.4.0\"},\"Storage\":{\"FILES\":[{\"PATH\":\"/a\",\"Contents\":{\"SOURCE\":\"data:,x\"}}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/a\",\"user\":{},\"contents\":{\"source\":\"data:,x\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"ignition\":{\"version\":\"3.4.0\"},\"\\u017ftorage\":{\"files\":[{\"path\":\"/k\"}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/k\",\"user\":{},\"contents\":{\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"ignition\":{\"version\":\"a\"},\"ignition\":{\"version\":\"b\"}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"b\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"path\":\"/a\",\"mode\":1}]},\"storage\":{\"links\":[{\"path\":\"/b\"}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/a\",\"user\":{},\"contents\":{\"verification\":{}},\"mode\":1}],\"links\":[{\"group\":{},\"path\":\"/b\",\"user\":{}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"path\":\"/a\",\"mode\":1},{\"path\":\"/b\"}]},\"storage\":{\"files\":[{\"overwrite\":true}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"overwrite\":true,\"path\":\"/a\",\"user\":{},\"contents\":{\"verification\":{}},\"mode\":1}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"path\":\"/a\",\"mode\":1}]},\"storage\":{\"files\":null}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"path\":\"/a\",\"mode\":1,\"overwrite\":null,\"contents\":null}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/a\",\"user\":{},\"contents\":{\"verification\":{}},\"mode\":1}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"unknown\":1,\"storage\":{\"files\":[{\"path\":\"/a\",\"bogus\":{\"x\":[1,2,{\"y\":null}]}}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/a\",\"user\":{},\"contents\":{\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"ignition\":{\"version\":\"3.4.0\"},\"storage\":{\"files\":[{\"path\":\"/a\\u0000b\\ud800\",\"contents\":{\"source\":\"\\u003c\\u2028\"}}]}}",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/a\\u0000b�\",\"user\":{},\"contents\":{\"source\":\"\\u003c\\u2028\",\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"path\":\"x\"},{\"path\":1},{\"path\":true}]}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field File.storage.files.Node.path of type string"
+ },
+ {
+  "input": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{\"hash\":5}}}}}",
+  "raw": "",
+  "err": "json: cannot unmarshal number into Go struct field Verification.ignition.config.replace.verification.hash of type string"
+ },
+ {
+  "input": "{\"ignition\":{\"security\":{\"tls\":{\"certificateAuthorities\":[{\"httpHeaders\":[{\"value\":[]}]}]}}}}",
+  "raw": "",
+  "err": "json: cannot unmarshal array into Go struct field HTTPHeader.ignition.security.tls.certificateAuthorities.httpHeaders.value of type string"
+ },
+ {
+  "input": " {\"ignition\" : {\"version\" : \"3.4.0\"} , \"storage\" : { \"files\" : [ { \"path\" : \"/x\" } ] } } ",
+  "raw": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{},\"passwd\":{},\"storage\":{\"files\":[{\"group\":{},\"path\":\"/x\",\"user\":{},\"contents\":{\"verification\":{}}}]},\"systemd\":{}}",
+  "err": ""
+ },
+ {
+  "input": "{\"storage\":{\"files\":[{\"path\":\"/x\"}]}} x",
+  "raw": "",
+  "err": "invalid character 'x' after top-level value"
+ },
+ {
+  "input": "{\"a\":01}",
+  "raw": "",
+  "err": "invalid character '1' after object key:value pair"
+ },
+ {
+  "input": "{\"a\":\"\\x\"}",
+  "raw": "",
+  "err": "invalid character 'x' in string escape code"
+ }
+]
