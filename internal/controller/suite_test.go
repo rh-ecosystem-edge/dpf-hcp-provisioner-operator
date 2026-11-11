@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	dpuservicev1alpha1 "github.com/nvidia/doca-platform/api/dpuservice/v1alpha1"
+	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 	"github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/internal/common"
@@ -65,10 +66,27 @@ var (
 
 // fakeImageChecker implements bfocplookup.ImageChecker for testing
 // to avoid hitting real container registries in unit/integration tests.
-type fakeImageChecker struct{}
+type fakeImageChecker struct {
+	tags []string
+}
 
-func (f *fakeImageChecker) CheckTag(_ context.Context, _ name.Reference, _ authn.Keychain) error {
-	return nil
+func (f *fakeImageChecker) ListTags(_ context.Context, _ name.Repository, _ authn.Keychain) ([]string, error) {
+	return f.tags, nil
+}
+
+// dpfVersionClient reports a DPFOperatorConfig with DPF version v26.4.1, so the
+// image lookup can resolve the DOCA version without the DPFOperatorConfig CRD.
+type dpfVersionClient struct {
+	client.Client
+}
+
+func (c dpfVersionClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	if l, ok := list.(*operatorv1alpha1.DPFOperatorConfigList); ok {
+		version := "v26.4.1"
+		l.Items = []operatorv1alpha1.DPFOperatorConfig{{Status: operatorv1alpha1.DPFOperatorConfigStatus{Version: &version}}}
+		return nil
+	}
+	return c.Client.List(ctx, list, opts...)
 }
 
 func TestControllers(t *testing.T) {
@@ -171,8 +189,11 @@ var _ = BeforeSuite(func() {
 		Scheme:   k8sManager.GetScheme(),
 		Recorder: k8sManager.GetEventRecorderFor(common.ProvisionerControllerName),
 		ImageLookup: func() *bfocplookup.ImageLookup {
-			lookup := bfocplookup.NewImageLookup(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("bluefield-ocp-layer-lookup"))
-			lookup.ImageChecker = &fakeImageChecker{}
+			lookup := bfocplookup.NewImageLookup(dpfVersionClient{k8sManager.GetClient()},
+				k8sManager.GetEventRecorderFor("bluefield-ocp-layer-lookup"))
+			lookup.ImageChecker = &fakeImageChecker{tags: []string{
+				"4.17.0-doca3.4.2", "4.19.0-doca3.4.2", "4.19.0-ec.5-doca3.4.2", "4.19.0-ec.6-doca3.4.2",
+			}}
 			return lookup
 		}(),
 		DPUClusterValidator:  dpucluster.NewValidator(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("dpucluster-validator")),

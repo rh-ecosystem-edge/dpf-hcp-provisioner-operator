@@ -44,7 +44,8 @@ DPF releases, so they are maintained in one JSON file
 Each row carries `docaVersion` (`dpfdefaults.DocaVersion`, for BlueField OCP
 layer lookup) and the template pins (`dpfdefaults.TemplateValues`). At runtime
 the controller reads `DPFOperatorConfig.status.version` from
-`dpfoperatorconfig/dpf-operator-system` and turns it into that major.minor key.
+`dpfoperatorconfig/dpf-operator-system` and turns it into that major.minor key
+with `common.GetDPFVersion` and `common.DPFMajorMinorFromVersion`.
 
 ### Value overrides via ConfigMap
 
