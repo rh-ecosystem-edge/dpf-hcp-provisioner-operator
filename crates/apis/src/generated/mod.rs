@@ -13,4 +13,3 @@ pub mod metallb_v1beta1;
 pub mod nicconfig_v1alpha1;
 pub mod openshift_config_v1;
 pub mod openshift_operator_v1;
-pub mod provisioning_v1alpha1;

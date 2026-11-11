@@ -76,7 +76,7 @@ async fn before_suite() -> Suite {
     // By("bootstrapping test environment")
     let test_env = ctrlrt_envtest::shared(|| {
         Environment::builder()
-            .crd_directory_paths(["config/crd/bases", "internal/controller/testdata/crds"])
+            .crd_directory_paths(["config/crd/bases", "config/crd/external"])
             .error_if_crd_path_missing(true)
             // Retrieve the first found binary directory to allow running tests from IDEs
             .binary_assets_directory(None)

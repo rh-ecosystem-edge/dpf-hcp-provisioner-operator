@@ -1,0 +1,1 @@
+{"level":"info","ts":"2024-03-05T07:08:09Z","msg":"object","pod":{"apiVersion":"v1","kind":"Pod","namespace":"ns","name":"p"}}

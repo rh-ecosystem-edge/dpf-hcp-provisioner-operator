@@ -8,10 +8,7 @@ use kube::api::{Api, ApiResource, DynamicObject, GroupVersionKind, PostParams};
 fn repo_crd_paths() -> Vec<PathBuf> {
     vec![
         PathBuf::from("config").join("crd").join("bases"),
-        PathBuf::from("internal")
-            .join("controller")
-            .join("testdata")
-            .join("crds"),
+        PathBuf::from("config").join("crd").join("external"),
     ]
 }
 

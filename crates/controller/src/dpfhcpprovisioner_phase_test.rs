@@ -192,8 +192,8 @@ mod dpfhcpprovisioner_phase_transitions {
                     }
 
                     // 2. DPUCluster type should be valid (ClusterTypeValid should be True)
-                    if !find_cond(&p, provisioningv1alpha1::CLUSTER_TYPE_VALID)
-                        .is_some_and(|c| c.status == CONDITION_TRUE)
+                    if find_cond(&p, provisioningv1alpha1::CLUSTER_TYPE_VALID)
+                        .is_none_or(|c| c.status != CONDITION_TRUE)
                     {
                         return Err("ClusterTypeValid".into());
                     }
@@ -207,15 +207,15 @@ mod dpfhcpprovisioner_phase_transitions {
                     }
 
                     // 4. Secrets should be valid (SecretsValid should be True)
-                    if !find_cond(&p, provisioningv1alpha1::SECRETS_VALID)
-                        .is_some_and(|c| c.status == CONDITION_TRUE)
+                    if find_cond(&p, provisioningv1alpha1::SECRETS_VALID)
+                        .is_none_or(|c| c.status != CONDITION_TRUE)
                     {
                         return Err("SecretsValid".into());
                     }
 
                     // 5. BlueField OCP layer image should be found (BlueFieldOCPLayerImageFound should be True)
-                    if !find_cond(&p, provisioningv1alpha1::BLUE_FIELD_OCP_LAYER_IMAGE_FOUND)
-                        .is_some_and(|c| c.status == CONDITION_TRUE)
+                    if find_cond(&p, provisioningv1alpha1::BLUE_FIELD_OCP_LAYER_IMAGE_FOUND)
+                        .is_none_or(|c| c.status != CONDITION_TRUE)
                     {
                         return Err("BlueFieldOCPLayerImageFound".into());
                     }

@@ -1,8 +1,8 @@
 # E2E Tests (Rust)
 
-End-to-end tests for the dpf-hcp-provisioner-operator — the Rust port of `test/e2e` and
-`test/utils` (see `test/e2e/README.md` for the original). Go spec → Rust mapping:
-[`TEST_MAPPING.md`](TEST_MAPPING.md).
+End-to-end tests for the dpf-hcp-provisioner-operator — the Rust port of the former Go suite
+(`test/e2e/*.go`, `test/utils`; removed). Requirements, environment variables and what the
+tests do: `test/e2e/README.md`. Go spec → Rust mapping: [`TEST_MAPPING.md`](TEST_MAPPING.md).
 
 Layout:
 
@@ -71,7 +71,7 @@ OpenShift ClusterVersion) and deploys the operator via Helm.
 
 ## Running on OCP
 
-Requirements are the same as for the Go suite (see `test/e2e/README.md`): an OCP cluster with a
+Requirements are described in `test/e2e/README.md`: an OCP cluster with a
 default StorageClass (or `ETCD_STORAGE_CLASS`), enough resources for HyperShift control planes,
 and no DPF operator running.
 
@@ -88,8 +88,9 @@ Optional: `OPERATOR_HELM_CHART=oci://quay.io/redhat-user-workloads/dpf-hcp-provi
 
 ## Makefile targets
 
-The suite shells out to the same targets as the Go suite (`make e2e-deploy-hypershift`,
-`make apply-crds-for-e2e`) and runs `helm`, `ssh-keygen` and `openssl` with the same arguments.
+The suite shells out to the same targets as the former Go suite (`make e2e-deploy-hypershift`,
+`make apply-crds-for-e2e`, which installs the checked-in CRDs from `test/e2e/testdata/crds` and
+`config/crd/external`) and runs `helm`, `ssh-keygen` and `openssl` with the same arguments.
 `utils::run` runs commands from the repository root (and `chdir`s there, like Go).
 Recipes equivalent to `Makefile.e2e`:
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates Helm RBAC templates from controller-gen output.
+"""Generates Helm RBAC templates from config/rbac/role.yaml (hand-maintained).
 
 config/rbac/role.yaml may contain multiple YAML documents, each a Kubernetes
 RBAC resource. This script writes a Helm template for each one, named after

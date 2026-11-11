@@ -1,8 +1,14 @@
 # E2E Tests
 
-End-to-end tests for the dpf-hcp-provisioner-operator.
+End-to-end tests for the dpf-hcp-provisioner-operator. The suite is the Rust `e2e` crate
+(`crates/e2e`, run with `cargo test -p e2e --test e2e_suite -- --ignored`); see
+[crates/e2e/README.md](../../crates/e2e/README.md) for its layout, the Ginkgo-compatible runner
+and the selection variables (`E2E_LABEL_FILTER`, `E2E_FOCUS`, `E2E_SUITE_TIMEOUT`,
+`KIND_ONLY_TESTS`). This directory holds the data the suite uses: `scripts/` (HyperShift
+deployment) and `testdata/crds/` (checked-in external CRDs, regenerated with
+`make generate-external-crds`).
 
-Tests are split into two groups using Ginkgo labels:
+Tests are split into two groups using labels:
 
 - **`ocp-required`** — tests that need a real OCP cluster with HyperShift (HostedCluster lifecycle,
   CSR approval, upgrades, cleanup). These validate the full DPFHCPProvisioner lifecycle.
@@ -27,7 +33,7 @@ make test-e2e-kind
 ```
 
 The `test-e2e-kind` target installs all required CRDs (DPF, HyperShift, OpenShift ClusterVersion),
-deploys the operator via Helm, and runs tests filtered by `--label-filter='!ocp-required'`.
+deploys the operator via Helm, and runs tests filtered by `E2E_LABEL_FILTER='!ocp-required'`.
 
 ## Requirements
 
@@ -59,7 +65,7 @@ The cluster must have:
 | `OPERATOR_HELM_CHART` | No | `helm/dpf-hcp-provisioner-operator` | Helm chart path or OCI URL |
 | `HYPERSHIFT_IMAGE` | No | `quay.io/hypershift/hypershift-operator:latest` | HyperShift image for deployment |
 | `ETCD_STORAGE_CLASS` | No | Auto-detected | StorageClass for etcd PVCs |
-| `E2E_TEST_TIMEOUT` | No | `90m` | Overall test timeout |
+| `E2E_TEST_TIMEOUT` | No | `90m` | Overall test timeout (`make test-e2e`; passed to the suite as `E2E_SUITE_TIMEOUT`) |
 
 ## What the Tests Do
 
@@ -68,7 +74,8 @@ The cluster must have:
 The test suite automatically:
 
 1. **Deploys HyperShift operator** on the management cluster (`make e2e-deploy-hypershift`)
-2. **Generates and installs CRDs** both ours and from vendored types (`make apply-crds-for-e2e`)
+2. **Installs the external CRDs** (DPF, HyperShift, OpenShift config) checked in under
+   `test/e2e/testdata/crds` and `config/crd/external` (`make apply-crds-for-e2e`)
 3. **Deploys the operator** via Helm chart with the specified image
 
 ### Test Resources Created (BeforeAll)
@@ -157,5 +164,5 @@ Trigger on a PR: `/test dpf-hcp-provisioner-operator-e2e-aws-single-replica`
 | `make test-e2e` | Run the full e2e test suite (OCP cluster required) |
 | `make test-e2e-kind` | Run kind-compatible e2e tests (no OCP required) |
 | `make e2e-deploy-hypershift` | Deploy HyperShift operator (idempotent) |
-| `make generate-crds-for-e2e` | Generate external CRDs (DPF, OpenShift) from vendored types |
-| `make apply-crds-for-e2e` | Generate, install, and wait for external CRDs |
+| `make apply-crds-for-e2e` | Install the checked-in external CRDs and wait for them |
+| `make generate-external-crds` | Regenerate the checked-in external CRDs (needs Go; see `hack/gen-external-crds.sh`) |

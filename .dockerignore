@@ -2,5 +2,3 @@
 target/
 bin/
 .git/
-# Go dependencies are not used by the Rust build
-vendor/

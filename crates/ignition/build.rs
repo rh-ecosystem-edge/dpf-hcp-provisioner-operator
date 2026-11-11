@@ -1,4 +1,4 @@
-//! Generates the embedded directory listings of `internal/ignition/resources/*/{files,systemd}`
+//! Generates the embedded directory listings of `crates/ignition/resources/*/{files,systemd}`
 //! (Go `//go:embed files/*` / `//go:embed systemd/*`), sorted by name like `fs.ReadDir`.
 
 use std::env;
@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
-    let root = manifest.join("../../internal/ignition/resources");
+    let root = manifest.join("resources");
     let mut out = String::new();
     for provider in ["common", "live", "target"] {
         for dir in ["files", "systemd"] {

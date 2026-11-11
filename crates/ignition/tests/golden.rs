@@ -311,7 +311,7 @@ fn render_dpu_agent_service_unit_matches_go() {
 /// The generated embedded systemd listings mirror Go's `fs.ReadDir` of `systemd/*`.
 #[test]
 fn embedded_systemd_dirs_match_filesystem() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../internal/ignition/resources");
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
     for (name, dir) in [
         ("common", &ignition::resources::COMMON_SYSTEMD),
         ("live", &ignition::resources::LIVE_SYSTEMD),

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Verifies that all generated files are up to date.
+# Verifies that all generated files are up to date:
+#   - `make manifests`: Helm RBAC templates synced from config/rbac/role.yaml
+#   - `make generate`:  config/crd/external, test/e2e/testdata/crds (hack/gen-external-crds.sh)
+#                       and crates/apis/src/generated (hack/gen-rust-apis.sh); needs Go
 # Refuses to run on a dirty tree, runs all generation, and fails if anything changed.
 set -euo pipefail
 
@@ -11,10 +14,10 @@ if ! [[ -z "$(git status --porcelain --untracked-files=all)" ]]; then
     exit 1
 fi
 
-make manifests generate generate-test-crds generate-rust-apis
+make manifests generate
 
 if ! [[ -z "$(git status --porcelain --untracked-files=all)" ]]; then
-    echo "Error: generated files are out of date. Run 'make manifests generate generate-test-crds generate-rust-apis' and commit the result." >&2
+    echo "Error: generated files are out of date. Run 'make manifests generate' and commit the result." >&2
     git diff --stat
     exit 1
 fi

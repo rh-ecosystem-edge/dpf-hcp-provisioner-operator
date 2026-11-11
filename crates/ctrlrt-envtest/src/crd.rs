@@ -429,7 +429,7 @@ mod tests {
         let mut o = CrdInstallOptions {
             paths: vec![
                 root.join("config/crd/bases"),
-                root.join("internal/controller/testdata/crds"),
+                root.join("config/crd/external"),
             ],
             error_if_path_missing: true,
             ..Default::default()

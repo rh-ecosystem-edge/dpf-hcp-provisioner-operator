@@ -1,5 +1,10 @@
 # ctrl-metallb — test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 Go package: `internal/controller/metallb` (external test package `metallb_test`).
 
 `suite_test.go` (`TestMetalLB` → `RunSpecs(t, "MetalLB Suite")`) is only the Ginkgo bootstrap; it
@@ -38,7 +43,7 @@ Extra Rust-only tests:
 - `tests/metallb_test.rs::finalizer_cleanup_handler_trait_impl` — the `ctrl_finalizer::CleanupHandler`
   trait impl delegates to the inherent methods.
 - `tests/golden.rs` — 13 golden differential scenarios against the Go code (fixtures from
-  `go run -mod=vendor ./hack/golden/metallb crates/ctrl-metallb/tests/fixtures`): `configure_create`
+  `hack/golden/metallb`): `configure_create`
   (2 runs: create, then no-op), `configure_single_replica_vip`, `configure_skip`,
   `configure_disabled` (2 runs), `configure_drift` (pool + advert drift incl. extra
   labels/annotations/spec fields), `configure_pool_not_owned`, `configure_advert_not_owned`,

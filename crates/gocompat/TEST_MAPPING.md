@@ -1,10 +1,15 @@
 # gocompat — test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 `gocompat` ports Go standard-library / vendored-library behaviour, so there are no operator Go
 tests to mirror. Coverage is provided by golden differential tests: the Go program
-`hack/golden/gocompat` runs fixed-seed random corpora and hand-picked edge cases through the
-real Go implementations and records exact outputs in `tests/fixtures/*.json`
-(`hack/golden/gocompat-tables` generates `src/unicode_tables.rs` from Go's Unicode tables).
+`hack/golden/gocompat` ran fixed-seed random corpora and hand-picked edge cases through the
+real Go implementations and recorded exact outputs in `tests/fixtures/*.json`
+(`hack/golden/gocompat-tables` generated `src/unicode_tables.rs` from Go's Unicode tables; the file is now frozen as well).
 
 | Go reference | Fixture | Rust test |
 |---|---|---|

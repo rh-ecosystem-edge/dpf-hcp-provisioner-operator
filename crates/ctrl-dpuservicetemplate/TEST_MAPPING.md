@@ -1,5 +1,10 @@
 # internal/controller/dpuservicetemplate test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 Go suites:
 
 * `release_image_test.go` (package `dpuservicetemplate`, internal) → `src/release_image_test.rs`;
@@ -77,7 +82,7 @@ All 39 Go specs are ported (8 + 31, DescribeTable entries counted individually).
 
 ### Golden differential tests (`tests/golden.rs`)
 
-Fixtures from `go run -mod=vendor ./hack/golden/dpuservicetemplate crates/ctrl-dpuservicetemplate/tests/fixtures`. Each
+Fixtures from `hack/golden/dpuservicetemplate`. Each
 scenario drives the Go manager/reconciler against the controller-runtime fake client (fake `ReleaseImageReader`, release
 images on an httptest rules registry) and the Rust test replays it against `ctrlrt-fake` + the in-process rules registry
 (`tests/support/mod.rs`), comparing per-step errors and release-reader calls and the `encoding/json` bytes of the three

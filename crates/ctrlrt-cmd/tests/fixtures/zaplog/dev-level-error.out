@@ -1,0 +1,3 @@
+2024-03-05T07:08:09Z	ERROR	setup	unable to start manager	{"error": "failed to get restconfig: no configuration has been provided"}
+2024-03-05T07:08:09Z	ERROR	nil error	{"controller": "CSRApproval"}
+2024-03-05T07:08:09Z	ERROR	setup	to initialize metrics certificate watcher	{"wv": 1, "error": "open /x/tls.crt: no such file or directory", "error": "open /x/tls.crt: no such file or directory"}

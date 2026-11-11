@@ -1,0 +1,2 @@
+{"level":"info","ts":"2024-03-05T07:08:09Z","msg":"no stack"}
+{"level":"error","ts":"2024-03-05T07:08:09Z","msg":"with stack","error":"boom","stacktrace":"main.run\n\t/home/eelgaev/Projects/dpf-hcp-rust/hack/golden/zaplog/main.go:154\nmain.main\n\t/home/eelgaev/Projects/dpf-hcp-rust/hack/golden/zaplog/main.go:182\nruntime.main\n\t/usr/lib/golang/src/runtime/proc.go:290"}

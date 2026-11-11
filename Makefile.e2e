@@ -20,29 +20,17 @@ test-e2e: ## Run e2e tests on an existing OCP cluster.
 e2e-deploy-hypershift: ## [E2E] Deploy HyperShift operator on the OCP management cluster.
 	./test/e2e/scripts/deploy-hypershift.sh
 
-.PHONY: generate-crds-for-e2e
-generate-crds-for-e2e: controller-gen ## [E2E] Generate external CRDs from vendored types.
-	# We .gitignore them so directory might not exist.
-	mkdir -p test/e2e/testdata/crds
-
-	# We gen directly from vendor, no need to download the packages
-
-	# DPF CRDs
-	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
-	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
-	$(CONTROLLER_GEN) crd paths="./vendor/github.com/nvidia/doca-platform/api/operator/v1alpha1/..." output:crd:dir=test/e2e/testdata/crds
-
-	# OCP CRDs
-	$(CONTROLLER_GEN) crd paths="./vendor/github.com/openshift/api/config/v1/..." output:crd:dir=test/e2e/testdata/crds
-
+# External CRDs are checked in (regenerate with `make generate-external-crds`):
+#   test/e2e/testdata/crds  DPF provisioning/dpuservice/operator + OpenShift config/v1
+#   config/crd/external     DPF provisioning/dpuservice + HyperShift
 .PHONY: apply-crds-for-e2e
-apply-crds-for-e2e: generate-crds-for-e2e ## [E2E] Generate and install external CRDs on the cluster.
+apply-crds-for-e2e: ## [E2E] Install the external CRDs on the cluster.
 	$(KUBECTL) apply -f test/e2e/testdata/crds/
 	$(KUBECTL) wait --for=condition=Established -f test/e2e/testdata/crds/ --timeout=60s
 
 	@# Some of these are HyperShift CRDs which exceed the 256KB annotation limit, so use server-side apply
-	$(KUBECTL) apply --server-side --force-conflicts -f internal/controller/testdata/crds/
-	$(KUBECTL) wait --for=condition=Established -f internal/controller/testdata/crds/ --timeout=60s
+	$(KUBECTL) apply --server-side --force-conflicts -f config/crd/external/
+	$(KUBECTL) wait --for=condition=Established -f config/crd/external/ --timeout=60s
 
 E2E_KIND_TIMEOUT ?= 10m
 

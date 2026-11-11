@@ -1,5 +1,10 @@
 # registry — Go test → Rust test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 The vendored `github.com/google/go-containerregistry` ships no tests, so behaviour is pinned
 with golden fixtures generated from the vendored Go code:
 
@@ -12,7 +17,7 @@ with golden fixtures generated from the vendored Go code:
 | `mutate.Extract` + `partial.CompressedToLayer().Uncompressed()` (`hack/golden/registry`) | `tests/fixtures/extract_golden.json`, `tests/fixtures/extract/*.bin` | `tests/golden.rs::mutate_extract_matches_go` |
 | `remote.Head` / `Get` / `Image` / `ConfigFile` against scripted `httptest` registries (`hack/golden/registry-remote`) | `tests/fixtures/remote_golden.json` | `tests/remote_golden.rs::remote_flows_match_go` |
 
-Regenerate with:
+Generated (before the Go code was removed) with:
 
 ```sh
 go run -mod=vendor ./hack/golden/registry

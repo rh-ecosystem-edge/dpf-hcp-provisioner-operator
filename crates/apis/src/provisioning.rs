@@ -1,10 +1,11 @@
-//! This repository's API: `api/v1alpha1` (group `provisioning.dpu.hcp.io`).
+//! This repository's API: `provisioning.dpu.hcp.io/v1alpha1` (CRDs in `config/crd/bases`).
 
 pub mod v1alpha1 {
-    //! Types are generated (see `crates/apis/GENERATION.md`); constants and methods below are
-    //! ported by hand from `api/v1alpha1/*.go`.
+    //! Types are hand-maintained in `crates/apis/src/provisioning_types.rs` (kept in sync with
+    //! `config/crd/bases`); constants and methods below were ported from the former Go
+    //! `api/v1alpha1/*.go`.
 
-    pub use crate::generated::provisioning_v1alpha1::*;
+    pub use crate::provisioning_types::*;
 
     use crate::hypershift::v1beta1 as hyperv1;
 

@@ -9,7 +9,7 @@ use ctrlrt::{Ctx, Result, kv};
 use serde::{Deserialize, Serialize};
 
 /// `//go:embed dpfversions.json`
-static DPF_VERSIONS_JSON: &str = include_str!("../../../internal/dpfdefaults/dpfversions.json");
+static DPF_VERSIONS_JSON: &str = include_str!("../dpfversions.json");
 
 const DEFAULT_KEY: &str = "default";
 

@@ -10,7 +10,7 @@
 //! let env = ctrlrt_envtest::Environment::builder()
 //!     .crd_directory_paths(vec![
 //!         PathBuf::from("config/crd/bases"),
-//!         PathBuf::from("internal/controller/testdata/crds"),
+//!         PathBuf::from("config/crd/external"),
 //!     ])
 //!     .error_if_crd_path_missing(true)
 //!     .start()

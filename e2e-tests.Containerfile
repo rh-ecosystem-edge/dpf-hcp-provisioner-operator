@@ -3,13 +3,18 @@ FROM quay.io/hypershift/hypershift-operator:latest as hypershift-cli
 FROM quay.io/openshift/origin-cli:latest as oc-cli
 
 # Main test image
-FROM registry.access.redhat.com/ubi10/go-toolset:1.26 AS tester
+FROM registry.access.redhat.com/ubi10/ubi:latest AS tester
 
 USER root
 WORKDIR /workspace
 
-# Install required system tools
+# Install required system tools and the Rust toolchain (the e2e suite is the `e2e` crate:
+# `cargo test -p e2e`)
 RUN dnf install -y \
+    rust \
+    cargo \
+    gcc \
+    make \
     openssl \
     openssh-clients \
     && dnf clean all
@@ -24,49 +29,29 @@ COPY --from=oc-cli /usr/bin/oc /usr/bin/oc
 # Create kubectl symlink (oc provides kubectl functionality)
 RUN ln -s /usr/bin/oc /usr/bin/kubectl
 
-# Rust toolchain (the e2e suite is the `e2e` crate: `cargo test -p e2e`)
-ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:$PATH
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-      sh -s -- -y --profile minimal --default-toolchain 1.99 && \
-    chmod -R a+rwX /opt/rustup /opt/cargo
+# Cargo writes its registry cache and build outputs here; keep them writable for the arbitrary
+# UID the container runs as on OpenShift.
+ENV CARGO_HOME=/workspace/.cargo
 
-# Copy Go module files (controller-gen generates the e2e CRDs from vendored Go types)
-COPY --chown=1001:0 go.mod go.sum ./
-
-# Copy vendor directory (contains all dependencies including ginkgo/gomega test frameworks and NVIDIA doca-platform for CRD generation)
-COPY --chown=1001:0 vendor/ ./vendor/
-
-# Copy API definitions (tests import api/v1alpha1 types)
-COPY --chown=1001:0 api/ ./api/
-
-# Copy config directory (contains CRD manifests that helm chart symlinks reference)
+# Copy config directory (operator CRDs that the helm chart symlinks reference, and the
+# external CRDs in config/crd/external installed by apply-crds-for-e2e)
 COPY --chown=1001:0 config/ ./config/
 
 # Copy Makefiles with e2e targets
 COPY --chown=1001:0 Makefile Makefile.e2e ./
 
-# Build controller-gen inside the container (ensures correct OS/arch for CRD generation)
-RUN make controller-gen
-
-# Copy unit-test CRDs (committed; used by apply-crds-for-e2e)
-COPY --chown=1001:0 internal/controller/testdata/crds/ ./internal/controller/testdata/crds/
-
-# Copy all test code (e2e tests, utils, scripts)
+# Copy test data and scripts (committed external CRDs in test/e2e/testdata/crds, HyperShift
+# deploy script)
 COPY --chown=1001:0 test/ ./test/
 
-# Copy the Cargo workspace (the e2e suite and the crates it depends on) and data files
-# embedded at compile time, then pre-build the suite so test runs start immediately.
+# Copy the Cargo workspace (the e2e suite and the crates it depends on), then pre-build the
+# suite so test runs start immediately.
 COPY --chown=1001:0 Cargo.toml Cargo.lock ./
 COPY --chown=1001:0 crates/ ./crates/
-COPY --chown=1001:0 internal/dpfdefaults/dpfversions.json ./internal/dpfdefaults/dpfversions.json
-COPY --chown=1001:0 internal/ignition/resources/ ./internal/ignition/resources/
 RUN cargo test --locked -p e2e --test e2e_suite --no-run
 
 # Copy helm chart (used to deploy operator during tests)
 COPY --chown=1001:0 helm/ ./helm/
-
-# Create directory for generated CRDs (controller-gen writes here during test setup)
-RUN mkdir -p test/e2e/testdata/crds
 
 # Set OpenShift-compatible permissions on entire workspace (arbitrary UID, group 0)
 # This allows the container to run with any UID in OpenShift (always group 0)

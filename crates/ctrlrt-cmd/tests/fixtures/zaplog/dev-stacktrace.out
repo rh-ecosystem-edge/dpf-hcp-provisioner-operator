@@ -1,0 +1,8 @@
+2024-03-05T07:08:09Z	INFO	no stack
+2024-03-05T07:08:09Z	ERROR	with stack	{"error": "boom"}
+main.run
+	/home/eelgaev/Projects/dpf-hcp-rust/hack/golden/zaplog/main.go:154
+main.main
+	/home/eelgaev/Projects/dpf-hcp-rust/hack/golden/zaplog/main.go:182
+runtime.main
+	/usr/lib/golang/src/runtime/proc.go:290

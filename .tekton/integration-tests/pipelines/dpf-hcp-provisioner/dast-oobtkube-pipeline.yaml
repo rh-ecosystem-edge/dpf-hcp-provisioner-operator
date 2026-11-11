@@ -145,7 +145,7 @@ spec:
               echo "Repository cloned to /tmp/source"
 
           - name: install-crds
-            image: golang:1.27
+            image: quay.io/konflux-ci/konflux-test:latest
             env:
               - name: KUBECONFIG
                 value: /credentials/kubeconfig
@@ -159,36 +159,21 @@ spec:
               #!/bin/bash
               set -euo pipefail
 
-              # Install controller-gen (pinned to project version)
-              GOBIN=/tmp/gobin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0
-              export PATH="/tmp/gobin:$PATH"
-
-              # Generate DPF CRDs from vendored nvidia/doca-platform types
-              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
-                controller-gen crd paths="github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." \
-                output:crd:dir=test/e2e/testdata/crds
-              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
-                controller-gen crd paths="github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." \
-                output:crd:dir=test/e2e/testdata/crds
-              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
-                controller-gen crd paths="github.com/nvidia/doca-platform/api/operator/v1alpha1/..." \
-                output:crd:dir=test/e2e/testdata/crds
-
               # Download kubectl (latest stable)
               curl -sSL "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
-                -o /tmp/gobin/kubectl && chmod +x /tmp/gobin/kubectl
+                -o /tmp/kubectl && chmod +x /tmp/kubectl
+              export PATH="/tmp:$PATH"
 
-              # Generate Hypershift CRDs from vendored openshift/hypershift types
-              GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=vendor" \
-                controller-gen crd paths="github.com/openshift/hypershift/api/hypershift/v1beta1/..." \
-                output:crd:dir=test/dast/crds
-
-              # Apply DPF CRDs
-              kubectl apply -f test/e2e/testdata/crds/
-              kubectl wait --for=condition=Established -f test/e2e/testdata/crds/ --timeout=60s
-              # Apply HyperShift CRDs (server-side apply required — CRDs exceed 262144-byte annotation limit)
-              kubectl apply --server-side -f test/dast/crds/
-              kubectl wait --for=condition=Established -f test/dast/crds/ --timeout=60s
+              # The external CRDs are checked in (regenerated with `make generate-external-crds`):
+              #   config/crd/external     DPF provisioning + dpuservice, HyperShift
+              #   test/e2e/testdata/crds  DPF operator (DPFOperatorConfig); the OpenShift config/v1
+              #                           CRDs in that directory are already served by the cluster.
+              # Server-side apply: the HyperShift CRDs exceed the 262144-byte annotation limit.
+              kubectl apply --server-side -f config/crd/external/
+              kubectl wait --for=condition=Established -f config/crd/external/ --timeout=60s
+              kubectl apply -f test/e2e/testdata/crds/operator.dpu.nvidia.com_dpfoperatorconfigs.yaml
+              kubectl wait --for=condition=Established \
+                -f test/e2e/testdata/crds/operator.dpu.nvidia.com_dpfoperatorconfigs.yaml --timeout=60s
               echo "All prerequisite CRDs installed."
 
           - name: helm-install

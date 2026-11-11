@@ -1,5 +1,10 @@
 # ctrl-kubeconfiginjection — test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 Go package: `internal/controller/kubeconfiginjection`. `injector_test.go` and `watch_test.go` are
 white-box tests (package `kubeconfiginjection`), so they are ported as unit-test modules
 `src/injector_test.rs` and `src/watch_test.rs` (with access to the crate-private
@@ -50,7 +55,7 @@ All 23 Go specs are ported.
 ## Extra Rust-only tests — `tests/golden.rs`
 
 Golden differential scenarios against the Go code (fixtures from
-`go run -mod=vendor ./hack/golden/kubeconfiginjection crates/ctrl-kubeconfiginjection/tests/fixtures`):
+`hack/golden/kubeconfiginjection`):
 `inject_happy` (2 runs), `inject_drift`, `inject_no_drift`, `inject_scenario_b`,
 `inject_scenario_c`, `inject_dpucluster_missing` (2 runs), `inject_secret_not_ready`,
 `inject_hc_not_created`, `inject_source_missing_key`, `inject_dest_missing_key`,

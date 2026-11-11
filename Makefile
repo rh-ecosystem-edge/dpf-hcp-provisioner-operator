@@ -52,15 +52,34 @@ OPERATOR_SDK_VERSION ?= v1.42.0
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
+# Host OS/architecture in Go/Kubernetes naming (linux|darwin, amd64|arm64), used to pick
+# release binaries of the downloaded tools.
+HOST_OS ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
+HOST_ARCH ?= $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
 
 # RUST_TARGET is the musl target used for the static manager binary.
 RUST_TARGET ?= $(shell uname -m | sed 's/arm64/aarch64/')-unknown-linux-musl
+
+# ---------------------------------------------------------------------------------------------
+# Rust toolchain
+# ---------------------------------------------------------------------------------------------
+# The operator is a Cargo workspace. When `cargo` is not on PATH (e.g. the OpenShift CI build
+# root), the pinned toolchain below is installed into bin/ from the official release tarballs
+# (sha256-verified) and put first on PATH, so `make lint`/`make test`/`make build` work
+# without a pre-installed Rust. RUST_TOOLCHAIN_VERSION matches the UBI10 builder image.
+RUST_TOOLCHAIN_VERSION ?= 1.92.0
+RUST_HOST_TRIPLE ?= $(shell uname -m | sed 's/arm64/aarch64/')-unknown-linux-gnu
+RUST_DIST_URL ?= https://static.rust-lang.org/dist
+RUST_TOOLCHAIN_DIR ?= $(CURDIR)/bin/rust-$(RUST_TOOLCHAIN_VERSION)
+ifeq ($(shell command -v cargo 2>/dev/null),)
+CARGO ?= $(RUST_TOOLCHAIN_DIR)/bin/cargo
+RUST_TOOLCHAIN := $(RUST_TOOLCHAIN_DIR)/bin/cargo
+export PATH := $(RUST_TOOLCHAIN_DIR)/bin:$(PATH)
+export CARGO_HOME ?= $(CURDIR)/bin/cargo-home
+else
+CARGO ?= cargo
+RUST_TOOLCHAIN :=
+endif
 
 # CONTAINER_TOOL defines the container tool to be used for building images.
 CONTAINER_TOOL ?= podman
@@ -93,25 +112,24 @@ help: ## Display this help.
 
 ##@ Development
 
+# The operator's own CRDs (config/crd/bases) and RBAC (config/rbac/role.yaml) are
+# hand-maintained sources: keep them consistent with crates/apis/src/provisioning_types.rs and
+# with the API calls the controllers make.
 .PHONY: manifests
-manifests: controller-gen yq ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+manifests: yq ## Sync the Helm chart RBAC templates from config/rbac/role.yaml.
 	PATH="$(LOCALBIN):$$PATH" python3 ./hack/sync-helm-rbac.py
 
 .PHONY: generate
-generate: controller-gen generate-test-crds ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+generate: ## Regenerate the external CRDs and the Rust API types (needs Go and network access).
+	./hack/gen-external-crds.sh
+	./hack/gen-rust-apis.sh
 
-.PHONY: generate-test-crds
-generate-test-crds: controller-gen ## Generate external CRDs for unit tests from vendored types.
-	rm -rf internal/controller/testdata/crds
-	mkdir -p internal/controller/testdata/crds
-	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/provisioning/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
-	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
-	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/openshift/hypershift/api/hypershift/v1beta1/..." output:crd:dir=internal/controller/testdata/crds
+.PHONY: generate-external-crds
+generate-external-crds: ## Regenerate config/crd/external and test/e2e/testdata/crds (needs Go).
+	./hack/gen-external-crds.sh
 
 .PHONY: generate-rust-apis
-generate-rust-apis: ## Regenerate the Rust API types (crates/apis) from the CRDs with kopium.
+generate-rust-apis: ## Regenerate the Rust API types (crates/apis/src/generated) with kopium (needs Go).
 	./hack/gen-rust-apis.sh
 
 .PHONY: verify-generate
@@ -119,45 +137,51 @@ verify-generate: ## Verify that all generated files are up to date.
 	./hack/verify-generate.sh
 
 .PHONY: fmt
-fmt: ## Run cargo fmt against code.
-	cargo fmt --all
+fmt: $(RUST_TOOLCHAIN) ## Run cargo fmt against code.
+	$(CARGO) fmt --all
 
 .PHONY: vet
-vet: ## Run cargo clippy against code.
-	cargo clippy --workspace --all-targets
+vet: $(RUST_TOOLCHAIN) ## Run cargo clippy against code.
+	$(CARGO) clippy --workspace --all-targets
 
 .PHONY: test
-test: manifests generate fmt vet setup-envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" cargo test --workspace --exclude e2e
+test: manifests fmt vet setup-envtest $(RUST_TOOLCHAIN) ## Run tests.
+	KUBEBUILDER_ASSETS="$(ENVTEST_ASSETS_DIR)" $(CARGO) test --workspace --exclude e2e
 
 include Makefile.e2e
 
+.PHONY: verify-deps
+verify-deps: $(RUST_TOOLCHAIN) ## Verify Cargo.lock matches the manifests and all locked dependencies resolve and build offline.
+	$(CARGO) metadata --locked --format-version 1 >/dev/null
+	$(CARGO) fetch --locked
+	$(CARGO) check --workspace --all-targets --locked --offline
+
 .PHONY: lint
-lint: ## Run clippy (warnings are errors) and check formatting
-	cargo clippy --workspace --all-targets -- -D warnings
-	cargo fmt --all -- --check
+lint: verify-deps $(RUST_TOOLCHAIN) ## Run clippy (warnings are errors) and check formatting
+	$(CARGO) clippy --workspace --all-targets -- -D warnings
+	$(CARGO) fmt --all -- --check
 
 .PHONY: lint-fix
-lint-fix: ## Run clippy and rustfmt and apply fixes
-	cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged
-	cargo fmt --all
+lint-fix: $(RUST_TOOLCHAIN) ## Run clippy and rustfmt and apply fixes
+	$(CARGO) clippy --workspace --all-targets --fix --allow-dirty --allow-staged
+	$(CARGO) fmt --all
 
 .PHONY: lint-config
-lint-config: ## Verify the Rust lint toolchain
-	cargo clippy --version
-	cargo fmt --version
+lint-config: $(RUST_TOOLCHAIN) ## Verify the Rust lint toolchain
+	$(CARGO) clippy --version
+	$(CARGO) fmt --version
 
 ##@ Build
 
 .PHONY: build
-build: manifests generate fmt vet ## Build the static manager binary (musl).
-	cargo build --release --locked --target $(RUST_TARGET) --bin manager
+build: manifests fmt vet $(RUST_TOOLCHAIN) ## Build the static manager binary (musl).
+	$(CARGO) build --release --locked --target $(RUST_TARGET) --bin manager
 	mkdir -p bin
 	cp target/$(RUST_TARGET)/release/manager bin/manager
 
 .PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
-	cargo run --bin manager --
+run: manifests fmt vet $(RUST_TOOLCHAIN) ## Run a controller from your host.
+	$(CARGO) run --bin manager --
 
 .PHONY: container-build
 container-build: ## Build container image with the manager.
@@ -197,7 +221,7 @@ helm-push: helm-package ## Package and push a Helm chart. Requires: HELM_CHART_D
 	helm push $(HELM_CHART_DIR)-$(HELM_CHART_VERSION).tgz $$(dirname $(HELM_CHART_REGISTRY))
 
 .PHONY: build-installer
-build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
+build-installer: manifests kustomize ## Generate a consolidated YAML with CRDs and deployment.
 	mkdir -p dist
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default > dist/install.yaml
@@ -232,57 +256,86 @@ LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
+## Rust toolchain installer (used only when cargo is not on PATH; see "Rust toolchain" above).
+## Components: rustc, cargo, std for the host and the musl target (static `make build`),
+## clippy and rustfmt. Each tarball is verified against its published sha256.
+RUST_COMPONENTS ?= rustc cargo rust-std clippy rustfmt
+$(RUST_TOOLCHAIN_DIR)/bin/cargo:
+	@echo "cargo not found on PATH; installing Rust $(RUST_TOOLCHAIN_VERSION) into $(RUST_TOOLCHAIN_DIR)"
+	@set -euo pipefail; \
+	tmp="$$(mktemp -d)"; trap 'rm -rf "$$tmp"' EXIT; \
+	musl="$$(echo $(RUST_HOST_TRIPLE) | sed 's/-gnu$$/-musl/')"; \
+	for pkg in rustc-$(RUST_TOOLCHAIN_VERSION)-$(RUST_HOST_TRIPLE) \
+	           cargo-$(RUST_TOOLCHAIN_VERSION)-$(RUST_HOST_TRIPLE) \
+	           rust-std-$(RUST_TOOLCHAIN_VERSION)-$(RUST_HOST_TRIPLE) \
+	           rust-std-$(RUST_TOOLCHAIN_VERSION)-$$musl \
+	           clippy-$(RUST_TOOLCHAIN_VERSION)-$(RUST_HOST_TRIPLE) \
+	           rustfmt-$(RUST_TOOLCHAIN_VERSION)-$(RUST_HOST_TRIPLE); do \
+	  curl -sSfL -o "$$tmp/$$pkg.tar.xz" "$(RUST_DIST_URL)/$$pkg.tar.xz"; \
+	  curl -sSfL -o "$$tmp/$$pkg.tar.xz.sha256" "$(RUST_DIST_URL)/$$pkg.tar.xz.sha256"; \
+	  (cd "$$tmp" && echo "$$(cut -d' ' -f1 "$$pkg.tar.xz.sha256")  $$pkg.tar.xz" | sha256sum -c --quiet -); \
+	  tar -xJf "$$tmp/$$pkg.tar.xz" -C "$$tmp"; \
+	  "$$tmp/$$pkg/install.sh" --prefix="$(RUST_TOOLCHAIN_DIR)" --disable-ldconfig >/dev/null; \
+	done
+	@"$(RUST_TOOLCHAIN_DIR)/bin/cargo" --version
+
 ## Tool Binaries
 KUBECTL ?= kubectl
 KIND ?= kind
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-ENVTEST ?= $(LOCALBIN)/setup-envtest
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 YQ ?= $(LOCALBIN)/yq
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.6.0
-CONTROLLER_TOOLS_VERSION ?= v0.18.0
-#ENVTEST_VERSION is the version of controller-runtime release branch to fetch the envtest setup script (i.e. release-0.20)
-ENVTEST_VERSION ?= $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
-#ENVTEST_K8S_VERSION is the version of Kubernetes to use for setting up ENVTEST binaries (i.e. 1.31)
-ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
-GOLANGCI_LINT_VERSION ?= v2.10.1
 YQ_VERSION ?= v4.44.6
+# ENVTEST_K8S_VERSION is the Kubernetes version of the envtest binaries (etcd, kube-apiserver,
+# kubectl) used by the envtest suites; ENVTEST_VERSION is the matching controller-tools release.
+ENVTEST_K8S_VERSION ?= 1.35.0
+ENVTEST_VERSION ?= envtest-v$(ENVTEST_K8S_VERSION)
+# The envtest suites (crates/ctrlrt-envtest) use $$KUBEBUILDER_ASSETS, or else the first
+# directory under bin/k8s/, so the binaries are unpacked to bin/k8s/<version>-<os>-<arch>.
+ENVTEST_ASSETS_DIR ?= $(LOCALBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(HOST_OS)-$(HOST_ARCH)
+ENVTEST_ARCHIVE ?= $(ENVTEST_VERSION)-$(HOST_OS)-$(HOST_ARCH).tar.gz
+ENVTEST_RELEASE_URL ?= https://github.com/kubernetes-sigs/controller-tools/releases/download/$(ENVTEST_VERSION)/$(ENVTEST_ARCHIVE)
+# Release index with the sha512 of every envtest archive (what setup-envtest verifies against).
+ENVTEST_INDEX_URL ?= https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/HEAD/envtest-releases.yaml
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
 
-.PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
-
 .PHONY: setup-envtest
-setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
-	@echo "Setting up envtest binaries for Kubernetes version $(ENVTEST_K8S_VERSION)..."
-	@$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path || { \
-		echo "Error: Failed to set up envtest binaries for version $(ENVTEST_K8S_VERSION)."; \
-		exit 1; \
-	}
-
-.PHONY: envtest
-envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
-
-.PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): $(LOCALBIN)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+setup-envtest: $(LOCALBIN) ## Download the envtest binaries (etcd, kube-apiserver, kubectl) into bin/k8s.
+	@if [ -x "$(ENVTEST_ASSETS_DIR)/etcd" ] && [ -x "$(ENVTEST_ASSETS_DIR)/kube-apiserver" ] && [ -x "$(ENVTEST_ASSETS_DIR)/kubectl" ]; then \
+		echo "envtest binaries for Kubernetes $(ENVTEST_K8S_VERSION) present in $(ENVTEST_ASSETS_DIR)"; \
+	else \
+		set -e; \
+		echo "Downloading envtest binaries for Kubernetes $(ENVTEST_K8S_VERSION) from $(ENVTEST_RELEASE_URL)"; \
+		index="$$(mktemp)"; archive="$$(mktemp)"; trap 'rm -f "$$index" "$$archive"' EXIT; \
+		curl -sSfL -o "$$index" "$(ENVTEST_INDEX_URL)"; \
+		want="$$(awk -v a="$(ENVTEST_ARCHIVE):" '$$1 == a { getline; print $$2; exit }' "$$index")"; \
+		if [ -z "$$want" ]; then echo "Error: $(ENVTEST_ARCHIVE) is not listed in $(ENVTEST_INDEX_URL)" >&2; exit 1; fi; \
+		curl -sSfL -o "$$archive" "$(ENVTEST_RELEASE_URL)"; \
+		got="$$(sha512sum "$$archive" | awk '{print $$1}')"; \
+		if [ "$$got" != "$$want" ]; then echo "Error: sha512 mismatch for $(ENVTEST_ARCHIVE)" >&2; exit 1; fi; \
+		mkdir -p "$(ENVTEST_ASSETS_DIR)"; \
+		chmod u+w "$(ENVTEST_ASSETS_DIR)"; \
+		tar -xzf "$$archive" -C "$(ENVTEST_ASSETS_DIR)" --strip-components=2 \
+			controller-tools/envtest/etcd controller-tools/envtest/kube-apiserver controller-tools/envtest/kubectl; \
+		echo "envtest binaries installed in $(ENVTEST_ASSETS_DIR)"; \
+	fi
 
 .PHONY: yq
 yq: $(YQ) ## Download yq locally if necessary.
 $(YQ): $(LOCALBIN)
-	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,$(YQ_VERSION))
+	@[ -f "$(YQ)-$(YQ_VERSION)" ] || { \
+		set -e; \
+		echo "Downloading yq $(YQ_VERSION)"; \
+		curl -sSfL -o "$(YQ)-$(YQ_VERSION)" "https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_$(HOST_OS)_$(HOST_ARCH)"; \
+		chmod +x "$(YQ)-$(YQ_VERSION)"; \
+	}
+	ln -sf "$(YQ)-$(YQ_VERSION)" "$(YQ)"
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
@@ -308,7 +361,7 @@ ifeq (, $(shell which operator-sdk 2>/dev/null))
 	@{ \
 	set -e ;\
 	mkdir -p $(dir $(OPERATOR_SDK)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	OS=$(HOST_OS) && ARCH=$(HOST_ARCH) && \
 	curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$${OS}_$${ARCH} ;\
 	chmod +x $(OPERATOR_SDK) ;\
 	}
@@ -340,7 +393,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	@{ \
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	OS=$(HOST_OS) && ARCH=$(HOST_ARCH) && \
 	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.55.0/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}

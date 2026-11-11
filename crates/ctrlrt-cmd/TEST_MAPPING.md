@@ -1,5 +1,10 @@
 # Go test → Rust test mapping (`ctrlrt-cmd`)
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 `cmd/` has no Go tests. This crate ports behaviour of the Go standard library `flag` package and
 vendored controller-runtime / client-go / apiserver code, whose upstream tests are not part of
 this repository. Coverage is provided by golden differential tests against the Go
@@ -13,7 +18,7 @@ implementation plus unit tests modelled on the upstream tests.
 | controller-runtime `zap.New(zap.UseFlagOptions(&opts))` with a fixed clock, 31 flag/encoder/level/time-encoding scenarios (`hack/golden/zaplog`) | `tests/fixtures/zaplog/*` | `tests/zaplog_golden.rs`: `zap_output_matches_go_byte_for_byte`, `zap_stacktraces_have_go_shape` |
 | client-go `record.EventCorrelator` with a fake clock: dedup, aggregation, spam filter, window reset (`hack/golden/ctrlrt-cmd-events`) | `tests/fixtures/events/correlator.json` | `tests/events.rs`: `correlator_matches_client_go` |
 
-Regenerate:
+Generated (before the Go code was removed) with:
 
 ```sh
 hack/golden/ctrlrt-cmd-flags/gen.sh

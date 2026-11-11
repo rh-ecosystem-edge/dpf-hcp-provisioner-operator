@@ -85,7 +85,7 @@ fn condition<'a>(obj: &'a Value, type_: &str) -> Option<&'a Value> {
 async fn manager_binary_reconciles_and_shuts_down() {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let env = ctrlrt_envtest::Environment::builder()
-        .crd_directory_paths(["config/crd/bases", "internal/controller/testdata/crds"])
+        .crd_directory_paths(["config/crd/bases", "config/crd/external"])
         .error_if_crd_path_missing(true)
         .start()
         .await

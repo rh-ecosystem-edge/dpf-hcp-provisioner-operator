@@ -1,8 +1,8 @@
 //! Kubernetes API types used by the DPF HCP provisioner operator.
 //!
-//! The structs are generated (`hack/gen-rust-apis.sh`: kopium over the CRDs, re-shaped against
-//! the vendored Go types; see `GENERATION.md`) so that serde reproduces Go's `encoding/json`
-//! output: Go field order, `omitempty`, nil slices/maps/pointers without `omitempty` as `null`,
+//! The external API structs are generated (`hack/gen-rust-apis.sh`: kopium over the CRDs,
+//! re-shaped against the upstream Go types; see `GENERATION.md`) so that serde reproduces Go's
+//! `encoding/json` output: Go field order, `omitempty`, nil slices/maps/pointers without `omitempty` as `null`,
 //! zero `metav1.Time` as `null`, canonical `resource.Quantity`, Go-ordered `ObjectMeta` /
 //! `Condition`. Every struct keeps unknown fields in `extra`.
 //!
@@ -10,7 +10,7 @@
 //!
 //! | Go package | Rust module |
 //! |---|---|
-//! | `api/v1alpha1` (this repo) | [`provisioning::v1alpha1`] |
+//! | this repo's API (hand-maintained, `provisioning_types.rs` + `config/crd/bases`) | [`provisioning::v1alpha1`] |
 //! | `github.com/nvidia/doca-platform/api/provisioning/v1alpha1` | [`dpf::provisioning::v1alpha1`] |
 //! | `github.com/nvidia/doca-platform/api/dpuservice/v1alpha1` | [`dpf::dpuservice::v1alpha1`] |
 //! | `github.com/nvidia/doca-platform/api/operator/v1alpha1` | [`dpf::operator::v1alpha1`] |
@@ -32,6 +32,7 @@ pub mod go;
 pub mod infraid;
 pub mod ipnet;
 pub mod provisioning;
+mod provisioning_types;
 pub mod resource;
 
 pub mod dpf {

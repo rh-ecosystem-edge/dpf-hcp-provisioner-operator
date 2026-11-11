@@ -19,7 +19,7 @@ limitations under the License.
 // kopium generates Rust structs (and their documentation) from the CRD schemas. CRD schemas
 // do not carry the information needed to reproduce Go's encoding/json output exactly (Go
 // field order, `omitempty`, pointer vs value fields, Go type names, Quantity vs IntOrString,
-// custom marshalers), so this program re-shapes kopium's output against the vendored Go
+// custom marshalers), so this program re-shapes kopium's output against the upstream Go
 // types using reflection:
 //
 //   - one Rust struct per Go struct type, named like the Go type, fields in Go order;
@@ -31,7 +31,11 @@ limitations under the License.
 //
 // It also cross-checks every Go field against the kopium (CRD) field and reports mismatches.
 //
-// Usage: go run -mod=vendor ./hack/gen-rust-apis -crds DIR -kopium DIR -out DIR
+// Usage (from this module directory; see hack/gen-rust-apis.sh): go run . -crds DIR -kopium DIR -out DIR
+//
+// This is a standalone Go module: its go.mod pins the upstream API versions (doca-platform,
+// hypershift, openshift/api, metallb, k8s.io/*) used both here and by controller-gen in
+// hack/gen-rust-apis.sh and hack/gen-external-crds.sh.
 package main
 
 import (
@@ -62,8 +66,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	hyperv1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
-
-	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // root describes one kind that the operator uses.
@@ -74,8 +77,6 @@ type root struct {
 }
 
 var roots = []root{
-	{&provisioningv1alpha1.DPFHCPProvisioner{}, &provisioningv1alpha1.DPFHCPProvisionerList{}, "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml"},
-	{&provisioningv1alpha1.DPFHCPProvisionerConfig{}, &provisioningv1alpha1.DPFHCPProvisionerConfigList{}, "provisioning.dpu.hcp.io_dpfhcpprovisionerconfigs.yaml"},
 	{&dpuprovisioningv1alpha1.DPU{}, &dpuprovisioningv1alpha1.DPUList{}, "provisioning.dpu.nvidia.com_dpus.yaml"},
 	{&dpuprovisioningv1alpha1.DPUCluster{}, &dpuprovisioningv1alpha1.DPUClusterList{}, "provisioning.dpu.nvidia.com_dpuclusters.yaml"},
 	{&dpuprovisioningv1alpha1.DPUFlavor{}, &dpuprovisioningv1alpha1.DPUFlavorList{}, "provisioning.dpu.nvidia.com_dpuflavors.yaml"},
@@ -89,6 +90,30 @@ var roots = []root{
 	{&configv1.ClusterVersion{}, &configv1.ClusterVersionList{}, "config.openshift.io_clusterversions.yaml"},
 }
 
+// ownAPIEmbed is an external Go type embedded in this repository's own API
+// (`apis::provisioning::v1alpha1`). The own API is hand-maintained in Rust
+// (crates/apis/src/provisioning_types.rs) alongside its CRDs in config/crd/bases, so there
+// are no Go types to walk; the external types it uses are listed here instead, in the
+// order the own API references them. They are collected before the roots (this fixes
+// their position in the generated modules) and documented from the matching kopium
+// struct of the own CRD (kopium "" = collect only).
+type ownAPIEmbed struct {
+	typ    reflect.Type
+	crd    string // own CRD file name (in -crds dir)
+	kopium string // kopium struct for the field that embeds typ
+}
+
+var ownAPIEmbeds = []ownAPIEmbed{
+	{reflect.TypeFor[corev1.LocalObjectReference](), "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml", "DpfhcpProvisionerSshKeySecretRef"},
+	{reflect.TypeFor[corev1.LocalObjectReference](), "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml", "DpfhcpProvisionerPullSecretRef"},
+	{reflect.TypeFor[hyperv1.AvailabilityPolicy](), "", ""},
+	{reflect.TypeFor[hyperv1.ServiceNetworkEntry](), "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml", "DpfhcpProvisionerNetworkingServiceNetwork"},
+	{reflect.TypeFor[hyperv1.ClusterNetworkEntry](), "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml", "DpfhcpProvisionerNetworkingClusterNetwork"},
+	{reflect.TypeFor[hyperv1.MachineNetworkEntry](), "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml", "DpfhcpProvisionerNetworkingMachineNetwork"},
+	{reflect.TypeFor[corev1.ObjectReference](), "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml", "DpfhcpProvisionerStatusHostedClusterRef"},
+	{reflect.TypeFor[corev1.LocalObjectReference](), "provisioning.dpu.hcp.io_dpfhcpprovisioners.yaml", "DpfhcpProvisionerStatusKubeConfigSecretRef"},
+}
+
 // module describes the Rust module generated for one Go package.
 type module struct {
 	file   string // generated/<file>.rs
@@ -96,10 +121,7 @@ type module struct {
 	doc    string
 }
 
-const ownAPI = "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
-
 var modules = map[string]module{
-	ownAPI: {"provisioning_v1alpha1", false, "this repository's `api/v1alpha1`"},
 	"github.com/nvidia/doca-platform/api/provisioning/v1alpha1":   {"dpf_provisioning_v1alpha1", true, "`github.com/nvidia/doca-platform/api/provisioning/v1alpha1`"},
 	"github.com/nvidia/doca-platform/api/dpuservice/v1alpha1":     {"dpf_dpuservice_v1alpha1", true, "`github.com/nvidia/doca-platform/api/dpuservice/v1alpha1`"},
 	"github.com/nvidia/doca-platform/api/operator/v1alpha1":       {"dpf_operator_v1alpha1", true, "`github.com/nvidia/doca-platform/api/operator/v1alpha1`"},
@@ -943,6 +965,20 @@ func main() {
 		order:   map[string][]reflect.Type{},
 		aliases: map[string]map[string]reflect.Type{},
 		walked:  map[string]bool{},
+	}
+	for _, e := range ownAPIEmbeds {
+		g.collect(e.typ)
+	}
+	for _, e := range ownAPIEmbeds {
+		if e.kopium == "" {
+			continue
+		}
+		kf := parseKopium(filepath.Join(*kopiumDir, strings.TrimSuffix(e.crd, ".yaml")+".rs"))
+		ks := kf[e.kopium]
+		if ks == nil {
+			panic(fmt.Sprintf("%s: no kopium struct %s for %s", e.crd, e.kopium, e.typ))
+		}
+		g.docWalk(e.typ, ks, kf, e.crd)
 	}
 	for _, r := range roots {
 		t := reflect.TypeOf(r.obj).Elem()

@@ -1,0 +1,15 @@
+2024-03-05T07:08:09.123Z	INFO	starting manager
+2024-03-05T07:08:09.123Z	INFO	setup	disabling http/2
+2024-03-05T07:08:09.123Z	INFO	setup	Initializing metrics certificate watcher using provided certificates	{"metrics-cert-path": "/tmp/certs", "metrics-cert-name": "tls.crt", "metrics-cert-key": "tls.key"}
+2024-03-05T07:08:09.123Z	INFO	controller-runtime.metrics	Serving metrics server	{"bindAddress": ":8443", "secure": true}
+2024-03-05T07:08:09.123Z	INFO	a.b	Reconciling	{"controller": "dpfhcpprovisioner", "reconcileID": "abc-123", "DPFHCPProvisioner": {"name":"name1","namespace":"ns1"}, "namespace": "ns1", "name": "name1"}
+2024-03-05T07:08:09.123Z	DEBUG	events	Created HostedCluster	{"type": "Normal", "object": {"kind":"DPFHCPProvisioner","namespace":"ns","name":"p1","uid":"1234-5678","apiVersion":"provisioning.dpu.hcp.io/v1alpha1","resourceVersion":"42"}, "reason": "HostedClusterCreated"}
+2024-03-05T07:08:09.123Z	DEBUG	v1 line	{"int": 42, "neg": -7, "float": 1.5, "float2": 100, "big": 1000000000000000000000, "small": 0.0000001, "nil": null, "bool": false}
+2024-03-05T07:08:09.123Z	INFO	special "chars"
+	tab	{"str": "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del <>&   ünïcödé 日本", "k\"ey": "v"}
+2024-03-05T07:08:09.123Z	INFO	nested	{"map": {"a":"x\u2028<>&\b\f","b":1,"c":[1,"two",3.5,null,true,{"x":0.1,"y":1e+21,"z":1e-7}]}, "list": ["a","b"], "empty": {}, "emptyList": []}
+2024-03-05T07:08:09.123Z	INFO	error as value	{"err": "boom"}
+2024-03-05T07:08:09.123Z	ERROR	setup	unable to start manager	{"error": "failed to get restconfig: no configuration has been provided"}
+2024-03-05T07:08:09.123Z	ERROR	nil error	{"controller": "CSRApproval"}
+2024-03-05T07:08:09.123Z	ERROR	setup	to initialize metrics certificate watcher	{"wv": 1, "error": "open /x/tls.crt: no such file or directory", "error": "open /x/tls.crt: no such file or directory"}
+2024-03-05T07:08:09.123Z	INFO	

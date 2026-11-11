@@ -1,0 +1,77 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: testreportings.config.openshift.io
+spec:
+  group: config.openshift.io
+  names:
+    kind: TestReporting
+    listKind: TestReportingList
+    plural: testreportings
+    singular: testreporting
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          TestReporting is used for origin (and potentially others) to report the test names for a given FeatureGate into
+          the payload for later analysis on a per-payload basis.
+          This doesn't need any CRD because it's never stored in the cluster.
+
+          Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              testsForFeatureGates:
+                description: testsForFeatureGates is a list, indexed by FeatureGate
+                  and includes information about testing.
+                items:
+                  properties:
+                    featureGate:
+                      description: featureGate is the name of the FeatureGate as it
+                        appears in The FeatureGate CR instance.
+                      type: string
+                    tests:
+                      description: tests contains an item for every TestName
+                      items:
+                        properties:
+                          testName:
+                            description: |-
+                              testName is the name of the test as it appears in junit XMLs.
+                              It does not include the suite name since the same test can be executed in many suites.
+                            type: string
+                        type: object
+                      type: array
+                  type: object
+                type: array
+            type: object
+          status:
+            description: status holds observed values from the cluster. They may not
+              be overridden.
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

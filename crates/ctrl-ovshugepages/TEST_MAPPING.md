@@ -1,5 +1,10 @@
 # ctrl-ovshugepages — Go test → Rust test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 Go package: `internal/controller/ovs-hugepages` (Ginkgo suite `TestHugepages`, "Hugepages Suite",
 `suite_test.go`). The Ginkgo specs are in-package (they call unexported functions), so the Rust
 ports are unit tests in `src/ovs_hugepages_test.rs`; the suite runner itself has no Rust

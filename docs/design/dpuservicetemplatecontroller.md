@@ -39,13 +39,13 @@ DPUClusterRef.
 Chart versions and image repos are **not** user-configurable. These values are
 difficult for users to determine on their own and they move in lockstep with
 DPF releases, so they are maintained in one JSON file
-(`internal/dpfdefaults/dpfversions.json`) keyed by DPF **major.minor** version
+(`crates/dpfdefaults/dpfversions.json`) keyed by DPF **major.minor** version
 (e.g. `"26.4"`), plus a `"default"` row for versions without a dedicated entry.
 Each row carries `docaVersion` (`dpfdefaults.DocaVersion`, for BlueField OCP
 layer lookup) and the template pins (`dpfdefaults.TemplateValues`). At runtime
 the controller reads `DPFOperatorConfig.status.version` from
 `dpfoperatorconfig/dpf-operator-system` and turns it into that major.minor key
-with `common.GetDPFVersion` and `common.DPFMajorMinorFromVersion`.
+with `common::config::get_dpf_version` and `common::version::dpf_major_minor_from_version`.
 
 ### Value overrides via ConfigMap
 
@@ -82,10 +82,12 @@ HostedCluster creation. The `DPUServiceTemplatesConfigured` condition gates the
 
 ## Files
 
+Under `crates/ctrl-dpuservicetemplate/src/` unless noted:
+
 | File | Purpose |
 |---|---|
-| `controller.go` | Reconciler, cleanup, template lifecycle |
-| `dpuservicetemplate.go` | Manager, template creation, OVN image resolution |
-| `dpuservicetemplatevalues.go` | ConfigMap overrides on top of embedded defaults |
-| `internal/dpfdefaults` | Embedded DPF version table (`docaVersion` and template pins) |
-| `release_image.go` | Release payload image extraction |
+| `controller.rs` | Reconciler, cleanup, template lifecycle |
+| `dpuservicetemplate.rs` | Manager, template creation, OVN image resolution |
+| `dpuservicetemplatevalues.rs` | ConfigMap overrides on top of embedded defaults |
+| `crates/dpfdefaults` | Embedded DPF version table (`docaVersion` and template pins) |
+| `release_image.rs` | Release payload image extraction |

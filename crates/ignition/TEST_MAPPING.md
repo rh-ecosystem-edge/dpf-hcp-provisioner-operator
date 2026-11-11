@@ -1,5 +1,10 @@
 # ignition — test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 Go tests of `internal/ignition`, `internal/ignition/content` → Rust tests of `crates/ignition`.
 Every Ginkgo `It` is ported with the same assertions; the Rust name is the Go spec path in
 snake_case (`Describe` + `It`).
@@ -93,7 +98,7 @@ plain `#[test]`.
 
 ## Golden differential tests (`tests/golden.rs`)
 
-Fixtures in `tests/fixtures/` are produced by `go run -mod=vendor ./hack/golden/ignition`
+Fixtures in `tests/fixtures/` are produced by `hack/golden/ignition`
 (run from the repository root; deterministic, fixed random seeds). Every output is compared
 byte-for-byte, error strings included.
 
@@ -111,7 +116,7 @@ byte-for-byte, error strings included.
 | `add_dpu_flavor_yaml_json_match_go` | `flavor.json` | `AddDPUFlavorYAML`, `AddDPUFlavorJSON` (`cleanDPUFlavor`) |
 | `content_providers_match_go` | `content.json` | `content.AddContent/AddFiles/AddLinks/AddSystemdUnits/AddKernelArgs` with `common`, `live`, `target` providers (trusted and zero-trust), the full target composition, `MarshalJSON`, `EncodeIgnition`, `GzipIgnitionFiles` |
 | `render_dpu_agent_service_unit_matches_go` | `dpu_agent_unit.json` | `target.RenderDPUAgentServiceUnit` |
-| `embedded_systemd_dirs_match_filesystem` | (the `internal/ignition/resources/*/systemd` directories) | `//go:embed systemd/*` + `LoadSystemdUnits` order |
+| `embedded_systemd_dirs_match_filesystem` | (the `crates/ignition/resources/*/systemd` directories) | `//go:embed systemd/*` + `LoadSystemdUnits` order |
 
 ## Unit tests (`src/`)
 

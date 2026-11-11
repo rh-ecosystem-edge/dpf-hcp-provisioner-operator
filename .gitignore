@@ -7,28 +7,12 @@
 bin/*
 Dockerfile.cross
 
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Go workspace file
-go.work
-
-# Kubernetes Generated files - skip generated files, except for vendored files
-!vendor/**/zz_generated.*
-
 # editor and IDE paraphernalia
 .idea
 .vscode
 *.swp
 *.swo
 *~
-
-# Generated CRDs (from vendored types — never commit, regenerate with make targets)
-test/e2e/testdata/crds/
-test/dast/crds/
 
 # claude agents, skills and outputs
 .claude

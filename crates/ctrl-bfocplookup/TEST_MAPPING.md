@@ -1,5 +1,10 @@
 # internal/controller/bfocplookup test mapping
 
+> **Golden fixtures are frozen.** The fixtures referenced below were generated from the former Go
+> implementation by the generators under `hack/golden/`, which were removed together with the Go
+> code (still in the git history, commit `fead352`). They can no longer be regenerated; see
+> `docs/rust-port/CONVENTIONS.md` (rule 6).
+
 Go suite: `image_lookup_test.go` (package `bfocplookup`, Ginkgo suite "BlueField OCP Layer Image Lookup").
 `suite_test.go` only bootstraps Ginkgo (`TestBFOCPLookup` → `RunSpecs`); it has no Rust counterpart —
 each spec is a plain `#[test]` / `#[tokio::test]` in `src/image_lookup_test.rs` (internal tests, since the Go
@@ -44,7 +49,7 @@ All 32 Go specs are ported.
 
 ## Additional tests (no Go counterpart)
 
-Golden differential tests, `tests/golden.rs`, fixtures from `go run -mod=vendor ./hack/golden/bfocplookup crates/ctrl-bfocplookup/tests/fixtures`.
+Golden differential tests, `tests/golden.rs`, fixtures from `hack/golden/bfocplookup`.
 Each runs `LookupBlueFieldOCPLayerImage` (Go) / `lookup_blue_field_ocp_layer_image` (Rust) against the fake client with a
 fake `ImageChecker` (digest release images go through an in-process rules registry, `tests/support/mod.rs`) and compares
 results, errors, events (`FakeRecorder` strings), checked references and the encoded in-memory + stored DPFHCPProvisioner
