@@ -1,0 +1,6 @@
+[
+{"depth":9999,"kind":"array","yaml_err":null,"yaml_len":20000,"yaml_sha256":"3eaf43b6be856c3687c99843681e32c908b4f2d061f0fa34914a29f4211ffc7a"},
+{"depth":10000,"kind":"array","yaml_err":null,"yaml_len":20002,"yaml_sha256":"6fee5a4e62cbb329730a9017f4bd3c96da786d63d2c328222dfa233bdd15436d"},
+{"depth":10001,"kind":"array","yaml_err":"yaml: exceeded max depth of 10000","yaml_len":0,"yaml_sha256":""},
+{"depth":10001,"kind":"object","yaml_err":"yaml: exceeded max depth of 10000","yaml_len":0,"yaml_sha256":""}
+]

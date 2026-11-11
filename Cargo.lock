@@ -446,6 +446,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctrl-bfocplookup"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "dpfdefaults",
+ "futures",
+ "k8s-openapi",
+ "registry",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "ctrl-csrapproval"
 version = "0.0.1"
 dependencies = [
@@ -477,6 +496,25 @@ dependencies = [
  "ctrlrt-fake",
  "futures",
  "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ctrl-dpuservicetemplate"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "dpfdefaults",
+ "futures",
+ "k8s-openapi",
+ "registry",
  "serde",
  "serde_json",
  "tokio",

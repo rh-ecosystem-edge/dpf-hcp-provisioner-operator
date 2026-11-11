@@ -1,0 +1,2 @@
+crates/*/tests/fixtures/** linguist-generated=true -diff
+crates/apis/src/generated/** linguist-generated=true
