@@ -26,7 +26,11 @@ pub struct Validator {
 
 impl Validator {
     /// `NewValidator(mgmtClient, hostedClient, dpuNamespace)`
-    pub fn new(mgmt_client: Client, hosted_client: Option<HostedClient>, dpu_namespace: &str) -> Self {
+    pub fn new(
+        mgmt_client: Client,
+        hosted_client: Option<HostedClient>,
+        dpu_namespace: &str,
+    ) -> Self {
         Self {
             mgmt_client,
             hosted_client,

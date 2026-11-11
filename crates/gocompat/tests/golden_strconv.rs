@@ -10,7 +10,11 @@ fn quote_matches_go() {
     let cases = f["quote"].as_array().unwrap();
     for c in cases {
         let input = unhex(c["in"].as_str().unwrap());
-        assert_eq!(strconv::quote(&input), c["out"].as_str().unwrap(), "quote({input:?})");
+        assert_eq!(
+            strconv::quote(&input),
+            c["out"].as_str().unwrap(),
+            "quote({input:?})"
+        );
     }
     assert!(cases.len() > 5000);
 }
@@ -69,7 +73,11 @@ fn parse_float_matches_go() {
         let s = unhex(c["s"].as_str().unwrap());
         let got = strconv::parse_float(&s, c["bitsize"].as_i64().unwrap());
         match c["err"].as_str() {
-            Some(e) => assert_eq!(got.map_err(|e| e.to_string()).err().as_deref(), Some(e), "{c}"),
+            Some(e) => assert_eq!(
+                got.map_err(|e| e.to_string()).err().as_deref(),
+                Some(e),
+                "{c}"
+            ),
             None => {
                 let want = u64::from_str_radix(c["bits"].as_str().unwrap(), 16).unwrap();
                 let v = got.unwrap_or_else(|e| panic!("{c}: {e}"));
@@ -92,7 +100,9 @@ fn parse_permissions_examples() {
         "strconv.ParseInt: parsing \"9\": invalid syntax"
     );
     assert_eq!(
-        strconv::parse_int("77777777777", 8, 32).unwrap_err().to_string(),
+        strconv::parse_int("77777777777", 8, 32)
+            .unwrap_err()
+            .to_string(),
         "strconv.ParseInt: parsing \"77777777777\": value out of range"
     );
 }

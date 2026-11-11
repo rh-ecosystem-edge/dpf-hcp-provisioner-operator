@@ -11,7 +11,9 @@ pub mod hostname;
 pub mod x509;
 
 pub use controller::{CONTROLLER_NAME, CSRApprovalReconciler};
-pub use csr_content_validation::{BOOTSTRAPPER_USERNAME, validate_bootstrap_csr, validate_serving_csr};
+pub use csr_content_validation::{
+    BOOTSTRAPPER_USERNAME, validate_bootstrap_csr, validate_serving_csr,
+};
 pub use csr_owner_validation::{ValidationResult, Validator};
 pub use csrapproval::{CSR_POLLING_INTERVAL, CSRApprover};
 pub use hostname::{

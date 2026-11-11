@@ -188,9 +188,13 @@ mod tests {
 
     #[test]
     fn defaults() {
-        let (f, rest) =
-            ManagerFlags::parse_from("manager", ErrorHandling::ContinueOnError, Vec::<String>::new(), |_| {})
-                .unwrap();
+        let (f, rest) = ManagerFlags::parse_from(
+            "manager",
+            ErrorHandling::ContinueOnError,
+            Vec::<String>::new(),
+            |_| {},
+        )
+        .unwrap();
         assert!(rest.is_empty());
         assert_eq!(f.metrics_addr, "0");
         assert_eq!(f.probe_addr, ":8081");

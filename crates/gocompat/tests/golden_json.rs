@@ -14,12 +14,24 @@ fn marshal_and_indent_match_go() {
     for c in cases {
         let v = dec(&c["input"]);
         let got = json::marshal(&v);
-        assert_eq!(String::from_utf8_lossy(&got), c["json"].as_str().unwrap(), "marshal {c}");
+        assert_eq!(
+            String::from_utf8_lossy(&got),
+            c["json"].as_str().unwrap(),
+            "marshal {c}"
+        );
         let ind = json::marshal_indent(&v, ">", "\t ").unwrap();
-        assert_eq!(String::from_utf8_lossy(&ind), c["indent"].as_str().unwrap(), "indent {c}");
+        assert_eq!(
+            String::from_utf8_lossy(&ind),
+            c["indent"].as_str().unwrap(),
+            "indent {c}"
+        );
         // the typed path through serde must agree for the same value
         let typed = json::to_go_json(&v).unwrap();
-        assert_eq!(String::from_utf8_lossy(&typed), c["json"].as_str().unwrap(), "to_go_json {c}");
+        assert_eq!(
+            String::from_utf8_lossy(&typed),
+            c["json"].as_str().unwrap(),
+            "to_go_json {c}"
+        );
     }
 }
 
@@ -30,7 +42,11 @@ fn string_escaping_matches_go() {
         let input = unhex(c["in"].as_str().unwrap());
         let mut out = Vec::new();
         json::append_string(&mut out, &input, true);
-        assert_eq!(String::from_utf8_lossy(&out), c["out"].as_str().unwrap(), "{c}");
+        assert_eq!(
+            String::from_utf8_lossy(&out),
+            c["out"].as_str().unwrap(),
+            "{c}"
+        );
     }
 }
 
@@ -41,8 +57,15 @@ fn texts_match_go() {
     assert!(texts.len() > 2000);
     for c in texts {
         let input = unhex(c["in"].as_str().unwrap());
-        let ctx = String::from_utf8_lossy(&input).chars().take(200).collect::<String>();
-        assert_eq!(json::valid(&input), c["valid"].as_bool().unwrap(), "valid {ctx:?}");
+        let ctx = String::from_utf8_lossy(&input)
+            .chars()
+            .take(200)
+            .collect::<String>();
+        assert_eq!(
+            json::valid(&input),
+            c["valid"].as_bool().unwrap(),
+            "valid {ctx:?}"
+        );
         match json::check_valid(&input) {
             Ok(()) => assert!(c["syn_err"].is_null(), "{ctx:?}"),
             Err(e) => {
@@ -58,17 +81,28 @@ fn texts_match_go() {
                     assert!(same(&v, &dec(&c["any"])), "{ctx:?}");
                 }
             }
-            Err(e) => assert_eq!(Some(e.to_string().as_str()), c["any_err"].as_str(), "{ctx:?}"),
+            Err(e) => assert_eq!(
+                Some(e.to_string().as_str()),
+                c["any_err"].as_str(),
+                "{ctx:?}"
+            ),
         }
         match json::unmarshal_object(&input) {
             Ok(None) => assert!(c["map_nil"].as_bool().unwrap(), "{ctx:?}"),
             Ok(Some(m)) => {
                 assert!(c["map_err"].is_null(), "{ctx:?}");
                 if !light {
-                    assert!(same(&serde_json::Value::Object(m), &dec(&c["map"])), "{ctx:?}");
+                    assert!(
+                        same(&serde_json::Value::Object(m), &dec(&c["map"])),
+                        "{ctx:?}"
+                    );
                 }
             }
-            Err(e) => assert_eq!(Some(e.to_string().as_str()), c["map_err"].as_str(), "{ctx:?}"),
+            Err(e) => assert_eq!(
+                Some(e.to_string().as_str()),
+                c["map_err"].as_str(),
+                "{ctx:?}"
+            ),
         }
         if light {
             continue;
@@ -83,7 +117,11 @@ fn texts_match_go() {
             c["indent"].as_str().map(str::to_string),
             "indent {ctx:?}"
         );
-        assert_eq!(hex(&json::html_escape(&input)), c["html"].as_str().unwrap(), "html {ctx:?}");
+        assert_eq!(
+            hex(&json::html_escape(&input)),
+            c["html"].as_str().unwrap(),
+            "html {ctx:?}"
+        );
     }
 }
 
@@ -110,19 +148,35 @@ fn typed_struct_keeps_field_order_and_go_escaping() {
         f: 0.1,
         data: b"hello".to_vec(),
         opt: None,
-        map: [("b".to_string(), 2), ("a".to_string(), 1)].into_iter().collect(),
+        map: [("b".to_string(), 2), ("a".to_string(), 1)]
+            .into_iter()
+            .collect(),
     };
     let got = String::from_utf8(json::to_go_json(&t).unwrap()).unwrap();
     // Go: json.Marshal(struct{ZKey string `json:"zKey"`; AKey float64 `json:"aKey"`; F32 float32 ...})
     assert_eq!(
         got,
-        concat!("{\"zKey\":\"", "\\u003ca", "\\u0026b", "\\u003e", "\\u2028", "\\\"", "\\\\", "\\n", "\\u0001", "\u{7f}é\",\"aKey\":1e+21,\"f32\":0.1,\"data\":\"aGVsbG8=\",\"map\":{\"a\":1,\"b\":2}}")
+        concat!(
+            "{\"zKey\":\"",
+            "\\u003ca",
+            "\\u0026b",
+            "\\u003e",
+            "\\u2028",
+            "\\\"",
+            "\\\\",
+            "\\n",
+            "\\u0001",
+            "\u{7f}é\",\"aKey\":1e+21,\"f32\":0.1,\"data\":\"aGVsbG8=\",\"map\":{\"a\":1,\"b\":2}}"
+        )
     );
 }
 
 #[test]
 fn unmarshal_error_messages() {
-    assert_eq!(json::unmarshal_any(b"").unwrap_err().to_string(), "unexpected end of JSON input");
+    assert_eq!(
+        json::unmarshal_any(b"").unwrap_err().to_string(),
+        "unexpected end of JSON input"
+    );
     assert_eq!(
         json::unmarshal_any(b"{\"a\" 1}").unwrap_err().to_string(),
         "invalid character '1' after object key"
@@ -132,4 +186,3 @@ fn unmarshal_error_messages() {
         "json: cannot unmarshal array into Go value of type map[string]interface {}"
     );
 }
-

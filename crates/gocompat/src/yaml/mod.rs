@@ -82,12 +82,16 @@ fn key_less_str(a: &str, b: &str) -> bool {
         }
         let mut ai = i;
         while ai < ar.len() && is_digit(ar[ai]) {
-            an = an.wrapping_mul(10).wrapping_add((ar[ai] as i64).wrapping_sub('0' as i64));
+            an = an
+                .wrapping_mul(10)
+                .wrapping_add((ar[ai] as i64).wrapping_sub('0' as i64));
             ai += 1;
         }
         let mut bi = i;
         while bi < br.len() && is_digit(br[bi]) {
-            bn = bn.wrapping_mul(10).wrapping_add((br[bi] as i64).wrapping_sub('0' as i64));
+            bn = bn
+                .wrapping_mul(10)
+                .wrapping_add((br[bi] as i64).wrapping_sub('0' as i64));
             bi += 1;
         }
         if an != bn {
@@ -221,7 +225,11 @@ pub(crate) fn number_node(text: &str) -> Node {
 }
 
 pub(crate) fn line_prefix(line: usize) -> String {
-    if line == 0 { String::new() } else { format!("line {line}: ") }
+    if line == 0 {
+        String::new()
+    } else {
+        format!("line {line}: ")
+    }
 }
 
 fn sort_tree(n: &mut Node) {
@@ -253,7 +261,8 @@ pub fn marshal(v: &Value) -> Result<Vec<u8>, Error> {
 /// `sigs.k8s.io/yaml.Marshal` of a typed value: `json.Marshal` is emulated with
 /// [`crate::json::to_go_json`], then [`json_to_yaml`].
 pub fn marshal_typed<T: serde::Serialize + ?Sized>(v: &T) -> Result<Vec<u8>, Error> {
-    let j = crate::json::to_go_json(v).map_err(|e| Error(format!("error marshaling into JSON: {e}")))?;
+    let j = crate::json::to_go_json(v)
+        .map_err(|e| Error(format!("error marshaling into JSON: {e}")))?;
     json_to_yaml(&j)
 }
 
@@ -319,7 +328,8 @@ fn node_to_json(n: &Node, dst: &mut Vec<u8>) -> Result<(), Error> {
             dst.push(b']');
         }
         Node::Map(entries) => {
-            let mut m: std::collections::BTreeMap<String, &Node> = std::collections::BTreeMap::new();
+            let mut m: std::collections::BTreeMap<String, &Node> =
+                std::collections::BTreeMap::new();
             for (k, v) in entries {
                 let ks = match k {
                     Node::Str(s) => s.clone(),

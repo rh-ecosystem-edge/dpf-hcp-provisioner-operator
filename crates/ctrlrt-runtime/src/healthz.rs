@@ -120,10 +120,9 @@ impl Handler {
             }
             match check(req) {
                 Err(e) => {
-                    log().v(1).info(
-                        "healthz check failed",
-                        kv!["checker" => name, "error" => e],
-                    );
+                    log()
+                        .v(1)
+                        .info("healthz check failed", kv!["checker" => name, "error" => e]);
                     parts.push(CheckStatus {
                         name: name.clone(),
                         healthy: false,
@@ -398,7 +397,10 @@ mod tests {
             body(m.serve(&req("/healthz?verbose"))).await,
             (200, "[+]ping ok\nhealthz check passed\n".into())
         );
-        assert_eq!(body(m.serve(&req("/healthz/ping"))).await, (200, "ok".into()));
+        assert_eq!(
+            body(m.serve(&req("/healthz/ping"))).await,
+            (200, "ok".into())
+        );
     }
 
     #[tokio::test]

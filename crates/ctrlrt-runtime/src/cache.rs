@@ -222,7 +222,12 @@ pub struct InformerCache {
 }
 
 impl InformerCache {
-    fn new(client: kube::Client, mapper: Arc<RestMapper>, config: CacheConfig, namespace: &str) -> Arc<Self> {
+    fn new(
+        client: kube::Client,
+        mapper: Arc<RestMapper>,
+        config: CacheConfig,
+        namespace: &str,
+    ) -> Arc<Self> {
         let (start_wait, _) = watch::channel(false);
         Arc::new(Self {
             client,
@@ -347,7 +352,11 @@ impl InformerCache {
     /// `CacheReader.Get`
     async fn get(&self, res: &ResourceInfo, namespace: &str, name: &str) -> Result<Value> {
         let inf = self.synced_informer(res).await?;
-        let ns = if inf.mapping().namespaced { namespace } else { "" };
+        let ns = if inf.mapping().namespaced {
+            namespace
+        } else {
+            ""
+        };
         let key = if ns.is_empty() {
             name.to_string()
         } else {
@@ -597,10 +606,16 @@ pub struct Cache {
 impl Cache {
     /// `cache.New(config, opts)` (including `defaultOpts`, which needs the RESTMapper to decide
     /// whether `ByObject` types are namespaced).
-    pub async fn new(client: kube::Client, mapper: Arc<RestMapper>, opts: CacheOptions) -> Result<Self> {
+    pub async fn new(
+        client: kube::Client,
+        mapper: Arc<RestMapper>,
+        opts: CacheOptions,
+    ) -> Result<Self> {
         let opts = default_opts(&mapper, opts).await?;
         let global = opts.defaults_config();
-        let new_cache = |cfg: CacheConfig, ns: &str| InformerCache::new(client.clone(), mapper.clone(), cfg, ns);
+        let new_cache = |cfg: CacheConfig, ns: &str| {
+            InformerCache::new(client.clone(), mapper.clone(), cfg, ns)
+        };
 
         let default_cache: Arc<dyn CacheImpl> = if !opts.default_namespaces.is_empty() {
             Arc::new(MultiNamespaceCache {
@@ -705,7 +720,8 @@ async fn default_opts(mapper: &RestMapper, mut opts: CacheOptions) -> Result<Cac
                 }
                 c = default_config(c, &global);
                 if ns.is_empty() {
-                    c.field_selector = namespace_all_field_selector(&keys, c.field_selector.as_deref());
+                    c.field_selector =
+                        namespace_all_field_selector(&keys, c.field_selector.as_deref());
                 }
                 *cfg = c;
             }
@@ -764,7 +780,13 @@ impl ClientBackend for CachedBackend {
     async fn update_subresource(&self, res: &ResourceInfo, sub: &str, obj: Value) -> Result<Value> {
         self.direct.update_subresource(res, sub, obj).await
     }
-    async fn patch(&self, res: &ResourceInfo, ns: &str, name: &str, patch: &Patch) -> Result<Value> {
+    async fn patch(
+        &self,
+        res: &ResourceInfo,
+        ns: &str,
+        name: &str,
+        patch: &Patch,
+    ) -> Result<Value> {
         self.direct.patch(res, ns, name, patch).await
     }
     async fn patch_subresource(
@@ -775,9 +797,17 @@ impl ClientBackend for CachedBackend {
         name: &str,
         patch: &Patch,
     ) -> Result<Value> {
-        self.direct.patch_subresource(res, sub, ns, name, patch).await
+        self.direct
+            .patch_subresource(res, sub, ns, name, patch)
+            .await
     }
-    async fn delete(&self, res: &ResourceInfo, ns: &str, name: &str, opts: &DeleteOptions) -> Result<()> {
+    async fn delete(
+        &self,
+        res: &ResourceInfo,
+        ns: &str,
+        name: &str,
+        opts: &DeleteOptions,
+    ) -> Result<()> {
         self.direct.delete(res, ns, name, opts).await
     }
 }

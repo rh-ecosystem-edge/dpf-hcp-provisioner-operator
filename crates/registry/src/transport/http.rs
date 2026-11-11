@@ -114,9 +114,10 @@ fn find_source<'a, T: std::error::Error + 'static>(
         // io::Error::source() skips the wrapped error itself; look inside explicitly.
         if let Some(ioe) = c.downcast_ref::<io::Error>()
             && let Some(inner) = ioe.get_ref()
-                && let Some(t) = find_source::<T>(inner) {
-                    return Some(t);
-                }
+            && let Some(t) = find_source::<T>(inner)
+        {
+            return Some(t);
+        }
         cur = c.source();
     }
     None
@@ -127,7 +128,11 @@ fn map_reqwest_error(e: &reqwest::Error, url: &GoUrl) -> NetError {
     let hostport = {
         let port = url.port();
         let port = if port.is_empty() {
-            if url.scheme == "http" { "80".to_string() } else { "443".to_string() }
+            if url.scheme == "http" {
+                "80".to_string()
+            } else {
+                "443".to_string()
+            }
         } else {
             port
         };
@@ -256,9 +261,10 @@ struct DomainMatcher {
 fn get_env_any(names: &[&str]) -> String {
     for n in names {
         if let Ok(v) = std::env::var(n)
-            && !v.is_empty() {
-                return v;
-            }
+            && !v.is_empty()
+        {
+            return v;
+        }
     }
     String::new()
 }
@@ -286,10 +292,16 @@ fn parse_cidr(s: &str) -> Option<(IpAddr, u8)> {
 
 fn cidr_contains(net: IpAddr, bits: u8, ip: IpAddr) -> bool {
     let (net, ip) = match (net, ip) {
-        (IpAddr::V4(n), IpAddr::V4(i)) => (u128::from(u32::from(n)) << 96, u128::from(u32::from(i)) << 96),
+        (IpAddr::V4(n), IpAddr::V4(i)) => (
+            u128::from(u32::from(n)) << 96,
+            u128::from(u32::from(i)) << 96,
+        ),
         (IpAddr::V6(n), IpAddr::V6(i)) => (u128::from(n), u128::from(i)),
         (IpAddr::V4(n), IpAddr::V6(i)) => match i.to_ipv4_mapped() {
-            Some(i) => (u128::from(u32::from(n)) << 96, u128::from(u32::from(i)) << 96),
+            Some(i) => (
+                u128::from(u32::from(n)) << 96,
+                u128::from(u32::from(i)) << 96,
+            ),
             None => return false,
         },
         (IpAddr::V6(n), IpAddr::V4(i)) => (u128::from(n), u128::from(i.to_ipv6_mapped())),
@@ -303,7 +315,10 @@ fn cidr_contains(net: IpAddr, bits: u8, ip: IpAddr) -> bool {
 
 fn ip_equal(a: IpAddr, b: IpAddr) -> bool {
     let norm = |ip: IpAddr| match ip {
-        IpAddr::V6(v6) => v6.to_ipv4_mapped().map(IpAddr::V4).unwrap_or(IpAddr::V6(v6)),
+        IpAddr::V6(v6) => v6
+            .to_ipv4_mapped()
+            .map(IpAddr::V4)
+            .unwrap_or(IpAddr::V6(v6)),
         v4 => v4,
     };
     norm(a) == norm(b)
@@ -392,7 +407,9 @@ impl ProxyConfig {
         if let Some(ip) = ip {
             let loopback = match ip {
                 IpAddr::V4(v4) => v4.is_loopback(),
-                IpAddr::V6(v6) => v6.is_loopback() || v6.to_ipv4_mapped().is_some_and(|v| v.is_loopback()),
+                IpAddr::V6(v6) => {
+                    v6.is_loopback() || v6.to_ipv4_mapped().is_some_and(|v| v.is_loopback())
+                }
             };
             if loopback {
                 return false;
@@ -479,7 +496,9 @@ fn build_client() -> Result<reqwest::Client, String> {
         .tls_backend_preconfigured(tls)
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
-        .proxy(reqwest::Proxy::custom(|u: &url::Url| PROXY.proxy_for_url(u)))
+        .proxy(reqwest::Proxy::custom(|u: &url::Url| {
+            PROXY.proxy_for_url(u)
+        }))
         .connect_timeout(Duration::from_secs(30))
         .tcp_keepalive(Duration::from_secs(30))
         .pool_idle_timeout(Duration::from_secs(90))
@@ -503,7 +522,10 @@ fn content_length(status: u16, headers: &http::HeaderMap) -> i64 {
     if headers
         .get_all(http::header::TRANSFER_ENCODING)
         .iter()
-        .any(|v| v.to_str().is_ok_and(|s| s.to_ascii_lowercase().contains("chunked")))
+        .any(|v| {
+            v.to_str()
+                .is_ok_and(|s| s.to_ascii_lowercase().contains("chunked"))
+        })
     {
         return -1;
     }
@@ -529,11 +551,16 @@ impl RoundTripper for HttpTransport {
                 HeaderValue::from_static(GO_HTTP_USER_AGENT),
             );
         }
-        let mut rb = client.request(req.method.clone(), url).headers(req.headers.clone());
+        let mut rb = client
+            .request(req.method.clone(), url)
+            .headers(req.headers.clone());
         if let Some(b) = &req.body {
             rb = rb.body(b.clone());
         }
-        let resp = rb.send().await.map_err(|e| map_reqwest_error(&e, &req.url))?;
+        let resp = rb
+            .send()
+            .await
+            .map_err(|e| map_reqwest_error(&e, &req.url))?;
         let status = resp.status().as_u16();
         let headers = resp.headers().clone();
         let cl = content_length(status, &headers);

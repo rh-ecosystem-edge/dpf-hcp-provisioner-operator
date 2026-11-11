@@ -125,7 +125,10 @@ pub fn with_result(result: ReconcileResult, err: crate::Error) -> crate::Error {
     if result.is_zero() {
         return err;
     }
-    crate::Error::new(ResultError { result, source: err })
+    crate::Error::new(ResultError {
+        result,
+        source: err,
+    })
 }
 
 /// The result attached to an error by [`with_result`] (zero when none) — Go's `result` value

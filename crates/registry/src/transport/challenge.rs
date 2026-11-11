@@ -32,12 +32,18 @@ fn octet_type(c: u8) -> u8 {
 }
 
 fn skip_space(s: &[u8]) -> &[u8] {
-    let i = s.iter().position(|&c| octet_type(c) & IS_SPACE == 0).unwrap_or(s.len());
+    let i = s
+        .iter()
+        .position(|&c| octet_type(c) & IS_SPACE == 0)
+        .unwrap_or(s.len());
     &s[i..]
 }
 
 fn expect_token(s: &[u8]) -> (&[u8], &[u8]) {
-    let i = s.iter().position(|&c| octet_type(c) & IS_TOKEN == 0).unwrap_or(s.len());
+    let i = s
+        .iter()
+        .position(|&c| octet_type(c) & IS_TOKEN == 0)
+        .unwrap_or(s.len());
     (&s[..i], &s[i..])
 }
 

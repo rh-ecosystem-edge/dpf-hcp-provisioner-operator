@@ -24,8 +24,16 @@ fn test_keychain_prefers_repository_scoped_auth() {
     )
     .expect("NewKeychainFromDockerConfig");
     let tests = [
-        ("repository-scoped entry wins for that repository", "quay.io/edge-infrastructure/bluefield-ocp", "repo"),
-        ("registry entry is used for the registry itself", "quay.io", "generic"),
+        (
+            "repository-scoped entry wins for that repository",
+            "quay.io/edge-infrastructure/bluefield-ocp",
+            "repo",
+        ),
+        (
+            "registry entry is used for the registry itself",
+            "quay.io",
+            "generic",
+        ),
     ];
     for (name, target, want) in tests {
         let target = parse_auth_target(target);
@@ -70,8 +78,13 @@ fn test_keychain_error_messages_match_go() {
         "failed to unmarshal docker config: invalid character 'x' looking for beginning of value"
     );
     let e = new_keychain_from_docker_config(b"").err().unwrap();
-    assert_eq!(e.to_string(), "failed to unmarshal docker config: unexpected end of JSON input");
-    let e = new_keychain_from_docker_config(br#"{"auths": []}"#).err().unwrap();
+    assert_eq!(
+        e.to_string(),
+        "failed to unmarshal docker config: unexpected end of JSON input"
+    );
+    let e = new_keychain_from_docker_config(br#"{"auths": []}"#)
+        .err()
+        .unwrap();
     assert_eq!(
         e.to_string(),
         "failed to unmarshal docker config: json: cannot unmarshal array into Go struct field dockerConfig.auths of type map[string]authn.AuthConfig"

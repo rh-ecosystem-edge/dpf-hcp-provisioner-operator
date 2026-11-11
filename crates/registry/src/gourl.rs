@@ -97,7 +97,9 @@ impl GoUrl {
             }
             let segment = rest.split('/').next().unwrap_or("");
             if segment.contains(':') {
-                return Err(err("first path segment in URL cannot contain colon".to_string()));
+                return Err(err(
+                    "first path segment in URL cannot contain colon".to_string()
+                ));
             }
         }
         let mut rest = rest.to_string();
@@ -367,7 +369,10 @@ mod tests {
             redact_url(&u),
             "https://user:xxxxx@quay.io/v2/auth?a=REDACTED&a=REDACTED&b=REDACTED&scope=s"
         );
-        assert_eq!(query_escape("repository:foo/bar:pull"), "repository%3Afoo%2Fbar%3Apull");
+        assert_eq!(
+            query_escape("repository:foo/bar:pull"),
+            "repository%3Afoo%2Fbar%3Apull"
+        );
         assert_eq!(query_escape("a b"), "a+b");
     }
 }

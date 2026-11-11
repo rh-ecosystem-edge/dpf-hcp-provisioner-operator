@@ -102,7 +102,11 @@ impl fmt::Display for Params {
             f,
             "{{optional:{} explicit:false application:false private:false defaultValue:<nil> tag:{} stringType:0 timeType:0 set:{} omitEmpty:false}}",
             self.optional,
-            if self.tag.is_some() { "0xc000000000" } else { "<nil>" },
+            if self.tag.is_some() {
+                "0xc000000000"
+            } else {
+                "<nil>"
+            },
             self.set
         )
     }
@@ -140,7 +144,10 @@ pub enum Ty {
     },
     /// A slice of `elem`; `name` is the Go type name ("" for unnamed slices). A name ending in
     /// "SET" makes it a SET OF.
-    Slice { name: &'static str, elem: &'static Ty },
+    Slice {
+        name: &'static str,
+        elem: &'static Ty,
+    },
 }
 
 impl Ty {
@@ -520,7 +527,11 @@ fn check_date_time(s: &[u8], mut i: usize, year: i64, with_seconds: bool) -> Opt
     i += 2;
     let minute = two_digits(s, i)?;
     i += 2;
-    if !(1..=12).contains(&month) || day < 1 || day > days_in(month, year) || hour > 23 || minute > 59
+    if !(1..=12).contains(&month)
+        || day < 1
+        || day > days_in(month, year)
+        || hour > 23
+        || minute > 59
     {
         return None;
     }
@@ -557,7 +568,11 @@ fn parse_utc_time(bytes: &[u8]) -> Result<()> {
         let Some(yy) = two_digits(bytes, 0) else {
             return false;
         };
-        let year = if yy >= 69 { 1900 + i64::from(yy) } else { 2000 + i64::from(yy) };
+        let year = if yy >= 69 {
+            1900 + i64::from(yy)
+        } else {
+            2000 + i64::from(yy)
+        };
         match check_date_time(bytes, 2, year, with_seconds) {
             Some(i) => check_zone(bytes, i),
             None => false,
@@ -671,7 +686,9 @@ pub fn parse_tag_and_length(bytes: &[u8], init_offset: usize) -> Result<(TagAndL
 }
 
 fn invalid_length(offset: usize, length: i64, slice_length: usize) -> bool {
-    (offset as i64).checked_add(length).is_none_or(|end| end > slice_length as i64)
+    (offset as i64)
+        .checked_add(length)
+        .is_none_or(|end| end > slice_length as i64)
 }
 
 /// `parseSequenceOf`
@@ -689,7 +706,9 @@ fn parse_sequence_of(bytes: &[u8], elem: &'static Ty, depth: usize) -> Result<Ve
             _ => {}
         }
         if !match_any
-            && (t.class != CLASS_UNIVERSAL || t.is_compound != compound_type || t.tag != expected_tag)
+            && (t.class != CLASS_UNIVERSAL
+                || t.is_compound != compound_type
+                || t.tag != expected_tag)
         {
             return Err(structural("sequence tag mismatch"));
         }

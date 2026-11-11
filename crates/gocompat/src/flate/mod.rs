@@ -6,8 +6,8 @@ mod huffman;
 mod inflate;
 
 pub use deflate::{
-    BEST_COMPRESSION, BEST_SPEED, DEFAULT_COMPRESSION, HUFFMAN_ONLY, InvalidLevelError, NO_COMPRESSION,
-    Writer, compress,
+    BEST_COMPRESSION, BEST_SPEED, DEFAULT_COMPRESSION, HUFFMAN_ONLY, InvalidLevelError,
+    NO_COMPRESSION, Writer, compress,
 };
-pub use inflate::{InflateError, decompress};
 pub(crate) use inflate::Inflater;
+pub use inflate::{InflateError, decompress};

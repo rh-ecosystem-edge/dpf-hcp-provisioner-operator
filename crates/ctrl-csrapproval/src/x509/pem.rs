@@ -43,7 +43,10 @@ fn trim_right_space_tab(mut s: &[u8]) -> &[u8] {
 fn trim_space(s: &[u8]) -> &[u8] {
     let is_space = |b: &u8| matches!(*b, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c);
     let start = s.iter().position(|b| !is_space(b)).unwrap_or(s.len());
-    let end = s.iter().rposition(|b| !is_space(b)).map_or(start, |e| e + 1);
+    let end = s
+        .iter()
+        .rposition(|b| !is_space(b))
+        .map_or(start, |e| e + 1);
     &s[start..end.max(start)]
 }
 
@@ -54,7 +57,11 @@ fn get_line(data: &[u8]) -> (&[u8], &[u8], usize) {
         None => (data.len(), data.len()),
         Some(i) => {
             let j = i + 1;
-            let i = if i > 0 && data[i - 1] == b'\r' { i - 1 } else { i };
+            let i = if i > 0 && data[i - 1] == b'\r' {
+                i - 1
+            } else {
+                i
+            };
             (i, j)
         }
     };
@@ -199,8 +206,16 @@ mod tests {
         let b = b.unwrap();
         assert_eq!(b.headers.get("Proc-Type").map(String::as_str), Some("4"));
         assert_eq!(b.bytes, vec![1, 2, 3]);
-        assert!(decode(b"-----BEGIN X-----\nAQID\n-----END Y-----\n").0.is_none());
-        assert!(decode(b"-----BEGIN X-----\nA*ID\n-----END X-----\n").0.is_none());
+        assert!(
+            decode(b"-----BEGIN X-----\nAQID\n-----END Y-----\n")
+                .0
+                .is_none()
+        );
+        assert!(
+            decode(b"-----BEGIN X-----\nA*ID\n-----END X-----\n")
+                .0
+                .is_none()
+        );
         assert!(decode(b"").0.is_none());
     }
 }

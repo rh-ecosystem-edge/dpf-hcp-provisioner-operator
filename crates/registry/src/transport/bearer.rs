@@ -177,8 +177,10 @@ impl BearerTransport {
         let content = if !auth.identity_token.is_empty() {
             match self.refresh_oauth().await {
                 Err(e)
-                    if e.chain()
-                        .any(|c| c.downcast_ref::<super::Error>().is_some_and(|t| t.status_code == 404)) =>
+                    if e.chain().any(|c| {
+                        c.downcast_ref::<super::Error>()
+                            .is_some_and(|t| t.status_code == 404)
+                    }) =>
                 {
                     self.refresh_basic().await?
                 }
@@ -229,8 +231,7 @@ impl BearerTransport {
         req.body = Some(Bytes::from(gourl::encode_query(&v)));
         let resp = client.do_request(req).await?;
         let mut resp = check_error(resp, &[200]).await?;
-        resp
-            .body
+        resp.body
             .read_all()
             .await
             .map_err(super::http::NetError::from_io)
@@ -260,8 +261,7 @@ impl BearerTransport {
         let req = Request::new(Method::GET, &u.string())?;
         let resp = client.do_request(req).await?;
         let mut resp = check_error(resp, &[200]).await?;
-        resp
-            .body
+        resp.body
             .read_all()
             .await
             .map_err(super::http::NetError::from_io)
@@ -283,9 +283,10 @@ impl RoundTripper for BearerTransport {
                 let mut new_scopes: Vec<String> = Vec::new();
                 for wac in &challenges {
                     if let Some(want) = wac.parameters.get("scope")
-                        && !got.contains(want) {
-                            new_scopes.push(want.clone());
-                        }
+                        && !got.contains(want)
+                    {
+                        new_scopes.push(want.clone());
+                    }
                 }
                 // Missing scopes first: some registries only look at the first one.
                 new_scopes.extend(st.scopes.iter().cloned());
@@ -312,7 +313,9 @@ mod tests {
             "invalid character '<' looking for beginning of value"
         );
         assert_eq!(
-            Token::from_json(br#"{"expires_in":1.5}"#).unwrap_err().to_string(),
+            Token::from_json(br#"{"expires_in":1.5}"#)
+                .unwrap_err()
+                .to_string(),
             "json: cannot unmarshal number 1.5 into Go struct field Token.expires_in of type int"
         );
     }

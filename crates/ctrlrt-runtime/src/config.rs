@@ -105,8 +105,7 @@ impl RestConfig {
         let mut cfg = self.kube.clone();
         let ua = self.effective_user_agent();
         if let Ok(v) = HeaderValue::from_str(&ua) {
-            cfg.headers
-                .retain(|(k, _)| k != http::header::USER_AGENT);
+            cfg.headers.retain(|(k, _)| k != http::header::USER_AGENT);
             cfg.headers.push((HeaderName::from_static("user-agent"), v));
         }
         if let Some(t) = self.timeout.filter(|t| !t.is_zero()) {
@@ -115,8 +114,7 @@ impl RestConfig {
                 cfg.connect_timeout = Some(t);
             }
         }
-        let builder = ClientBuilder::try_from(cfg)
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        let builder = ClientBuilder::try_from(cfg).map_err(|e| anyhow::anyhow!("{e}"))?;
         let layer = ClientGoLayer {
             limiter: self.rate_limiter(),
             timeout: self.timeout.filter(|t| !t.is_zero()),
@@ -127,8 +125,16 @@ impl RestConfig {
     fn rate_limiter(&self) -> Option<Arc<TokenBucket>> {
         // rest.RESTClientFor: qps == 0 -> DefaultQPS; burst == 0 -> DefaultBurst; a limiter is
         // only created for qps > 0.
-        let qps = if self.qps == 0.0 { DEFAULT_QPS } else { self.qps };
-        let burst = if self.burst == 0 { DEFAULT_BURST } else { self.burst };
+        let qps = if self.qps == 0.0 {
+            DEFAULT_QPS
+        } else {
+            self.qps
+        };
+        let burst = if self.burst == 0 {
+            DEFAULT_BURST
+        } else {
+            self.burst
+        };
         (qps > 0.0).then(|| Arc::new(TokenBucket::new(qps as f64, burst as i64)))
     }
 }
@@ -172,8 +178,7 @@ fn config_log() -> ctrlrt::Logger {
         .with_name("config")
 }
 
-const NO_CONFIG_ERR: &str =
-    "invalid configuration: no configuration has been provided, try setting KUBERNETES_MASTER environment variable";
+const NO_CONFIG_ERR: &str = "invalid configuration: no configuration has been provided, try setting KUBERNETES_MASTER environment variable";
 
 /// `ctrl.GetConfig()` with the value of the `--kubeconfig` flag (empty when not set).
 ///
@@ -203,7 +208,11 @@ async fn load_config(kubeconfig_flag: &str) -> crate::Result<RestConfig> {
     if !kubeconfig_flag.is_empty() {
         let path = Path::new(kubeconfig_flag);
         if let Err(e) = std::fs::metadata(path) {
-            return Err(anyhow::anyhow!("stat {}: {}", kubeconfig_flag, io_error_text(&e)));
+            return Err(anyhow::anyhow!(
+                "stat {}: {}",
+                kubeconfig_flag,
+                io_error_text(&e)
+            ));
         }
         let kc = Kubeconfig::read_from(path).map_err(|e| anyhow::anyhow!("{e}"))?;
         return rest_config_from_kubeconfig(kc).await;
@@ -269,7 +278,11 @@ pub fn in_cluster_config() -> crate::Result<RestConfig> {
     }
     const TOKEN_FILE: &str = "/var/run/secrets/kubernetes.io/serviceaccount/token";
     if let Err(e) = std::fs::metadata(TOKEN_FILE) {
-        return Err(anyhow::anyhow!("open {}: {}", TOKEN_FILE, io_error_text(&e)));
+        return Err(anyhow::anyhow!(
+            "open {}: {}",
+            TOKEN_FILE,
+            io_error_text(&e)
+        ));
     }
     let kube = kube::Config::incluster_env().map_err(|e| anyhow::anyhow!("{e}"))?;
     Ok(RestConfig::new(kube))
@@ -381,7 +394,8 @@ pub async fn server_version(
 ) -> crate::Result<k8s_openapi::apimachinery::pkg::version::Info> {
     let rest = crate::client::RestClient::new(client.clone());
     let v = rest.get_json("/version", None).await?;
-    serde_json::from_value(v).map_err(|e| anyhow::anyhow!("unable to parse the server version: {e}"))
+    serde_json::from_value(v)
+        .map_err(|e| anyhow::anyhow!("unable to parse the server version: {e}"))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -505,10 +519,16 @@ mod tests {
     #[test]
     fn rate_limiter_defaults() {
         let base = RestConfig::new(kube::Config::new("https://example:6443".parse().unwrap()));
-        assert!(base.rate_limiter().is_none(), "GetConfig disables client-side rate limiting");
+        assert!(
+            base.rate_limiter().is_none(),
+            "GetConfig disables client-side rate limiting"
+        );
         let mut c = base.clone();
         c.qps = 0.0;
-        assert!(c.rate_limiter().is_some(), "QPS 0 means client-go default 5");
+        assert!(
+            c.rate_limiter().is_some(),
+            "QPS 0 means client-go default 5"
+        );
         let c = base.with_rate_limit(5.0, 10);
         assert!(c.rate_limiter().is_some());
     }

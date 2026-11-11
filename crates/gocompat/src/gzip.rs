@@ -202,7 +202,11 @@ fn read_full<'a>(input: &'a [u8], pos: &mut usize, n: usize) -> Result<&'a [u8],
     let avail = input.len() - *pos;
     if avail < n {
         *pos = input.len();
-        return Err(if avail == 0 { Error::Eof } else { Error::UnexpectedEof });
+        return Err(if avail == 0 {
+            Error::Eof
+        } else {
+            Error::UnexpectedEof
+        });
     }
     let s = &input[*pos..*pos + n];
     *pos += n;
@@ -210,7 +214,11 @@ fn read_full<'a>(input: &'a [u8], pos: &mut usize, n: usize) -> Result<&'a [u8],
 }
 
 fn no_eof(e: Error) -> Error {
-    if e == Error::Eof { Error::UnexpectedEof } else { e }
+    if e == Error::Eof {
+        Error::UnexpectedEof
+    } else {
+        e
+    }
 }
 
 fn read_string(input: &[u8], pos: &mut usize, digest: &mut u32) -> Result<String, Error> {

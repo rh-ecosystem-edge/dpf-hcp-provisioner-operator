@@ -113,7 +113,10 @@ pub fn remove_status_condition(conditions: &mut Vec<Condition>, type_: &str) -> 
 }
 
 /// `meta.FindStatusCondition`
-pub fn find_status_condition<'a>(conditions: &'a [Condition], type_: &str) -> Option<&'a Condition> {
+pub fn find_status_condition<'a>(
+    conditions: &'a [Condition],
+    type_: &str,
+) -> Option<&'a Condition> {
     conditions.iter().find(|c| c.type_ == type_)
 }
 
@@ -284,7 +287,10 @@ fn owner_ref_for<O: Object>(owner: &O, controller: bool) -> OwnerReference {
 }
 
 /// `controllerutil.SetControllerReference(owner, controlled, scheme)`
-pub fn set_controller_reference<O: Object, K: Object>(owner: &O, controlled: &mut K) -> crate::Result<()> {
+pub fn set_controller_reference<O: Object, K: Object>(
+    owner: &O,
+    controlled: &mut K,
+) -> crate::Result<()> {
     validate_owner(owner, controlled)?;
     let r = owner_ref_for(owner, true);
     if let Some(existing) = get_controller_of(controlled)

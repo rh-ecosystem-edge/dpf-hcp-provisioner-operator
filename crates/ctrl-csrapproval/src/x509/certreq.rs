@@ -217,7 +217,10 @@ impl Ip {
     fn to4(&self) -> Option<[u8; 4]> {
         match self.0.len() {
             4 => Some([self.0[0], self.0[1], self.0[2], self.0[3]]),
-            16 if self.0[..10].iter().all(|&b| b == 0) && self.0[10] == 0xff && self.0[11] == 0xff => {
+            16 if self.0[..10].iter().all(|&b| b == 0)
+                && self.0[10] == 0xff
+                && self.0[11] == 0xff =>
+            {
                 Some([self.0[12], self.0[13], self.0[14], self.0[15]])
             }
             _ => None,
@@ -236,9 +239,7 @@ impl Ip {
     pub fn is_loopback(&self) -> bool {
         match self.to4() {
             Some(v4) => v4[0] == 127,
-            None => {
-                self.0.len() == 16 && self.0[..15].iter().all(|&b| b == 0) && self.0[15] == 1
-            }
+            None => self.0.len() == 16 && self.0[..15].iter().all(|&b| b == 0) && self.0[15] == 1,
         }
     }
 
@@ -294,7 +295,10 @@ pub fn fmt_string_list(v: &[String]) -> String {
 pub fn fmt_ip_list(v: &[Ip]) -> String {
     format!(
         "[{}]",
-        v.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(" ")
+        v.iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join(" ")
     )
 }
 
@@ -444,7 +448,8 @@ fn parse_san_extension(der: &[u8], out: &mut CertificateRequest) -> Result<(), P
                 if !is_ia5(data) {
                     return Err(err("x509: SAN dNSName is malformed"));
                 }
-                out.dns_names.push(String::from_utf8_lossy(data).into_owned());
+                out.dns_names
+                    .push(String::from_utf8_lossy(data).into_owned());
             }
             // nameTypeURI
             6 => {
@@ -471,9 +476,7 @@ fn parse_san_extension(der: &[u8], out: &mut CertificateRequest) -> Result<(), P
             7 => match data.len() {
                 4 | 16 => out.ip_addresses.push(Ip(data.to_vec())),
                 n => {
-                    return Err(err(format!(
-                        "x509: cannot parse IP address of length {n}"
-                    )));
+                    return Err(err(format!("x509: cannot parse IP address of length {n}")));
                 }
             },
             _ => {}
@@ -490,7 +493,11 @@ pub(crate) fn domain_name_valid(s: &[u8], constraint: bool) -> bool {
     if s[s.len() - 1] == b'.' {
         return false;
     }
-    let s = if constraint && s[0] == b'.' { &s[1..] } else { s };
+    let s = if constraint && s[0] == b'.' {
+        &s[1..]
+    } else {
+        s
+    };
     let mut last_dot: isize = -1;
     for i in 0..=s.len() {
         if i < s.len() && (s[i] < 33 || s[i] > 126) {

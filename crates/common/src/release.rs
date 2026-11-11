@@ -8,7 +8,11 @@ use registry::{name, remote};
 
 /// `IsMultiArchReleaseImage`: true when the tag ends with `-multi`, or when the registry
 /// reports a manifest list / OCI index for the reference. Any lookup failure → false.
-pub async fn is_multi_arch_release_image(_ctx: &Ctx, image: &str, keychain: Arc<dyn Keychain>) -> bool {
+pub async fn is_multi_arch_release_image(
+    _ctx: &Ctx,
+    image: &str,
+    keychain: Arc<dyn Keychain>,
+) -> bool {
     if image.ends_with("-multi") {
         return true;
     }

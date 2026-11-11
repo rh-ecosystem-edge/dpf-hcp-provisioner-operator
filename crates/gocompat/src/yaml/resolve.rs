@@ -18,7 +18,9 @@ pub(crate) enum Resolved {
 
 fn lookup(s: &str) -> Option<Resolved> {
     Some(match s {
-        "y" | "Y" | "yes" | "Yes" | "YES" | "true" | "True" | "TRUE" | "on" | "On" | "ON" => Resolved::Bool(true),
+        "y" | "Y" | "yes" | "Yes" | "YES" | "true" | "True" | "TRUE" | "on" | "On" | "ON" => {
+            Resolved::Bool(true)
+        }
         "n" | "N" | "no" | "No" | "NO" | "false" | "False" | "FALSE" | "off" | "Off" | "OFF" => {
             Resolved::Bool(false)
         }
@@ -184,7 +186,10 @@ fn parse_layout(s: &[u8], time: Option<(Sep, bool)>) -> bool {
     if !year_digits.iter().all(|c| c.is_ascii_digit()) {
         return false;
     }
-    let year: i64 = std::str::from_utf8(year_digits).ok().and_then(|y| y.parse().ok()).unwrap_or(0);
+    let year: i64 = std::str::from_utf8(year_digits)
+        .ok()
+        .and_then(|y| y.parse().ok())
+        .unwrap_or(0);
     v = &v[4..];
     let lit = |v: &mut &[u8], c: u8| -> bool {
         if v.first() == Some(&c) {
@@ -197,7 +202,9 @@ fn parse_layout(s: &[u8], time: Option<(Sep, bool)>) -> bool {
     if !lit(&mut v, b'-') {
         return false;
     }
-    let Some((month, rest)) = getnum(v, false) else { return false };
+    let Some((month, rest)) = getnum(v, false) else {
+        return false;
+    };
     v = rest;
     if !(1..=12).contains(&month) {
         return false;
@@ -205,7 +212,9 @@ fn parse_layout(s: &[u8], time: Option<(Sep, bool)>) -> bool {
     if !lit(&mut v, b'-') {
         return false;
     }
-    let Some((day, rest)) = getnum(v, false) else { return false };
+    let Some((day, rest)) = getnum(v, false) else {
+        return false;
+    };
     v = rest;
     if !(0..=31).contains(&day) {
         return false;
@@ -232,7 +241,9 @@ fn parse_layout(s: &[u8], time: Option<(Sep, bool)>) -> bool {
                 }
             }
         }
-        let Some((hour, rest)) = getnum(v, false) else { return false };
+        let Some((hour, rest)) = getnum(v, false) else {
+            return false;
+        };
         v = rest;
         if !(0..24).contains(&hour) {
             return false;
@@ -240,7 +251,9 @@ fn parse_layout(s: &[u8], time: Option<(Sep, bool)>) -> bool {
         if !lit(&mut v, b':') {
             return false;
         }
-        let Some((min, rest)) = getnum(v, false) else { return false };
+        let Some((min, rest)) = getnum(v, false) else {
+            return false;
+        };
         v = rest;
         if !(0..60).contains(&min) {
             return false;
@@ -248,7 +261,9 @@ fn parse_layout(s: &[u8], time: Option<(Sep, bool)>) -> bool {
         if !lit(&mut v, b':') {
             return false;
         }
-        let Some((sec, rest)) = getnum(v, false) else { return false };
+        let Some((sec, rest)) = getnum(v, false) else {
+            return false;
+        };
         v = rest;
         if !(0..60).contains(&sec) {
             return false;
@@ -270,7 +285,9 @@ fn parse_layout(s: &[u8], time: Option<(Sep, bool)>) -> bool {
                     return false;
                 }
                 let sign = v[0];
-                let (Some((hr, _)), Some((mm, _))) = (getnum(&v[1..3], true), getnum(&v[4..6], true)) else {
+                let (Some((hr, _)), Some((mm, _))) =
+                    (getnum(&v[1..3], true), getnum(&v[4..6], true))
+                else {
                     return false;
                 };
                 if hr > 24 || mm > 60 {
@@ -307,7 +324,11 @@ pub(crate) fn is_timestamp(s: &str) -> bool {
 
 /// Go `resolve("", in)`.
 pub(crate) fn resolve(input: &str) -> Resolved {
-    let h = if input.is_empty() { b'N' } else { hint(input.as_bytes()[0]) };
+    let h = if input.is_empty() {
+        b'N'
+    } else {
+        hint(input.as_bytes()[0])
+    };
     if h == 0 {
         return Resolved::Str;
     }

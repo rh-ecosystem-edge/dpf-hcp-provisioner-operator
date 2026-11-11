@@ -31,7 +31,8 @@ impl Keychain for DockerConfigKeychain {
 /// Decode `struct{ Auths map[string]authn.AuthConfig `json:"auths"` }` with Go's
 /// `encoding/json` error messages.
 fn decode_docker_config(data: &[u8]) -> std::result::Result<HashMap<String, AuthConfig>, String> {
-    let v: serde_json::Value = serde_json::from_slice(data).map_err(|e| goutil::json_syntax_error(data, &e))?;
+    let v: serde_json::Value =
+        serde_json::from_slice(data).map_err(|e| goutil::json_syntax_error(data, &e))?;
     let obj = match &v {
         serde_json::Value::Null => return Ok(HashMap::new()),
         serde_json::Value::Object(o) => o,

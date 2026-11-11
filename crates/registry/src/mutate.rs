@@ -231,7 +231,11 @@ fn produce<I: LayeredImage>(img: &I, handle: &Handle, tx: &mpsc::Sender<Event>) 
         Err(Stop::Closed) => {}
         Err(Stop::Failed(e)) => {
             // tarWriter.Close() writes the trailer unless an entry is incomplete.
-            let ev = if entry_open { Event::Error(e) } else { Event::End };
+            let ev = if entry_open {
+                Event::Error(e)
+            } else {
+                Event::End
+            };
             let _ = tx.blocking_send(ev);
         }
     }

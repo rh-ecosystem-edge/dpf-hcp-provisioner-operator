@@ -96,7 +96,11 @@ impl<'a> Reader<'a> {
             })
         } else {
             let magnitude = BigUint::from_bytes_be(bytes);
-            let sign = if magnitude == BigUint::default() { 0 } else { 1 };
+            let sign = if magnitude == BigUint::default() {
+                0
+            } else {
+                1
+            };
             Some(BigInt { sign, magnitude })
         }
     }

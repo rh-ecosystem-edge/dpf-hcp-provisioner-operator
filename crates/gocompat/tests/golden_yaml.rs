@@ -13,7 +13,9 @@ fn marshal_matches_go() {
     let mut failures = Vec::new();
     for c in cases {
         let v = dec(&c["input"]);
-        let got = yaml::marshal(&v).map(|y| String::from_utf8_lossy(&y).into_owned()).map_err(|e| e.to_string());
+        let got = yaml::marshal(&v)
+            .map(|y| String::from_utf8_lossy(&y).into_owned())
+            .map_err(|e| e.to_string());
         let want = match c["yaml"].as_str() {
             Some(y) => Ok(y.to_string()),
             None => Err(c["yaml_err"].as_str().unwrap().to_string()),
@@ -21,10 +23,23 @@ fn marshal_matches_go() {
         if got == want {
             ok += 1;
         } else {
-            failures.push(format!("input={}\n  got={got:?}\n want={want:?}", c["json"]));
+            failures.push(format!(
+                "input={}\n  got={got:?}\n want={want:?}",
+                c["json"]
+            ));
         }
     }
-    assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.iter().take(15).cloned().collect::<Vec<_>>().join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} failures:\n{}",
+        failures.len(),
+        failures
+            .iter()
+            .take(15)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
     assert!(ok > 2000);
 }
 
@@ -44,14 +59,21 @@ fn unmarshal_of_marshal_output_matches_go() {
     let f = fixture("json_yaml_marshal.json");
     let mut checked = 0;
     for c in f.as_array().unwrap() {
-        let Some(y) = c["yaml"].as_str() else { continue };
+        let Some(y) = c["yaml"].as_str() else {
+            continue;
+        };
         match yaml::unmarshal_any(y.as_bytes()) {
             Ok(v) => {
-                let want = c["back"].as_str().unwrap_or_else(|| panic!("go failed ({}) but rust succeeded: {y:?}", c["back_err"]));
+                let want = c["back"].as_str().unwrap_or_else(|| {
+                    panic!("go failed ({}) but rust succeeded: {y:?}", c["back_err"])
+                });
                 assert_eq!(String::from_utf8_lossy(&json::marshal(&v)), want, "{y:?}");
                 checked += 1;
             }
-            Err(e) => assert!(c["back"].is_null(), "rust failed ({e}) but go succeeded: {y:?}"),
+            Err(e) => assert!(
+                c["back"].is_null(),
+                "rust failed ({e}) but go succeeded: {y:?}"
+            ),
         }
     }
     assert!(checked > 2000);
@@ -64,7 +86,11 @@ fn json_to_yaml_matches_go() {
         let input = unhex(c["in"].as_str().unwrap());
         match yaml::json_to_yaml(&input) {
             Ok(y) => {
-                assert_eq!(Some(String::from_utf8_lossy(&y).as_ref()), c["out"].as_str(), "{c}");
+                assert_eq!(
+                    Some(String::from_utf8_lossy(&y).as_ref()),
+                    c["out"].as_str(),
+                    "{c}"
+                );
                 if let Some(back) = c["y2j"].as_str() {
                     let got = yaml::yaml_to_json(&y).unwrap_or_else(|e| panic!("{e}: {c}"));
                     assert_eq!(String::from_utf8_lossy(&got), back, "y2j {c}");
@@ -84,7 +110,11 @@ fn yaml_to_json_matches_go() {
         // Supported subset: anchors/aliases/tags are rejected by the Rust port.
         let unsupported = ctx.contains('&') || ctx.contains("!!");
         match yaml::yaml_to_json(&input) {
-            Ok(j) => assert_eq!(Some(String::from_utf8_lossy(&j).as_ref()), c["out"].as_str(), "{ctx:?}"),
+            Ok(j) => assert_eq!(
+                Some(String::from_utf8_lossy(&j).as_ref()),
+                c["out"].as_str(),
+                "{ctx:?}"
+            ),
             Err(e) => {
                 if c["out"].is_string() && !unsupported {
                     panic!("rust failed ({e}) but go succeeded: {ctx:?}");
@@ -97,7 +127,11 @@ fn yaml_to_json_matches_go() {
             }
         }
         match yaml::unmarshal_any(&input) {
-            Ok(v) => assert_eq!(Some(String::from_utf8_lossy(&json::marshal(&v)).as_ref()), c["any"].as_str(), "{ctx:?}"),
+            Ok(v) => assert_eq!(
+                Some(String::from_utf8_lossy(&json::marshal(&v)).as_ref()),
+                c["any"].as_str(),
+                "{ctx:?}"
+            ),
             Err(e) => {
                 if c["any"].is_string() && !unsupported {
                     panic!("rust failed ({e}) but go succeeded: {ctx:?}");
@@ -126,7 +160,10 @@ fn depth_limit_matches_go() {
     common::big_stack(|| {
         let f = fixture("yaml_deep.json");
         for c in f.as_array().unwrap() {
-            let v = nested(c["depth"].as_u64().unwrap() as usize, c["kind"].as_str().unwrap());
+            let v = nested(
+                c["depth"].as_u64().unwrap() as usize,
+                c["kind"].as_str().unwrap(),
+            );
             match yaml::marshal(&v) {
                 Ok(y) => {
                     assert_eq!(y.len() as u64, c["yaml_len"].as_u64().unwrap(), "{c}");

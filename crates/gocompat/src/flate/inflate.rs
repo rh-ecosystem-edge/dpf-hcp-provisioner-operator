@@ -99,7 +99,8 @@ impl HuffmanDecoder {
             for j in link..HUFFMAN_NUM_CHUNKS {
                 let reverse = ((j as u16).reverse_bits() as usize) >> (16 - HUFFMAN_CHUNK_BITS);
                 let off = j - link;
-                self.chunks[reverse] = ((off as u32) << HUFFMAN_VALUE_SHIFT) | (HUFFMAN_CHUNK_BITS + 1);
+                self.chunks[reverse] =
+                    ((off as u32) << HUFFMAN_VALUE_SHIFT) | (HUFFMAN_CHUNK_BITS + 1);
                 self.links[off] = vec![0; num_links];
             }
         }
@@ -150,7 +151,9 @@ static FIXED_HUFFMAN_DECODER: LazyLock<HuffmanDecoder> = LazyLock::new(|| {
     h
 });
 
-static CODE_ORDER: [usize; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+static CODE_ORDER: [usize; 19] = [
+    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+];
 
 struct BitReader<'a> {
     input: &'a [u8],
@@ -243,7 +246,11 @@ impl<'a> Inflater<'a> {
     }
 
     fn more_bits(&mut self) -> Result<(), InflateError> {
-        let c = *self.br.input.get(self.br.pos).ok_or(InflateError::UnexpectedEof)?;
+        let c = *self
+            .br
+            .input
+            .get(self.br.pos)
+            .ok_or(InflateError::UnexpectedEof)?;
         self.br.pos += 1;
         self.br.roffset += 1;
         self.br.b |= (c as u32) << self.br.nb;
@@ -442,7 +449,8 @@ impl<'a> Inflater<'a> {
         }
         let avail = self.br.input.len() - self.br.pos;
         let take = n.min(avail);
-        self.out.extend_from_slice(&self.br.input[self.br.pos..self.br.pos + take]);
+        self.out
+            .extend_from_slice(&self.br.input[self.br.pos..self.br.pos + take]);
         self.br.pos += take;
         self.br.roffset += take as i64;
         if take < n {

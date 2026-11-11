@@ -159,8 +159,12 @@ impl std::fmt::Debug for Client {
 /// Serialize a typed object to a full JSON document, filling `apiVersion`/`kind`
 /// (Go's client always sends the scheme's GVK).
 pub fn to_value<K: Object>(obj: &K) -> Result<Value> {
-    let mut v = serde_json::to_value(obj)
-        .map_err(|e| wrap(anyhow::anyhow!(e.to_string()), format!("failed to encode object: {e}")))?;
+    let mut v = serde_json::to_value(obj).map_err(|e| {
+        wrap(
+            anyhow::anyhow!(e.to_string()),
+            format!("failed to encode object: {e}"),
+        )
+    })?;
     let info = K::resource_info();
     if let Value::Object(map) = &mut v {
         map.insert("apiVersion".into(), Value::String(info.api_version()));
@@ -186,7 +190,11 @@ impl Client {
     /// `c.Get(ctx, key, obj)`
     pub async fn get<K: Object>(&self, key: &ObjectKey) -> Result<K> {
         let info = K::resource_info();
-        let ns = if info.namespaced { key.namespace.as_str() } else { "" };
+        let ns = if info.namespaced {
+            key.namespace.as_str()
+        } else {
+            ""
+        };
         let v = self.backend.get(&info, ns, &key.name).await?;
         from_value(v)
     }
@@ -236,7 +244,11 @@ impl Client {
     }
 
     /// `c.SubResource(name).Update(ctx, obj)` (e.g. CSR `approval`).
-    pub async fn update_subresource<K: Object>(&self, obj: &mut K, subresource: &str) -> Result<()> {
+    pub async fn update_subresource<K: Object>(
+        &self,
+        obj: &mut K,
+        subresource: &str,
+    ) -> Result<()> {
         let info = K::resource_info();
         let v = self
             .backend
@@ -284,7 +296,11 @@ impl Client {
     /// Delete by key without having the object.
     pub async fn delete_key<K: Object>(&self, key: &ObjectKey, opts: &DeleteOptions) -> Result<()> {
         let info = K::resource_info();
-        let ns = if info.namespaced { key.namespace.as_str() } else { "" };
+        let ns = if info.namespaced {
+            key.namespace.as_str()
+        } else {
+            ""
+        };
         self.backend.delete(&info, ns, &key.name, opts).await
     }
 }

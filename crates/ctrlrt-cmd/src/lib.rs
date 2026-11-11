@@ -10,8 +10,8 @@
 //!   (`mgr.GetEventRecorderFor(name)`).
 
 pub mod certwatcher;
-pub mod events;
 pub mod cmdline;
+pub mod events;
 pub mod filters;
 pub mod flag;
 pub mod godur;
@@ -41,7 +41,10 @@ pub fn setup_signal_handler() -> tokio_util::sync::CancellationToken {
     let token = tokio_util::sync::CancellationToken::new();
     let t = token.clone();
     tokio::spawn(async move {
-        let (Ok(mut term), Ok(mut int)) = (signal(SignalKind::terminate()), signal(SignalKind::interrupt())) else {
+        let (Ok(mut term), Ok(mut int)) = (
+            signal(SignalKind::terminate()),
+            signal(SignalKind::interrupt()),
+        ) else {
             return;
         };
         tokio::select! {

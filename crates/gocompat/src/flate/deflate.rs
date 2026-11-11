@@ -41,7 +41,14 @@ struct CompressionLevel {
     fast_skip_hashing: i64,
 }
 
-const fn lvl(level: i64, good: i64, lazy: i64, nice: i64, chain: i64, fast: i64) -> CompressionLevel {
+const fn lvl(
+    level: i64,
+    good: i64,
+    lazy: i64,
+    nice: i64,
+    chain: i64,
+    fast: i64,
+) -> CompressionLevel {
     CompressionLevel {
         level,
         good,
@@ -76,7 +83,8 @@ enum Mode {
 const HASHMUL: u32 = 0x1e35a7bd;
 
 fn hash4(b: &[u8]) -> u32 {
-    ((b[3] as u32 | (b[2] as u32) << 8 | (b[1] as u32) << 16 | (b[0] as u32) << 24).wrapping_mul(HASHMUL))
+    ((b[3] as u32 | (b[2] as u32) << 8 | (b[1] as u32) << 16 | (b[0] as u32) << 24)
+        .wrapping_mul(HASHMUL))
         >> (32 - HASH_BITS)
 }
 
@@ -97,7 +105,11 @@ pub struct InvalidLevelError(pub i32);
 
 impl std::fmt::Display for InvalidLevelError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "flate: invalid compression level {}: want value in range [-2, 9]", self.0)
+        write!(
+            f,
+            "flate: invalid compression level {}: want value in range [-2, 9]",
+            self.0
+        )
     }
 }
 
@@ -170,7 +182,11 @@ impl Writer {
                 d.tokens = Vec::with_capacity(MAX_STORE_BLOCK_SIZE);
             }
             DEFAULT_COMPRESSION | 2..=9 => {
-                let level = if level == DEFAULT_COMPRESSION { 6 } else { level };
+                let level = if level == DEFAULT_COMPRESSION {
+                    6
+                } else {
+                    level
+                };
                 d.cl = LEVELS[level as usize];
                 d.mode = Mode::Deflate;
                 d.window = vec![0; 2 * WINDOW_SIZE];
@@ -253,7 +269,13 @@ impl Writer {
         }
     }
 
-    fn find_match(&self, pos: i64, prev_head: i64, prev_length: i64, lookahead: i64) -> (i64, i64, bool) {
+    fn find_match(
+        &self,
+        pos: i64,
+        prev_head: i64,
+        prev_length: i64,
+        lookahead: i64,
+    ) -> (i64, i64, bool) {
         let mut min_match_look = MAX_MATCH_LENGTH as i64;
         if lookahead < min_match_look {
             min_match_look = lookahead;
@@ -317,7 +339,12 @@ impl Writer {
                 } else if self.window_end <= 16 {
                     self.write_stored_block(0, self.window_end as usize);
                 } else {
-                    let Writer { w, window, window_end, .. } = self;
+                    let Writer {
+                        w,
+                        window,
+                        window_end,
+                        ..
+                    } = self;
                     w.write_block_huff(false, &window[..*window_end as usize]);
                 }
                 self.window_end = 0;
@@ -336,7 +363,8 @@ impl Writer {
         if tokens.len() > we - (we >> 4) {
             self.w.write_block_huff(false, &self.window[..we]);
         } else {
-            self.w.write_block_dynamic(&tokens, false, Some(&self.window[..we]));
+            self.w
+                .write_block_dynamic(&tokens, false, Some(&self.window[..we]));
         }
         self.tokens = tokens;
         self.window_end = 0;
@@ -344,7 +372,8 @@ impl Writer {
 
     fn deflate(&mut self) {
         let mml = MIN_MATCH_LENGTH as i64;
-        if self.window_end - self.index < (MIN_MATCH_LENGTH + MAX_MATCH_LENGTH) as i64 && !self.sync {
+        if self.window_end - self.index < (MIN_MATCH_LENGTH + MAX_MATCH_LENGTH) as i64 && !self.sync
+        {
             return;
         }
         self.max_insert_index = self.window_end - (mml - 1);
@@ -390,8 +419,12 @@ impl Writer {
                 && (fsh != SKIP_NEVER && lookahead > mml - 1
                     || fsh == SKIP_NEVER && lookahead > prev_length && prev_length < self.cl.lazy)
             {
-                let (new_length, new_offset, ok) =
-                    self.find_match(self.index, self.chain_head - self.hash_offset, mml - 1, lookahead);
+                let (new_length, new_offset, ok) = self.find_match(
+                    self.index,
+                    self.chain_head - self.hash_offset,
+                    mml - 1,
+                    lookahead,
+                );
                 if ok {
                     self.length = new_length;
                     self.offset = new_offset;
@@ -442,7 +475,11 @@ impl Writer {
                 }
             } else {
                 if fsh != SKIP_NEVER || self.byte_available {
-                    let i = if fsh != SKIP_NEVER { self.index } else { self.index - 1 };
+                    let i = if fsh != SKIP_NEVER {
+                        self.index
+                    } else {
+                        self.index - 1
+                    };
                     let b = self.window[i as usize];
                     self.tokens.push(literal_token(b as u32));
                     if self.tokens.len() == MAX_FLATE_BLOCK_TOKENS {
@@ -477,7 +514,12 @@ impl Writer {
         if self.window_end < self.window.len() as i64 && !self.sync || self.window_end == 0 {
             return;
         }
-        let Writer { w, window, window_end, .. } = self;
+        let Writer {
+            w,
+            window,
+            window_end,
+            ..
+        } = self;
         w.write_block_huff(false, &window[..*window_end as usize]);
         self.window_end = 0;
     }
@@ -766,7 +808,9 @@ impl DeflateFast {
 
     fn shift_offsets(&mut self) {
         if self.prev.is_empty() {
-            self.table.iter_mut().for_each(|e| *e = TableEntry::default());
+            self.table
+                .iter_mut()
+                .for_each(|e| *e = TableEntry::default());
             self.cur = MAX_MATCH_OFFSET as i32 + 1;
             return;
         }

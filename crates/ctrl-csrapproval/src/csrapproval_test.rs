@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use apis::dpf::provisioning::v1alpha1 as dpuprovisioningv1alpha1;
+use apis::k8s::core::v1::LocalObjectReference;
 use apis::provisioning::v1alpha1 as provisioningv1alpha1;
 use ctrlrt::meta::find_status_condition;
 use ctrlrt::{
@@ -16,8 +17,9 @@ use ctrlrt::{
 use ctrlrt_fake::{FakeClientBuilder, InitObject, Reaction, Scheme, obj};
 use hostedclient::{ClientManager, HostedClient};
 use k8s_openapi::ByteString;
-use k8s_openapi::api::certificates::v1::{CertificateSigningRequest, CertificateSigningRequestSpec};
-use apis::k8s::core::v1::LocalObjectReference;
+use k8s_openapi::api::certificates::v1::{
+    CertificateSigningRequest, CertificateSigningRequestSpec,
+};
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
@@ -96,7 +98,10 @@ fn bootstrap_csr(name: &str, host: &str) -> CertificateSigningRequest {
                 GROUP_SERVICE_ACCOUNTS_MACHINE_CONFIG.into(),
                 GROUP_AUTHENTICATED.into(),
             ]),
-            usages: Some(vec![USAGE_DIGITAL_SIGNATURE.into(), USAGE_CLIENT_AUTH.into()]),
+            usages: Some(vec![
+                USAGE_DIGITAL_SIGNATURE.into(),
+                USAGE_CLIENT_AUTH.into(),
+            ]),
             request: ByteString(create_test_csr_with_organization(
                 &format!("system:node:{host}"),
                 "system:nodes",
@@ -117,7 +122,10 @@ fn serving_csr(name: &str, host: &str) -> CertificateSigningRequest {
             signer_name: SIGNER_SERVING.into(),
             username: Some(format!("system:node:{host}")),
             groups: Some(vec![GROUP_NODES.into(), GROUP_AUTHENTICATED.into()]),
-            usages: Some(vec![USAGE_DIGITAL_SIGNATURE.into(), USAGE_SERVER_AUTH.into()]),
+            usages: Some(vec![
+                USAGE_DIGITAL_SIGNATURE.into(),
+                USAGE_SERVER_AUTH.into(),
+            ]),
             request: ByteString(create_serving_csr_with_dns(
                 &format!("system:node:{host}"),
                 host,
@@ -194,7 +202,9 @@ mod process_csrs {
         );
         assert_eq!(
             e.recorder.drain(),
-            vec!["Warning KubeconfigNotAvailable Kubeconfig secret not available for hosted cluster"]
+            vec![
+                "Warning KubeconfigNotAvailable Kubeconfig secret not available for hosted cluster"
+            ]
         );
     }
 
@@ -208,7 +218,11 @@ mod process_csrs {
         let msg = "Cannot connect to hosted cluster: failed to replace server endpoint: kubeconfig has no current context";
         assert_eq!(
             e.condition().await,
-            ("False".into(), "HostedClusterNotReachable".into(), msg.into())
+            (
+                "False".into(),
+                "HostedClusterNotReachable".into(),
+                msg.into()
+            )
         );
         assert_eq!(
             e.recorder.drain(),
@@ -233,7 +247,11 @@ mod process_csrs {
         let msg = "Cannot connect to hosted cluster: failed to connect to hosted cluster API server: dial tcp: i/o timeout";
         assert_eq!(
             e.condition().await,
-            ("False".into(), "HostedClusterNotReachable".into(), msg.into())
+            (
+                "False".into(),
+                "HostedClusterNotReachable".into(),
+                msg.into()
+            )
         );
         assert_eq!(
             e.recorder.drain(),
@@ -323,8 +341,7 @@ mod process_csrs {
         fake.prepend_reactor("list", "certificatesigningrequests", |_| {
             Reaction::error(ctrlrt::error::ApiError::internal("etcd unavailable"))
         });
-        e.cm
-            .set_hosted_cluster_client(NS, NAME, HostedClient::fake(fake.client()));
+        e.cm.set_hosted_cluster_client(NS, NAME, HostedClient::fake(fake.client()));
 
         let mut p = e.provisioner().await;
         let res = e.approver.process_csrs(&e.ctx, &mut p).await.unwrap();
@@ -354,10 +371,7 @@ mod reconcile {
     async fn not_found_is_ignored() {
         let e = env(vec![]);
         let r = reconciler(&e, true);
-        let res = r
-            .reconcile(&e.ctx, ObjectKey::new(NS, NAME))
-            .await
-            .unwrap();
+        let res = r.reconcile(&e.ctx, ObjectKey::new(NS, NAME)).await.unwrap();
         assert!(res.is_zero());
     }
 
@@ -471,8 +485,14 @@ mod setup_with_manager {
         let specs = mgr.specs.lock().unwrap();
         assert_eq!(specs.len(), 1);
         assert_eq!(specs[0].name, "csrapproval");
-        assert_eq!(specs[0].for_resource.as_ref().unwrap().kind, "DPFHCPProvisioner");
-        assert_eq!(specs[0].for_resource.as_ref().unwrap().group, "provisioning.dpu.hcp.io");
+        assert_eq!(
+            specs[0].for_resource.as_ref().unwrap().kind,
+            "DPFHCPProvisioner"
+        );
+        assert_eq!(
+            specs[0].for_resource.as_ref().unwrap().group,
+            "provisioning.dpu.hcp.io"
+        );
         assert_eq!(specs[0].watches.len(), 1);
         assert_eq!(specs[0].max_concurrent_reconciles, 1);
     }

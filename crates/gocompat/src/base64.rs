@@ -58,7 +58,11 @@ pub fn encode_to_string(src: &[u8]) -> String {
 }
 
 /// Go `decodeQuantum`; returns (new si, bytes written, error).
-fn decode_quantum(dst: &mut Vec<u8>, src: &[u8], mut si: usize) -> (usize, Option<CorruptInputError>) {
+fn decode_quantum(
+    dst: &mut Vec<u8>,
+    src: &[u8],
+    mut si: usize,
+) -> (usize, Option<CorruptInputError>) {
     let mut dbuf = [0u8; 4];
     let mut dlen = 4;
     let mut err = None;
@@ -110,7 +114,8 @@ fn decode_quantum(dst: &mut Vec<u8>, src: &[u8], mut si: usize) -> (usize, Optio
         dlen = j as usize;
         break;
     }
-    let val = (dbuf[0] as u32) << 18 | (dbuf[1] as u32) << 12 | (dbuf[2] as u32) << 6 | dbuf[3] as u32;
+    let val =
+        (dbuf[0] as u32) << 18 | (dbuf[1] as u32) << 12 | (dbuf[2] as u32) << 6 | dbuf[3] as u32;
     let b = [(val >> 16) as u8, (val >> 8) as u8, val as u8];
     if dlen >= 2 {
         dst.extend_from_slice(&b[..dlen - 1]);

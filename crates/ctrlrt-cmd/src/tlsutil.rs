@@ -31,7 +31,9 @@ pub fn pem_decode_all(data: &[u8]) -> Vec<PemBlock> {
         };
         let Some(idx) = idx else { break };
         let after = &rest[idx + "-----BEGIN ".len()..];
-        let Some(eol) = after.find('\n').or(Some(after.len())) else { break };
+        let Some(eol) = after.find('\n').or(Some(after.len())) else {
+            break;
+        };
         let line = after[..eol].trim_end_matches('\r').trim_end();
         let Some(type_) = line.strip_suffix("-----") else {
             rest = after;
@@ -207,7 +209,9 @@ pub fn x509_key_pair(cert_pem: &[u8], key_pem: &[u8]) -> Result<Arc<CertifiedKey
             return Err("tls: failed to find any PEM data in key input".into());
         }
         if skipped.len() == 1 && skipped[0] == "CERTIFICATE" {
-            return Err("tls: found a certificate rather than a key in the PEM for the private key".into());
+            return Err(
+                "tls: found a certificate rather than a key in the PEM for the private key".into(),
+            );
         }
         return Err(format!(
             "tls: failed to find PEM block with type ending in \"PRIVATE KEY\" in key input after skipping PEM blocks of the following types: [{}]",
@@ -294,7 +298,8 @@ pub fn go_errno_text(e: &std::io::Error) -> String {
 /// `read <path>: <errno>`).
 pub fn read_file(path: &str) -> Result<Vec<u8>, String> {
     use std::io::Read;
-    let mut f = std::fs::File::open(path).map_err(|e| format!("open {path}: {}", go_errno_text(&e)))?;
+    let mut f =
+        std::fs::File::open(path).map_err(|e| format!("open {path}: {}", go_errno_text(&e)))?;
     let mut buf = Vec::new();
     f.read_to_end(&mut buf)
         .map_err(|e| format!("read {path}: {}", go_errno_text(&e)))?;
@@ -321,25 +326,46 @@ pub(crate) mod tests {
         let (_c3, k3) = gen_pair(&rcgen::PKCS_ECDSA_P256_SHA256);
 
         let err = |c: &str, k: &str| x509_key_pair(c.as_bytes(), k.as_bytes()).unwrap_err();
-        assert_eq!(err("", &k), "tls: failed to find any PEM data in certificate input");
+        assert_eq!(
+            err("", &k),
+            "tls: failed to find any PEM data in certificate input"
+        );
         assert_eq!(
             err(&k, &k),
             "tls: failed to find certificate PEM data in certificate input, but did find a private key; PEM inputs may have been switched"
         );
         assert_eq!(
-            err("-----BEGIN FOO-----\nAAAA\n-----END FOO-----\n-----BEGIN BAR-----\nAAAA\n-----END BAR-----\n", &k),
+            err(
+                "-----BEGIN FOO-----\nAAAA\n-----END FOO-----\n-----BEGIN BAR-----\nAAAA\n-----END BAR-----\n",
+                &k
+            ),
             "tls: failed to find \"CERTIFICATE\" PEM block in certificate input after skipping PEM blocks of the following types: [FOO BAR]"
         );
-        assert_eq!(err(&c, "garbage"), "tls: failed to find any PEM data in key input");
-        assert_eq!(err(&c, &c), "tls: found a certificate rather than a key in the PEM for the private key");
-        assert_eq!(err(&c, &k3), "tls: private key does not match public key");
-        assert_eq!(err(&c, &k2), "tls: private key type does not match public key type");
         assert_eq!(
-            err(&c, "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n"),
+            err(&c, "garbage"),
+            "tls: failed to find any PEM data in key input"
+        );
+        assert_eq!(
+            err(&c, &c),
+            "tls: found a certificate rather than a key in the PEM for the private key"
+        );
+        assert_eq!(err(&c, &k3), "tls: private key does not match public key");
+        assert_eq!(
+            err(&c, &k2),
+            "tls: private key type does not match public key type"
+        );
+        assert_eq!(
+            err(
+                &c,
+                "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n"
+            ),
             "tls: failed to parse private key"
         );
         assert_eq!(
-            err("-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n", &k),
+            err(
+                "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n",
+                &k
+            ),
             "x509: malformed certificate"
         );
     }

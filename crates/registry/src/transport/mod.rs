@@ -15,10 +15,10 @@ use std::fmt;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use ::http::{HeaderMap, HeaderValue, Method};
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures::TryStreamExt;
-use ::http::{HeaderMap, HeaderValue, Method};
 use tokio::io::AsyncRead;
 
 use crate::authn::Authenticator;
@@ -106,11 +106,14 @@ fn reqwest_body_error(e: reqwest::Error) -> std::io::Error {
     let mut cur: Option<&(dyn std::error::Error + 'static)> = Some(&e);
     while let Some(c) = cur {
         if let Some(io) = c.downcast_ref::<std::io::Error>() {
-            return std::io::Error::new(io.kind(), NetError {
-                message: http::go_io_message(io),
-                retryable: true,
-                timeout: false,
-            });
+            return std::io::Error::new(
+                io.kind(),
+                NetError {
+                    message: http::go_io_message(io),
+                    retryable: true,
+                    timeout: false,
+                },
+            );
         }
         let s = c.to_string();
         if s.contains("IncompleteBody")
@@ -118,11 +121,14 @@ fn reqwest_body_error(e: reqwest::Error) -> std::io::Error {
             || s.contains("connection closed before message completed")
             || s.contains("incomplete")
         {
-            return std::io::Error::new(std::io::ErrorKind::UnexpectedEof, NetError {
-                message: "unexpected EOF".to_string(),
-                retryable: true,
-                timeout: false,
-            });
+            return std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                NetError {
+                    message: "unexpected EOF".to_string(),
+                    retryable: true,
+                    timeout: false,
+                },
+            );
         }
         cur = c.source();
     }
@@ -271,7 +277,9 @@ fn is_domain_or_subdomain(sub: &str, parent: &str) -> bool {
     if sub.contains([':', '%']) {
         return false;
     }
-    sub.len() > parent.len() && sub.ends_with(parent) && sub.as_bytes()[sub.len() - parent.len() - 1] == b'.'
+    sub.len() > parent.len()
+        && sub.ends_with(parent)
+        && sub.as_bytes()[sub.len() - parent.len() - 1] == b'.'
 }
 
 /// Go `http.Client` with a custom transport.
@@ -382,7 +390,11 @@ impl Client {
                 url: u,
                 host: String::new(),
                 headers,
-                body: if include_body { ireq.body.clone() } else { None },
+                body: if include_body {
+                    ireq.body.clone()
+                } else {
+                    None
+                },
             };
         }
     }
@@ -460,7 +472,10 @@ impl RoundTripper for BasicTransport {
                     );
                     req.set_header(::http::header::AUTHORIZATION, &format!("Basic {enc}"));
                 } else if !auth.auth.is_empty() {
-                    req.set_header(::http::header::AUTHORIZATION, &format!("Basic {}", auth.auth));
+                    req.set_header(
+                        ::http::header::AUTHORIZATION,
+                        &format!("Basic {}", auth.auth),
+                    );
                 }
             }
         }
@@ -517,7 +532,8 @@ fn matches_host(host: &str, req: &Request, scheme: &str) -> bool {
     let canonical_header_host = canonical_address(&req.host, scheme);
     let canonical_url_host = canonical_address(&req.url.host, scheme);
     let canonical_registry_host = canonical_address(host, scheme);
-    canonical_header_host == canonical_registry_host || canonical_url_host == canonical_registry_host
+    canonical_header_host == canonical_registry_host
+        || canonical_url_host == canonical_registry_host
 }
 
 /// `transport.NewWithContext`: ping the registry and return a transport that
@@ -567,7 +583,10 @@ mod tests {
     fn canonical() {
         assert_eq!(canonical_address("quay.io", "https"), "quay.io:443");
         assert_eq!(canonical_address("quay.io:443", "https"), "quay.io:443");
-        assert_eq!(canonical_address("localhost:5000", "http"), "localhost:5000");
+        assert_eq!(
+            canonical_address("localhost:5000", "http"),
+            "localhost:5000"
+        );
         assert_eq!(canonical_address("", "https"), ":443");
         assert_eq!(canonical_address("[::1]:5000", "https"), "[::1]:5000");
         assert_eq!(canonical_address("::1", "https"), "[::1]:443");

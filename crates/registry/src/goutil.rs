@@ -63,10 +63,11 @@ pub fn clean_path(p: &str) -> String {
             "" | "." => {}
             ".." => {
                 if let Some(last) = parts.last()
-                    && *last != ".." {
-                        parts.pop();
-                        continue;
-                    }
+                    && *last != ".."
+                {
+                    parts.pop();
+                    continue;
+                }
                 if !rooted {
                     parts.push("..");
                 }
@@ -190,7 +191,9 @@ pub fn split_host_port(hostport: &str) -> Result<(String, String), String> {
     let i = hostport.rfind(':').ok_or_else(missing_port)?;
     let (host, j, k);
     if hostport.starts_with('[') {
-        let end = hostport.find(']').ok_or_else(|| format!("address {hostport}: missing ']' in address"))?;
+        let end = hostport
+            .find(']')
+            .ok_or_else(|| format!("address {hostport}: missing ']' in address"))?;
         if end + 1 == hostport.len() {
             return Err(missing_port());
         } else if end + 1 != i {
@@ -260,10 +263,18 @@ pub fn go_fmt_float(f: f64) -> String {
         return "NaN".into();
     }
     if f.is_infinite() {
-        return if f > 0.0 { "+Inf".into() } else { "-Inf".into() };
+        return if f > 0.0 {
+            "+Inf".into()
+        } else {
+            "-Inf".into()
+        };
     }
     if f == 0.0 {
-        return if f.is_sign_negative() { "-0".into() } else { "0".into() };
+        return if f.is_sign_negative() {
+            "-0".into()
+        } else {
+            "0".into()
+        };
     }
     // Shortest repr digits via Rust's `{:e}` formatting.
     let s = format!("{f:e}");
@@ -406,8 +417,16 @@ pub fn json_syntax_error(data: &[u8], err: &serde_json::Error) -> String {
         .collect();
     match trimmed.first() {
         None => "unexpected end of JSON input".to_string(),
-        Some(&c) if !matches!(c, b'{' | b'[' | b'"' | b'-' | b'0'..=b'9' | b't' | b'f' | b'n') => {
-            format!("invalid character {} looking for beginning of value", quote_char(c))
+        Some(&c)
+            if !matches!(
+                c,
+                b'{' | b'[' | b'"' | b'-' | b'0'..=b'9' | b't' | b'f' | b'n'
+            ) =>
+        {
+            format!(
+                "invalid character {} looking for beginning of value",
+                quote_char(c)
+            )
         }
         _ => {
             if err.is_eof() {
@@ -469,7 +488,10 @@ mod tests {
     #[test]
     fn host_port() {
         assert_eq!(split_host_port("a:1").unwrap(), ("a".into(), "1".into()));
-        assert_eq!(split_host_port("[::1]:1").unwrap(), ("::1".into(), "1".into()));
+        assert_eq!(
+            split_host_port("[::1]:1").unwrap(),
+            ("::1".into(), "1".into())
+        );
         assert!(split_host_port("a").is_err());
         assert_eq!(join_host_port("::1", "443"), "[::1]:443");
     }

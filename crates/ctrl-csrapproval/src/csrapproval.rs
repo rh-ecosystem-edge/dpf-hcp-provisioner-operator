@@ -15,7 +15,9 @@ use k8s_openapi::api::certificates::v1::{
 
 use crate::csr_content_validation::{validate_bootstrap_csr, validate_serving_csr};
 use crate::csr_owner_validation::Validator;
-use crate::hostname::{CERTIFICATE_APPROVED, SIGNER_BOOTSTRAP, SIGNER_SERVING, extract_hostname, is_pending};
+use crate::hostname::{
+    CERTIFICATE_APPROVED, SIGNER_BOOTSTRAP, SIGNER_SERVING, extract_hostname, is_pending,
+};
 
 /// CSRPollingInterval is how often to check for pending CSRs in the hosted cluster.
 /// Polls continuously to handle bootstrap CSRs, serving CSRs, and edge cases like node
@@ -34,7 +36,11 @@ pub struct CSRApprover {
 impl CSRApprover {
     /// NewCSRApprover creates a new CSR approver. The hosted-cluster client manager is
     /// injected so it can be shared with other reconcilers (e.g. the hugepages reservation).
-    pub fn new(mgmt_client: Client, recorder: Recorder, client_manager: Arc<ClientManager>) -> Self {
+    pub fn new(
+        mgmt_client: Client,
+        recorder: Recorder,
+        client_manager: Arc<ClientManager>,
+    ) -> Self {
         Self {
             mgmt_client,
             recorder,
@@ -239,7 +245,11 @@ impl CSRApprover {
                 .await
             {
                 // Actual error - log and continue
-                log.error(&err, "Failed to process bootstrap CSR", kv!["csrName" => csr.name()]);
+                log.error(
+                    &err,
+                    "Failed to process bootstrap CSR",
+                    kv!["csrName" => csr.name()],
+                );
                 continue;
             }
         }
@@ -251,7 +261,11 @@ impl CSRApprover {
                 .await
             {
                 // Actual error - log and continue
-                log.error(&err, "Failed to process serving CSR", kv!["csrName" => csr.name()]);
+                log.error(
+                    &err,
+                    "Failed to process serving CSR",
+                    kv!["csrName" => csr.name()],
+                );
                 continue;
             }
         }

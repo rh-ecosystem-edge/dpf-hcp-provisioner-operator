@@ -18,8 +18,8 @@ use std::time::Duration;
 use ctrlrt::reconcile::RawEvent;
 use futures::StreamExt;
 use kube::api::{Api, DynamicObject};
-use kube::runtime::watcher::{self, Event};
 use kube::runtime::WatchStreamExt;
+use kube::runtime::watcher::{self, Event};
 use serde_json::Value;
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
@@ -134,9 +134,7 @@ impl SharedInformer {
         let st = self.lock();
         st.store
             .values()
-            .filter(|v| {
-                namespace.is_empty() || ctrlrt::client::value_key(v).0 == namespace
-            })
+            .filter(|v| namespace.is_empty() || ctrlrt::client::value_key(v).0 == namespace)
             .cloned()
             .collect()
     }
@@ -267,16 +265,27 @@ impl SharedInformer {
 
     async fn run_loop(&self, stop: CancellationToken) {
         let ar = self.mapping.resource_info().api_resource();
-        let api: Api<DynamicObject> = if self.mapping.namespaced && !self.opts.namespace.is_empty() {
+        let api: Api<DynamicObject> = if self.mapping.namespaced && !self.opts.namespace.is_empty()
+        {
             Api::namespaced_with(self.client.clone(), &self.opts.namespace, &ar)
         } else {
             Api::all_with(self.client.clone(), &ar)
         };
         let mut cfg = watcher::Config::default().any_semantic();
-        if let Some(l) = self.opts.label_selector.as_deref().filter(|s| !s.is_empty()) {
+        if let Some(l) = self
+            .opts
+            .label_selector
+            .as_deref()
+            .filter(|s| !s.is_empty())
+        {
             cfg = cfg.labels(l);
         }
-        if let Some(f) = self.opts.field_selector.as_deref().filter(|s| !s.is_empty()) {
+        if let Some(f) = self
+            .opts
+            .field_selector
+            .as_deref()
+            .filter(|s| !s.is_empty())
+        {
             cfg = cfg.fields(f);
         }
         let stream = watcher::watcher(api, cfg).default_backoff();
@@ -381,7 +390,9 @@ mod tests {
             format!(
                 "{}@{}",
                 object_key(v),
-                v.pointer("/metadata/resourceVersion").and_then(Value::as_str).unwrap_or("")
+                v.pointer("/metadata/resourceVersion")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
             )
         };
         match ev {
@@ -409,7 +420,10 @@ mod tests {
         inf.inject(Event::Init);
         inf.inject(Event::InitApply(obj("a", "x", "1")));
         inf.inject(Event::InitApply(obj("a", "y", "1")));
-        assert!(drain(&mut early).is_empty(), "nothing is delivered before the list completes");
+        assert!(
+            drain(&mut early).is_empty(),
+            "nothing is delivered before the list completes"
+        );
         inf.inject(Event::InitDone);
         assert!(inf.has_synced());
         assert_eq!(drain(&mut early), vec!["create a/x@1", "create a/y@1"]);

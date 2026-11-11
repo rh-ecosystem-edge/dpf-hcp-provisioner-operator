@@ -85,13 +85,15 @@ pub type Predicate = Arc<dyn Fn(&anyhow::Error) -> bool + Send + Sync>;
 pub fn default_retry_predicate(err: &anyhow::Error) -> bool {
     for e in err.chain() {
         if let Some(te) = e.downcast_ref::<super::Error>()
-            && te.temporary() {
-                return true;
-            }
+            && te.temporary()
+        {
+            return true;
+        }
         if let Some(ne) = e.downcast_ref::<NetError>()
-            && ne.retryable {
-                return true;
-            }
+            && ne.retryable
+        {
+            return true;
+        }
         if let Some(ioe) = e.downcast_ref::<io::Error>()
             && matches!(
                 ioe.kind(),
@@ -99,9 +101,10 @@ pub fn default_retry_predicate(err: &anyhow::Error) -> bool {
                     | io::ErrorKind::ConnectionReset
                     | io::ErrorKind::BrokenPipe
                     | io::ErrorKind::TimedOut
-            ) {
-                return true;
-            }
+            )
+        {
+            return true;
+        }
     }
     false
 }

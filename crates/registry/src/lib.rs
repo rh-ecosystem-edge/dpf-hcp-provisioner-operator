@@ -88,7 +88,8 @@ pub fn is_not_found_error(err: &anyhow::Error) -> bool {
 /// Go `retry.IsTemporary` on the chain.
 pub fn is_temporary(err: &anyhow::Error) -> bool {
     as_transport_error(err).is_some_and(transport::Error::temporary)
-        || err
-            .chain()
-            .any(|e| e.downcast_ref::<transport::NetError>().is_some_and(|n| n.retryable))
+        || err.chain().any(|e| {
+            e.downcast_ref::<transport::NetError>()
+                .is_some_and(|n| n.retryable)
+        })
 }

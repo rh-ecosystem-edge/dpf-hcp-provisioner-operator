@@ -10,8 +10,8 @@ use ctrlrt::{
 };
 use ctrlrt_envtest::Environment;
 use ctrlrt_runtime::{
-    ByObject, CacheConfig, CacheOptions, ControllerOptions, Manager, ManagerOptions, RestConfig,
-    ALL_NAMESPACES,
+    ALL_NAMESPACES, ByObject, CacheConfig, CacheOptions, ControllerOptions, Manager,
+    ManagerOptions, RestConfig,
 };
 use k8s_openapi::api::coordination::v1::Lease;
 use k8s_openapi::api::core::v1::{ConfigMap, Namespace};
@@ -78,7 +78,10 @@ async fn direct_client_crud_errors_and_rest_mapper() {
 
     // The very first lookup of an unknown kind goes through aggregated discovery and fails
     // with ErrResourceDiscoveryFailed (Go: apiutil lazy mapper).
-    let err = c.get::<Foo>(&ObjectKey::new("default", "x")).await.unwrap_err();
+    let err = c
+        .get::<Foo>(&ObjectKey::new("default", "x"))
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
         "unable to retrieve the complete list of server APIs: example.com/v1: no matches for example.com/v1, Resource="
@@ -90,7 +93,10 @@ async fn direct_client_crud_errors_and_rest_mapper() {
     assert!(!obj.resource_version().is_empty());
 
     // later misses re-discover the group version and fail with NoKindMatchError
-    let err = c.get::<Foo>(&ObjectKey::new("default", "x")).await.unwrap_err();
+    let err = c
+        .get::<Foo>(&ObjectKey::new("default", "x"))
+        .await
+        .unwrap_err();
     assert!(ctrlrt::error::is_no_match(&err));
     assert_eq!(
         err.to_string(),
@@ -106,7 +112,10 @@ async fn direct_client_crud_errors_and_rest_mapper() {
     assert!(raw.get("kind").is_none() && raw.get("apiVersion").is_none());
 
     // NotFound keeps the server message/reason/code/details
-    let err = c.get::<ConfigMap>(&ObjectKey::new("direct", "missing")).await.unwrap_err();
+    let err = c
+        .get::<ConfigMap>(&ObjectKey::new("direct", "missing"))
+        .await
+        .unwrap_err();
     assert!(ctrlrt::error::is_not_found(&err));
     assert_eq!(err.to_string(), r#"configmaps "missing" not found"#);
     let api = ctrlrt::error::as_api_error(&err).unwrap();
@@ -138,7 +147,11 @@ async fn direct_client_crud_errors_and_rest_mapper() {
 
     // list with label selector
     let l: Vec<ConfigMap> = c
-        .list(&ctrlrt::ListOptions::new().in_namespace("direct").matching_labels([("a", "b")]))
+        .list(
+            &ctrlrt::ListOptions::new()
+                .in_namespace("direct")
+                .matching_labels([("a", "b")]),
+        )
         .await
         .unwrap();
     assert_eq!(l.len(), 1);
@@ -168,7 +181,10 @@ async fn direct_client_crud_errors_and_rest_mapper() {
     assert!(ctrlrt::error::is_not_found(&err));
 
     // empty name validation
-    let err = c.get::<ConfigMap>(&ObjectKey::new("direct", "")).await.unwrap_err();
+    let err = c
+        .get::<ConfigMap>(&ObjectKey::new("direct", ""))
+        .await
+        .unwrap_err();
     assert_eq!(err.to_string(), "resource name may not be empty");
 
     // server version
@@ -226,7 +242,10 @@ async fn http_get(addr: std::net::SocketAddr, path: &str) -> (u16, String) {
     let mut buf = String::new();
     s.read_to_string(&mut buf).await.unwrap();
     let status: u16 = buf[9..12].parse().unwrap();
-    let body = buf.split_once("\r\n\r\n").map(|x| x.1.to_string()).unwrap_or_default();
+    let body = buf
+        .split_once("\r\n\r\n")
+        .map(|x| x.1.to_string())
+        .unwrap_or_default();
     (status, body)
 }
 
@@ -265,7 +284,10 @@ async fn manager_end_to_end() {
         cache: CacheOptions {
             by_object: vec![
                 ByObject::new::<ConfigMap>()
-                    .namespace(ALL_NAMESPACES, CacheConfig::with_labels([("bfcfg", "true")]))
+                    .namespace(
+                        ALL_NAMESPACES,
+                        CacheConfig::with_labels([("bfcfg", "true")]),
+                    )
                     .namespace(op_ns, CacheConfig::default()),
             ],
             ..Default::default()
@@ -277,8 +299,10 @@ async fn manager_end_to_end() {
         ..Default::default()
     };
     let mgr = Manager::new(rest(&env), opts).await.unwrap();
-    mgr.add_healthz_check("healthz", ctrlrt_runtime::ping()).unwrap();
-    mgr.add_readyz_check("readyz", ctrlrt_runtime::ping()).unwrap();
+    mgr.add_healthz_check("healthz", ctrlrt_runtime::ping())
+        .unwrap();
+    mgr.add_readyz_check("readyz", ctrlrt_runtime::ping())
+        .unwrap();
 
     let seen = Arc::new(Recorded::default());
     let spec = Builder::new()
@@ -297,7 +321,10 @@ async fn manager_end_to_end() {
         .get::<ConfigMap>(&ObjectKey::new(op_ns, "op-unlabeled"))
         .await
         .unwrap_err();
-    assert_eq!(err.to_string(), "the cache is not started, can not read objects");
+    assert_eq!(
+        err.to_string(),
+        "the cache is not started, can not read objects"
+    );
 
     let stop = CancellationToken::new();
     let m2 = mgr.clone();
@@ -325,7 +352,10 @@ async fn manager_end_to_end() {
         http_get(addr, "/readyz?verbose").await,
         (200, "[+]readyz ok\nhealthz check passed\n".to_string())
     );
-    assert_eq!(http_get(addr, "/readyz/readyz").await, (200, "ok".to_string()));
+    assert_eq!(
+        http_get(addr, "/readyz/readyz").await,
+        (200, "ok".to_string())
+    );
     assert_eq!(http_get(addr, "/readyz/nope").await.0, 404);
 
     // leader election acquires the lease
@@ -336,9 +366,18 @@ async fn manager_end_to_end() {
         .get(&ObjectKey::new(op_ns, "4ebdb3db.dpu.hcp.io"))
         .await
         .unwrap();
-    let holder = lease.spec.as_ref().unwrap().holder_identity.clone().unwrap();
+    let holder = lease
+        .spec
+        .as_ref()
+        .unwrap()
+        .holder_identity
+        .clone()
+        .unwrap();
     assert!(holder.contains('_'), "{holder}");
-    assert_eq!(lease.spec.as_ref().unwrap().lease_duration_seconds, Some(15));
+    assert_eq!(
+        lease.spec.as_ref().unwrap().lease_duration_seconds,
+        Some(15)
+    );
 
     // the controller sees what the restricted cache sees: operator namespace (all) +
     // labeled ConfigMaps elsewhere
@@ -388,21 +427,32 @@ async fn manager_end_to_end() {
     direct.create(&mut created).await.unwrap();
     let s = seen.clone();
     wait_until("reconcile of new object", || {
-        s.reqs.lock().unwrap().contains(&ObjectKey::new(op_ns, "late"))
+        s.reqs
+            .lock()
+            .unwrap()
+            .contains(&ObjectKey::new(op_ns, "late"))
     })
     .await;
     let before = seen.reqs.lock().unwrap().len();
     direct.delete(&created).await.unwrap();
     let s = seen.clone();
-    wait_until("reconcile after delete", || s.reqs.lock().unwrap().len() > before).await;
+    wait_until("reconcile after delete", || {
+        s.reqs.lock().unwrap().len() > before
+    })
+    .await;
 
     // a cached read of a CRD-less kind fails with NoKindMatchError
-    let err = c.get::<Foo>(&ObjectKey::new("default", "x")).await.unwrap_err();
+    let err = c
+        .get::<Foo>(&ObjectKey::new("default", "x"))
+        .await
+        .unwrap_err();
     assert!(ctrlrt::error::is_no_match(&err), "{err}");
 
     // metrics
     let text = ctrlrt_runtime::metrics::gather_text();
-    assert!(text.contains(r#"controller_runtime_reconcile_total{controller="configmap",result="success"}"#));
+    assert!(text.contains(
+        r#"controller_runtime_reconcile_total{controller="configmap",result="success"}"#
+    ));
     assert!(text.contains(r#"leader_election_master_status{name="4ebdb3db.dpu.hcp.io"} 1"#));
     assert!(text.contains("rest_client_requests_total"));
     assert!(text.contains(r#"workqueue_adds_total{controller="configmap",name="configmap"}"#));
@@ -449,14 +499,20 @@ async fn leader_election_lost_stops_manager_and_standby_is_not_elected() {
     tokio::time::sleep(Duration::from_secs(2)).await;
     assert!(!standby.is_elected());
     sb_stop.cancel();
-    let r = tokio::time::timeout(Duration::from_secs(10), sb_run).await.unwrap().unwrap();
+    let r = tokio::time::timeout(Duration::from_secs(10), sb_run)
+        .await
+        .unwrap()
+        .unwrap();
     assert!(r.is_ok(), "{r:?}");
 
     // steal the lease: the leader fails to renew and the manager returns "leader election lost"
     // (retry on conflict: the leader renews the lease concurrently every RetryPeriod)
     let mut attempts = 0;
     loop {
-        let mut lease: Lease = direct.get(&ObjectKey::new(ns, "le-lost-test")).await.unwrap();
+        let mut lease: Lease = direct
+            .get(&ObjectKey::new(ns, "le-lost-test"))
+            .await
+            .unwrap();
         let spec = lease.spec.as_mut().unwrap();
         spec.holder_identity = Some("thief".into());
         spec.lease_duration_seconds = Some(3600);
@@ -481,11 +537,13 @@ fn discovery_failure_is_no_match() {
     let mut failures = BTreeMap::new();
     failures.insert(
         "metallb.io/v1beta1".to_string(),
-        Arc::new(anyhow::Error::new(ctrlrt_runtime::client::NoResourceMatchError {
-            group: "metallb.io".into(),
-            version: "v1beta1".into(),
-            resource: String::new(),
-        })),
+        Arc::new(anyhow::Error::new(
+            ctrlrt_runtime::client::NoResourceMatchError {
+                group: "metallb.io".into(),
+                version: "v1beta1".into(),
+                resource: String::new(),
+            },
+        )),
     );
     let err: anyhow::Error = ctrlrt_runtime::client::ErrResourceDiscoveryFailed { failures }.into();
     // Go: meta.IsNoMatchError(&ErrResourceDiscoveryFailed{...NotFound...}) == true

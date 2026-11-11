@@ -24,8 +24,14 @@ mod tests {
     use super::*;
     #[test]
     fn label_keys_derive_from_prefix() {
-        assert_eq!(LABEL_DPFHCP_PROVISIONER_NAME, format!("{ANNOTATION_PREFIX}name"));
-        assert_eq!(LABEL_DPFHCP_PROVISIONER_NAMESPACE, format!("{ANNOTATION_PREFIX}namespace"));
+        assert_eq!(
+            LABEL_DPFHCP_PROVISIONER_NAME,
+            format!("{ANNOTATION_PREFIX}name")
+        );
+        assert_eq!(
+            LABEL_DPFHCP_PROVISIONER_NAMESPACE,
+            format!("{ANNOTATION_PREFIX}namespace")
+        );
         assert_eq!(LABEL_MANAGED_BY, format!("{ANNOTATION_PREFIX}managed"));
     }
 }

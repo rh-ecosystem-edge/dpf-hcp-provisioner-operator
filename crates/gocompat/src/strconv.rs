@@ -27,7 +27,11 @@ pub fn quote_to_ascii(s: impl AsRef<[u8]>) -> String {
 /// Go `strconv.QuoteRune`.
 pub fn quote_rune(r: u32) -> String {
     let mut buf = vec![b'\''];
-    let r = if utf8::valid_rune(r as i64) { r } else { RUNE_ERROR };
+    let r = if utf8::valid_rune(r as i64) {
+        r
+    } else {
+        RUNE_ERROR
+    };
     append_escaped_rune(&mut buf, r, b'\'', false);
     buf.push(b'\'');
     String::from_utf8(buf).unwrap_or_default()
@@ -79,7 +83,11 @@ fn append_escaped_rune(buf: &mut Vec<u8>, r: u32, quote: u8, ascii_only: bool) {
                 buf.push(LOWERHEX[((r as u8) >> 4) as usize]);
                 buf.push(LOWERHEX[((r as u8) & 0xF) as usize]);
             } else {
-                let r = if utf8::valid_rune(r as i64) { r } else { 0xFFFD };
+                let r = if utf8::valid_rune(r as i64) {
+                    r
+                } else {
+                    0xFFFD
+                };
                 if r < 0x10000 {
                     buf.extend_from_slice(b"\\u");
                     for s in (0..=12).rev().step_by(4) {
@@ -133,7 +141,13 @@ pub struct NumError {
 
 impl fmt::Display for NumError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "strconv.{}: parsing {}: {}", self.func, quote(&self.num), self.err)
+        write!(
+            f,
+            "strconv.{}: parsing {}: {}",
+            self.func,
+            quote(&self.num),
+            self.err
+        )
     }
 }
 
@@ -186,7 +200,11 @@ fn parse_uint_inner(s: &[u8], base: i64, bit_size: i64) -> Result<u64, (u64, Num
     };
 
     let cutoff = u64::MAX / base as u64 + 1;
-    let max_val: u64 = if bit_size == 64 { u64::MAX } else { (1u64 << bit_size) - 1 };
+    let max_val: u64 = if bit_size == 64 {
+        u64::MAX
+    } else {
+        (1u64 << bit_size) - 1
+    };
 
     let mut underscores = false;
     let mut n: u64 = 0;
@@ -377,7 +395,11 @@ fn special(s: &[u8]) -> Option<(f64, usize)> {
         }
         n
     };
-    let first = if nsign == 1 { b'i' } else { t.first().copied().unwrap_or(0) };
+    let first = if nsign == 1 {
+        b'i'
+    } else {
+        t.first().copied().unwrap_or(0)
+    };
     match Some(first) {
         Some(b'i') | Some(b'I') => {
             let mut n = prefix_fold(t, b"infinity");
@@ -540,7 +562,11 @@ fn read_float(s: &[u8]) -> Option<ReadFloat> {
 }
 
 fn atof_hex(mut mantissa: u64, mut exp: i64, neg: bool, trunc: bool, bit_size: i64) -> (f64, bool) {
-    let (mantbits, expbits, bias): (i64, i64, i64) = if bit_size == 32 { (23, 8, -127) } else { (52, 11, -1023) };
+    let (mantbits, expbits, bias): (i64, i64, i64) = if bit_size == 32 {
+        (23, 8, -127)
+    } else {
+        (52, 11, -1023)
+    };
     let max_exp = (1i64 << expbits) + bias - 2;
     let min_exp = bias + 1;
     exp += mantbits;
@@ -654,7 +680,10 @@ fn parse_exp_repr(s: &str) -> Digits {
     let exp: i64 = exp.parse().unwrap_or(0);
     let mut d: Vec<u8> = mant.bytes().filter(|&c| c != b'.').collect();
     if d.iter().all(|&c| c == b'0') {
-        return Digits { d: Vec::new(), dp: 0 };
+        return Digits {
+            d: Vec::new(),
+            dp: 0,
+        };
     }
     while d.last() == Some(&b'0') {
         d.pop();
@@ -693,7 +722,10 @@ fn sig_digits(f: f64, bit_size: i64, n: usize) -> Digits {
     let exp: i64 = exp.parse().unwrap_or(0);
     let mut d: Vec<u8> = mant.bytes().filter(|&c| c != b'.').collect();
     if d.iter().all(|&c| c == b'0') {
-        return Digits { d: Vec::new(), dp: 0 };
+        return Digits {
+            d: Vec::new(),
+            dp: 0,
+        };
     }
     while d.last() == Some(&b'0') {
         d.pop();
@@ -786,7 +818,11 @@ fn fmt_f(dst: &mut Vec<u8>, neg: bool, d: &Digits, prec: i64) {
         dst.push(b'.');
         for i in 1..=prec {
             let j = d.dp + i - 1;
-            let ch = if 0 <= j && j < nd { d.d[j as usize] } else { b'0' };
+            let ch = if 0 <= j && j < nd {
+                d.d[j as usize]
+            } else {
+                b'0'
+            };
             dst.push(ch);
         }
     }

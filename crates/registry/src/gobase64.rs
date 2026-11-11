@@ -113,7 +113,8 @@ fn decode_quantum(
         dlen = j;
         break;
     }
-    let val = (dbuf[0] as u32) << 18 | (dbuf[1] as u32) << 12 | (dbuf[2] as u32) << 6 | dbuf[3] as u32;
+    let val =
+        (dbuf[0] as u32) << 18 | (dbuf[1] as u32) << 12 | (dbuf[2] as u32) << 6 | dbuf[3] as u32;
     let bytes = [(val >> 16) as u8, (val >> 8) as u8, val as u8];
     if dlen >= 2 {
         dst.extend_from_slice(&bytes[..dlen - 1]);

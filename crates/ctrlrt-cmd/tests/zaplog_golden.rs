@@ -40,7 +40,11 @@ fn convert(v: &Value) -> Value {
             if let Some(r) = m.get("$kref") {
                 let ns = r[0].as_str().unwrap();
                 let name = r[1].as_str().unwrap();
-                return if ns.is_empty() { json!({ "name": name }) } else { json!({ "name": name, "namespace": ns }) };
+                return if ns.is_empty() {
+                    json!({ "name": name })
+                } else {
+                    json!({ "name": name, "namespace": ns })
+                };
             }
             if let Some(r) = m.get("$err") {
                 return r.clone();
@@ -64,7 +68,9 @@ fn convert(v: &Value) -> Value {
 }
 
 fn kvs(v: Option<&Value>) -> Vec<(String, Value)> {
-    let Some(Value::Array(a)) = v else { return vec![] };
+    let Some(Value::Array(a)) = v else {
+        return vec![];
+    };
     a.chunks(2)
         .map(|c| (c[0].as_str().unwrap().to_string(), convert(&c[1])))
         .collect()
@@ -173,11 +179,18 @@ fn zap_stacktraces_have_go_shape() {
             assert_eq!(strip(&got), strip(&want), "{name}");
         } else {
             let first = |s: &str| -> Vec<String> {
-                s.lines().filter(|l| l.starts_with("2024-")).map(str::to_string).collect()
+                s.lines()
+                    .filter(|l| l.starts_with("2024-"))
+                    .map(str::to_string)
+                    .collect()
             };
             assert_eq!(first(&got), first(&want), "{name}");
             // The error line is followed by a stack section (frames + "\tfile:line" lines).
-            let after: Vec<&str> = got.lines().skip_while(|l| !l.contains("with stack")).skip(1).collect();
+            let after: Vec<&str> = got
+                .lines()
+                .skip_while(|l| !l.contains("with stack"))
+                .skip(1)
+                .collect();
             for l in &after {
                 assert!(!l.is_empty(), "{got}");
             }
@@ -187,4 +200,3 @@ fn zap_stacktraces_have_go_shape() {
         assert!(!no_stack.contains("\n\t"), "{no_stack}");
     }
 }
-

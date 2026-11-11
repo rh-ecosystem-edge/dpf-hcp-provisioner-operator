@@ -204,7 +204,13 @@ pub fn parse_int(s: &str) -> Result<i64, String> {
         b'-' => (true, &s[1..]),
         _ => (false, s),
     };
-    let un = parse_uint_base0(body).map_err(|e| if e { RANGE.to_string() } else { SYNTAX.to_string() })?;
+    let un = parse_uint_base0(body).map_err(|e| {
+        if e {
+            RANGE.to_string()
+        } else {
+            SYNTAX.to_string()
+        }
+    })?;
     let cutoff = 1u64 << 63;
     if !neg && un >= cutoff {
         return Err(RANGE.into());
@@ -472,12 +478,16 @@ impl FlagSet {
 
     /// Typed access to a flag's value (`*T` returned by `flag.String` & co.).
     pub fn value<T: 'static>(&self, name: &str) -> Option<&T> {
-        self.formal.get(name).and_then(|f| f.value.as_any().downcast_ref::<T>())
+        self.formal
+            .get(name)
+            .and_then(|f| f.value.as_any().downcast_ref::<T>())
     }
 
     /// Current value of a string flag (empty if not defined).
     pub fn get_string(&self, name: &str) -> String {
-        self.value::<StringValue>(name).map(|v| v.0.clone()).unwrap_or_default()
+        self.value::<StringValue>(name)
+            .map(|v| v.0.clone())
+            .unwrap_or_default()
     }
     /// Current value of a bool flag (false if not defined).
     pub fn get_bool(&self, name: &str) -> bool {
@@ -572,7 +582,10 @@ impl FlagSet {
             // Print the default value only if it differs to the zero value
             if flag.def_value != flag.value.zero_string() {
                 if flag.value.quote_default() {
-                    b.push_str(&format!(" (default {})", ctrlrt::error::go_quote(&flag.def_value)));
+                    b.push_str(&format!(
+                        " (default {})",
+                        ctrlrt::error::go_quote(&flag.def_value)
+                    ));
                 } else {
                     b.push_str(&format!(" (default {})", flag.def_value));
                 }
@@ -835,13 +848,22 @@ mod tests {
             (&["---b"], "bad flag syntax: ---b"),
             (&["-=b"], "bad flag syntax: -=b"),
             (&["-int"], "flag needs an argument: -int"),
-            (&["-int=x"], "invalid value \"x\" for flag -int: parse error"),
+            (
+                &["-int=x"],
+                "invalid value \"x\" for flag -int: parse error",
+            ),
             (
                 &["-int=99999999999999999999"],
                 "invalid value \"99999999999999999999\" for flag -int: value out of range",
             ),
-            (&["-b=maybe"], "invalid boolean value \"maybe\" for -b: parse error"),
-            (&["-duration=5"], "invalid value \"5\" for flag -duration: parse error"),
+            (
+                &["-b=maybe"],
+                "invalid boolean value \"maybe\" for -b: parse error",
+            ),
+            (
+                &["-duration=5"],
+                "invalid value \"5\" for flag -duration: parse error",
+            ),
         ];
         for (args, msg) in cases {
             let (mut fs, buf) = new_fs();
@@ -915,13 +937,19 @@ mod tests {
         assert_eq!(parse_int("+12"), Ok(12));
         assert_eq!(parse_int("1_000"), Ok(1000));
         assert_eq!(parse_int("1__000"), Err("parse error".into()));
-        assert_eq!(parse_int("99999999999999999999x"), Err("value out of range".into()));
+        assert_eq!(
+            parse_int("99999999999999999999x"),
+            Err("value out of range".into())
+        );
         assert_eq!(parse_int("0x_1f"), Ok(31));
         assert_eq!(parse_int("0"), Ok(0));
         assert_eq!(parse_int("08"), Err("parse error".into()));
         assert_eq!(parse_int("0x"), Err("parse error".into()));
         assert_eq!(parse_int("-9223372036854775808"), Ok(i64::MIN));
-        assert_eq!(parse_int("9223372036854775808"), Err("value out of range".into()));
+        assert_eq!(
+            parse_int("9223372036854775808"),
+            Err("value out of range".into())
+        );
         assert_eq!(parse_int(""), Err("parse error".into()));
     }
 }

@@ -13,7 +13,9 @@ pub fn extract_ocp_version(ocp_release_image: &str) -> Result<String> {
     if tag.is_empty() {
         return Err(anyhow::anyhow!("empty tag in image URL"));
     }
-    const SUFFIXES: [&str; 6] = ["-multi", "-amd64", "-arm64", "-ppc64le", "-s390x", "-x86_64"];
+    const SUFFIXES: [&str; 6] = [
+        "-multi", "-amd64", "-arm64", "-ppc64le", "-s390x", "-x86_64",
+    ];
     let mut version = tag;
     for suffix in SUFFIXES {
         version = version.strip_suffix(suffix).unwrap_or(version);

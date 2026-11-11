@@ -138,8 +138,9 @@ pub fn add_files(ign: &mut Config, provider: &dyn ContentProvider) -> anyhow::Re
                 source: Some(s.clone()),
                 ..Default::default()
             },
-            ContentSource::Bytes(b) => crate::encode_gzip_file(b)
-                .map_err(|e| ctrlrt::wrapf!(e, "failed to encode content for {}: {}", def.path, e))?,
+            ContentSource::Bytes(b) => crate::encode_gzip_file(b).map_err(|e| {
+                ctrlrt::wrapf!(e, "failed to encode content for {}: {}", def.path, e)
+            })?,
             ContentSource::Other(_) => {
                 return Err(anyhow!("invalid content source type for {}", def.path));
             }

@@ -178,7 +178,13 @@ impl Emitter {
         self.indention = true;
     }
 
-    fn write_indicator(&mut self, indicator: &[u8], need_whitespace: bool, is_whitespace: bool, is_indention: bool) {
+    fn write_indicator(
+        &mut self,
+        indicator: &[u8],
+        need_whitespace: bool,
+        is_whitespace: bool,
+        is_indention: bool,
+    ) {
         if need_whitespace && !self.whitespace {
             self.put(b' ');
         }
@@ -223,8 +229,8 @@ impl Emitter {
             let followed_by_whitespace = i + w >= value.len() || is_blank(value, i + w);
             if i == 0 {
                 match value[i] {
-                    b'#' | b',' | b'[' | b']' | b'{' | b'}' | b'&' | b'*' | b'!' | b'|' | b'>' | b'\'' | b'"'
-                    | b'%' | b'@' | b'`' => {
+                    b'#' | b',' | b'[' | b']' | b'{' | b'}' | b'&' | b'*' | b'!' | b'|' | b'>'
+                    | b'\'' | b'"' | b'%' | b'@' | b'`' => {
                         flow_indicators = true;
                         block_indicators = true;
                     }
@@ -349,7 +355,9 @@ impl Emitter {
         if style == Style::SingleQuoted && !self.scalar.single_quoted_allowed {
             style = Style::DoubleQuoted;
         }
-        if style == Style::Literal && (!self.scalar.block_allowed || self.flow_level > 0 || self.simple_key_context) {
+        if style == Style::Literal
+            && (!self.scalar.block_allowed || self.flow_level > 0 || self.simple_key_context)
+        {
             style = Style::DoubleQuoted;
         }
         style
@@ -364,7 +372,11 @@ impl Emitter {
         let mut i = 0;
         while i < value.len() {
             if is_space(value, i) {
-                if allow_breaks && !spaces && self.column > self.best_width && !is_space(value, i + 1) {
+                if allow_breaks
+                    && !spaces
+                    && self.column > self.best_width
+                    && !is_space(value, i + 1)
+                {
                     self.write_indent();
                     i += width(value[i]).max(1);
                 } else {
@@ -507,7 +519,12 @@ impl Emitter {
                 }
                 spaces = false;
             } else if is_space(value, i) {
-                if allow_breaks && !spaces && self.column > self.best_width && i > 0 && i < value.len() - 1 {
+                if allow_breaks
+                    && !spaces
+                    && self.column > self.best_width
+                    && i > 0
+                    && i < value.len() - 1
+                {
                     self.write_indent();
                     if is_space(value, i + 1) {
                         self.put(b'\\');
@@ -616,7 +633,14 @@ impl Emitter {
         self.simple_key_context = simple_key;
     }
 
-    pub(crate) fn emit_node(&mut self, node: &Node, root: bool, sequence: bool, mapping: bool, simple_key: bool) {
+    pub(crate) fn emit_node(
+        &mut self,
+        node: &Node,
+        root: bool,
+        sequence: bool,
+        mapping: bool,
+        simple_key: bool,
+    ) {
         self.set_context(root, sequence, mapping, simple_key);
         match node {
             Node::Seq(items) => {

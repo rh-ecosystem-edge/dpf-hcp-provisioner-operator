@@ -207,8 +207,9 @@ pub static REST_CLIENT_REQUESTS: LazyLock<CounterVec> = LazyLock::new(|| {
 static PROCESS: LazyLock<()> = LazyLock::new(|| {
     #[cfg(target_os = "linux")]
     {
-        let _ = prometheus::default_registry()
-            .register(Box::new(prometheus::process_collector::ProcessCollector::for_self()));
+        let _ = prometheus::default_registry().register(Box::new(
+            prometheus::process_collector::ProcessCollector::for_self(),
+        ));
     }
 });
 

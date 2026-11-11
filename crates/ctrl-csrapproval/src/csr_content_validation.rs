@@ -223,8 +223,13 @@ fn parse_csr_request(csr: &CertificateSigningRequest) -> Result<CertificateReque
     }
 
     // Parse X509 certificate request
-    x509::parse_certificate_request(&pem_block.bytes)
-        .map_err(|err| wrapf!(err.clone(), "failed to parse X509 certificate request: {}", err))
+    x509::parse_certificate_request(&pem_block.bytes).map_err(|err| {
+        wrapf!(
+            err.clone(),
+            "failed to parse X509 certificate request: {}",
+            err
+        )
+    })
 }
 
 /// validateOrganization validates that the CSR has the correct organization field.

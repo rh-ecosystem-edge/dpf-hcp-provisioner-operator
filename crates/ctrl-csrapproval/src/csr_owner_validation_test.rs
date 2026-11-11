@@ -83,7 +83,8 @@ mod csr_owner_validation_dpu_existence_check {
             async fn should_find_dpu_with_exact_name_match() {
                 let s = before_each();
                 // Note: Implementation matches by DPU object name, not Spec fields
-                s.create(&dpu(s.test_hostname, s.dpu_namespace, 1, "")).await;
+                s.create(&dpu(s.test_hostname, s.dpu_namespace, 1, ""))
+                    .await;
 
                 // Create validator (no hcClient since we're only testing DPU lookup)
                 let validator = Validator::new(s.mgmt_client.clone(), None, s.dpu_namespace);
@@ -108,7 +109,8 @@ mod csr_owner_validation_dpu_existence_check {
             #[tokio::test]
             async fn should_not_find_dpu_in_different_namespace() {
                 let s = before_each();
-                s.create(&dpu(s.test_hostname, "wrong-namespace", 1, "")).await;
+                s.create(&dpu(s.test_hostname, "wrong-namespace", 1, ""))
+                    .await;
 
                 let validator = Validator::new(s.mgmt_client.clone(), None, s.dpu_namespace);
 
@@ -136,7 +138,8 @@ mod csr_owner_validation_dpu_existence_check {
                 let s = before_each();
                 s.create(&dpu("dpu-1", s.dpu_namespace, 1, "")).await;
                 // This one matches our search
-                s.create(&dpu(s.test_hostname, s.dpu_namespace, 2, "")).await;
+                s.create(&dpu(s.test_hostname, s.dpu_namespace, 2, ""))
+                    .await;
                 s.create(&dpu("dpu-3", s.dpu_namespace, 3, "")).await;
 
                 let validator = Validator::new(s.mgmt_client.clone(), None, s.dpu_namespace);
@@ -173,7 +176,11 @@ mod csr_owner_validation_dpu_existence_check {
                     .await
                     .unwrap();
                 assert!(result.valid);
-                assert!(result.reason.contains("DPU Cluster Config"), "{}", result.reason);
+                assert!(
+                    result.reason.contains("DPU Cluster Config"),
+                    "{}",
+                    result.reason
+                );
             }
         }
 
@@ -368,7 +375,11 @@ mod csr_owner_validation_dpu_existence_check {
                     .await
                     .unwrap();
                 assert!(!result.valid);
-                assert!(result.reason.contains("does not exist yet"), "{}", result.reason);
+                assert!(
+                    result.reason.contains("does not exist yet"),
+                    "{}",
+                    result.reason
+                );
             }
         }
     }
@@ -381,14 +392,24 @@ mod reason_strings {
     #[tokio::test]
     async fn all_reasons_match_go_format() {
         let s = before_each();
-        let v = Validator::new(s.mgmt_client.clone(), Some(fake_clientset()), s.dpu_namespace);
+        let v = Validator::new(
+            s.mgmt_client.clone(),
+            Some(fake_clientset()),
+            s.dpu_namespace,
+        );
         let r = v.validate_csr_owner(&s.ctx, "h", true).await.unwrap();
         assert_eq!(
             r.reason,
             "no matching DPU found for hostname h in namespace test-dpu-namespace"
         );
 
-        s.create(&dpu("h", s.dpu_namespace, 1, dpuprovisioningv1alpha1::DPU_READY)).await;
+        s.create(&dpu(
+            "h",
+            s.dpu_namespace,
+            1,
+            dpuprovisioningv1alpha1::DPU_READY,
+        ))
+        .await;
         let r = v.validate_csr_owner(&s.ctx, "h", true).await.unwrap();
         assert_eq!(
             r.reason,
@@ -397,17 +418,30 @@ mod reason_strings {
         let r = v.validate_csr_owner(&s.ctx, "h", false).await.unwrap();
         assert_eq!(r.reason, "node h does not exist yet in hosted cluster");
 
-        s.create(&dpu("i", s.dpu_namespace, 1, dpuprovisioningv1alpha1::DPU_INITIALIZING))
-            .await;
+        s.create(&dpu(
+            "i",
+            s.dpu_namespace,
+            1,
+            dpuprovisioningv1alpha1::DPU_INITIALIZING,
+        ))
+        .await;
         let r = v.validate_csr_owner(&s.ctx, "i", false).await.unwrap();
         assert_eq!(
             r.reason,
             "DPU i is in phase Initializing, serving CSRs only approved in phases DPU Cluster Config, Ready, or Node Effect Removal"
         );
 
-        s.create(&dpu("c", s.dpu_namespace, 1, dpuprovisioningv1alpha1::DPU_CLUSTER_CONFIG))
-            .await;
+        s.create(&dpu(
+            "c",
+            s.dpu_namespace,
+            1,
+            dpuprovisioningv1alpha1::DPU_CLUSTER_CONFIG,
+        ))
+        .await;
         let r = v.validate_csr_owner(&s.ctx, "c", true).await.unwrap();
-        assert_eq!(r.reason, "DPU in DPU Cluster Config phase, bootstrap CSR approved");
+        assert_eq!(
+            r.reason,
+            "DPU in DPU Cluster Config phase, bootstrap CSR approved"
+        );
     }
 }

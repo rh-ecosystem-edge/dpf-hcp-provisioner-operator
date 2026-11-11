@@ -315,10 +315,16 @@ impl ZapOptions {
         if fs.lookup(FLAG_ZAP_DEVEL).is_some() {
             self.development = fs.get_bool(FLAG_ZAP_DEVEL);
         }
-        if let Some(v) = fs.value::<EncoderFlag>(FLAG_ZAP_ENCODER).and_then(|f| f.parsed) {
+        if let Some(v) = fs
+            .value::<EncoderFlag>(FLAG_ZAP_ENCODER)
+            .and_then(|f| f.parsed)
+        {
             self.encoder = Some(v);
         }
-        if let Some(v) = fs.value::<LevelFlag>(FLAG_ZAP_LOG_LEVEL).and_then(|f| f.parsed) {
+        if let Some(v) = fs
+            .value::<LevelFlag>(FLAG_ZAP_LOG_LEVEL)
+            .and_then(|f| f.parsed)
+        {
             self.level = Some(v);
         }
         if let Some(v) = fs
@@ -717,7 +723,11 @@ pub fn format_rfc3339_nano(t: &DateTime<FixedOffset>) -> String {
 /// zap `ISO8601TimeEncoder`: `2006-01-02T15:04:05.000Z0700`.
 pub fn format_iso8601(t: &DateTime<FixedOffset>) -> String {
     let ms = (t.nanosecond() % 1_000_000_000) / 1_000_000;
-    format!("{}.{ms:03}{}", t.format("%Y-%m-%dT%H:%M:%S"), zone(t, false))
+    format!(
+        "{}.{ms:03}{}",
+        t.format("%Y-%m-%dT%H:%M:%S"),
+        zone(t, false)
+    )
 }
 
 /// Capture the current stack as zap formats it (`function\n\tfile:line` per frame, frames
@@ -759,10 +769,28 @@ pub fn take_stacktrace() -> String {
         .unwrap_or(0);
     let skip = |f: &str| {
         const PREFIXES: &[&str] = &[
-            "std::", "core::", "alloc::", "tokio::", "futures_util::", "futures_core::",
-            "<std::", "<core::", "<alloc::", "<tokio::", "<futures_util::", "<F as ",
-            "__rust", "_start", "__libc", "<unknown>", "main_0", "start_thread", "clone",
-            "__clone", "<fn(", "test::",
+            "std::",
+            "core::",
+            "alloc::",
+            "tokio::",
+            "futures_util::",
+            "futures_core::",
+            "<std::",
+            "<core::",
+            "<alloc::",
+            "<tokio::",
+            "<futures_util::",
+            "<F as ",
+            "__rust",
+            "_start",
+            "__libc",
+            "<unknown>",
+            "main_0",
+            "start_thread",
+            "clone",
+            "__clone",
+            "<fn(",
+            "test::",
         ];
         PREFIXES.iter().any(|p| f.starts_with(p)) || f.contains(" as core::ops::function::")
     };

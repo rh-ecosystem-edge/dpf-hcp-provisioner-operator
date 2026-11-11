@@ -61,7 +61,9 @@ static OFFSET_BASE: [u32; 30] = [
     0x003000, 0x004000, 0x006000,
 ];
 
-static CODEGEN_ORDER: [u32; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+static CODEGEN_ORDER: [u32; 19] = [
+    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+];
 
 static LENGTH_CODES: LazyLock<[u32; 256]> = LazyLock::new(|| {
     let mut t = [0u32; 256];
@@ -210,7 +212,8 @@ impl HuffmanEncoder {
                 if lv == max_bits {
                     break;
                 }
-                levels[lv as usize + 1].next_pair_freq = prev_freq.wrapping_add(levels[level].last_freq);
+                levels[lv as usize + 1].next_pair_freq =
+                    prev_freq.wrapping_add(levels[level].last_freq);
                 level += 1;
             } else {
                 while levels[level - 1].needed > 0 {
@@ -312,8 +315,10 @@ fn generate_fixed_offset_encoding() -> HuffmanEncoder {
     h
 }
 
-static FIXED_LITERAL_ENCODING: LazyLock<HuffmanEncoder> = LazyLock::new(generate_fixed_literal_encoding);
-static FIXED_OFFSET_ENCODING: LazyLock<HuffmanEncoder> = LazyLock::new(generate_fixed_offset_encoding);
+static FIXED_LITERAL_ENCODING: LazyLock<HuffmanEncoder> =
+    LazyLock::new(generate_fixed_literal_encoding);
+static FIXED_OFFSET_ENCODING: LazyLock<HuffmanEncoder> =
+    LazyLock::new(generate_fixed_offset_encoding);
 static HUFF_OFFSET: LazyLock<HuffmanEncoder> = LazyLock::new(|| {
     let mut freq = vec![0i32; OFFSET_CODE_COUNT];
     freq[0] = 1;
@@ -410,13 +415,22 @@ impl HuffmanBitWriter {
         }
     }
 
-    fn generate_codegen(&mut self, num_literals: usize, num_offsets: usize, lit: &HuffmanEncoder, off: &HuffmanEncoder) {
+    fn generate_codegen(
+        &mut self,
+        num_literals: usize,
+        num_offsets: usize,
+        lit: &HuffmanEncoder,
+        off: &HuffmanEncoder,
+    ) {
         self.codegen_freq = [0; CODEGEN_CODE_COUNT];
         let codegen = &mut self.codegen;
         for (dst, code) in codegen[..num_literals].iter_mut().zip(&lit.codes) {
             *dst = code.len as u8;
         }
-        for (dst, code) in codegen[num_literals..num_literals + num_offsets].iter_mut().zip(&off.codes) {
+        for (dst, code) in codegen[num_literals..num_literals + num_offsets]
+            .iter_mut()
+            .zip(&off.codes)
+        {
             *dst = code.len as u8;
         }
         codegen[num_literals + num_offsets] = BAD_CODE;
@@ -479,7 +493,12 @@ impl HuffmanBitWriter {
         codegen[out_index] = BAD_CODE;
     }
 
-    fn dynamic_size(&self, lit: &HuffmanEncoder, off: &HuffmanEncoder, extra_bits: i64) -> (i64, usize) {
+    fn dynamic_size(
+        &self,
+        lit: &HuffmanEncoder,
+        off: &HuffmanEncoder,
+        extra_bits: i64,
+    ) -> (i64, usize) {
         let mut num_codegens = self.codegen_freq.len();
         while num_codegens > 4 && self.codegen_freq[CODEGEN_ORDER[num_codegens - 1] as usize] == 0 {
             num_codegens -= 1;
@@ -493,7 +512,10 @@ impl HuffmanBitWriter {
             + self.codegen_freq[16] as i64 * 2
             + self.codegen_freq[17] as i64 * 3
             + self.codegen_freq[18] as i64 * 7;
-        let size = header + lit.bit_length(&self.literal_freq) + off.bit_length(&self.offset_freq) + extra_bits;
+        let size = header
+            + lit.bit_length(&self.literal_freq)
+            + off.bit_length(&self.offset_freq)
+            + extra_bits;
         (size, num_codegens)
     }
 
@@ -511,7 +533,13 @@ impl HuffmanBitWriter {
         }
     }
 
-    fn write_dynamic_header(&mut self, num_literals: usize, num_offsets: usize, num_codegens: usize, is_eof: bool) {
+    fn write_dynamic_header(
+        &mut self,
+        num_literals: usize,
+        num_offsets: usize,
+        num_codegens: usize,
+        is_eof: bool,
+    ) {
         let first_bits = if is_eof { 5 } else { 4 };
         self.write_bits(first_bits, 3);
         self.write_bits(num_literals as i32 - 257, 5);
@@ -572,7 +600,11 @@ impl HuffmanBitWriter {
                 extra_bits += self.literal_freq[length_code] as i64
                     * LENGTH_EXTRA_BITS[length_code - LENGTH_CODES_START] as i64;
             }
-            for (freq, extra) in self.offset_freq[..num_offsets].iter().zip(&OFFSET_EXTRA_BITS).skip(4) {
+            for (freq, extra) in self.offset_freq[..num_offsets]
+                .iter()
+                .zip(&OFFSET_EXTRA_BITS)
+                .skip(4)
+            {
                 extra_bits += *freq as i64 * *extra as i64;
             }
         }
@@ -611,7 +643,12 @@ impl HuffmanBitWriter {
     }
 
     /// Go `writeBlockDynamic`.
-    pub(crate) fn write_block_dynamic(&mut self, tokens: &[Token], eof: bool, input: Option<&[u8]>) {
+    pub(crate) fn write_block_dynamic(
+        &mut self,
+        tokens: &[Token],
+        eof: bool,
+        input: Option<&[u8]>,
+    ) {
         let (num_literals, num_offsets) = self.index_tokens(tokens);
         let lit = std::mem::replace(&mut self.literal_encoding, HuffmanEncoder::new(0));
         let off = std::mem::replace(&mut self.offset_encoding, HuffmanEncoder::new(0));
@@ -637,7 +674,10 @@ impl HuffmanBitWriter {
     fn index_tokens(&mut self, tokens: &[Token]) -> (usize, usize) {
         self.literal_freq.iter_mut().for_each(|f| *f = 0);
         self.offset_freq.iter_mut().for_each(|f| *f = 0);
-        for &t in tokens.iter().chain(std::iter::once(&(END_BLOCK_MARKER as Token))) {
+        for &t in tokens
+            .iter()
+            .chain(std::iter::once(&(END_BLOCK_MARKER as Token)))
+        {
             if t < MATCH_TYPE {
                 self.literal_freq[tok_literal(t) as usize] += 1;
                 continue;
@@ -670,10 +710,19 @@ impl HuffmanBitWriter {
 
     fn write_tokens(&mut self, tokens: &[Token], enc: Enc) {
         let (le, oe): (Vec<HCode>, Vec<HCode>) = match enc {
-            Enc::Fixed => (FIXED_LITERAL_ENCODING.codes.clone(), FIXED_OFFSET_ENCODING.codes.clone()),
-            Enc::Dynamic => (self.literal_encoding.codes.clone(), self.offset_encoding.codes.clone()),
+            Enc::Fixed => (
+                FIXED_LITERAL_ENCODING.codes.clone(),
+                FIXED_OFFSET_ENCODING.codes.clone(),
+            ),
+            Enc::Dynamic => (
+                self.literal_encoding.codes.clone(),
+                self.offset_encoding.codes.clone(),
+            ),
         };
-        for &t in tokens.iter().chain(std::iter::once(&(END_BLOCK_MARKER as Token))) {
+        for &t in tokens
+            .iter()
+            .chain(std::iter::once(&(END_BLOCK_MARKER as Token)))
+        {
             if t < MATCH_TYPE {
                 self.write_code(le[tok_literal(t) as usize]);
                 continue;

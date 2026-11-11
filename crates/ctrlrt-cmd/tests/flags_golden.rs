@@ -29,7 +29,8 @@ fn cases() -> Vec<String> {
         .unwrap()
         .filter_map(|e| {
             let p = e.unwrap().path();
-            (p.extension()? == "args").then(|| p.file_stem().unwrap().to_string_lossy().into_owned())
+            (p.extension()? == "args")
+                .then(|| p.file_stem().unwrap().to_string_lossy().into_owned())
         })
         .collect();
     v.sort();
@@ -51,9 +52,12 @@ fn manager_flags_match_go_output() {
     for case in cases {
         let buf = Arc::new(Mutex::new(Buf::default()));
         let b2 = buf.clone();
-        let res = ManagerFlags::parse_from("manager", ErrorHandling::ContinueOnError, args(&case), move |fs| {
-            fs.set_output(b2)
-        });
+        let res = ManagerFlags::parse_from(
+            "manager",
+            ErrorHandling::ContinueOnError,
+            args(&case),
+            move |fs| fs.set_output(b2),
+        );
         let code = match res {
             Ok(_) => 0,
             Err(FlagError::Help) => 0,
@@ -62,7 +66,11 @@ fn manager_flags_match_go_output() {
         let out = String::from_utf8(buf.lock().unwrap().0.clone()).unwrap();
         assert_eq!(out, read(&case, "stderr"), "stderr of {case}");
         assert_eq!(read(&case, "stdout"), "", "{case}");
-        assert_eq!(code.to_string(), read(&case, "exit").trim(), "exit code of {case}");
+        assert_eq!(
+            code.to_string(),
+            read(&case, "exit").trim(),
+            "exit code of {case}"
+        );
     }
 }
 
@@ -81,7 +89,12 @@ fn exit_codes_and_stderr_match_go() {
     let exe = std::env::current_exe().unwrap();
     for case in cases() {
         let out = std::process::Command::new(&exe)
-            .args(["exit_on_error_child", "--exact", "--nocapture", "--test-threads=1"])
+            .args([
+                "exit_on_error_child",
+                "--exact",
+                "--nocapture",
+                "--test-threads=1",
+            ])
             .env("CTRLRT_CMD_FLAGS_CASE", &case)
             .output()
             .unwrap();
@@ -91,6 +104,9 @@ fn exit_codes_and_stderr_match_go() {
             "exit code of {case}"
         );
         let stderr = String::from_utf8_lossy(&out.stderr);
-        assert!(stderr.contains(&read(&case, "stderr")), "stderr of {case}: {stderr}");
+        assert!(
+            stderr.contains(&read(&case, "stderr")),
+            "stderr of {case}: {stderr}"
+        );
     }
 }

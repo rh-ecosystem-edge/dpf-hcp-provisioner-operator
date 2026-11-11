@@ -221,7 +221,10 @@ impl Scanner {
                 }
                 _ => self.error(c, "in string escape code"),
             },
-            Step::InStringEscU | Step::InStringEscU1 | Step::InStringEscU12 | Step::InStringEscU123 => {
+            Step::InStringEscU
+            | Step::InStringEscU1
+            | Step::InStringEscU12
+            | Step::InStringEscU123 => {
                 if is_hex(c) {
                     self.step = match self.step {
                         Step::InStringEscU => Step::InStringEscU1,

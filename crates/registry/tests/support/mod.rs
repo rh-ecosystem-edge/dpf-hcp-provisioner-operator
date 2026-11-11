@@ -101,23 +101,35 @@ impl FakeRegistry {
 
     pub fn add_blob(&self, data: &[u8]) -> String {
         let d = sha256(data);
-        self.lock().blobs.insert(d.clone(), Bytes::copy_from_slice(data));
+        self.lock()
+            .blobs
+            .insert(d.clone(), Bytes::copy_from_slice(data));
         d
     }
 
     /// Store a manifest under its digest and (optionally) a tag; returns the digest.
-    pub fn add_manifest(&self, repo: &str, tag: Option<&str>, media_type: &str, body: &[u8]) -> String {
+    pub fn add_manifest(
+        &self,
+        repo: &str,
+        tag: Option<&str>,
+        media_type: &str,
+        body: &[u8],
+    ) -> String {
         let d = sha256(body);
         let mut st = self.lock();
         let v = (media_type.to_string(), Bytes::copy_from_slice(body));
-        st.manifests.insert((repo.to_string(), d.clone()), v.clone());
+        st.manifests
+            .insert((repo.to_string(), d.clone()), v.clone());
         if let Some(t) = tag {
             st.manifests.insert((repo.to_string(), t.to_string()), v);
         }
         d
     }
 
-    pub fn hook(&self, h: impl Fn(&Logged, usize) -> Option<Response<Body>> + Send + Sync + 'static) {
+    pub fn hook(
+        &self,
+        h: impl Fn(&Logged, usize) -> Option<Response<Body>> + Send + Sync + 'static,
+    ) {
         self.lock().hooks.push(Arc::new(h));
     }
 
@@ -126,7 +138,10 @@ impl FakeRegistry {
     }
 
     pub fn requests_to(&self, path_prefix: &str) -> Vec<Logged> {
-        self.log().into_iter().filter(|l| l.path.starts_with(path_prefix)).collect()
+        self.log()
+            .into_iter()
+            .filter(|l| l.path.starts_with(path_prefix))
+            .collect()
     }
 
     /// Push an image (config + layers) and return the manifest digest.
@@ -169,11 +184,20 @@ impl FakeRegistry {
 }
 
 fn header(h: &HeaderMap, k: &str) -> String {
-    h.get(k).and_then(|v| v.to_str().ok()).unwrap_or("").to_string()
+    h.get(k)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string()
 }
 
-fn json_error(status: StatusCode, code: &str, message: &str, detail: serde_json::Value) -> Response<Body> {
-    let body = serde_json::json!({"errors": [{"code": code, "message": message, "detail": detail}]});
+fn json_error(
+    status: StatusCode,
+    code: &str,
+    message: &str,
+    detail: serde_json::Value,
+) -> Response<Body> {
+    let body =
+        serde_json::json!({"errors": [{"code": code, "message": message, "detail": detail}]});
     Response::builder()
         .status(status)
         .header("Content-Type", "application/json")
@@ -185,7 +209,9 @@ fn unauthorized(inner: &Inner, host: &str, scope: Option<&str>) -> Response<Body
     let challenge = match &inner.auth {
         AuthMode::Basic { .. } => "Basic realm=\"fake\"".to_string(),
         AuthMode::Bearer {
-            service, omit_realm, ..
+            service,
+            omit_realm,
+            ..
         } => {
             let mut c = String::from("Bearer ");
             if !omit_realm {
@@ -205,7 +231,8 @@ fn unauthorized(inner: &Inner, host: &str, scope: Option<&str>) -> Response<Body
         "authentication required",
         serde_json::Value::Null,
     );
-    r.headers_mut().insert("WWW-Authenticate", challenge.parse().unwrap());
+    r.headers_mut()
+        .insert("WWW-Authenticate", challenge.parse().unwrap());
     r
 }
 
@@ -216,11 +243,24 @@ fn basic_ok(authz: &str, user: &str, pass: &str) -> bool {
         // base64 encode without extra deps
         const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         for chunk in want.as_bytes().chunks(3) {
-            let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+            let b = [
+                chunk[0],
+                *chunk.get(1).unwrap_or(&0),
+                *chunk.get(2).unwrap_or(&0),
+            ];
             let v = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
-            enc.write_all(&[T[(v >> 18) as usize & 63], T[(v >> 12) as usize & 63]]).unwrap();
-            enc.push(if chunk.len() > 1 { T[(v >> 6) as usize & 63] } else { b'=' });
-            enc.push(if chunk.len() > 2 { T[v as usize & 63] } else { b'=' });
+            enc.write_all(&[T[(v >> 18) as usize & 63], T[(v >> 12) as usize & 63]])
+                .unwrap();
+            enc.push(if chunk.len() > 1 {
+                T[(v >> 6) as usize & 63]
+            } else {
+                b'='
+            });
+            enc.push(if chunk.len() > 2 {
+                T[v as usize & 63]
+            } else {
+                b'='
+            });
         }
     }
     authz == format!("Basic {}", String::from_utf8(enc).unwrap())
@@ -266,14 +306,15 @@ async fn handle(
             return Response::builder().status(404).body(Body::empty()).unwrap();
         };
         if let Some((u, p)) = &creds
-            && !basic_ok(&logged.authorization, u, p) {
-                return json_error(
-                    StatusCode::UNAUTHORIZED,
-                    "UNAUTHORIZED",
-                    "access to the requested resource is not authorized",
-                    serde_json::json!([{"Type": "repository", "Action": "pull"}]),
-                );
-            }
+            && !basic_ok(&logged.authorization, u, p)
+        {
+            return json_error(
+                StatusCode::UNAUTHORIZED,
+                "UNAUTHORIZED",
+                "access to the requested resource is not authorized",
+                serde_json::json!([{"Type": "repository", "Action": "pull"}]),
+            );
+        }
         if let Some(b) = token_body {
             return Response::builder()
                 .status(200)
@@ -283,7 +324,11 @@ async fn handle(
         }
         let tok = format!("tok-{}", st.issued.len() + 1);
         st.issued.push(tok.clone());
-        let key = if access_token { "access_token" } else { "token" };
+        let key = if access_token {
+            "access_token"
+        } else {
+            "token"
+        };
         let body = serde_json::json!({key: tok, "expires_in": 300});
         return Response::builder()
             .status(200)
@@ -305,7 +350,11 @@ async fn handle(
         return unauthorized(&st, &host, None);
     }
     if let AuthMode::Bearer { .. } = &st.auth {
-        let tok = logged.authorization.strip_prefix("Bearer ").unwrap_or("").to_string();
+        let tok = logged
+            .authorization
+            .strip_prefix("Bearer ")
+            .unwrap_or("")
+            .to_string();
         if let Some(i) = st.reject_once.iter().position(|t| *t == tok) {
             st.reject_once.remove(i);
             return unauthorized(&st, &host, Some("repository:extra/scope:pull"));
@@ -313,7 +362,10 @@ async fn handle(
     }
 
     if path == "/v2/" {
-        return Response::builder().status(200).body(Body::from("{}")).unwrap();
+        return Response::builder()
+            .status(200)
+            .body(Body::from("{}"))
+            .unwrap();
     }
     let Some(rest) = path.strip_prefix("/v2/") else {
         return Response::builder().status(404).body(Body::empty()).unwrap();
@@ -354,7 +406,11 @@ async fn handle(
             Some(b) => Response::builder()
                 .status(200)
                 .header("Content-Length", b.len())
-                .body(if is_head { Body::empty() } else { Body::from(b.clone()) })
+                .body(if is_head {
+                    Body::empty()
+                } else {
+                    Body::from(b.clone())
+                })
                 .unwrap(),
             None => json_error(
                 StatusCode::NOT_FOUND,
@@ -384,7 +440,11 @@ pub fn tar_bytes(entries: &[(&str, u8, &str)]) -> Vec<u8> {
     for (name, flag, content) in entries {
         let mut h = [0u8; 512];
         h[..name.len()].copy_from_slice(name.as_bytes());
-        let mode = if *flag == b'5' { "0000755\0" } else { "0000644\0" };
+        let mode = if *flag == b'5' {
+            "0000755\0"
+        } else {
+            "0000644\0"
+        };
         h[100..108].copy_from_slice(mode.as_bytes());
         h[108..116].copy_from_slice(b"0000000\0");
         h[116..124].copy_from_slice(b"0000000\0");

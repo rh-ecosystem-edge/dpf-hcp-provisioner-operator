@@ -61,7 +61,11 @@ fn reader_check(s: &[u8]) -> Option<(usize, &'static str)> {
             }
             value = (value << 6) + (o & 0x3F) as u32;
         }
-        if !(width == 1 || (width == 2 && value >= 0x80) || (width == 3 && value >= 0x800) || (width == 4 && value >= 0x10000)) {
+        if !(width == 1
+            || (width == 2 && value >= 0x80)
+            || (width == 3 && value >= 0x800)
+            || (width == 4 && value >= 0x10000))
+        {
             return Some((i, "invalid length of a UTF-8 sequence"));
         }
         if (0xD800..=0xDFFF).contains(&value) || value > 0x10FFFF {
@@ -98,7 +102,9 @@ pub(crate) fn scan_double_quoted(lit: &str, line: usize) -> Result<String, Error
 impl JsonReader<'_> {
     fn ws(&mut self) {
         while self.i < self.s.len() && matches!(self.s[self.i], b' ' | b'\t' | b'\r' | b'\n') {
-            if self.s[self.i] == b'\n' || (self.s[self.i] == b'\r' && self.s.get(self.i + 1) != Some(&b'\n')) {
+            if self.s[self.i] == b'\n'
+                || (self.s[self.i] == b'\r' && self.s.get(self.i + 1) != Some(&b'\n'))
+            {
                 self.line += 1;
             }
             self.i += 1;
@@ -122,8 +128,12 @@ impl JsonReader<'_> {
         }
         let raw = &self.s[start..self.i];
         let raw_str = String::from_utf8_lossy(raw).into_owned();
-        let decoded = scan_double_quoted(&raw_str, self.line).map_err(|e| self.structural(start, e))?;
-        self.line += raw_str.chars().filter(|&c| matches!(c, '\u{85}' | '\u{2028}' | '\u{2029}')).count();
+        let decoded =
+            scan_double_quoted(&raw_str, self.line).map_err(|e| self.structural(start, e))?;
+        self.line += raw_str
+            .chars()
+            .filter(|&c| matches!(c, '\u{85}' | '\u{2028}' | '\u{2029}'))
+            .count();
         Ok((decoded, raw_str.chars().count()))
     }
 
@@ -131,7 +141,10 @@ impl JsonReader<'_> {
         let line = if self.line == 0 { 0 } else { self.line + 1 };
         self.structural(
             self.i,
-            Error(format!("yaml: {}exceeded max depth of {MAX_FLOW_LEVEL}", super::line_prefix(line))),
+            Error(format!(
+                "yaml: {}exceeded max depth of {MAX_FLOW_LEVEL}",
+                super::line_prefix(line)
+            )),
         )
     }
 
@@ -146,7 +159,9 @@ impl JsonReader<'_> {
     }
 
     fn chars_between(&self, a: usize, b: usize) -> usize {
-        std::str::from_utf8(&self.s[a..b]).map(|s| s.chars().count()).unwrap_or(b - a)
+        std::str::from_utf8(&self.s[a..b])
+            .map(|s| s.chars().count())
+            .unwrap_or(b - a)
     }
 
     fn value(&mut self) -> Result<Node, Error> {
@@ -182,7 +197,10 @@ impl JsonReader<'_> {
                         }
                         self.i += 1; // ':'
                         let v = self.value()?;
-                        if let Some(pos) = entries.iter().position(|(ek, _)| *ek == Node::Str(k.clone())) {
+                        if let Some(pos) = entries
+                            .iter()
+                            .position(|(ek, _)| *ek == Node::Str(k.clone()))
+                        {
                             entries[pos].1 = v;
                         } else {
                             entries.push((Node::Str(k), v));
@@ -298,7 +316,10 @@ fn is_blank(c: Option<char>) -> bool {
 }
 
 fn is_break(c: Option<char>) -> bool {
-    matches!(c, Some('\n') | Some('\r') | Some('\u{85}') | Some('\u{2028}') | Some('\u{2029}'))
+    matches!(
+        c,
+        Some('\n') | Some('\r') | Some('\u{85}') | Some('\u{2028}') | Some('\u{2029}')
+    )
 }
 
 fn is_blankz(c: Option<char>) -> bool {
@@ -361,8 +382,12 @@ impl P {
 
     fn at_doc_marker(&self) -> bool {
         self.col() == 0
-            && ((self.peek() == Some('-') && self.peek_at(1) == Some('-') && self.peek_at(2) == Some('-'))
-                || (self.peek() == Some('.') && self.peek_at(1) == Some('.') && self.peek_at(2) == Some('.')))
+            && ((self.peek() == Some('-')
+                && self.peek_at(1) == Some('-')
+                && self.peek_at(2) == Some('-'))
+                || (self.peek() == Some('.')
+                    && self.peek_at(1) == Some('.')
+                    && self.peek_at(2) == Some('.')))
             && is_blankz(self.peek_at(3))
     }
 
@@ -448,7 +473,9 @@ impl P {
             }
             _ => {
                 if self.decode_err.is_none() {
-                    self.decode_err = Some(yerr("map merge requires map or sequence of maps as the value"));
+                    self.decode_err = Some(yerr(
+                        "map merge requires map or sequence of maps as the value",
+                    ));
                 }
             }
         }
@@ -489,7 +516,10 @@ impl P {
         let c = self.col() as i64;
         let same_line_value = !crossed && ctx == Ctx::MapValue;
         if crossed && c <= parent_indent {
-            if matches!(ctx, Ctx::MapValue | Ctx::ComplexValue) && c == parent_indent && self.at_block_entry() {
+            if matches!(ctx, Ctx::MapValue | Ctx::ComplexValue)
+                && c == parent_indent
+                && self.at_block_entry()
+            {
                 return self.parse_block_seq(c);
             }
             return Ok(Node::Null);
@@ -518,8 +548,12 @@ impl P {
                 }
                 Ok(n)
             }
-            Some('&') | Some('*') | Some('!') => Err(self.err("anchors, aliases and tags are not supported")),
-            Some('%') | Some('@') | Some('`') => Err(self.err("found character that cannot start any token")),
+            Some('&') | Some('*') | Some('!') => {
+                Err(self.err("anchors, aliases and tags are not supported"))
+            }
+            Some('%') | Some('@') | Some('`') => {
+                Err(self.err("found character that cannot start any token"))
+            }
             Some('"') | Some('\'') => {
                 let start_line = self.line;
                 let s = self.parse_quoted()?;
@@ -602,7 +636,8 @@ impl P {
                 key = self.parse_node(c, Ctx::ComplexKey, false)?;
                 self.skip_to_content();
                 self.no_tab()?;
-                if self.col() as i64 == c && self.peek() == Some(':') && is_blankz(self.peek_at(1)) {
+                if self.col() as i64 == c && self.peek() == Some(':') && is_blankz(self.peek_at(1))
+                {
                     self.advance();
                     value = self.parse_node(c, Ctx::ComplexValue, false)?;
                 } else {
@@ -674,10 +709,16 @@ impl P {
             }
             while !is_blankz(self.peek()) {
                 let ch = self.peek();
-                if self.flow_level > 0 && ch == Some(':') && !is_blankz(self.peek_at(1)) && !is_flow_indicator(self.peek_at(1)) {
+                if self.flow_level > 0
+                    && ch == Some(':')
+                    && !is_blankz(self.peek_at(1))
+                    && !is_flow_indicator(self.peek_at(1))
+                {
                     return Err(self.err("found unexpected ':'"));
                 }
-                if (ch == Some(':') && (is_blankz(self.peek_at(1)) || (self.flow_level > 0 && is_flow_indicator(self.peek_at(1)))))
+                if (ch == Some(':')
+                    && (is_blankz(self.peek_at(1))
+                        || (self.flow_level > 0 && is_flow_indicator(self.peek_at(1)))))
                     || (self.flow_level > 0 && (is_flow_indicator(ch) || ch == Some('?')))
                 {
                     break;
@@ -860,7 +901,12 @@ impl P {
         Ok(s)
     }
 
-    fn block_scalar_breaks(&mut self, indent: &mut i64, breaks: &mut String, parent_indent: i64) -> Result<(), Error> {
+    fn block_scalar_breaks(
+        &mut self,
+        indent: &mut i64,
+        breaks: &mut String,
+        parent_indent: i64,
+    ) -> Result<(), Error> {
         let mut max_indent = 0i64;
         loop {
             while (*indent == 0 || (self.col() as i64) < *indent) && self.peek() == Some(' ') {
@@ -870,7 +916,9 @@ impl P {
                 max_indent = self.col() as i64;
             }
             if (*indent == 0 || (self.col() as i64) < *indent) && self.peek() == Some('\t') {
-                return Err(self.err("found a tab character where an indentation space is expected"));
+                return Err(
+                    self.err("found a tab character where an indentation space is expected")
+                );
             }
             if !is_break(self.peek()) {
                 break;
@@ -932,7 +980,11 @@ impl P {
 
         let mut indent = 0i64;
         if increment > 0 {
-            indent = if parent_indent >= 0 { parent_indent + increment } else { increment };
+            indent = if parent_indent >= 0 {
+                parent_indent + increment
+            } else {
+                increment
+            };
         }
         let mut s = String::new();
         let mut leading_break = String::new();
@@ -998,7 +1050,9 @@ impl P {
             Some('[') => {
                 self.flow_level += 1;
                 if self.flow_level > MAX_FLOW_LEVEL {
-                    return Err(Error(format!("yaml: exceeded max depth of {MAX_FLOW_LEVEL}")));
+                    return Err(Error(format!(
+                        "yaml: exceeded max depth of {MAX_FLOW_LEVEL}"
+                    )));
                 }
                 self.advance();
                 let mut items = Vec::new();
@@ -1036,7 +1090,9 @@ impl P {
             Some('{') => {
                 self.flow_level += 1;
                 if self.flow_level > MAX_FLOW_LEVEL {
-                    return Err(Error(format!("yaml: exceeded max depth of {MAX_FLOW_LEVEL}")));
+                    return Err(Error(format!(
+                        "yaml: exceeded max depth of {MAX_FLOW_LEVEL}"
+                    )));
                 }
                 self.advance();
                 let mut entries: Vec<(Node, Node)> = Vec::new();
@@ -1077,7 +1133,9 @@ impl P {
                 Ok(Node::Map(entries))
             }
             Some('"') | Some('\'') => Ok(Node::Str(self.parse_quoted()?)),
-            Some('&') | Some('*') | Some('!') => Err(self.err("anchors, aliases and tags are not supported")),
+            Some('&') | Some('*') | Some('!') => {
+                Err(self.err("anchors, aliases and tags are not supported"))
+            }
             None => Err(self.err("did not find expected node content")),
             _ => {
                 let s = self.parse_plain(-1)?;
@@ -1102,10 +1160,16 @@ fn resolve_plain(s: &str) -> Node {
 /// Parses the first YAML document of `y` (the supported subset) into yaml.v2's
 /// `interface{}` model.
 pub(crate) fn parse_yaml(y: &[u8]) -> Result<Node, Error> {
-    let text = std::str::from_utf8(y).map_err(|_| Error("yaml: invalid leading UTF-8 octet".to_string()))?;
-    if let Some(bad) = text.chars().find(|&c| !reader_allowed(c) && c != '\u{feff}') {
+    let text = std::str::from_utf8(y)
+        .map_err(|_| Error("yaml: invalid leading UTF-8 octet".to_string()))?;
+    if let Some(bad) = text
+        .chars()
+        .find(|&c| !reader_allowed(c) && c != '\u{feff}')
+    {
         let _ = bad;
-        return Err(Error("yaml: control characters are not allowed".to_string()));
+        return Err(Error(
+            "yaml: control characters are not allowed".to_string(),
+        ));
     }
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let mut p = P {

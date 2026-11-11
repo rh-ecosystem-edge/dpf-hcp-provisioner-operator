@@ -187,7 +187,8 @@ impl Logger {
     /// `Error(err, msg, keysAndValues...)`
     pub fn error(&self, err: &dyn std::fmt::Display, msg: &str, kvs: KeyValues) {
         let e = err.to_string();
-        self.sink().error(Some(&e), &self.name, msg, &self.merged(kvs));
+        self.sink()
+            .error(Some(&e), &self.name, msg, &self.merged(kvs));
     }
 
     /// `Error(nil, msg, keysAndValues...)`

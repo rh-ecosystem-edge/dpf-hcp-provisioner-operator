@@ -12,7 +12,9 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 fn fixture(name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name)
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(name)
 }
 
 fn load(name: &str) -> Value {
@@ -29,7 +31,9 @@ fn opts(name: &str) -> Vec<NameOption> {
         "default" => vec![],
         "strict" => vec![NameOption::StrictValidation],
         "insecure" => vec![NameOption::Insecure],
-        "defaultRegistry" => vec![NameOption::WithDefaultRegistry("registry.example.com".into())],
+        "defaultRegistry" => vec![NameOption::WithDefaultRegistry(
+            "registry.example.com".into(),
+        )],
         "defaultTag" => vec![NameOption::WithDefaultTag("v1".into())],
         "weak" => vec![NameOption::WeakValidation],
         other => panic!("unknown opts {other}"),
@@ -140,10 +144,19 @@ fn name_parsing_matches_go() {
         let want = normalize(&c["result"]);
         let got = normalize(&got);
         if want != got {
-            failures.push(format!("{func}[{}]({input:?}):\n  want {want}\n  got  {got}", s(c, "opts")));
+            failures.push(format!(
+                "{func}[{}]({input:?}):\n  want {want}\n  got  {got}",
+                s(c, "opts")
+            ));
         }
     }
-    assert!(failures.is_empty(), "{} of {} cases differ:\n{}", failures.len(), cases.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} of {} cases differ:\n{}",
+        failures.len(),
+        cases.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -174,18 +187,28 @@ fn auth_config_json_matches_go() {
                     failures.push(format!("{input}: want {want:?} got {got:?}"));
                 }
                 if cfg.to_json() != s(c, "marshaled") {
-                    failures.push(format!("{input}: marshal want {} got {}", s(c, "marshaled"), cfg.to_json()));
+                    failures.push(format!(
+                        "{input}: marshal want {} got {}",
+                        s(c, "marshaled"),
+                        cfg.to_json()
+                    ));
                 }
                 let via_serde = serde_json::to_string(cfg).unwrap();
                 let want_marshal: Value = serde_json::from_str(s(c, "marshaled")).unwrap();
                 let got_marshal: Value = serde_json::from_str(&via_serde).unwrap();
                 if want_marshal != got_marshal {
-                    failures.push(format!("{input}: serde marshal want {want_marshal} got {got_marshal}"));
+                    failures.push(format!(
+                        "{input}: serde marshal want {want_marshal} got {got_marshal}"
+                    ));
                 }
             }
             (Err(e), false) => {
                 if e.to_string() != s(c, "err") {
-                    failures.push(format!("{input}: err want {:?} got {:?}", s(c, "err"), e.to_string()));
+                    failures.push(format!(
+                        "{input}: err want {:?} got {:?}",
+                        s(c, "err"),
+                        e.to_string()
+                    ));
                 }
             }
             (r, _) => failures.push(format!("{input}: want ok={ok}, got {r:?}")),
@@ -193,7 +216,10 @@ fn auth_config_json_matches_go() {
         // The serde Deserialize impl agrees on success/failure.
         let serde_res: Result<AuthConfig, _> = serde_json::from_str(input);
         if serde_res.is_ok() != ok {
-            failures.push(format!("{input}: serde Deserialize ok={} want {ok}", serde_res.is_ok()));
+            failures.push(format!(
+                "{input}: serde Deserialize ok={} want {ok}",
+                serde_res.is_ok()
+            ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -241,10 +267,20 @@ fn transport_error_strings_match_go() {
             s(c, "body").as_bytes(),
         );
         if err.to_string() != s(c, "error") {
-            failures.push(format!("{} {} {status}:\n  want {:?}\n  got  {:?}", s(c, "method"), s(c, "url"), s(c, "error"), err.to_string()));
+            failures.push(format!(
+                "{} {} {status}:\n  want {:?}\n  got  {:?}",
+                s(c, "method"),
+                s(c, "url"),
+                s(c, "error"),
+                err.to_string()
+            ));
         }
         if err.temporary() != c["temporary"].as_bool().unwrap() {
-            failures.push(format!("{} {status}: temporary want {}", s(c, "url"), c["temporary"]));
+            failures.push(format!(
+                "{} {status}: temporary want {}",
+                s(c, "url"),
+                c["temporary"]
+            ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -261,7 +297,8 @@ async fn mutate_extract_matches_go() {
             .unwrap()
             .iter()
             .map(|f| {
-                let data = std::fs::read(fixture(&format!("extract/{}", f.as_str().unwrap()))).unwrap();
+                let data =
+                    std::fs::read(fixture(&format!("extract/{}", f.as_str().unwrap()))).unwrap();
                 StaticLayer(data.into())
             })
             .collect();
@@ -311,7 +348,11 @@ async fn mutate_extract_matches_go() {
         }
         let want = c["entries"].as_array().cloned().unwrap_or_default();
         if got != want {
-            failures.push(format!("{case}: entries differ\n  want {}\n  got  {}", Value::Array(want), Value::Array(got.clone())));
+            failures.push(format!(
+                "{case}: entries differ\n  want {}\n  got  {}",
+                Value::Array(want),
+                Value::Array(got.clone())
+            ));
         }
         if err != s(c, "err") {
             failures.push(format!("{case}: err want {:?} got {err:?}", s(c, "err")));

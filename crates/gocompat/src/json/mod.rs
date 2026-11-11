@@ -18,8 +18,8 @@ use std::io;
 use serde::Serialize;
 use serde_json::{Map, Number, Value};
 
-pub use scanner::{SyntaxError, check_valid, valid};
 use scanner::{Op, Scanner};
+pub use scanner::{SyntaxError, check_valid, valid};
 
 const HEX: &[u8; 16] = b"0123456789abcdef";
 
@@ -254,7 +254,8 @@ pub fn compact(src: &[u8], escape: bool) -> Result<Vec<u8>, SyntaxError> {
             dst.push(HEX[(c & 0xF) as usize]);
             start = i + 1;
         }
-        if escape && c == 0xE2 && i + 2 < src.len() && src[i + 1] == 0x80 && src[i + 2] & !1 == 0xA8 {
+        if escape && c == 0xE2 && i + 2 < src.len() && src[i + 1] == 0x80 && src[i + 2] & !1 == 0xA8
+        {
             if start < i {
                 dst.extend_from_slice(&src[start..i]);
             }
@@ -356,7 +357,14 @@ impl serde_json::ser::Formatter for GoFormatter {
             CharEscape::CarriageReturn => b"\\r".to_vec(),
             CharEscape::Tab => b"\\t".to_vec(),
             CharEscape::AsciiControl(c) => {
-                vec![b'\\', b'u', b'0', b'0', HEX[(c >> 4) as usize], HEX[(c & 0xF) as usize]]
+                vec![
+                    b'\\',
+                    b'u',
+                    b'0',
+                    b'0',
+                    HEX[(c >> 4) as usize],
+                    HEX[(c & 0xF) as usize],
+                ]
             }
         };
         writer.write_all(&b)
@@ -435,7 +443,11 @@ impl fmt::Display for UnmarshalTypeError {
                 self.value, self.struct_name, self.field, self.type_name
             );
         }
-        write!(f, "json: cannot unmarshal {} into Go value of type {}", self.value, self.type_name)
+        write!(
+            f,
+            "json: cannot unmarshal {} into Go value of type {}",
+            self.value, self.type_name
+        )
     }
 }
 
@@ -635,7 +647,11 @@ fn decode_any(data: &[u8]) -> Result<Value, Error> {
                 }
                 let lit = &data[start..i];
                 match crate::strconv::parse_float(lit, 64) {
-                    Ok(f) => value = Number::from_f64(f).map(Value::Number).unwrap_or(Value::Null),
+                    Ok(f) => {
+                        value = Number::from_f64(f)
+                            .map(Value::Number)
+                            .unwrap_or(Value::Null)
+                    }
                     Err(_) => {
                         if saved.is_none() {
                             saved = Some(Error::UnmarshalType(UnmarshalTypeError {
@@ -669,7 +685,9 @@ fn decode_any(data: &[u8]) -> Result<Value, Error> {
                         break;
                     }
                     i += 1; // ']'
-                    let Some(Frame::Array(a)) = stack.pop() else { unreachable!() };
+                    let Some(Frame::Array(a)) = stack.pop() else {
+                        unreachable!()
+                    };
                     value = Value::Array(a);
                 }
                 Some(Frame::Object(m, key)) => {
@@ -687,7 +705,9 @@ fn decode_any(data: &[u8]) -> Result<Value, Error> {
                         break;
                     }
                     i += 1; // '}'
-                    let Some(Frame::Object(m, _)) = stack.pop() else { unreachable!() };
+                    let Some(Frame::Object(m, _)) = stack.pop() else {
+                        unreachable!()
+                    };
                     value = Value::Object(m);
                 }
             }

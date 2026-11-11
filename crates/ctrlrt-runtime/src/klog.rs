@@ -73,7 +73,11 @@ fn write_line(s: String) {
 
 /// `logger.Info(msg, kvs...)` (structured, `InfoS`).
 pub fn info(file_line: &str, msg: &str, kvs: &[(&str, Value)]) {
-    write_line(format!("{}{}", header('I', file_line), render(msg, None, kvs)));
+    write_line(format!(
+        "{}{}",
+        header('I', file_line),
+        render(msg, None, kvs)
+    ));
 }
 
 /// `logger.V(level).Info(msg, kvs...)`.
@@ -86,7 +90,11 @@ pub fn info_v(level: i32, file_line: &str, msg: &str, kvs: &[(&str, Value)]) {
 /// `logger.Error(err, msg, kvs...)` (structured, `ErrorS`).
 pub fn error(file_line: &str, err: &dyn std::fmt::Display, msg: &str, kvs: &[(&str, Value)]) {
     let e = err.to_string();
-    write_line(format!("{}{}", header('E', file_line), render(msg, Some(&e), kvs)));
+    write_line(format!(
+        "{}{}",
+        header('E', file_line),
+        render(msg, Some(&e), kvs)
+    ));
 }
 
 #[cfg(test)]
@@ -110,6 +118,9 @@ mod tests {
         let h = header('I', "leaderelection.go:258");
         assert!(h.starts_with('I'));
         assert!(h.ends_with(" leaderelection.go:258] "));
-        assert_eq!(h.len(), "I1111 10:00:00.000000 ".len() + 8 + "leaderelection.go:258] ".len());
+        assert_eq!(
+            h.len(),
+            "I1111 10:00:00.000000 ".len() + 8 + "leaderelection.go:258] ".len()
+        );
     }
 }

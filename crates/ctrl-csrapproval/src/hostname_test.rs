@@ -10,7 +10,12 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use crate::hostname::*;
 use crate::test_util::*;
 
-fn csr(name: &str, signer: &str, username: Option<&str>, request: Vec<u8>) -> CertificateSigningRequest {
+fn csr(
+    name: &str,
+    signer: &str,
+    username: Option<&str>,
+    request: Vec<u8>,
+) -> CertificateSigningRequest {
     CertificateSigningRequest {
         metadata: ObjectMeta {
             name: Some(name.to_string()),

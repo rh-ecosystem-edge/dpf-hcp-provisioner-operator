@@ -29,7 +29,11 @@ pub fn format_float_f(f: f64) -> String {
         return "NaN".into();
     }
     if f.is_infinite() {
-        return if f > 0.0 { "+Inf".into() } else { "-Inf".into() };
+        return if f > 0.0 {
+            "+Inf".into()
+        } else {
+            "-Inf".into()
+        };
     }
     let (neg, digits, dp) = shortest_digits(f);
     let mut out = String::new();
@@ -66,7 +70,11 @@ pub fn format_float_e(f: f64) -> String {
         return "NaN".into();
     }
     if f.is_infinite() {
-        return if f > 0.0 { "+Inf".into() } else { "-Inf".into() };
+        return if f > 0.0 {
+            "+Inf".into()
+        } else {
+            "-Inf".into()
+        };
     }
     let (neg, digits, dp) = shortest_digits(f);
     let mut out = String::new();
@@ -99,7 +107,11 @@ pub fn format_float_v(f: f64) -> String {
         return "NaN".into();
     }
     if f.is_infinite() {
-        return if f > 0.0 { "+Inf".into() } else { "-Inf".into() };
+        return if f > 0.0 {
+            "+Inf".into()
+        } else {
+            "-Inf".into()
+        };
     }
     let (_, digits, dp) = shortest_digits(f);
     let exp = if digits == "0" { 0 } else { dp - 1 };
@@ -186,7 +198,11 @@ pub fn json_escape_into(out: &mut String, s: &str) {
                 }
             }
         } else if c == '\u{2028}' || c == '\u{2029}' {
-            out.push_str(if c == '\u{2028}' { "\\u2028" } else { "\\u2029" });
+            out.push_str(if c == '\u{2028}' {
+                "\\u2028"
+            } else {
+                "\\u2029"
+            });
         } else {
             out.push(c);
         }
@@ -212,7 +228,9 @@ const OBJECT_REFERENCE_FIELDS: &[&str] = &[
 pub fn go_key_order(map: &serde_json::Map<String, Value>) -> Vec<&String> {
     let keys: Vec<&String> = map.keys().collect();
     let is_ref = !keys.is_empty()
-        && keys.iter().all(|k| OBJECT_REFERENCE_FIELDS.contains(&k.as_str()))
+        && keys
+            .iter()
+            .all(|k| OBJECT_REFERENCE_FIELDS.contains(&k.as_str()))
         && keys.iter().any(|k| *k != "name" && *k != "namespace");
     if is_ref {
         let mut out = Vec::with_capacity(keys.len());
@@ -285,7 +303,11 @@ pub fn number_zap(n: &serde_json::Number) -> String {
         if f.is_nan() {
             "\"NaN\"".into()
         } else if f.is_infinite() {
-            if f > 0.0 { "\"+Inf\"".into() } else { "\"-Inf\"".into() }
+            if f > 0.0 {
+                "\"+Inf\"".into()
+            } else {
+                "\"-Inf\"".into()
+            }
         } else {
             format_float_f(f)
         }

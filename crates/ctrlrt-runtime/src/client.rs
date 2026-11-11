@@ -58,7 +58,8 @@ impl RestClient {
 
     /// GET a path and decode JSON.
     pub async fn get_json(&self, path: &str, info: Option<&RequestInfo>) -> Result<Value> {
-        self.request(Method::GET, path, None, None, None, info).await
+        self.request(Method::GET, path, None, None, None, info)
+            .await
     }
 
     /// Perform a request; returns the decoded JSON body (Null for an empty body).
@@ -93,8 +94,13 @@ impl RestClient {
         content_type: Option<&str>,
         accept: Option<&str>,
     ) -> Result<(u16, http::HeaderMap, Bytes)> {
-        let mut builder = Request::builder().method(method.clone()).uri(path_and_query);
-        builder = builder.header(http::header::ACCEPT, accept.unwrap_or("application/json, */*"));
+        let mut builder = Request::builder()
+            .method(method.clone())
+            .uri(path_and_query);
+        builder = builder.header(
+            http::header::ACCEPT,
+            accept.unwrap_or("application/json, */*"),
+        );
         if let Some(ct) = content_type {
             builder = builder.header(http::header::CONTENT_TYPE, ct);
         }
@@ -139,13 +145,20 @@ fn transport_error(method: &Method, base: &str, path: &str, e: &kube::Error) -> 
     if let Some(t) = find_timeout(e) {
         text = t;
     }
-    anyhow::anyhow!("{} {}: {}", op, ctrlrt::error::go_quote(&format!("{base}{path}")), text)
+    anyhow::anyhow!(
+        "{} {}: {}",
+        op,
+        ctrlrt::error::go_quote(&format!("{base}{path}")),
+        text
+    )
 }
 
 fn find_timeout(e: &kube::Error) -> Option<String> {
     let mut cur: Option<&dyn std::error::Error> = Some(e);
     while let Some(c) = cur {
-        if c.downcast_ref::<crate::config::ClientTimeoutError>().is_some() {
+        if c.downcast_ref::<crate::config::ClientTimeoutError>()
+            .is_some()
+        {
             return Some(c.to_string());
         }
         cur = c.source();
@@ -211,7 +224,10 @@ fn parse_warning_header(s: &str) -> Vec<(u16, String)> {
 }
 
 fn is_text_response(headers: &http::HeaderMap) -> bool {
-    match headers.get(http::header::CONTENT_TYPE).and_then(|v| v.to_str().ok()) {
+    match headers
+        .get(http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+    {
         None => true,
         Some("") => true,
         Some(ct) => ct
@@ -242,7 +258,11 @@ pub(crate) fn response_error(
             .and_then(|d| serde_json::from_value::<StatusDetails>(d.clone()).ok());
         return ApiError {
             status: "Failure".into(),
-            message: v.get("message").and_then(Value::as_str).unwrap_or("").into(),
+            message: v
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .into(),
             reason: v.get("reason").and_then(Value::as_str).unwrap_or("").into(),
             details,
             code: v.get("code").and_then(Value::as_u64).unwrap_or(0) as u16,
@@ -286,11 +306,16 @@ pub fn generic_server_response(
     retry_after_seconds: i32,
 ) -> ApiError {
     let mut reason = "";
-    let mut message =
-        format!("the server responded with the status code {code} but did not return more information");
+    let mut message = format!(
+        "the server responded with the status code {code} but did not return more information"
+    );
     match code {
         409 => {
-            reason = if verb == "POST" { "AlreadyExists" } else { "Conflict" };
+            reason = if verb == "POST" {
+                "AlreadyExists"
+            } else {
+                "Conflict"
+            };
             message = "the server reported a conflict".into();
         }
         404 => {
@@ -312,7 +337,8 @@ pub fn generic_server_response(
         406 => {
             reason = "NotAcceptable";
             message = if server_message.is_empty() || server_message == "unknown" {
-                "the server was unable to respond with a content type that the client supports".into()
+                "the server was unable to respond with a content type that the client supports"
+                    .into()
             } else {
                 server_message.into()
             };
@@ -339,7 +365,9 @@ pub fn generic_server_response(
         }
         429 => {
             reason = "TooManyRequests";
-            message = "the server has received too many requests and has asked us to try again later".into();
+            message =
+                "the server has received too many requests and has asked us to try again later"
+                    .into();
         }
         c if c >= 500 => {
             reason = "InternalError";
@@ -509,7 +537,12 @@ impl RestMapper {
     }
 
     /// `RESTMapping(GroupKind{group, kind}, version)`.
-    pub async fn rest_mapping(&self, group: &str, kind: &str, version: &str) -> Result<RestMapping> {
+    pub async fn rest_mapping(
+        &self,
+        group: &str,
+        kind: &str,
+        version: &str,
+    ) -> Result<RestMapping> {
         let mut st = self.state.lock().await;
         if let Some(m) = Self::lookup(&st, group, kind, version) {
             return Ok(m);
@@ -519,7 +552,8 @@ impl RestMapper {
         } else {
             vec![version.to_string()]
         };
-        self.add_known_group_and_reload(&mut st, group, versions).await?;
+        self.add_known_group_and_reload(&mut st, group, versions)
+            .await?;
         Self::lookup(&st, group, kind, version).ok_or_else(|| {
             NoKindMatchError {
                 group: group.to_string(),
@@ -583,7 +617,10 @@ impl RestMapper {
             }
         }
 
-        let gvr = match self.fetch_group_version_resources(st, group, &versions).await {
+        let gvr = match self
+            .fetch_group_version_resources(st, group, &versions)
+            .await
+        {
             Ok(g) => g,
             Err(e) => {
                 let msg = format!("failed to get API group resources: {e}");
@@ -667,15 +704,29 @@ impl RestMapper {
             };
             match v.get("kind").and_then(Value::as_str) {
                 Some("APIGroupDiscoveryList") => {
-                    for item in v.get("items").and_then(Value::as_array).into_iter().flatten() {
+                    for item in v
+                        .get("items")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                    {
                         let name = item
                             .pointer("/metadata/name")
                             .and_then(Value::as_str)
                             .unwrap_or("")
                             .to_string();
                         let mut g = ApiGroup::default();
-                        for ver in item.get("versions").and_then(Value::as_array).into_iter().flatten() {
-                            let version = ver.get("version").and_then(Value::as_str).unwrap_or("").to_string();
+                        for ver in item
+                            .get("versions")
+                            .and_then(Value::as_array)
+                            .into_iter()
+                            .flatten()
+                        {
+                            let version = ver
+                                .get("version")
+                                .and_then(Value::as_str)
+                                .unwrap_or("")
+                                .to_string();
                             if version.is_empty() {
                                 continue;
                             }
@@ -684,14 +735,24 @@ impl RestMapper {
                                 continue;
                             }
                             let mut rs = Vec::new();
-                            for r in ver.get("resources").and_then(Value::as_array).into_iter().flatten() {
-                                let rname = r.get("resource").and_then(Value::as_str).unwrap_or("").to_string();
+                            for r in ver
+                                .get("resources")
+                                .and_then(Value::as_array)
+                                .into_iter()
+                                .flatten()
+                            {
+                                let rname = r
+                                    .get("resource")
+                                    .and_then(Value::as_str)
+                                    .unwrap_or("")
+                                    .to_string();
                                 let kind = r
                                     .pointer("/responseKind/kind")
                                     .and_then(Value::as_str)
                                     .unwrap_or("")
                                     .to_string();
-                                let namespaced = r.get("scope").and_then(Value::as_str) == Some("Namespaced");
+                                let namespaced =
+                                    r.get("scope").and_then(Value::as_str) == Some("Namespaced");
                                 rs.push(ApiResource {
                                     name: rname,
                                     kind,
@@ -723,14 +784,25 @@ impl RestMapper {
                 }
                 Some("APIGroupList") => {
                     aggregated = false;
-                    for g in v.get("groups").and_then(Value::as_array).into_iter().flatten() {
-                        let name = g.get("name").and_then(Value::as_str).unwrap_or("").to_string();
+                    for g in v
+                        .get("groups")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                    {
+                        let name = g
+                            .get("name")
+                            .and_then(Value::as_str)
+                            .unwrap_or("")
+                            .to_string();
                         let versions: Vec<String> = g
                             .get("versions")
                             .and_then(Value::as_array)
                             .into_iter()
                             .flatten()
-                            .filter_map(|x| x.get("version").and_then(Value::as_str).map(String::from))
+                            .filter_map(|x| {
+                                x.get("version").and_then(Value::as_str).map(String::from)
+                            })
                             .collect();
                         let preferred = g
                             .pointer("/preferredVersion/version")
@@ -796,9 +868,20 @@ impl RestMapper {
                         .into_iter()
                         .flatten()
                         .map(|r| ApiResource {
-                            name: r.get("name").and_then(Value::as_str).unwrap_or("").to_string(),
-                            kind: r.get("kind").and_then(Value::as_str).unwrap_or("").to_string(),
-                            namespaced: r.get("namespaced").and_then(Value::as_bool).unwrap_or(false),
+                            name: r
+                                .get("name")
+                                .and_then(Value::as_str)
+                                .unwrap_or("")
+                                .to_string(),
+                            kind: r
+                                .get("kind")
+                                .and_then(Value::as_str)
+                                .unwrap_or("")
+                                .to_string(),
+                            namespaced: r
+                                .get("namespaced")
+                                .and_then(Value::as_bool)
+                                .unwrap_or(false),
                         })
                         .collect();
                     out.push((group.to_string(), version.clone(), rs));
@@ -977,7 +1060,10 @@ impl KubeBackend {
         content_type: Option<&str>,
         info: &RequestInfo,
     ) -> Result<Value> {
-        let body = body.map(serde_json::to_vec).transpose().map_err(|e| anyhow::anyhow!("{e}"))?;
+        let body = body
+            .map(serde_json::to_vec)
+            .transpose()
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
         let ct = content_type.or(body.as_ref().map(|_| "application/json"));
         self.rest
             .request(method, path, body, ct, None, Some(info))
@@ -1176,7 +1262,13 @@ impl KubeBackend {
             Patch::Strategic(v) => ("application/strategic-merge-patch+json", v),
         };
         let v = self
-            .do_json(Method::PATCH, &path, Some(body), Some(ct), &Self::info(&m, name))
+            .do_json(
+                Method::PATCH,
+                &path,
+                Some(body),
+                Some(ct),
+                &Self::info(&m, name),
+            )
             .await?;
         Ok(strip_type_meta(v))
     }
@@ -1197,7 +1289,10 @@ mod tests {
         assert!(ctrlrt::error::is_not_found(&anyhow::Error::new(e)));
         let e = generic_server_response(409, "POST", "apps", "deployments", "", "", 0);
         assert_eq!(e.reason, "AlreadyExists");
-        assert_eq!(e.message, "the server reported a conflict (post deployments.apps)");
+        assert_eq!(
+            e.message,
+            "the server reported a conflict (post deployments.apps)"
+        );
         let e = generic_server_response(500, "GET", "", "", "", "boom", 0);
         assert_eq!(
             e.message,
@@ -1209,7 +1304,10 @@ mod tests {
     fn status_body_is_decoded() {
         let body = br#"{"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"configmaps \"x\" not found","reason":"NotFound","details":{"name":"x","kind":"configmaps"},"code":404}"#;
         let mut h = http::HeaderMap::new();
-        h.insert(http::header::CONTENT_TYPE, "application/json".parse().unwrap());
+        h.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
         let e = response_error(404, &Method::GET, &h, body, None);
         assert_eq!(e.message, r#"configmaps "x" not found"#);
         assert_eq!(e.code, 404);
@@ -1243,13 +1341,19 @@ mod tests {
             resource: String::new(),
         };
         let mut failures = BTreeMap::new();
-        failures.insert("metallb.io/v1beta1".to_string(), Arc::new(anyhow::Error::new(e)));
+        failures.insert(
+            "metallb.io/v1beta1".to_string(),
+            Arc::new(anyhow::Error::new(e)),
+        );
         let d = ErrResourceDiscoveryFailed { failures };
         assert_eq!(
             d.to_string(),
             "unable to retrieve the complete list of server APIs: metallb.io/v1beta1: no matches for metallb.io/v1beta1, Resource="
         );
-        assert_eq!(validate_name("").unwrap_err().to_string(), "resource name may not be empty");
+        assert_eq!(
+            validate_name("").unwrap_err().to_string(),
+            "resource name may not be empty"
+        );
         assert_eq!(
             validate_name("a/b").unwrap_err().to_string(),
             r#"invalid resource name "a/b": [may not contain '/']"#

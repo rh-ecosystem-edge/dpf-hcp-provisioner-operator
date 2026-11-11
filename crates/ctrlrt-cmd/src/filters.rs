@@ -75,7 +75,11 @@ fn rand_f64() -> f64 {
 /// `webhook.DefaultShouldRetry`
 pub fn default_should_retry(err: &ctrlrt::Error) -> bool {
     if let Some(api) = ctrlrt::error::as_api_error(err) {
-        let retry_after = api.details.as_ref().map(|d| d.retry_after_seconds).unwrap_or(0);
+        let retry_after = api
+            .details
+            .as_ref()
+            .map(|d| d.retry_after_seconds)
+            .unwrap_or(0);
         return api.reason == ctrlrt::error::REASON_INTERNAL_ERROR
             || api.reason == ctrlrt::error::REASON_TIMEOUT
             || api.reason == ctrlrt::error::REASON_TOO_MANY_REQUESTS
@@ -139,7 +143,9 @@ where
             None => sleep.await,
         }
     }
-    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("webhook call failed: timed out waiting for the condition")))
+    Err(last_err.unwrap_or_else(|| {
+        anyhow::anyhow!("webhook call failed: timed out waiting for the condition")
+    }))
 }
 
 /// Result of an authenticator: Ok(Some(user)) authenticated, Ok(None) not authenticated
@@ -171,7 +177,9 @@ impl TokenAuthenticator {
 
     /// `AuthenticateToken` (cached).
     pub async fn authenticate_token(&self, token: &str) -> AuthResult {
-        let key = ring::digest::digest(&ring::digest::SHA256, token.as_bytes()).as_ref().to_vec();
+        let key = ring::digest::digest(&ring::digest::SHA256, token.as_bytes())
+            .as_ref()
+            .to_vec();
         let now = Instant::now();
         if let Ok(c) = self.cache.lock()
             && let Some((exp, user)) = c.get(&key)
@@ -240,7 +248,10 @@ impl TokenAuthenticator {
 }
 
 fn header_values<'a>(h: &'a HeaderMap, name: &str) -> Vec<&'a str> {
-    h.get_all(name).iter().filter_map(|v| v.to_str().ok()).collect()
+    h.get_all(name)
+        .iter()
+        .filter_map(|v| v.to_str().ok())
+        .collect()
 }
 
 /// `bearertoken.Authenticator.AuthenticateRequest`
@@ -269,8 +280,14 @@ pub async fn authenticate_bearer(tokens: &TokenAuthenticator, headers: &HeaderMa
 }
 
 /// `websocket.ProtocolAuthenticator.AuthenticateRequest`
-pub async fn authenticate_websocket(tokens: &TokenAuthenticator, headers: &HeaderMap) -> AuthResult {
-    let upgrade = headers.get("upgrade").and_then(|v| v.to_str().ok()).unwrap_or("");
+pub async fn authenticate_websocket(
+    tokens: &TokenAuthenticator,
+    headers: &HeaderMap,
+) -> AuthResult {
+    let upgrade = headers
+        .get("upgrade")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
     let is_upgrade = header_values(headers, "connection")
         .iter()
         .any(|h| h.to_lowercase().contains("upgrade"));
@@ -294,7 +311,8 @@ pub async fn authenticate_websocket(tokens: &TokenAuthenticator, headers: &Heade
             let dec = base64::engine::general_purpose::URL_SAFE_NO_PAD
                 .decode(enc)
                 .map_err(|_| "invalid base64.bearer.authorization token encoding".to_string())?;
-            token = String::from_utf8(dec).map_err(|_| "invalid base64.bearer.authorization token".to_string())?;
+            token = String::from_utf8(dec)
+                .map_err(|_| "invalid base64.bearer.authorization token".to_string())?;
         }
     }
     if !token.is_empty() && filtered == 0 {
@@ -375,7 +393,12 @@ impl SarAuthorizer {
     }
 
     /// `Authorize(ctx, attributes)` for a non-resource request: (decision, reason, error).
-    pub async fn authorize(&self, user: &UserInfo, verb: &str, path: &str) -> (Decision, String, Option<String>) {
+    pub async fn authorize(
+        &self,
+        user: &UserInfo,
+        verb: &str,
+        path: &str,
+    ) -> (Decision, String, Option<String>) {
         let spec = SubjectAccessReviewSpec {
             user: Some(user.name.clone()),
             uid: Some(user.uid.clone()).filter(|s| !s.is_empty()),
@@ -389,11 +412,11 @@ impl SarAuthorizer {
         };
         let key = serde_json::to_string(&spec).unwrap_or_default();
         let now = Instant::now();
-        let cached = self
-            .cache
-            .lock()
-            .ok()
-            .and_then(|c| c.get(&key).filter(|(exp, _)| *exp > now).map(|(_, s)| s.clone()));
+        let cached = self.cache.lock().ok().and_then(|c| {
+            c.get(&key)
+                .filter(|(exp, _)| *exp > now)
+                .map(|(_, s)| s.clone())
+        });
         let status = match cached {
             Some(s) => s,
             None => {
@@ -431,7 +454,11 @@ impl SarAuthorizer {
                             c.clear();
                         }
                     }
-                    let ttl = if status.allowed { self.allow_ttl } else { self.deny_ttl };
+                    let ttl = if status.allowed {
+                        self.allow_ttl
+                    } else {
+                        self.deny_ttl
+                    };
                     c.insert(key, (now + ttl, status.clone()));
                 }
                 status

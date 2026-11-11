@@ -52,8 +52,13 @@ fn extract_hostname_from_bootstrap_csr(csr: &CertificateSigningRequest) -> Resul
     };
 
     // Parse X509 certificate request
-    let cert_req = x509::parse_certificate_request(&pem_block.bytes)
-        .map_err(|err| wrapf!(err.clone(), "failed to parse X509 certificate request: {}", err))?;
+    let cert_req = x509::parse_certificate_request(&pem_block.bytes).map_err(|err| {
+        wrapf!(
+            err.clone(),
+            "failed to parse X509 certificate request: {}",
+            err
+        )
+    })?;
 
     // Extract hostname from CN (format: "system:node:<hostname>")
     let cn = cert_req.subject.common_name.as_str();

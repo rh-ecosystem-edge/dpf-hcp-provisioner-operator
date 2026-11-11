@@ -97,7 +97,10 @@ impl Error {
         self.errors.iter().all(|d| {
             matches!(
                 d.code.as_str(),
-                codes::BLOB_UPLOAD_INVALID | codes::TOO_MANY_REQUESTS | codes::UNKNOWN | codes::UNAVAILABLE
+                codes::BLOB_UPLOAD_INVALID
+                    | codes::TOO_MANY_REQUESTS
+                    | codes::UNKNOWN
+                    | codes::UNAVAILABLE
             )
         })
     }

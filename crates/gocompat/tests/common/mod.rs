@@ -36,8 +36,12 @@ pub fn dec(v: &Value) -> Value {
     match a[0].as_str().expect("tag") {
         "n" => Value::Null,
         "b" => Value::Bool(a[1].as_bool().expect("bool")),
-        "i" => Value::Number(Number::from(a[1].as_str().expect("i").parse::<i64>().expect("i64"))),
-        "u" => Value::Number(Number::from(a[1].as_str().expect("u").parse::<u64>().expect("u64"))),
+        "i" => Value::Number(Number::from(
+            a[1].as_str().expect("i").parse::<i64>().expect("i64"),
+        )),
+        "u" => Value::Number(Number::from(
+            a[1].as_str().expect("u").parse::<u64>().expect("u64"),
+        )),
         "f" => {
             let bits = u64::from_str_radix(a[1].as_str().expect("f"), 16).expect("bits");
             Value::Number(Number::from_f64(f64::from_bits(bits)).expect("finite"))
@@ -67,7 +71,9 @@ pub fn same(a: &Value, b: &Value) -> bool {
                 x == y
             }
         }
-        (Value::Array(x), Value::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(p, q)| same(p, q)),
+        (Value::Array(x), Value::Array(y)) => {
+            x.len() == y.len() && x.iter().zip(y).all(|(p, q)| same(p, q))
+        }
         (Value::Object(x), Value::Object(y)) => {
             x.len() == y.len() && x.iter().all(|(k, v)| y.get(k).is_some_and(|w| same(v, w)))
         }
@@ -89,9 +95,39 @@ impl Sm {
 }
 
 const WORDS: &[&str] = &[
-    "the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog", "ignition", "systemd", "unit", "{", "}", "\"",
-    ":", ",", "\n", "  ", "storage", "files", "contents", "source", "data", "base64", "version", "3.4.0", "0644",
-    "/etc/", "kubernetes", "\t", "a", "b", "c",
+    "the",
+    "quick",
+    "brown",
+    "fox",
+    "jumps",
+    "over",
+    "lazy",
+    "dog",
+    "ignition",
+    "systemd",
+    "unit",
+    "{",
+    "}",
+    "\"",
+    ":",
+    ",",
+    "\n",
+    "  ",
+    "storage",
+    "files",
+    "contents",
+    "source",
+    "data",
+    "base64",
+    "version",
+    "3.4.0",
+    "0644",
+    "/etc/",
+    "kubernetes",
+    "\t",
+    "a",
+    "b",
+    "c",
 ];
 
 /// Deterministic payloads, mirrored from the Go generator's `payload`.

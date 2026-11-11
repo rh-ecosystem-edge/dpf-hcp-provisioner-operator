@@ -147,7 +147,11 @@ impl ApiError {
         Self::failure(
             404,
             REASON_NOT_FOUND,
-            format!("{} {} not found", Self::gr_string(group, resource), go_quote(name)),
+            format!(
+                "{} {} not found",
+                Self::gr_string(group, resource),
+                go_quote(name)
+            ),
             Self::gr_details(group, resource, name),
         )
     }
@@ -157,7 +161,11 @@ impl ApiError {
         Self::failure(
             409,
             REASON_ALREADY_EXISTS,
-            format!("{} {} already exists", Self::gr_string(group, resource), go_quote(name)),
+            format!(
+                "{} {} already exists",
+                Self::gr_string(group, resource),
+                go_quote(name)
+            ),
             Self::gr_details(group, resource, name),
         )
     }
@@ -191,7 +199,12 @@ impl ApiError {
                 err
             )
         };
-        Self::failure(403, REASON_FORBIDDEN, message, Self::gr_details(group, resource, name))
+        Self::failure(
+            403,
+            REASON_FORBIDDEN,
+            message,
+            Self::gr_details(group, resource, name),
+        )
     }
 
     /// `apierrors.NewInvalid(gk, name, errs)`; `causes` messages are `field: detail` strings
@@ -493,7 +506,10 @@ mod tests {
         let msg = format!("getting secret ns/s: {base}");
         let w = wrap(base, msg);
         assert!(is_not_found(&w));
-        assert_eq!(w.to_string(), r#"getting secret ns/s: secrets "s" not found"#);
+        assert_eq!(
+            w.to_string(),
+            r#"getting secret ns/s: secrets "s" not found"#
+        );
         let w2 = wrapf!(w, "outer: {}", "x");
         assert!(is_not_found(&w2));
         assert!(!is_conflict(&w2));

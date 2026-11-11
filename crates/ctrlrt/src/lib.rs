@@ -24,7 +24,8 @@ pub use log::Logger;
 pub use object::{Object, ObjectKey, ResourceInfo};
 pub use reconcile::{
     Builder, ControllerSpec, Ctx, Funcs, GenerationChangedPredicate, ManagerHandle, MapFn,
-    Predicate, ReconcileResult, Reconciler, Request, WatchEvent, map_fn, result_of_error, with_result,
+    Predicate, ReconcileResult, Reconciler, Request, WatchEvent, map_fn, result_of_error,
+    with_result,
 };
 pub use recorder::{EventRecorder, FakeRecorder, Recorder, RecorderExt};
 

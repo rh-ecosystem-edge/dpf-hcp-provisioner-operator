@@ -18,11 +18,12 @@ pub struct OperatorConfig {
 /// `LoadOperatorConfigFromCR` reads the singleton config CR. Returns `Ok(None)` when it does
 /// not exist (the operator is then idle).
 pub async fn load_operator_config_from_cr(ctx: &Ctx, c: &Client) -> Result<Option<OperatorConfig>> {
-    let config_cr: DPFHCPProvisionerConfig = match c.get(&ObjectKey::cluster(DEFAULT_CONFIG_NAME)).await {
-        Ok(v) => v,
-        Err(e) if ctrlrt::error::is_not_found(&e) => return Ok(None),
-        Err(e) => return Err(e),
-    };
+    let config_cr: DPFHCPProvisionerConfig =
+        match c.get(&ObjectKey::cluster(DEFAULT_CONFIG_NAME)).await {
+            Ok(v) => v,
+            Err(e) if ctrlrt::error::is_not_found(&e) => return Ok(None),
+            Err(e) => return Err(e),
+        };
     let spec = &config_cr.spec;
     let cfg = OperatorConfig {
         blue_field_ocp_layer_repo: spec.blue_field_ocp_layer_repo.clone(),
@@ -66,6 +67,8 @@ pub async fn get_dpf_version(c: &Client) -> Result<String> {
     let config = get_singleton_dpf_operator_config(c).await?;
     match config.status.version.as_deref() {
         Some(v) if !v.is_empty() => Ok(v.to_string()),
-        _ => Err(anyhow::anyhow!("DPFOperatorConfig.status.version is not set")),
+        _ => Err(anyhow::anyhow!(
+            "DPFOperatorConfig.status.version is not set"
+        )),
     }
 }

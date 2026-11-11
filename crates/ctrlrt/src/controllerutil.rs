@@ -82,24 +82,6 @@ pub fn normalize(v: serde_json::Value) -> serde_json::Value {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use k8s_openapi::api::core::v1::ConfigMap;
-
-    #[test]
-    fn nil_and_empty_maps_are_semantically_equal() {
-        let mut a = ConfigMap::default();
-        a.metadata.name = Some("x".into());
-        let mut b = a.clone();
-        b.data = Some(Default::default());
-        b.metadata.labels = Some(Default::default());
-        assert!(semantic_equal(&a, &b));
-        b.data.as_mut().unwrap().insert("k".into(), "v".into());
-        assert!(!semantic_equal(&a, &b));
-    }
-}
-
 /// `controllerutil.CreateOrUpdate(ctx, c, obj, f)`.
 ///
 /// `obj` must have name (and namespace if namespaced) set. On return `obj` holds the
@@ -131,5 +113,23 @@ where
             c.update(obj).await?;
             Ok(OperationResult::Updated)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use k8s_openapi::api::core::v1::ConfigMap;
+
+    #[test]
+    fn nil_and_empty_maps_are_semantically_equal() {
+        let mut a = ConfigMap::default();
+        a.metadata.name = Some("x".into());
+        let mut b = a.clone();
+        b.data = Some(Default::default());
+        b.metadata.labels = Some(Default::default());
+        assert!(semantic_equal(&a, &b));
+        b.data.as_mut().unwrap().insert("k".into(), "v".into());
+        assert!(!semantic_equal(&a, &b));
     }
 }

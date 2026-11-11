@@ -282,9 +282,10 @@ fn authority_round_trips(name: &str) -> bool {
         // netip.ParseAddr must succeed and must not be IPv4.
         return hostname.parse::<Ipv6Addr>().is_ok();
     } else if let Some(i) = name.rfind(':')
-        && !valid_optional_port(&name[i..]) {
-            return false;
-        }
+        && !valid_optional_port(&name[i..])
+    {
+        return false;
+    }
     host_chars_ok(name)
 }
 
@@ -452,10 +453,11 @@ pub fn new_repository(name: &str, opts: &[NameOption]) -> Result<Repository, Err
     let mut registry = "";
     let mut repo = name;
     if let Some((first, rest)) = name.split_once(REG_REPO_DELIMITER)
-        && (first.contains('.') || first.contains(':')) {
-            registry = first;
-            repo = rest;
-        }
+        && (first.contains('.') || first.contains(':'))
+    {
+        registry = first;
+        repo = rest;
+    }
     check_repository(repo)?;
     let reg = new_registry(registry, opts)?;
     if has_implicit_namespace(repo, &reg) && opt.strict {
@@ -523,7 +525,9 @@ pub fn new_tag(name: &str, opts: &[NameOption]) -> Result<Tag, ErrBadName> {
         base = parts[..parts.len() - 1].join(TAG_DELIM);
         tag = parts[parts.len() - 1].to_string();
         if tag.is_empty() {
-            return Err(bad(format!("{name} must specify a tag name after the colon")));
+            return Err(bad(format!(
+                "{name} must specify a tag name after the colon"
+            )));
         }
     }
 

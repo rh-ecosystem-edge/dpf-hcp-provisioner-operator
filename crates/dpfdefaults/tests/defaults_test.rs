@@ -12,9 +12,24 @@ fn test_doca_version() {
         want_err: bool,
     }
     let tests = [
-        Case { name: "DPF 26.4 maps to DOCA 3.4", major_minor: "26.4", want: "3.4", want_err: false },
-        Case { name: "unknown DPF minor falls back to default row", major_minor: "26.12", want: "3.4", want_err: false },
-        Case { name: "empty version errors", major_minor: "", want: "", want_err: true },
+        Case {
+            name: "DPF 26.4 maps to DOCA 3.4",
+            major_minor: "26.4",
+            want: "3.4",
+            want_err: false,
+        },
+        Case {
+            name: "unknown DPF minor falls back to default row",
+            major_minor: "26.12",
+            want: "3.4",
+            want_err: false,
+        },
+        Case {
+            name: "empty version errors",
+            major_minor: "",
+            want: "",
+            want_err: true,
+        },
     ];
     for tt in tests {
         let got = doca_version(&Ctx::background(), tt.major_minor);
@@ -23,7 +38,11 @@ fn test_doca_version() {
             continue;
         }
         let got = got.unwrap_or_else(|e| panic!("{}: unexpected error: {e}", tt.name));
-        assert_eq!(got, tt.want, "{}: DocaVersion({:?})", tt.name, tt.major_minor);
+        assert_eq!(
+            got, tt.want,
+            "{}: DocaVersion({:?})",
+            tt.name, tt.major_minor
+        );
     }
 }
 
@@ -31,7 +50,10 @@ fn test_doca_version() {
 fn test_template_values() {
     let ctx = Ctx::background();
     let known = template_values(&ctx, "26.4").expect("unexpected error");
-    assert_eq!(known.ovn.chart_version, "v26.4.1-ocp-release-v4.22", "OVN chart");
+    assert_eq!(
+        known.ovn.chart_version, "v26.4.1-ocp-release-v4.22",
+        "OVN chart"
+    );
     assert_eq!(known.dts.chart_version, "1.25.5", "DTS chart");
     assert!(
         known.hbn.chart_version == "3.4.0" && known.hbn.image_tag == "3.4.0-doca3.4.0",
@@ -42,7 +64,10 @@ fn test_template_values() {
     let fallback = template_values(&ctx, "26.12").expect("unexpected error");
     assert_eq!(fallback, known, "fallback should equal the 26.4 row");
 
-    assert!(template_values(&ctx, "").is_err(), "expected error for empty version");
+    assert!(
+        template_values(&ctx, "").is_err(),
+        "expected error for empty version"
+    );
 }
 
 #[test]

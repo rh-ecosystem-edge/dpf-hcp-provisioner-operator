@@ -55,8 +55,14 @@ fn spec_to_record(spec: &Value) -> LeaderElectionRecord {
             .and_then(Value::as_str)
             .unwrap_or("")
             .into(),
-        lease_duration_seconds: spec.get("leaseDurationSeconds").and_then(Value::as_i64).unwrap_or(0),
-        leader_transitions: spec.get("leaseTransitions").and_then(Value::as_i64).unwrap_or(0),
+        lease_duration_seconds: spec
+            .get("leaseDurationSeconds")
+            .and_then(Value::as_i64)
+            .unwrap_or(0),
+        leader_transitions: spec
+            .get("leaseTransitions")
+            .and_then(Value::as_i64)
+            .unwrap_or(0),
         acquire_time: parse_time(spec.get("acquireTime")),
         renew_time: parse_time(spec.get("renewTime")),
         preferred_holder: spec
@@ -64,7 +70,11 @@ fn spec_to_record(spec: &Value) -> LeaderElectionRecord {
             .and_then(Value::as_str)
             .unwrap_or("")
             .into(),
-        strategy: spec.get("strategy").and_then(Value::as_str).unwrap_or("").into(),
+        strategy: spec
+            .get("strategy")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .into(),
     }
 }
 
@@ -143,7 +153,14 @@ impl LeaseLock {
     pub async fn get(&self) -> Result<LeaderElectionRecord> {
         let v = self
             .rest
-            .request(Method::GET, &self.path(true), None, None, None, Some(&self.info()))
+            .request(
+                Method::GET,
+                &self.path(true),
+                None,
+                None,
+                None,
+                Some(&self.info()),
+            )
             .await?;
         let rec = spec_to_record(v.get("spec").unwrap_or(&Value::Null));
         *self.lease.lock().unwrap_or_else(|e| e.into_inner()) = Some(v);
@@ -184,7 +201,11 @@ impl LeaseLock {
     pub async fn update(&self, ler: &LeaderElectionRecord) -> Result<()> {
         let mut lease = match self.lease.lock().unwrap_or_else(|e| e.into_inner()).clone() {
             Some(l) => l,
-            None => return Err(anyhow::anyhow!("lease not initialized, call get or create first")),
+            None => {
+                return Err(anyhow::anyhow!(
+                    "lease not initialized, call get or create first"
+                ));
+            }
         };
         lease["spec"] = record_to_spec(ler);
         if let Some(labels) = &self.labels {
@@ -291,7 +312,9 @@ impl LeaderElector {
     /// `NewLeaderElector`
     pub fn new(cfg: LeaderElectionConfig, lock: Arc<LeaseLock>) -> Result<Self> {
         if cfg.lease_duration <= cfg.renew_deadline {
-            return Err(anyhow::anyhow!("leaseDuration must be greater than renewDeadline"));
+            return Err(anyhow::anyhow!(
+                "leaseDuration must be greater than renewDeadline"
+            ));
         }
         if cfg.renew_deadline <= cfg.retry_period.mul_f64(JITTER_FACTOR) {
             return Err(anyhow::anyhow!(
@@ -310,7 +333,9 @@ impl LeaderElector {
         if lock.identity().is_empty() {
             return Err(anyhow::anyhow!("Lock identity is empty"));
         }
-        metrics::LEADER_GAUGE.with_label_values(&[&cfg.name]).set(0.0);
+        metrics::LEADER_GAUGE
+            .with_label_values(&[&cfg.name])
+            .set(0.0);
         Ok(Self {
             cfg,
             lock,
@@ -340,9 +365,7 @@ impl LeaderElector {
         let o = self.obs();
         match o.time {
             None => false,
-            Some(t) => {
-                t + Duration::from_secs(o.record.lease_duration_seconds.max(0) as u64) > now
-            }
+            Some(t) => t + Duration::from_secs(o.record.lease_duration_seconds.max(0) as u64) > now,
         }
     }
 
@@ -394,7 +417,9 @@ impl LeaderElector {
             };
             if succeeded {
                 self.lock.record_event("became leader");
-                metrics::LEADER_GAUGE.with_label_values(&[&self.cfg.name]).set(1.0);
+                metrics::LEADER_GAUGE
+                    .with_label_values(&[&self.cfg.name])
+                    .set(1.0);
                 klog::info(
                     "leaderelection.go:272",
                     "Successfully acquired lease",
@@ -453,7 +478,9 @@ impl LeaderElector {
                     );
                 }
                 Some(e) => {
-                    metrics::LEADER_GAUGE.with_label_values(&[&self.cfg.name]).set(0.0);
+                    metrics::LEADER_GAUGE
+                        .with_label_values(&[&self.cfg.name])
+                        .set(0.0);
                     klog::info(
                         "leaderelection.go:299",
                         "Failed to renew lease",
@@ -589,7 +616,10 @@ impl LeaderElector {
             self.set_observed_record(&old);
             self.obs().raw = Some(old.clone());
         }
-        if !old.holder_identity.is_empty() && self.is_lease_valid(Instant::now()) && !self.is_leader() {
+        if !old.holder_identity.is_empty()
+            && self.is_lease_valid(Instant::now())
+            && !self.is_leader()
+        {
             klog::info_v(
                 4,
                 "leaderelection.go:472",
@@ -607,7 +637,9 @@ impl LeaderElector {
         if self.is_leader() {
             rec.acquire_time = old.acquire_time;
             rec.leader_transitions = old.leader_transitions;
-            metrics::LEADER_SLOWPATH.with_label_values(&[&self.cfg.name]).inc();
+            metrics::LEADER_SLOWPATH
+                .with_label_values(&[&self.cfg.name])
+                .inc();
         } else {
             rec.leader_transitions = old.leader_transitions + 1;
         }
@@ -663,13 +695,25 @@ pub fn new_resource_lock(
     }
     match options.leader_election_resource_lock.as_str() {
         "leases" => {}
-        "endpoints" => return Err(anyhow::anyhow!("endpoints lock is removed, migrate to leases")),
-        "configmaps" => return Err(anyhow::anyhow!("configmaps lock is removed, migrate to leases")),
+        "endpoints" => {
+            return Err(anyhow::anyhow!(
+                "endpoints lock is removed, migrate to leases"
+            ));
+        }
+        "configmaps" => {
+            return Err(anyhow::anyhow!(
+                "configmaps lock is removed, migrate to leases"
+            ));
+        }
         "endpointsleases" => {
-            return Err(anyhow::anyhow!("endpointsleases lock is removed, migrate to leases"));
+            return Err(anyhow::anyhow!(
+                "endpointsleases lock is removed, migrate to leases"
+            ));
         }
         "configmapsleases" => {
-            return Err(anyhow::anyhow!("configmapsleases lock is removed, migrated to leases"));
+            return Err(anyhow::anyhow!(
+                "configmapsleases lock is removed, migrated to leases"
+            ));
         }
         other => return Err(anyhow::anyhow!("Invalid lock-type {other}")),
     }
@@ -734,11 +778,19 @@ mod tests {
     async fn elector_validation() {
         let client = kube::Client::new(
             tower::service_fn(|_req: http::Request<kube::client::Body>| async {
-                Err::<http::Response<kube::client::Body>, std::io::Error>(std::io::Error::other("x"))
+                Err::<http::Response<kube::client::Body>, std::io::Error>(std::io::Error::other(
+                    "x",
+                ))
             }),
             "default",
         );
-        let lock = Arc::new(LeaseLock::new(RestClient::new(client), "ns", "id", "me", None));
+        let lock = Arc::new(LeaseLock::new(
+            RestClient::new(client),
+            "ns",
+            "id",
+            "me",
+            None,
+        ));
         let mk = |l, r, p| LeaderElectionConfig {
             lease_duration: Duration::from_secs(l),
             renew_deadline: Duration::from_secs(r),
@@ -747,11 +799,17 @@ mod tests {
             name: "id".into(),
         };
         assert_eq!(
-            LeaderElector::new(mk(10, 10, 2), lock.clone()).err().unwrap().to_string(),
+            LeaderElector::new(mk(10, 10, 2), lock.clone())
+                .err()
+                .unwrap()
+                .to_string(),
             "leaseDuration must be greater than renewDeadline"
         );
         assert_eq!(
-            LeaderElector::new(mk(15, 2, 2), lock.clone()).err().unwrap().to_string(),
+            LeaderElector::new(mk(15, 2, 2), lock.clone())
+                .err()
+                .unwrap()
+                .to_string(),
             "renewDeadline must be greater than retryPeriod*JitterFactor"
         );
         assert!(LeaderElector::new(mk(15, 10, 2), lock).is_ok());

@@ -38,7 +38,10 @@ impl Keychain for MapKeychain {
 fn keychain(host: &str, user: &str, pass: &str) -> Arc<dyn Keychain> {
     let json = format!(r#"{{"username":"{user}","password":"{pass}"}}"#);
     let mut m = HashMap::new();
-    m.insert(host.to_string(), AuthConfig::from_json(json.as_bytes()).unwrap());
+    m.insert(
+        host.to_string(),
+        AuthConfig::from_json(json.as_bytes()).unwrap(),
+    );
     Arc::new(MapKeychain(m))
 }
 
@@ -77,7 +80,9 @@ async fn head_returns_descriptor_anonymously() {
     let reg = FakeRegistry::start(AuthMode::None).await;
     let digest = simple_image(&reg, "foo/bar", "v1", OCI_MANIFEST);
     let host = reg.host();
-    let d = remote::head(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap();
+    let d = remote::head(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap();
     assert_eq!(d.media_type, MediaType::new(OCI_MANIFEST));
     assert_eq!(d.digest.to_string(), digest);
     assert!(d.size > 0);
@@ -104,8 +109,15 @@ async fn head_index_is_index() {
         "manifests": [{"mediaType": OCI_MANIFEST, "size": 10, "digest": child,
                         "platform": {"architecture": "amd64", "os": "linux"}}],
     });
-    reg.add_manifest("foo/bar", Some("multi"), OCI_INDEX, &serde_json::to_vec(&idx).unwrap());
-    let d = remote::head(&r(&format!("{}/foo/bar:multi", reg.host())), &[]).await.unwrap();
+    reg.add_manifest(
+        "foo/bar",
+        Some("multi"),
+        OCI_INDEX,
+        &serde_json::to_vec(&idx).unwrap(),
+    );
+    let d = remote::head(&r(&format!("{}/foo/bar:multi", reg.host())), &[])
+        .await
+        .unwrap();
     assert!(d.media_type.is_index());
 }
 
@@ -115,12 +127,18 @@ async fn token_auth_with_keychain_credentials() {
     simple_image(&reg, "foo/bar", "v1", OCI_MANIFEST);
     let host = reg.host();
     let kc = keychain(&host, "user", "secret");
-    remote::head(&r(&format!("{host}/foo/bar:v1")), &[remote::with_auth_from_keychain(kc)])
-        .await
-        .unwrap();
+    remote::head(
+        &r(&format!("{host}/foo/bar:v1")),
+        &[remote::with_auth_from_keychain(kc)],
+    )
+    .await
+    .unwrap();
     let tok = reg.requests_to("/token");
     assert_eq!(tok.len(), 1);
-    assert_eq!(tok[0].query, "scope=repository%3Afoo%2Fbar%3Apull&service=fake-registry");
+    assert_eq!(
+        tok[0].query,
+        "scope=repository%3Afoo%2Fbar%3Apull&service=fake-registry"
+    );
     assert_eq!(tok[0].authorization, "Basic dXNlcjpzZWNyZXQ=");
     assert_eq!(tok[0].user_agent, "go-containerregistry/v0.21.2");
     let head = reg.log().into_iter().find(|l| l.method == "HEAD").unwrap();
@@ -133,15 +151,21 @@ async fn repository_scoped_keychain_entry_is_used() {
     simple_image(&reg, "foo/bar", "v1", OCI_MANIFEST);
     let host = reg.host();
     let mut m = HashMap::new();
-    m.insert(host.clone(), AuthConfig::from_json(br#"{"username":"generic","password":"x"}"#).unwrap());
+    m.insert(
+        host.clone(),
+        AuthConfig::from_json(br#"{"username":"generic","password":"x"}"#).unwrap(),
+    );
     m.insert(
         format!("{host}/foo/bar"),
         AuthConfig::from_json(br#"{"auth":"cmVwbzpyZXBvLXBhc3M="}"#).unwrap(),
     );
     let kc: Arc<dyn Keychain> = Arc::new(MapKeychain(m));
-    remote::head(&r(&format!("{host}/foo/bar:v1")), &[remote::with_auth_from_keychain(kc)])
-        .await
-        .unwrap();
+    remote::head(
+        &r(&format!("{host}/foo/bar:v1")),
+        &[remote::with_auth_from_keychain(kc)],
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -157,9 +181,12 @@ async fn anonymous_token_flow_and_access_token_field() {
     simple_image(&reg, "foo/bar", "v1", DOCKER_MANIFEST);
     let host = reg.host();
     let kc: Arc<dyn Keychain> = Arc::new(MapKeychain(HashMap::new()));
-    remote::head(&r(&format!("{host}/foo/bar:v1")), &[remote::with_auth_from_keychain(kc)])
-        .await
-        .unwrap();
+    remote::head(
+        &r(&format!("{host}/foo/bar:v1")),
+        &[remote::with_auth_from_keychain(kc)],
+    )
+    .await
+    .unwrap();
     let tok = reg.requests_to("/token");
     assert_eq!(tok[0].authorization, "");
 }
@@ -169,9 +196,12 @@ async fn token_endpoint_rejects_credentials() {
     let reg = FakeRegistry::start(bearer(Some(("user", "secret")))).await;
     let host = reg.host();
     let kc = keychain(&host, "user", "wrong");
-    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[remote::with_auth_from_keychain(kc)])
-        .await
-        .unwrap_err();
+    let err = remote::head(
+        &r(&format!("{host}/foo/bar:v1")),
+        &[remote::with_auth_from_keychain(kc)],
+    )
+    .await
+    .unwrap_err();
     assert_eq!(
         err.to_string(),
         format!(
@@ -179,7 +209,10 @@ async fn token_endpoint_rejects_credentials() {
         )
     );
     assert_eq!(registry::status_code(&err), Some(401));
-    assert!(registry::has_error_code(&err, transport::codes::UNAUTHORIZED));
+    assert!(registry::has_error_code(
+        &err,
+        transport::codes::UNAUTHORIZED
+    ));
     assert!(registry::is_auth_error(&err));
     assert!(err.to_string().contains("UNAUTHORIZED"));
 }
@@ -195,8 +228,13 @@ async fn missing_realm_and_missing_token() {
     })
     .await;
     let host = reg.host();
-    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap_err();
-    assert_eq!(err.to_string(), "malformed www-authenticate, missing realm: map[service:svc]");
+    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "malformed www-authenticate, missing realm: map[service:svc]"
+    );
 
     let reg = FakeRegistry::start(AuthMode::Bearer {
         service: "svc".into(),
@@ -207,8 +245,13 @@ async fn missing_realm_and_missing_token() {
     })
     .await;
     let host = reg.host();
-    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap_err();
-    assert_eq!(err.to_string(), "no token in bearer response:\n{\"expires_in\":300}");
+    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "no token in bearer response:\n{\"expires_in\":300}"
+    );
 
     let reg = FakeRegistry::start(AuthMode::Bearer {
         service: "svc".into(),
@@ -219,8 +262,13 @@ async fn missing_realm_and_missing_token() {
     })
     .await;
     let host = reg.host();
-    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap_err();
-    assert_eq!(err.to_string(), "invalid character '<' looking for beginning of value");
+    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "invalid character '<' looking for beginning of value"
+    );
 }
 
 #[tokio::test]
@@ -245,7 +293,9 @@ async fn basic_auth_registry() {
     }
 
     // Anonymous against a basic-auth registry: the 401 surfaces as a structured error.
-    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap_err();
+    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
         format!(
@@ -253,7 +303,9 @@ async fn basic_auth_registry() {
         )
     );
     assert!(registry::is_auth_error(&err));
-    let err = remote::get(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap_err();
+    let err = remote::get(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
         format!("GET http://{host}/v2/foo/bar/manifests/v1: UNAUTHORIZED: authentication required")
@@ -264,7 +316,9 @@ async fn basic_auth_registry() {
 async fn not_found_errors_match_go() {
     let reg = FakeRegistry::start(AuthMode::None).await;
     let host = reg.host();
-    let err = remote::head(&r(&format!("{host}/foo/bar:nope")), &[]).await.unwrap_err();
+    let err = remote::head(&r(&format!("{host}/foo/bar:nope")), &[])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
         format!(
@@ -274,12 +328,19 @@ async fn not_found_errors_match_go() {
     assert_eq!(registry::status_code(&err), Some(404));
     assert!(registry::is_not_found_error(&err));
 
-    let err = remote::image(&r(&format!("{host}/foo/bar:nope")), &[]).await.unwrap_err();
+    let err = remote::image(&r(&format!("{host}/foo/bar:nope")), &[])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
-        format!("GET http://{host}/v2/foo/bar/manifests/nope: MANIFEST_UNKNOWN: manifest unknown; map[Tag:nope]")
+        format!(
+            "GET http://{host}/v2/foo/bar/manifests/nope: MANIFEST_UNKNOWN: manifest unknown; map[Tag:nope]"
+        )
     );
-    assert!(registry::has_error_code(&err, transport::codes::MANIFEST_UNKNOWN));
+    assert!(registry::has_error_code(
+        &err,
+        transport::codes::MANIFEST_UNKNOWN
+    ));
     let te = registry::as_transport_error(&err).unwrap();
     assert_eq!(te.errors[0].code, "MANIFEST_UNKNOWN");
     assert_eq!(te.errors[0].message, "manifest unknown");
@@ -309,12 +370,17 @@ async fn image_from_index_picks_linux_amd64() {
         "application/vnd.docker.distribution.manifest.list.v2+json",
         &serde_json::to_vec(&idx).unwrap(),
     );
-    let desc = remote::get(&r(&format!("{host}/foo/bar:multi")), &[]).await.unwrap();
+    let desc = remote::get(&r(&format!("{host}/foo/bar:multi")), &[])
+        .await
+        .unwrap();
     assert!(desc.media_type().is_index());
     assert_eq!(desc.descriptor.digest.to_string(), idx_digest);
     let img = desc.image().await.unwrap();
     assert_eq!(img.digest().to_string(), amd_digest);
-    assert_eq!(img.config_file().await.unwrap().config.labels["arch"], "amd64");
+    assert_eq!(
+        img.config_file().await.unwrap().config.labels["arch"],
+        "amd64"
+    );
     // The child manifest is fetched by digest with its own media type as Accept.
     let child = reg
         .log()
@@ -329,13 +395,18 @@ async fn image_from_index_picks_linux_amd64() {
         "mediaType": OCI_INDEX,
         "manifests": [{"mediaType": DOCKER_MANIFEST, "size": 1, "digest": arm_digest, "platform": {"architecture": "arm64", "os": "linux"}}],
     });
-    reg.add_manifest("foo/bar", Some("armonly"), OCI_INDEX, &serde_json::to_vec(&idx).unwrap());
-    let err = remote::image(&r(&format!("{host}/foo/bar:armonly")), &[]).await.unwrap_err();
+    reg.add_manifest(
+        "foo/bar",
+        Some("armonly"),
+        OCI_INDEX,
+        &serde_json::to_vec(&idx).unwrap(),
+    );
+    let err = remote::image(&r(&format!("{host}/foo/bar:armonly")), &[])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
-        format!(
-            "no child with platform linux/amd64 in index {host}/foo/bar:armonly"
-        )
+        format!("no child with platform linux/amd64 in index {host}/foo/bar:armonly")
     );
 }
 
@@ -344,23 +415,31 @@ async fn digest_references() {
     let reg = FakeRegistry::start(AuthMode::None).await;
     let digest = simple_image(&reg, "foo/bar", "v1", OCI_MANIFEST);
     let host = reg.host();
-    let img = remote::image(&r(&format!("{host}/foo/bar@{digest}")), &[]).await.unwrap();
+    let img = remote::image(&r(&format!("{host}/foo/bar@{digest}")), &[])
+        .await
+        .unwrap();
     assert_eq!(img.digest().to_string(), digest);
 
     // A registry that serves different content for a digest.
     let other = format!("sha256:{}", "a".repeat(64));
     let (mt, body) = reg.lock().manifests[&("foo/bar".to_string(), digest.clone())].clone();
-    reg.lock().manifests.insert(("foo/bar".to_string(), other.clone()), (mt, body));
+    reg.lock()
+        .manifests
+        .insert(("foo/bar".to_string(), other.clone()), (mt, body));
     let reference = format!("{host}/foo/bar@{other}");
     let err = remote::get(&r(&reference), &[]).await.unwrap_err();
     assert_eq!(
         err.to_string(),
-        format!("manifest digest: \"{digest}\" does not match requested digest: \"{other}\" for \"{reference}\"")
+        format!(
+            "manifest digest: \"{digest}\" does not match requested digest: \"{other}\" for \"{reference}\""
+        )
     );
     let err = remote::head(&r(&reference), &[]).await.unwrap_err();
     assert_eq!(
         err.to_string(),
-        format!("manifest digest: \"{digest}\" does not match requested digest: \"{other}\" for \"{reference}\"")
+        format!(
+            "manifest digest: \"{digest}\" does not match requested digest: \"{other}\" for \"{reference}\""
+        )
     );
 }
 
@@ -379,13 +458,22 @@ async fn config_blob_is_verified() {
         "config": {"mediaType": "application/vnd.oci.image.config.v1+json", "size": cfg.len(), "digest": cfg_digest},
         "layers": [],
     });
-    reg.add_manifest("foo/bar", Some("bad"), OCI_MANIFEST, &serde_json::to_vec(&m).unwrap());
+    reg.add_manifest(
+        "foo/bar",
+        Some("bad"),
+        OCI_MANIFEST,
+        &serde_json::to_vec(&m).unwrap(),
+    );
     let mut tampered = cfg.clone();
     let last = tampered.len() - 2;
     tampered[last] = b' ';
-    reg.lock().blobs.insert(cfg_digest.clone(), tampered.clone().into());
+    reg.lock()
+        .blobs
+        .insert(cfg_digest.clone(), tampered.clone().into());
     let host = reg.host();
-    let img = remote::image(&r(&format!("{host}/foo/bar:bad")), &[]).await.unwrap();
+    let img = remote::image(&r(&format!("{host}/foo/bar:bad")), &[])
+        .await
+        .unwrap();
     let err = img.config_file().await.unwrap_err();
     assert_eq!(
         err.to_string(),
@@ -404,8 +492,15 @@ async fn config_blob_is_verified() {
         "config": {"mediaType": "application/vnd.oci.image.config.v1+json", "size": cfg.len() + 5, "digest": cfg_digest},
         "layers": [],
     });
-    reg.add_manifest("foo/bar", Some("badsize"), OCI_MANIFEST, &serde_json::to_vec(&m).unwrap());
-    let img = remote::image(&r(&format!("{host}/foo/bar:badsize")), &[]).await.unwrap();
+    reg.add_manifest(
+        "foo/bar",
+        Some("badsize"),
+        OCI_MANIFEST,
+        &serde_json::to_vec(&m).unwrap(),
+    );
+    let img = remote::image(&r(&format!("{host}/foo/bar:badsize")), &[])
+        .await
+        .unwrap();
     let err = img.config_file().await.unwrap_err();
     assert_eq!(
         err.to_string(),
@@ -422,7 +517,11 @@ async fn extract_release_image_references() {
     let reg = FakeRegistry::start(bearer(Some(("u", "p")))).await;
     let base = gz_layer(&[
         ("release-manifests/", b'5', ""),
-        ("release-manifests/image-references", b'0', r#"{"spec":{"tags":[{"name":"pod","from":{"name":"old"}}]}}"#),
+        (
+            "release-manifests/image-references",
+            b'0',
+            r#"{"spec":{"tags":[{"name":"pod","from":{"name":"old"}}]}}"#,
+        ),
         ("release-manifests/other", b'0', "x"),
         ("usr/", b'5', ""),
         ("usr/bin/", b'5', ""),
@@ -430,11 +529,21 @@ async fn extract_release_image_references() {
     ]);
     let top = gz_layer(&[
         ("release-manifests/", b'5', ""),
-        ("release-manifests/image-references", b'0', r#"{"spec":{"tags":[{"name":"pod","from":{"name":"quay.io/x@sha256:new"}}]}}"#),
+        (
+            "release-manifests/image-references",
+            b'0',
+            r#"{"spec":{"tags":[{"name":"pod","from":{"name":"quay.io/x@sha256:new"}}]}}"#,
+        ),
         ("usr/.wh.bin", b'0', ""),
     ]);
     let cfg = config_json(&BTreeMap::new());
-    reg.push_image("ocp/release", Some("4.19.0-aarch64"), OCI_MANIFEST, &cfg, &[base, top]);
+    reg.push_image(
+        "ocp/release",
+        Some("4.19.0-aarch64"),
+        OCI_MANIFEST,
+        &cfg,
+        &[base, top],
+    );
     let host = reg.host();
     let img = remote::image(
         &r(&format!("{host}/ocp/release:4.19.0-aarch64")),
@@ -477,10 +586,18 @@ async fn extract_stops_cleanly_when_a_layer_is_missing() {
     let present = gz_layer(&[("a", b'0', "a")]);
     let missing = gz_layer(&[("b", b'0', "b")]);
     let cfg = config_json(&BTreeMap::new());
-    reg.push_image("foo/bar", Some("v1"), OCI_MANIFEST, &cfg, &[present, missing.clone()]);
+    reg.push_image(
+        "foo/bar",
+        Some("v1"),
+        OCI_MANIFEST,
+        &cfg,
+        &[present, missing.clone()],
+    );
     reg.lock().blobs.remove(&sha256(&missing));
     let host = reg.host();
-    let img = remote::image(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap();
+    let img = remote::image(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap();
     let mut ex = mutate::extract(&img);
     assert!(ex.next_entry().await.unwrap().is_none());
 
@@ -495,14 +612,20 @@ async fn reauth_on_challenge_adds_scope() {
     simple_image(&reg, "foo/bar", "v1", OCI_MANIFEST);
     reg.lock().reject_once.push("tok-1".into());
     let host = reg.host();
-    remote::head(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap();
+    remote::head(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap();
     let tok = reg.requests_to("/token");
     assert_eq!(tok.len(), 2);
     assert_eq!(
         tok[1].query,
         "scope=repository%3Aextra%2Fscope%3Apull&scope=repository%3Afoo%2Fbar%3Apull&service=fake-registry"
     );
-    let heads: Vec<_> = reg.log().into_iter().filter(|l| l.method == "HEAD").collect();
+    let heads: Vec<_> = reg
+        .log()
+        .into_iter()
+        .filter(|l| l.method == "HEAD")
+        .collect();
     assert_eq!(heads.len(), 2);
     assert_eq!(heads[1].authorization, "Bearer tok-2");
 }
@@ -515,10 +638,15 @@ async fn retries_temporary_status_codes() {
     // HEAD always 503: 3 attempts, body drained, Go's HEAD message.
     reg.hook(|l, _| {
         (l.method == "HEAD" && l.path.ends_with("/always503")).then(|| {
-            Response::builder().status(503).body(Body::from("busy")).unwrap()
+            Response::builder()
+                .status(503)
+                .body(Body::from("busy"))
+                .unwrap()
         })
     });
-    let err = remote::head(&r(&format!("{host}/foo/bar:always503")), &[fast()]).await.unwrap_err();
+    let err = remote::head(&r(&format!("{host}/foo/bar:always503")), &[fast()])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
         format!(
@@ -534,14 +662,20 @@ async fn retries_temporary_status_codes() {
         (l.method == "GET" && l.path.ends_with("/always500")).then(|| {
             Response::builder()
                 .status(500)
-                .body(Body::from(r#"{"errors":[{"code":"UNKNOWN","message":"boom"}]}"#))
+                .body(Body::from(
+                    r#"{"errors":[{"code":"UNKNOWN","message":"boom"}]}"#,
+                ))
                 .unwrap()
         })
     });
-    let err = remote::get(&r(&format!("{host}/foo/bar:always500")), &[fast()]).await.unwrap_err();
+    let err = remote::get(&r(&format!("{host}/foo/bar:always500")), &[fast()])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
-        format!("GET http://{host}/v2/foo/bar/manifests/always500: unexpected status code 500 Internal Server Error")
+        format!(
+            "GET http://{host}/v2/foo/bar/manifests/always500: unexpected status code 500 Internal Server Error"
+        )
     );
 
     // Transient failures then success.
@@ -556,7 +690,9 @@ async fn retries_temporary_status_codes() {
         }
         None
     });
-    remote::get(&r(&format!("{host}/foo/bar:v1")), &[fast()]).await.unwrap();
+    remote::get(&r(&format!("{host}/foo/bar:v1")), &[fast()])
+        .await
+        .unwrap();
     assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 3);
 
     // 429 is not in the retry list.
@@ -564,11 +700,15 @@ async fn retries_temporary_status_codes() {
         l.path.ends_with("/limited").then(|| {
             Response::builder()
                 .status(429)
-                .body(Body::from(r#"{"errors":[{"code":"TOOMANYREQUESTS","message":"slow down"}]}"#))
+                .body(Body::from(
+                    r#"{"errors":[{"code":"TOOMANYREQUESTS","message":"slow down"}]}"#,
+                ))
                 .unwrap()
         })
     });
-    let err = remote::get(&r(&format!("{host}/foo/bar:limited")), &[fast()]).await.unwrap_err();
+    let err = remote::get(&r(&format!("{host}/foo/bar:limited")), &[fast()])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
         format!("GET http://{host}/v2/foo/bar/manifests/limited: TOOMANYREQUESTS: slow down")
@@ -580,10 +720,17 @@ async fn retries_temporary_status_codes() {
 async fn ping_errors() {
     let reg = FakeRegistry::start(AuthMode::None).await;
     reg.hook(|l, _| {
-        (l.path == "/v2/").then(|| Response::builder().status(404).body(Body::from("no registry here")).unwrap())
+        (l.path == "/v2/").then(|| {
+            Response::builder()
+                .status(404)
+                .body(Body::from("no registry here"))
+                .unwrap()
+        })
     });
     let host = reg.host();
-    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap_err();
+    let err = remote::head(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap_err();
     // The https attempt fails (plain HTTP server), then the http fallback gets a 404.
     assert_eq!(
         err.to_string(),
@@ -597,7 +744,9 @@ async fn ping_errors() {
     let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let dead = l.local_addr().unwrap().to_string();
     drop(l);
-    let err = remote::head(&r(&format!("{dead}/foo/bar:v1")), &[fast()]).await.unwrap_err();
+    let err = remote::head(&r(&format!("{dead}/foo/bar:v1")), &[fast()])
+        .await
+        .unwrap_err();
     assert_eq!(
         err.to_string(),
         format!(
@@ -612,22 +761,35 @@ async fn blob_redirects_drop_auth_for_other_hosts() {
     let cdn = FakeRegistry::start(AuthMode::None).await;
     let layer = gz_layer(&[("f", b'0', "content")]);
     let cfg = config_json(&BTreeMap::new());
-    reg.push_image("foo/bar", Some("v1"), OCI_MANIFEST, &cfg, std::slice::from_ref(&layer));
+    reg.push_image(
+        "foo/bar",
+        Some("v1"),
+        OCI_MANIFEST,
+        &cfg,
+        std::slice::from_ref(&layer),
+    );
     let layer_digest = sha256(&layer);
-    cdn.lock().blobs.insert(layer_digest.clone(), layer.clone().into());
+    cdn.lock()
+        .blobs
+        .insert(layer_digest.clone(), layer.clone().into());
     let cdn_host = cdn.host();
     let d2 = layer_digest.clone();
     reg.hook(move |l, _| {
         (l.method == "GET" && l.path.ends_with(&format!("/blobs/{d2}"))).then(|| {
             Response::builder()
                 .status(307)
-                .header("Location", format!("http://{cdn_host}/v2/cdn/blobs/{d2}?sig=secret"))
+                .header(
+                    "Location",
+                    format!("http://{cdn_host}/v2/cdn/blobs/{d2}?sig=secret"),
+                )
                 .body(Body::empty())
                 .unwrap()
         })
     });
     let host = reg.host();
-    let img = remote::image(&r(&format!("{host}/foo/bar:v1")), &[]).await.unwrap();
+    let img = remote::image(&r(&format!("{host}/foo/bar:v1")), &[])
+        .await
+        .unwrap();
     let mut ex = mutate::extract(&img);
     let h = ex.next_entry().await.unwrap().unwrap();
     assert_eq!(h.name, "f");
@@ -686,7 +848,11 @@ fn test_keychain_prefers_repository_scoped_auth() {
             "quay.io/edge-infrastructure/bluefield-ocp",
             "repo",
         ),
-        ("registry entry is used for the registry itself", "quay.io", "generic"),
+        (
+            "registry entry is used for the registry itself",
+            "quay.io",
+            "generic",
+        ),
     ] {
         let t = parse_auth_target(target);
         let auth = kc.resolve(t.as_ref()).unwrap();
@@ -697,7 +863,9 @@ fn test_keychain_prefers_repository_scoped_auth() {
 
 #[test]
 fn test_keychain_falls_back_to_registry_auth() {
-    let kc = docker_config_keychain(r#"{"auths": {"quay.io": {"username": "generic", "password": "generic-pass"}}}"#);
+    let kc = docker_config_keychain(
+        r#"{"auths": {"quay.io": {"username": "generic", "password": "generic-pass"}}}"#,
+    );
     let repo = name::new_repository("quay.io/openshift-release-dev/ocp-release", &[]).unwrap();
     let cfg = kc.resolve(&repo).unwrap().authorization().unwrap();
     assert_eq!(cfg.username, "generic");
@@ -705,7 +873,9 @@ fn test_keychain_falls_back_to_registry_auth() {
 
 #[test]
 fn test_keychain_anonymous_when_no_match() {
-    let kc = docker_config_keychain(r#"{"auths": {"registry.redhat.io": {"username": "rh", "password": "rh-pass"}}}"#);
+    let kc = docker_config_keychain(
+        r#"{"auths": {"registry.redhat.io": {"username": "rh", "password": "rh-pass"}}}"#,
+    );
     let repo = name::new_repository("quay.io/edge-infrastructure/bluefield-ocp", &[]).unwrap();
     let auth = kc.resolve(&repo).unwrap();
     let cfg = auth.authorization().unwrap();

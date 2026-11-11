@@ -12,7 +12,9 @@
 
 use base64::Engine;
 use k8s_openapi::ByteString;
-use k8s_openapi::api::certificates::v1::{CertificateSigningRequest, CertificateSigningRequestSpec};
+use k8s_openapi::api::certificates::v1::{
+    CertificateSigningRequest, CertificateSigningRequestSpec,
+};
 use serde::Deserialize;
 
 use crate::csr_content_validation::*;
@@ -70,11 +72,7 @@ fn assert_msg(case: &str, what: &str, go: &str, rust: &str) {
         );
         return;
     }
-    assert_eq!(
-        normalize(rust),
-        normalize(go),
-        "{case}: {what} mismatch"
-    );
+    assert_eq!(normalize(rust), normalize(go), "{case}: {what} mismatch");
 }
 
 fn err_string<T>(r: ctrlrt::Result<T>) -> String {
@@ -84,7 +82,13 @@ fn err_string<T>(r: ctrlrt::Result<T>) -> String {
     }
 }
 
-fn csr(signer: &str, username: &str, groups: &[&str], usages: &[&str], request: &[u8]) -> CertificateSigningRequest {
+fn csr(
+    signer: &str,
+    username: &str,
+    groups: &[&str],
+    usages: &[&str],
+    request: &[u8],
+) -> CertificateSigningRequest {
     CertificateSigningRequest {
         spec: CertificateSigningRequestSpec {
             signer_name: signer.into(),

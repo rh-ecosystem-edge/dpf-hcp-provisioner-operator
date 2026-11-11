@@ -85,7 +85,11 @@ fn unescape(s: &[u8], mode: Mode) -> Result<Vec<u8>, EscapeError> {
             i += 1;
         }
     }
-    let plus = if mode == Mode::QueryComponent { b' ' } else { b'+' };
+    let plus = if mode == Mode::QueryComponent {
+        b' '
+    } else {
+        b'+'
+    };
     let mut t = Vec::with_capacity(s.len());
     let mut i = 0;
     while i < s.len() {

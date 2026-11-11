@@ -118,7 +118,11 @@ mod get_kubeconfig_data {
     #[tokio::test]
     async fn returns_kubeconfig_bytes() {
         let data = BTreeMap::from([("kubeconfig".to_string(), ByteString(b"abc".to_vec()))]);
-        let cm = manager(vec![secret("clusters", "doca-admin-kubeconfig", Some(data))]);
+        let cm = manager(vec![secret(
+            "clusters",
+            "doca-admin-kubeconfig",
+            Some(data),
+        )]);
         let got = cm
             .get_kubeconfig_data(&Ctx::background(), "clusters", "doca")
             .await
@@ -156,7 +160,11 @@ mod get_kubeconfig_data {
     #[tokio::test]
     async fn empty_data() {
         let data = BTreeMap::from([("kubeconfig".to_string(), ByteString(vec![]))]);
-        let cm = manager(vec![secret("clusters", "doca-admin-kubeconfig", Some(data))]);
+        let cm = manager(vec![secret(
+            "clusters",
+            "doca-admin-kubeconfig",
+            Some(data),
+        )]);
         let err = cm
             .get_kubeconfig_data(&Ctx::background(), "clusters", "doca")
             .await
@@ -191,7 +199,11 @@ mod client_cache {
             "kubeconfig".to_string(),
             ByteString(b"apiVersion: v1\nkind: Config\nclusters: []\ncontexts: []\n".to_vec()),
         )]);
-        let cm = manager(vec![secret("clusters", "doca-admin-kubeconfig", Some(data))]);
+        let cm = manager(vec![secret(
+            "clusters",
+            "doca-admin-kubeconfig",
+            Some(data),
+        )]);
         let err = cm
             .get_hosted_cluster_client(&Ctx::background(), "clusters", "doca")
             .await
@@ -208,7 +220,11 @@ mod client_cache {
             "kubeconfig".to_string(),
             ByteString(KUBECONFIG.as_bytes().to_vec()),
         )]);
-        let cm = manager(vec![secret("clusters", "doca-admin-kubeconfig", Some(data))]);
+        let cm = manager(vec![secret(
+            "clusters",
+            "doca-admin-kubeconfig",
+            Some(data),
+        )]);
         let ctx = Ctx::background();
         let c = cm
             .get_hosted_cluster_client(&ctx, "clusters", "doca")
@@ -292,14 +308,18 @@ mod create_or_update_tests {
         let nsc = hc.resource::<Namespace>("");
 
         let mut ns = namespace("holder");
-        let r = create_or_update(&ctx, &nsc, &mut ns, Some(&mut add_labels)).await.unwrap();
+        let r = create_or_update(&ctx, &nsc, &mut ns, Some(&mut add_labels))
+            .await
+            .unwrap();
         assert_eq!(r, OperationResult::Created);
         assert_eq!(r.to_string(), "created");
         // The mutate function ran on the passed object.
         assert_eq!(ns.labels().get("app").map(String::as_str), Some("x"));
 
         let mut ns = namespace("holder");
-        let r = create_or_update(&ctx, &nsc, &mut ns, Some(&mut add_labels)).await.unwrap();
+        let r = create_or_update(&ctx, &nsc, &mut ns, Some(&mut add_labels))
+            .await
+            .unwrap();
         assert_eq!(r, OperationResult::None);
         assert_eq!(r.as_str(), "unchanged");
 
@@ -311,7 +331,9 @@ mod create_or_update_tests {
                 .insert("app".into(), "y".into());
             Ok(())
         };
-        let r = create_or_update(&ctx, &nsc, &mut ns, Some(&mut relabel)).await.unwrap();
+        let r = create_or_update(&ctx, &nsc, &mut ns, Some(&mut relabel))
+            .await
+            .unwrap();
         assert_eq!(r, OperationResult::Updated);
         assert_eq!(r.as_str(), "updated");
         let got = nsc.get(&ctx, "holder").await.unwrap();
@@ -388,7 +410,9 @@ mod create_or_update_tests {
         let hc = HostedClient::fake(fake.client());
         let nsc = hc.resource::<Namespace>("");
         let mut ns = namespace("a");
-        let err = create_or_update(&ctx, &nsc, &mut ns, None).await.unwrap_err();
+        let err = create_or_update(&ctx, &nsc, &mut ns, None)
+            .await
+            .unwrap_err();
         assert_eq!(err.to_string(), "Internal error occurred: etcd down");
     }
 
@@ -411,9 +435,17 @@ mod create_or_update_tests {
             OperationResult::Created
         );
         assert_eq!(dsc.list(&ctx).await.unwrap().len(), 1);
-        assert!(hc.resource::<DaemonSet>("other").list(&ctx).await.unwrap().is_empty());
+        assert!(
+            hc.resource::<DaemonSet>("other")
+                .list(&ctx)
+                .await
+                .unwrap()
+                .is_empty()
+        );
         dsc.delete(&ctx, "ds").await.unwrap();
-        assert!(ctrlrt::error::is_not_found(&dsc.get(&ctx, "ds").await.unwrap_err()));
+        assert!(ctrlrt::error::is_not_found(
+            &dsc.get(&ctx, "ds").await.unwrap_err()
+        ));
     }
 
     #[test]

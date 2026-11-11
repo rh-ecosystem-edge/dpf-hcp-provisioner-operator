@@ -36,7 +36,10 @@ impl PrVersion {
             v.version_str = s.to_string();
             v.is_num = false;
         } else {
-            return Err(Error::Msg(format!("Invalid character(s) found in prerelease {}", strconv::quote(s))));
+            return Err(Error::Msg(format!(
+                "Invalid character(s) found in prerelease {}",
+                strconv::quote(s)
+            )));
         }
         Ok(v)
     }
@@ -118,7 +121,9 @@ pub fn parse(s: &str) -> Result<Version, Error> {
     }
     let parts: Vec<&str> = s.splitn(3, '.').collect();
     if parts.len() != 3 {
-        return Err(Error::Msg("No Major.Minor.Patch elements found".to_string()));
+        return Err(Error::Msg(
+            "No Major.Minor.Patch elements found".to_string(),
+        ));
     }
     if !contains_only(parts[0], NUMBERS) {
         return Err(Error::Msg(format!(
@@ -211,7 +216,9 @@ pub fn parse_tolerant(s: &str) -> Result<Version, Error> {
     }
     if parts.len() < 3 {
         if parts.last().is_some_and(|p| p.contains(['+', '-'])) {
-            return Err(Error::Msg("Short version cannot contain PreRelease/Build meta data".to_string()));
+            return Err(Error::Msg(
+                "Short version cannot contain PreRelease/Build meta data".to_string(),
+            ));
         }
         while parts.len() < 3 {
             parts.push("0".to_string());
@@ -231,7 +238,11 @@ pub fn must_parse(s: &str) -> Version {
 impl Version {
     /// `(Version).Compare`: -1, 0 or 1.
     pub fn compare(&self, o: &Version) -> i32 {
-        for (a, b) in [(self.major, o.major), (self.minor, o.minor), (self.patch, o.patch)] {
+        for (a, b) in [
+            (self.major, o.major),
+            (self.minor, o.minor),
+            (self.patch, o.patch),
+        ] {
             if a != b {
                 return if a > b { 1 } else { -1 };
             }

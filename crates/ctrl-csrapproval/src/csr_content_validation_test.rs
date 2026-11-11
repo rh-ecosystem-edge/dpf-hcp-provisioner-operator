@@ -1,7 +1,9 @@
 //! Port of `csr_content_validation_test.go` (Describe "CSR Validation").
 
 use k8s_openapi::ByteString;
-use k8s_openapi::api::certificates::v1::{CertificateSigningRequest, CertificateSigningRequestSpec};
+use k8s_openapi::api::certificates::v1::{
+    CertificateSigningRequest, CertificateSigningRequestSpec,
+};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
 use crate::csr_content_validation::*;
@@ -145,7 +147,8 @@ mod csr_validation {
             #[test]
             fn should_fail_validation() {
                 let hostname = TEST_HOSTNAME;
-                let csr_bytes = create_test_csr_with_organization(&node_user(hostname), "wrong-org");
+                let csr_bytes =
+                    create_test_csr_with_organization(&node_user(hostname), "wrong-org");
                 let csr = csr(
                     "test-invalid-org",
                     SIGNER_BOOTSTRAP,
@@ -223,7 +226,8 @@ mod csr_validation {
 
                 let err = validate_serving_csr(&csr, hostname).unwrap_err();
                 assert!(
-                    err.to_string().contains("missing required group: system:nodes"),
+                    err.to_string()
+                        .contains("missing required group: system:nodes"),
                     "{err}"
                 );
             }

@@ -141,7 +141,9 @@ impl Serialize for MediaType {
 
 impl<'de> Deserialize<'de> for MediaType {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        Ok(MediaType(Option::<String>::deserialize(d)?.unwrap_or_default()))
+        Ok(MediaType(
+            Option::<String>::deserialize(d)?.unwrap_or_default(),
+        ))
     }
 }
 
@@ -158,12 +160,21 @@ impl Hash {
     /// `v1.NewHash`
     pub fn new(s: &str) -> Result<Hash, HashError> {
         let Some((algo, body)) = s.split_once(':') else {
-            return Err(HashError(format!("cannot parse hash: {}", goutil::quote(s))));
+            return Err(HashError(format!(
+                "cannot parse hash: {}",
+                goutil::quote(s)
+            )));
         };
         if algo.is_empty() || body.is_empty() {
-            return Err(HashError(format!("cannot parse hash: {}", goutil::quote(s))));
+            return Err(HashError(format!(
+                "cannot parse hash: {}",
+                goutil::quote(s)
+            )));
         }
-        if let Some(c) = body.bytes().find(|b| !matches!(b, b'0'..=b'9' | b'a'..=b'f')) {
+        if let Some(c) = body
+            .bytes()
+            .find(|b| !matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+        {
             return Err(HashError(format!(
                 "found non-hex character in hash: {}",
                 char::from(c)
@@ -262,9 +273,17 @@ pub struct Platform {
         skip_serializing_if = "Vec::is_empty"
     )]
     pub os_features: Vec<String>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub variant: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub features: Vec<String>,
 }
 
@@ -289,7 +308,6 @@ impl Platform {
         }
         b
     }
-
 }
 
 /// `remote.defaultPlatform` (linux/amd64).
@@ -312,15 +330,19 @@ pub struct Descriptor {
     pub size: i64,
     #[serde(default)]
     pub digest: Hash,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "base64_opt")]
+    pub data: Option<Vec<u8>>,
     #[serde(
         default,
-        skip_serializing_if = "Option::is_none",
-        with = "base64_opt"
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
     )]
-    pub data: Option<Vec<u8>>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
     pub urls: Vec<String>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "BTreeMap::is_empty"
+    )]
     pub annotations: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platform: Option<Platform>,
@@ -344,7 +366,11 @@ pub struct Manifest {
     pub config: Descriptor,
     #[serde(default, deserialize_with = "null_default")]
     pub layers: Vec<Descriptor>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "BTreeMap::is_empty"
+    )]
     pub annotations: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subject: Option<Descriptor>,
@@ -359,7 +385,11 @@ pub struct IndexManifest {
     pub media_type: MediaType,
     #[serde(default, deserialize_with = "null_default")]
     pub manifests: Vec<Descriptor>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "BTreeMap::is_empty"
+    )]
     pub annotations: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subject: Option<Descriptor>,
@@ -427,9 +457,17 @@ pub fn parse_index_manifest(data: &[u8]) -> anyhow::Result<IndexManifest> {
 pub struct ConfigFile {
     #[serde(default, deserialize_with = "null_default")]
     pub architecture: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub author: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub container: String,
     /// RFC 3339 creation time as found in the config (Go: `v1.Time`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -441,7 +479,11 @@ pub struct ConfigFile {
         skip_serializing_if = "String::is_empty"
     )]
     pub docker_version: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub history: Vec<History>,
     #[serde(default, deserialize_with = "null_default")]
     pub os: String,
@@ -456,7 +498,11 @@ pub struct ConfigFile {
         skip_serializing_if = "String::is_empty"
     )]
     pub os_version: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub variant: String,
     #[serde(
         rename = "os.features",
@@ -470,7 +516,11 @@ pub struct ConfigFile {
 /// `v1.History`
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct History {
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub author: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created: Option<String>,
@@ -481,7 +531,11 @@ pub struct History {
         skip_serializing_if = "String::is_empty"
     )]
     pub created_by: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub comment: String,
     #[serde(
         rename = "empty_layer",
@@ -505,41 +559,113 @@ pub struct RootFS {
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct Config {
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "std::ops::Not::not")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub attach_stderr: bool,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "std::ops::Not::not")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub attach_stdin: bool,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "std::ops::Not::not")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub attach_stdout: bool,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub cmd: Vec<String>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub domainname: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub entrypoint: Vec<String>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub env: Vec<String>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub hostname: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub image: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "BTreeMap::is_empty"
+    )]
     pub labels: BTreeMap<String, String>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub on_build: Vec<String>,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "std::ops::Not::not")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub open_stdin: bool,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "std::ops::Not::not")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub stdin_once: bool,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "std::ops::Not::not")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub tty: bool,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub user: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub working_dir: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub stop_signal: String,
-    #[serde(default, deserialize_with = "null_default", skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "null_default",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub shell: Vec<String>,
 }
 
@@ -556,7 +682,10 @@ mod tests {
     fn hash_parsing() {
         let h = Hash::new(&format!("sha256:{}", "a".repeat(64))).unwrap();
         assert_eq!(h.to_string(), format!("sha256:{}", "a".repeat(64)));
-        assert_eq!(Hash::new("nope").unwrap_err().to_string(), "cannot parse hash: \"nope\"");
+        assert_eq!(
+            Hash::new("nope").unwrap_err().to_string(),
+            "cannot parse hash: \"nope\""
+        );
         assert_eq!(
             Hash::new("sha256:xyz").unwrap_err().to_string(),
             "found non-hex character in hash: x"

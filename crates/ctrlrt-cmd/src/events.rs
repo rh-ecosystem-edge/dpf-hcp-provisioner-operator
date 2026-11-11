@@ -97,7 +97,8 @@ impl<K: Eq + Hash + Clone, V: Clone> Lru<K, V> {
         // compact stale order entries occasionally
         if self.order.len() > self.cap * 4 + 16 {
             let map = &self.map;
-            self.order.retain(|(t, k)| map.get(k).is_some_and(|e| e.1 == *t));
+            self.order
+                .retain(|(t, k)| map.get(k).is_some_and(|e| e.1 == *t));
         }
     }
 
@@ -111,7 +112,9 @@ impl<K: Eq + Hash + Clone, V: Clone> Lru<K, V> {
         self.map.insert(k.clone(), (v, 0));
         self.touch(&k);
         while self.map.len() > self.cap {
-            let Some((t, old)) = self.order.pop_front() else { break };
+            let Some((t, old)) = self.order.pop_front() else {
+                break;
+            };
             if self.map.get(&old).is_some_and(|e| e.1 == t) {
                 self.map.remove(&old);
             }
@@ -269,7 +272,10 @@ impl EventCorrelator {
         // Go: zero lastTimestamp -> interval is huge -> fresh record.
         let reset = match record.last_timestamp {
             None => true,
-            Some(last) => (unix_nano(&now) - unix_nano(&last)) > DEFAULT_AGGREGATE_INTERVAL_SECONDS * 1_000_000_000,
+            Some(last) => {
+                (unix_nano(&now) - unix_nano(&last))
+                    > DEFAULT_AGGREGATE_INTERVAL_SECONDS * 1_000_000_000
+            }
         };
         if reset {
             record = AggregateRecord {
@@ -297,7 +303,11 @@ impl EventCorrelator {
             keys.remove(&k);
         }
 
-        let name = format!("{}.{:x}", s(&new_event.involved_object.name), unix_nano(&now));
+        let name = format!(
+            "{}.{:x}",
+            s(&new_event.involved_object.name),
+            unix_nano(&now)
+        );
         let t = meta_time(&now);
         let copy = Event {
             metadata: ObjectMeta {
@@ -309,7 +319,10 @@ impl EventCorrelator {
             first_timestamp: Some(t.clone()),
             involved_object: new_event.involved_object.clone(),
             last_timestamp: Some(t),
-            message: Some(format!("(combined from similar events): {}", s(&new_event.message))),
+            message: Some(format!(
+                "(combined from similar events): {}",
+                s(&new_event.message)
+            )),
             type_: new_event.type_.clone(),
             reason: new_event.reason.clone(),
             source: new_event.source.clone(),
@@ -328,7 +341,8 @@ impl EventCorrelator {
         let mut patch = None;
         if last.count > 0 {
             event.metadata.name = Some(last.name.clone());
-            event.metadata.resource_version = Some(last.resource_version.clone()).filter(|s| !s.is_empty());
+            event.metadata.resource_version =
+                Some(last.resource_version.clone()).filter(|s| !s.is_empty());
             event.first_timestamp = last.first_timestamp.clone();
             event.count = Some(last.count + 1);
             // CreateTwoWayMergePatch(old{count:0, lastTimestamp:epoch, message:""}, new)
@@ -422,7 +436,8 @@ pub fn is_dns1123_subdomain(name: &str) -> bool {
             && !b[0].is_ascii_uppercase()
             && b[b.len() - 1].is_ascii_alphanumeric()
             && !b[b.len() - 1].is_ascii_uppercase()
-            && b.iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
+            && b.iter()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
     })
 }
 
@@ -433,7 +448,14 @@ fn uuid_v4() -> String {
     b[6] = (b[6] & 0x0f) | 0x40;
     b[8] = (b[8] & 0x3f) | 0x80;
     let h: String = b.iter().map(|x| format!("{x:02x}")).collect();
-    format!("{}-{}-{}-{}-{}", &h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32])
+    format!(
+        "{}-{}-{}-{}-{}",
+        &h[0..8],
+        &h[8..12],
+        &h[12..16],
+        &h[16..20],
+        &h[20..32]
+    )
 }
 
 /// `util.GenerateEventName(refName, unixNano)`
@@ -473,7 +495,12 @@ async fn record_event(
     let mut result: Option<ctrlrt::Result<Event>> = None;
     if update_existing && let Some(p) = patch {
         let mut ev = event.clone();
-        result = Some(client.patch(&mut ev, &Patch::Strategic(p.clone())).await.map(|_| ev));
+        result = Some(
+            client
+                .patch(&mut ev, &Patch::Strategic(p.clone()))
+                .await
+                .map(|_| ev),
+        );
     }
     let key_not_found = matches!(&result, Some(Err(e)) if ctrlrt::error::as_api_error(e).is_some_and(|a| a.code == 404));
     if !update_existing || key_not_found || result.is_none() {
@@ -542,7 +569,15 @@ async fn record_to_sink(
     let update_existing = ev.count.unwrap_or(0) > 1;
     let mut tries = 0;
     loop {
-        if record_event(client, &mut ev, result.patch.as_ref(), update_existing, correlator).await {
+        if record_event(
+            client,
+            &mut ev,
+            result.patch.as_ref(),
+            update_existing,
+            correlator,
+        )
+        .await
+        {
             break;
         }
         tries += 1;
@@ -558,7 +593,11 @@ async fn record_to_sink(
         }
         // Randomize the first sleep so that various clients won't all be
         // synced up if the master goes down.
-        let delay = if tries == 1 { sleep.mul_f64(rand_f64()) } else { sleep };
+        let delay = if tries == 1 {
+            sleep.mul_f64(rand_f64())
+        } else {
+            sleep
+        };
         tokio::select! {
             _ = cancel.cancelled() => {
                 klog::structured(
@@ -721,7 +760,12 @@ impl RecorderProvider {
 
     /// Like [`RecorderProvider::new`] with an explicit clock and retry sleep duration
     /// (`NewBroadcasterForTests`).
-    pub fn with_options(client: ctrlrt::Client, logger: Logger, clock: Clock, sleep: Duration) -> Self {
+    pub fn with_options(
+        client: ctrlrt::Client,
+        logger: Logger,
+        clock: Clock,
+        sleep: Duration,
+    ) -> Self {
         Self {
             inner: Arc::new(ProviderInner {
                 client,
@@ -766,7 +810,13 @@ struct LazyRecorder {
 }
 
 impl LazyRecorder {
-    fn make_event(&self, r: &ObjectReference, event_type: &str, reason: &str, message: &str) -> Event {
+    fn make_event(
+        &self,
+        r: &ObjectReference,
+        event_type: &str,
+        reason: &str,
+        message: &str,
+    ) -> Event {
         let now = (self.inner.clock)();
         let t = meta_time(&now);
         let namespace = match r.namespace.as_deref() {
@@ -809,17 +859,31 @@ impl EventRecorder for LazyRecorder {
             );
             return;
         };
-        let Ok(stopped) = self.inner.stopped.read() else { return };
+        let Ok(stopped) = self.inner.stopped.read() else {
+            return;
+        };
         if *stopped {
             return;
         }
         if event_type != "Normal" && event_type != "Warning" {
-            klog::structured('E', "event.go:447", "Unsupported event type", None, &[("eventType", event_type.to_string())]);
+            klog::structured(
+                'E',
+                "event.go:447",
+                "Unsupported event type",
+                None,
+                &[("eventType", event_type.to_string())],
+            );
             return;
         }
         let ev = self.make_event(object, event_type, reason, message);
         match b.action_or_drop(ev.clone()) {
-            Err(e) => klog::structured('E', "event.go:464", "Unable to record event (will not retry!)", Some(&e), &[]),
+            Err(e) => klog::structured(
+                'E',
+                "event.go:464",
+                "Unable to record event (will not retry!)",
+                Some(&e),
+                &[],
+            ),
             Ok(false) => klog::structured(
                 'E',
                 "event.go:468",
@@ -838,7 +902,10 @@ mod tests {
 
     #[test]
     fn event_names() {
-        assert_eq!(generate_event_name("foo", 0x17c0a7d8f0f3a9b2), "foo.17c0a7d8f0f3a9b2");
+        assert_eq!(
+            generate_event_name("foo", 0x17c0a7d8f0f3a9b2),
+            "foo.17c0a7d8f0f3a9b2"
+        );
         let n = generate_event_name("Foo_Bar", 1);
         assert_eq!(n.len(), 36);
         assert!(is_dns1123_subdomain("a.b-c.d"));

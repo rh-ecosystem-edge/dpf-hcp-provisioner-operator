@@ -100,7 +100,8 @@ struct GroupState {
 }
 
 /// `errRunnableGroupStopped`
-const ERR_RUNNABLE_GROUP_STOPPED: &str = "can't accept new runnable as stop procedure is already engaged";
+const ERR_RUNNABLE_GROUP_STOPPED: &str =
+    "can't accept new runnable as stop procedure is already engaged";
 
 struct RunnableGroup {
     cancel: CancellationToken,
@@ -149,7 +150,9 @@ impl RunnableGroup {
         {
             let st = self.lock();
             if st.stopped {
-                let _ = self.err_tx.send(anyhow::anyhow!(ERR_RUNNABLE_GROUP_STOPPED));
+                let _ = self
+                    .err_tx
+                    .send(anyhow::anyhow!(ERR_RUNNABLE_GROUP_STOPPED));
                 return;
             }
         }
@@ -368,7 +371,9 @@ fn listen(addr: &str) -> Result<Option<TcpListener>> {
         0
     } else {
         port.parse().map_err(|_| {
-            anyhow::anyhow!("error listening on {addr}: listen tcp: lookup tcp/{port}: unknown port")
+            anyhow::anyhow!(
+                "error listening on {addr}: listen tcp: lookup tcp/{port}: unknown port"
+            )
         })?
     };
     let ln = if host.is_empty() {
@@ -406,7 +411,12 @@ struct ProbeServer {
 #[async_trait::async_trait]
 impl Runnable for ProbeServer {
     async fn start(&self, ctx: Ctx) -> Result<()> {
-        let Some(std_ln) = self.listener.lock().unwrap_or_else(|e| e.into_inner()).take() else {
+        let Some(std_ln) = self
+            .listener
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+        else {
             return Ok(());
         };
         let addr = std_ln
@@ -470,10 +480,13 @@ impl Manager {
         let api_reader = Client::new(Arc::new(direct));
 
         // recorder provider
-        let recorder_factory: RecorderFactory = options.recorder_factory.clone().unwrap_or_else(|| {
-            let log = logger.with_name("events");
-            Arc::new(move |_name: &str| -> ctrlrt::Recorder { Arc::new(LoggingRecorder::new(log.clone())) })
-        });
+        let recorder_factory: RecorderFactory =
+            options.recorder_factory.clone().unwrap_or_else(|| {
+                let log = logger.with_name("events");
+                Arc::new(move |_name: &str| -> ctrlrt::Recorder {
+                    Arc::new(LoggingRecorder::new(log.clone()))
+                })
+            });
 
         // resource lock
         let rf = recorder_factory.clone();
@@ -672,7 +685,14 @@ impl Manager {
         let le_cancel = CancellationToken::new();
         let le_stopped = CancellationToken::new();
         let res = self
-            .start_inner(&ctx, &internal, &mut err_rx, elector, &le_cancel, &le_stopped)
+            .start_inner(
+                &ctx,
+                &internal,
+                &mut err_rx,
+                elector,
+                &le_cancel,
+                &le_stopped,
+            )
             .await;
         let stop_err = self
             .engage_stop_procedure(&internal, err_rx, &le_cancel, &le_stopped)
@@ -703,7 +723,10 @@ impl Manager {
             let cache = cache.clone();
             Box::pin(async move { cache.wait_for_cache_sync(&c).await })
         });
-        if let Err(e) = g.caches.add(Arc::new(CacheRunnable(inner.cache.clone())), Some(check)) {
+        if let Err(e) = g
+            .caches
+            .add(Arc::new(CacheRunnable(inner.cache.clone())), Some(check))
+        {
             let msg = format!("failed to add cluster to runnables: {e}");
             return Err(ctrlrt::error::wrap(e, msg));
         }
@@ -718,8 +741,16 @@ impl Manager {
             let mux = ProbeMux {
                 readiness_endpoint: inner.readiness_endpoint_name.clone(),
                 liveness_endpoint: inner.liveness_endpoint_name.clone(),
-                readyz: inner.readyz.lock().unwrap_or_else(|e| e.into_inner()).clone(),
-                healthz: inner.healthz.lock().unwrap_or_else(|e| e.into_inner()).clone(),
+                readyz: inner
+                    .readyz
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone(),
+                healthz: inner
+                    .healthz
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone(),
             };
             let srv = Arc::new(ProbeServer {
                 name: "health probe".into(),
@@ -858,7 +889,10 @@ impl Manager {
         let stop_all = tokio::spawn(async move {
             let g = &this.inner.groups;
             let log = &this.inner.logger;
-            log.info("Stopping and waiting for non leader election runnables", kv![]);
+            log.info(
+                "Stopping and waiting for non leader election runnables",
+                kv![],
+            );
             g.others.stop_and_wait(deadline).await;
             log.info("Stopping and waiting for leader election runnables", kv![]);
             // Prevent leader election when shutting down a non-elected manager
@@ -973,8 +1007,11 @@ mod tests {
         g.start(&ctx).await.unwrap();
         tokio::time::sleep(Duration::from_millis(20)).await;
         assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 1);
-        g.add(runnable_fn(|_ctx| async { Err(anyhow::anyhow!("boom")) }), None)
-            .unwrap();
+        g.add(
+            runnable_fn(|_ctx| async { Err(anyhow::anyhow!("boom")) }),
+            None,
+        )
+        .unwrap();
         let e = rx.recv().await.unwrap();
         assert_eq!(e.to_string(), "boom");
         g.stop_and_wait(Some(tokio::time::Instant::now() + Duration::from_secs(5)))

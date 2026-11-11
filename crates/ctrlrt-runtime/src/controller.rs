@@ -13,13 +13,13 @@ use futures::FutureExt;
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
+use crate::Result;
 use crate::cache::Cache;
 use crate::manager::Runnable;
 use crate::metrics;
 use crate::ratelimit::{RateLimiter, default_controller_rate_limiter};
 use crate::util::{go_duration, go_type_name, new_uuid};
 use crate::workqueue::RateLimitingQueue;
-use crate::Result;
 
 const LABEL_ERROR: &str = "error";
 const LABEL_REQUEUE_AFTER: &str = "requeue_after";
@@ -135,7 +135,12 @@ pub struct Controller {
 
 impl Controller {
     /// `controller.NewTyped(name, mgr, options)` from a builder spec.
-    pub fn new(spec: ControllerSpec, cache: Cache, root_log: &Logger, opts: ControllerOptions) -> Result<Arc<Self>> {
+    pub fn new(
+        spec: ControllerSpec,
+        cache: Cache,
+        root_log: &Logger,
+        opts: ControllerOptions,
+    ) -> Result<Arc<Self>> {
         if spec.name.is_empty() {
             return Err(anyhow::anyhow!("must specify Name for Controller"));
         }
@@ -178,20 +183,31 @@ impl Controller {
     }
 
     fn init_metrics(&self) {
-        for l in [LABEL_ERROR, LABEL_REQUEUE_AFTER, LABEL_REQUEUE, LABEL_SUCCESS] {
+        for l in [
+            LABEL_ERROR,
+            LABEL_REQUEUE_AFTER,
+            LABEL_REQUEUE,
+            LABEL_SUCCESS,
+        ] {
             metrics::RECONCILE_TOTAL
                 .with_label_values(&[&self.name, l])
                 .inc_by(0.0);
         }
-        metrics::RECONCILE_ERRORS.with_label_values(&[&self.name]).inc_by(0.0);
+        metrics::RECONCILE_ERRORS
+            .with_label_values(&[&self.name])
+            .inc_by(0.0);
         metrics::TERMINAL_RECONCILE_ERRORS
             .with_label_values(&[&self.name])
             .inc_by(0.0);
-        metrics::RECONCILE_PANICS.with_label_values(&[&self.name]).inc_by(0.0);
+        metrics::RECONCILE_PANICS
+            .with_label_values(&[&self.name])
+            .inc_by(0.0);
         metrics::WORKER_COUNT
             .with_label_values(&[&self.name])
             .set(self.max_concurrent_reconciles as f64);
-        metrics::ACTIVE_WORKERS.with_label_values(&[&self.name]).set(0.0);
+        metrics::ACTIVE_WORKERS
+            .with_label_values(&[&self.name])
+            .set(0.0);
     }
 
     /// `Start(ctx)`
@@ -231,7 +247,10 @@ impl Controller {
                 cache: self.cache.clone(),
                 watch: w.clone(),
             };
-            let log = self.log.base().with_values(kv!["source" => source.to_string()]);
+            let log = self
+                .log
+                .base()
+                .with_values(kv!["source" => source.to_string()]);
             let queue = queue.clone();
             let ctx = ctx.clone();
             let timeout = self.opts.cache_sync_timeout;
@@ -257,13 +276,14 @@ impl Controller {
             let this = self.clone();
             let queue = queue.clone();
             let ctx = ctx.clone();
-            workers.spawn(async move {
-                while this.process_next_work_item(&queue, &ctx).await {}
-            });
+            workers.spawn(async move { while this.process_next_work_item(&queue, &ctx).await {} });
         }
 
         ctx.cancelled().await;
-        log.info("Shutdown signal received, waiting for all workers to finish", kv![]);
+        log.info(
+            "Shutdown signal received, waiting for all workers to finish",
+            kv![],
+        );
         while workers.join_next().await.is_some() {}
         log.info("All workers finished", kv![]);
         Ok(())
@@ -277,9 +297,13 @@ impl Controller {
         let Some(req) = queue.get().await else {
             return false;
         };
-        metrics::ACTIVE_WORKERS.with_label_values(&[&self.name]).add(1.0);
+        metrics::ACTIVE_WORKERS
+            .with_label_values(&[&self.name])
+            .add(1.0);
         self.reconcile_handler(queue, ctx, req.clone()).await;
-        metrics::ACTIVE_WORKERS.with_label_values(&[&self.name]).sub(1.0);
+        metrics::ACTIVE_WORKERS
+            .with_label_values(&[&self.name])
+            .sub(1.0);
         queue.done(&req);
         true
     }
@@ -305,7 +329,9 @@ impl Controller {
         match fut.catch_unwind().await {
             Ok(r) => r,
             Err(payload) => {
-                metrics::RECONCILE_PANICS.with_label_values(&[&self.name]).inc();
+                metrics::RECONCILE_PANICS
+                    .with_label_values(&[&self.name])
+                    .inc();
                 let msg = panic_message(payload.as_ref());
                 if self.opts.recover_panic {
                     // utilruntime.PanicHandlers: logPanic
@@ -351,7 +377,9 @@ impl Controller {
                 } else {
                     queue.add_rate_limited(req);
                 }
-                metrics::RECONCILE_ERRORS.with_label_values(&[&self.name]).inc();
+                metrics::RECONCILE_ERRORS
+                    .with_label_values(&[&self.name])
+                    .inc();
                 metrics::RECONCILE_TOTAL
                     .with_label_values(&[&self.name, LABEL_ERROR])
                     .inc();
@@ -605,10 +633,12 @@ mod tests {
         F: Fn(&Ctx, Request) -> Result<ReconcileResult> + Send + Sync + 'static,
     {
         let client = dummy_cache_client();
-        let mapper = Arc::new(crate::client::RestMapper::new(crate::client::RestClient::new(
-            client.clone(),
-        )));
-        let cache = Cache::new(client, mapper, Default::default()).await.unwrap();
+        let mapper = Arc::new(crate::client::RestMapper::new(
+            crate::client::RestClient::new(client.clone()),
+        ));
+        let cache = Cache::new(client, mapper, Default::default())
+            .await
+            .unwrap();
         let spec = ctrlrt::Builder::new()
             .for_type::<k8s_openapi::api::core::v1::ConfigMap>(vec![])
             .named(name)
@@ -627,9 +657,7 @@ mod tests {
         .unwrap()
     }
 
-    fn queue_with(
-        rl: Box<dyn RateLimiter<Request>>,
-    ) -> Arc<RateLimitingQueue<Request>> {
+    fn queue_with(rl: Box<dyn RateLimiter<Request>>) -> Arc<RateLimitingQueue<Request>> {
         RateLimitingQueue::new("", rl)
     }
 
@@ -638,7 +666,9 @@ mod tests {
     }
 
     fn counter(name: &str, label: &str) -> f64 {
-        metrics::RECONCILE_TOTAL.with_label_values(&[name, label]).get()
+        metrics::RECONCILE_TOTAL
+            .with_label_values(&[name, label])
+            .get()
     }
 
     // controller_test.go: "should requeue a Request if there is an error and continue processing items"
@@ -651,10 +681,12 @@ mod tests {
             sink.clone(),
         )
         .await;
-        let q = queue_with(Box::new(crate::ratelimit::ItemExponentialFailureRateLimiter::new(
-            Duration::from_millis(5),
-            Duration::from_secs(1000),
-        )));
+        let q = queue_with(Box::new(
+            crate::ratelimit::ItemExponentialFailureRateLimiter::new(
+                Duration::from_millis(5),
+                Duration::from_secs(1000),
+            ),
+        ));
         let ctx = CancellationToken::new();
         c.reconcile_handler_for_test(&q, &ctx, req()).await;
         assert_eq!(q.num_requeues(&req()), 1);
@@ -663,7 +695,9 @@ mod tests {
         assert_eq!(q.len(), 1);
         assert_eq!(counter("ctrl-err", "error"), 1.0);
         assert_eq!(
-            metrics::RECONCILE_ERRORS.with_label_values(&["ctrl-err"]).get(),
+            metrics::RECONCILE_ERRORS
+                .with_label_values(&["ctrl-err"])
+                .get(),
             1.0
         );
         let recs = sink.records.lock().unwrap();
@@ -744,7 +778,12 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn requeue_true_is_rate_limited() {
         let sink = Arc::new(CaptureSink::default());
-        let c = test_controller("ctrl-requeue", |_ctx, _req| Ok(ReconcileResult::requeue()), sink).await;
+        let c = test_controller(
+            "ctrl-requeue",
+            |_ctx, _req| Ok(ReconcileResult::requeue()),
+            sink,
+        )
+        .await;
         let q = queue_with(Box::new(default_controller_rate_limiter()));
         let ctx = CancellationToken::new();
         c.reconcile_handler_for_test(&q, &ctx, req()).await;
@@ -783,7 +822,9 @@ mod tests {
         c.reconcile_handler_for_test(&q, &ctx, req()).await;
         assert_eq!(q.num_requeues(&req()), 1);
         assert_eq!(
-            metrics::RECONCILE_PANICS.with_label_values(&["ctrl-panic"]).get(),
+            metrics::RECONCILE_PANICS
+                .with_label_values(&["ctrl-panic"])
+                .get(),
             1.0
         );
         let recs = sink.records.lock().unwrap();
@@ -799,7 +840,10 @@ mod tests {
     async fn duplicate_names_are_rejected() {
         check_name("unique-ctrl-name-test").unwrap();
         let e = check_name("unique-ctrl-name-test").unwrap_err();
-        assert!(e.to_string().starts_with("controller with name unique-ctrl-name-test already exists."));
+        assert!(
+            e.to_string()
+                .starts_with("controller with name unique-ctrl-name-test already exists.")
+        );
     }
 }
 
@@ -815,15 +859,26 @@ mod log_constructor_tests {
         LogConstructor::new(&root, "dpuservicetemplate", None)
             .for_request(&Request::new("", "ns1"))
             .info("x", kv![]);
-        LogConstructor::new(&root, "dpfhcpprovisioner", Some(("provisioning.dpu.hcp.io", "DPFHCPProvisioner")))
-            .for_request(&Request::new("ns", "n"))
-            .info("y", kv![]);
+        LogConstructor::new(
+            &root,
+            "dpfhcpprovisioner",
+            Some(("provisioning.dpu.hcp.io", "DPFHCPProvisioner")),
+        )
+        .for_request(&Request::new("ns", "n"))
+        .info("y", kv![]);
         let recs = sink.records.lock().unwrap();
         let keys = |i: usize| recs[i].2.iter().map(|(k, _)| k.clone()).collect::<Vec<_>>();
         assert_eq!(keys(0), vec!["controller", "namespace", "name"]);
         assert_eq!(
             keys(1),
-            vec!["controller", "controllerGroup", "controllerKind", "DPFHCPProvisioner", "namespace", "name"]
+            vec![
+                "controller",
+                "controllerGroup",
+                "controllerKind",
+                "DPFHCPProvisioner",
+                "namespace",
+                "name"
+            ]
         );
     }
 }

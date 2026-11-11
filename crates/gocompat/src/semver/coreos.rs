@@ -96,7 +96,11 @@ impl Version {
 
     /// `(Version).Compare`: -1, 0 or 1.
     pub fn compare(&self, b: &Version) -> i32 {
-        for (x, y) in [(self.major, b.major), (self.minor, b.minor), (self.patch, b.patch)] {
+        for (x, y) in [
+            (self.major, b.major),
+            (self.minor, b.minor),
+            (self.patch, b.patch),
+        ] {
             match x.cmp(&y) {
                 Ordering::Greater => return 1,
                 Ordering::Less => return -1,

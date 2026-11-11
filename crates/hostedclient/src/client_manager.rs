@@ -68,7 +68,9 @@ impl ClientManager {
         }
 
         // Create new client (outside lock to avoid holding lock during slow operation)
-        let client = self.create_hosted_cluster_client(ctx, namespace, name).await?;
+        let client = self
+            .create_hosted_cluster_client(ctx, namespace, name)
+            .await?;
 
         // Cache the client with write lock
         self.write_cache().insert(key, client.clone());
@@ -85,7 +87,8 @@ impl ClientManager {
     /// in-package callers can write `cm.hcClients["ns/name"]` directly; this is the
     /// equivalent hook, e.g. to use a fake clientset).
     pub fn set_hosted_cluster_client(&self, namespace: &str, name: &str, client: HostedClient) {
-        self.write_cache().insert(cache_key(namespace, name), client);
+        self.write_cache()
+            .insert(cache_key(namespace, name), client);
     }
 
     /// Whether a client is cached for the hosted cluster (`_, ok := cm.hcClients[key]`).
@@ -164,11 +167,14 @@ impl ClientManager {
         // <hostedcluster-name>-admin-kubeconfig
         let secret_key = ObjectKey::new(namespace, format!("{name}-admin-kubeconfig"));
 
-        let secret: Secret = self
-            .mgmt_client
-            .get(&secret_key)
-            .await
-            .map_err(|err| wrapf!(err, "failed to get kubeconfig secret {}: {}", secret_key, err))?;
+        let secret: Secret = self.mgmt_client.get(&secret_key).await.map_err(|err| {
+            wrapf!(
+                err,
+                "failed to get kubeconfig secret {}: {}",
+                secret_key,
+                err
+            )
+        })?;
 
         let Some(kubeconfig_data) = secret.data.as_ref().and_then(|d| d.get("kubeconfig")) else {
             return Err(anyhow::anyhow!(
@@ -195,9 +201,21 @@ fn load_kubeconfig(data: &[u8]) -> Result<Kubeconfig> {
         return Ok(Kubeconfig::default());
     }
     let kc = ctrlrt_runtime::parse_kubeconfig(data)?;
-    check_duplicates("NamedCluster", "api.Cluster", kc.clusters.iter().map(|c| &c.name))?;
-    check_duplicates("NamedAuthInfo", "api.AuthInfo", kc.auth_infos.iter().map(|c| &c.name))?;
-    check_duplicates("NamedContext", "api.Context", kc.contexts.iter().map(|c| &c.name))?;
+    check_duplicates(
+        "NamedCluster",
+        "api.Cluster",
+        kc.clusters.iter().map(|c| &c.name),
+    )?;
+    check_duplicates(
+        "NamedAuthInfo",
+        "api.AuthInfo",
+        kc.auth_infos.iter().map(|c| &c.name),
+    )?;
+    check_duplicates(
+        "NamedContext",
+        "api.Context",
+        kc.contexts.iter().map(|c| &c.name),
+    )?;
     Ok(kc)
 }
 
@@ -283,7 +301,8 @@ pub fn replace_server_with_internal_endpoint(
     let service_namespace = format!("{hosted_cluster_namespace}-{hosted_cluster_name}");
 
     // Construct internal service DNS name with hardcoded port 6443 (matching HyperShift)
-    let internal_server = format!("https://kube-apiserver.{service_namespace}.svc.cluster.local:6443");
+    let internal_server =
+        format!("https://kube-apiserver.{service_namespace}.svc.cluster.local:6443");
 
     // Replace the server URL
     cluster.cluster.get_or_insert_with(Default::default).server = Some(internal_server);
@@ -293,9 +312,12 @@ pub fn replace_server_with_internal_endpoint(
 
 /// `TestConnection` verifies the hosted cluster client can connect to the API server.
 pub async fn test_connection(_ctx: &Ctx, client: &HostedClient) -> Result<()> {
-    client
-        .server_version()
-        .await
-        .map_err(|err| wrapf!(err, "failed to connect to hosted cluster API server: {}", err))?;
+    client.server_version().await.map_err(|err| {
+        wrapf!(
+            err,
+            "failed to connect to hosted cluster API server: {}",
+            err
+        )
+    })?;
     Ok(())
 }

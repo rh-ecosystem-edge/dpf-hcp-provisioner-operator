@@ -127,8 +127,7 @@ fn make_options(opts: &[RemoteOption]) -> anyhow::Result<Options> {
     let mut transport_opt: Option<Arc<dyn RoundTripper>> = None;
     let mut platform = v1::default_platform();
     let mut backoff = Backoff::remote_default();
-    let mut predicate: transport::Predicate =
-        Arc::new(transport::default_retry_predicate);
+    let mut predicate: transport::Predicate = Arc::new(transport::default_retry_predicate);
     let mut codes: Vec<u16> = DEFAULT_RETRY_STATUS_CODES.to_vec();
     let mut user_agent = String::new();
     for o in opts {
@@ -144,7 +143,9 @@ fn make_options(opts: &[RemoteOption]) -> anyhow::Result<Options> {
         }
     }
     if auth.is_some() && keychain.is_some() {
-        anyhow::bail!("provide an option for either authn.Authenticator or authn.Keychain, not both");
+        anyhow::bail!(
+            "provide an option for either authn.Authenticator or authn.Keychain, not both"
+        );
     }
     let auth = auth.unwrap_or_else(anonymous);
     let mut t: Arc<dyn RoundTripper> = transport_opt.unwrap_or_else(|| Arc::new(HttpTransport));
@@ -234,25 +235,28 @@ impl Fetcher {
 
         let media_type = MediaType::new(resp.header("Content-Type"));
         if let Ok(content_digest) = Hash::new(&resp.header("Docker-Content-Digest"))
-            && media_type == MediaType::DOCKER_MANIFEST_SCHEMA1_SIGNED {
-                digest = content_digest;
-            }
+            && media_type == MediaType::DOCKER_MANIFEST_SCHEMA1_SIGNED
+        {
+            digest = content_digest;
+        }
 
         if let Some(dgst) = r.as_digest()
-            && digest.to_string() != dgst.digest_str() {
-                anyhow::bail!(
-                    "manifest digest: {} does not match requested digest: {} for {}",
-                    goutil::quote(&digest.to_string()),
-                    goutil::quote(dgst.digest_str()),
-                    goutil::quote(&r.to_string())
-                );
-            }
+            && digest.to_string() != dgst.digest_str()
+        {
+            anyhow::bail!(
+                "manifest digest: {} does not match requested digest: {} for {}",
+                goutil::quote(&digest.to_string()),
+                goutil::quote(dgst.digest_str()),
+                goutil::quote(&r.to_string())
+            );
+        }
 
         let mut artifact_type = String::new();
         if let Ok(mf) = v1::parse_manifest(&manifest)
-            && !mf.config.media_type.is_config() {
-                artifact_type = mf.config.media_type.0.clone();
-            }
+            && !mf.config.media_type.is_config()
+        {
+            artifact_type = mf.config.media_type.0.clone();
+        }
 
         Ok((
             manifest,
@@ -307,14 +311,15 @@ impl Fetcher {
         let digest = Hash::new(&dh)?;
 
         if let Some(dgst) = r.as_digest()
-            && digest.to_string() != dgst.digest_str() {
-                anyhow::bail!(
-                    "manifest digest: {} does not match requested digest: {} for {}",
-                    goutil::quote(&digest.to_string()),
-                    goutil::quote(dgst.digest_str()),
-                    goutil::quote(&r.to_string())
-                );
-            }
+            && digest.to_string() != dgst.digest_str()
+        {
+            anyhow::bail!(
+                "manifest digest: {} does not match requested digest: {} for {}",
+                goutil::quote(&digest.to_string()),
+                goutil::quote(dgst.digest_str()),
+                goutil::quote(&r.to_string())
+            );
+        }
 
         Ok(v1::Descriptor {
             digest,
@@ -372,8 +377,15 @@ pub const SIZE_UNKNOWN: i64 = -1;
 /// `verify.Error` (and the size mismatch error).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VerifyError {
-    Checksum { got: String, want: Hash, got_size: i64 },
-    Size { got: i64, want: i64 },
+    Checksum {
+        got: String,
+        want: Hash,
+        got_size: i64,
+    },
+    Size {
+        got: i64,
+        want: i64,
+    },
 }
 
 impl fmt::Display for VerifyError {
@@ -639,9 +651,10 @@ impl Descriptor {
         };
         if child.media_type.is_image()
             && let Ok(mf) = v1::parse_manifest(&manifest)
-                && !mf.config.media_type.is_config() {
-                    child.artifact_type = mf.config.media_type.0.clone();
-                }
+            && !mf.config.media_type.is_config()
+        {
+            child.artifact_type = mf.config.media_type.0.clone();
+        }
         Ok(Descriptor {
             fetcher: self.fetcher.clone(),
             descriptor: child,
@@ -736,7 +749,10 @@ impl Image {
                     verify_descriptor(&m.config)?;
                     return Ok(Bytes::from(m.config.data.clone().unwrap_or_default()));
                 }
-                let body = self.fetcher.fetch_blob(m.config.size, &m.config.digest).await?;
+                let body = self
+                    .fetcher
+                    .fetch_blob(m.config.size, &m.config.digest)
+                    .await?;
                 read_all(body).await
             })
             .await

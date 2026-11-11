@@ -42,7 +42,13 @@ pub fn errorf(file_line: &str, msg: &str) {
 
 /// Structured `logger.Error(err, msg, kv...)` / `logger.Info(msg, kv...)` in klog text
 /// format. String values are quoted.
-pub fn structured(severity: char, file_line: &str, msg: &str, err: Option<&str>, kvs: &[(&str, String)]) {
+pub fn structured(
+    severity: char,
+    file_line: &str,
+    msg: &str,
+    err: Option<&str>,
+    kvs: &[(&str, String)],
+) {
     let mut line = header(severity, file_line);
     line.push_str(&quote(msg));
     if let Some(e) = err {

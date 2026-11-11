@@ -55,7 +55,10 @@ impl Reconciler for CSRApprovalReconciler {
 
         // Handle deletion - stop CSR watch
         if cr.is_being_deleted() {
-            log.info("DPFHCPProvisioner is being deleted, stopping CSR watch", kv![]);
+            log.info(
+                "DPFHCPProvisioner is being deleted, stopping CSR watch",
+                kv![],
+            );
             if let Some(approver) = &self.approver {
                 approver.stop_csr_watch(ctx, &cr);
             }

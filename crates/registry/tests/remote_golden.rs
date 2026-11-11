@@ -59,7 +59,11 @@ async fn run(sc: &Value) -> (String, String, Vec<String>) {
                             b = b.header(k.as_str(), v.as_str().unwrap().replace("HOST", &host2));
                         }
                     }
-                    let body = if l.method == "HEAD" { String::new() } else { s(r, "body") };
+                    let body = if l.method == "HEAD" {
+                        String::new()
+                    } else {
+                        s(r, "body")
+                    };
                     return Some(b.body(Body::from(body)).unwrap());
                 }
             }
@@ -86,7 +90,10 @@ async fn run(sc: &Value) -> (String, String, Vec<String>) {
         },
         "get" => match remote::get(&reference, &opts).await {
             Ok(d) => {
-                result = format!("{} {} {}", d.descriptor.media_type, d.descriptor.digest, d.descriptor.size);
+                result = format!(
+                    "{} {} {}",
+                    d.descriptor.media_type, d.descriptor.digest, d.descriptor.size
+                );
                 None
             }
             Err(e) => Some(e),
@@ -97,8 +104,12 @@ async fn run(sc: &Value) -> (String, String, Vec<String>) {
                 if s(sc, "op") == "config" {
                     match img.config_file().await {
                         Ok(cfg) => {
-                            let parts: Vec<String> =
-                                cfg.config.labels.iter().map(|(k, v)| format!("{k}:{v}")).collect();
+                            let parts: Vec<String> = cfg
+                                .config
+                                .labels
+                                .iter()
+                                .map(|(k, v)| format!("{k}:{v}"))
+                                .collect();
                             result = format!("map[{}]", parts.join(" "));
                             None
                         }
@@ -112,13 +123,19 @@ async fn run(sc: &Value) -> (String, String, Vec<String>) {
         },
         other => panic!("unknown op {other}"),
     };
-    let expected = err.map(|e| e.to_string().replace(&host, "HOST")).unwrap_or_default();
+    let expected = err
+        .map(|e| e.to_string().replace(&host, "HOST"))
+        .unwrap_or_default();
     let requests = reg
         .map(|r| {
             r.log()
                 .iter()
                 .map(|l| {
-                    let q = if l.query.is_empty() { String::new() } else { format!("?{}", l.query) };
+                    let q = if l.query.is_empty() {
+                        String::new()
+                    } else {
+                        format!("?{}", l.query)
+                    };
                     format!("{} {}{}", l.method, l.path, q)
                 })
                 .collect()
@@ -137,10 +154,16 @@ async fn remote_flows_match_go() {
         let name = s(sc, "name");
         let (expected, result, requests) = run(sc).await;
         if expected != s(sc, "expected") {
-            failures.push(format!("{name}: error\n  want {:?}\n  got  {expected:?}", s(sc, "expected")));
+            failures.push(format!(
+                "{name}: error\n  want {:?}\n  got  {expected:?}",
+                s(sc, "expected")
+            ));
         }
         if result != s(sc, "result") {
-            failures.push(format!("{name}: result\n  want {:?}\n  got  {result:?}", s(sc, "result")));
+            failures.push(format!(
+                "{name}: result\n  want {:?}\n  got  {result:?}",
+                s(sc, "result")
+            ));
         }
         let want_reqs: Vec<String> = sc
             .get("requests")
@@ -148,7 +171,9 @@ async fn remote_flows_match_go() {
             .map(|a| a.iter().map(|v| v.as_str().unwrap().to_string()).collect())
             .unwrap_or_default();
         if requests != want_reqs {
-            failures.push(format!("{name}: requests\n  want {want_reqs:?}\n  got  {requests:?}"));
+            failures.push(format!(
+                "{name}: requests\n  want {want_reqs:?}\n  got  {requests:?}"
+            ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));

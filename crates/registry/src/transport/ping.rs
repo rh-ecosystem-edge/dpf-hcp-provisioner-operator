@@ -145,7 +145,11 @@ async fn ping_parallel(reg: &Registry, t: Arc<dyn RoundTripper>) -> anyhow::Resu
             }
         }
         if let (Some(_), Some(_)) = (&primary_err, &fallback_err) {
-            let errs: Vec<anyhow::Error> = primary_err.take().into_iter().chain(fallback_err.take()).collect();
+            let errs: Vec<anyhow::Error> = primary_err
+                .take()
+                .into_iter()
+                .chain(fallback_err.take())
+                .collect();
             return Err(MultiError(errs).into());
         }
     }

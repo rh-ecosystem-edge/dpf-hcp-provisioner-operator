@@ -52,11 +52,14 @@ impl<T: QueueItem> QueueMetrics<T> {
     fn add(&mut self, item: &T) {
         self.adds.inc();
         self.depth.inc();
-        self.add_times.entry(item.clone()).or_insert_with(Instant::now);
+        self.add_times
+            .entry(item.clone())
+            .or_insert_with(Instant::now);
     }
     fn get(&mut self, item: &T) {
         self.depth.dec();
-        self.processing_start_times.insert(item.clone(), Instant::now());
+        self.processing_start_times
+            .insert(item.clone(), Instant::now());
         if let Some(start) = self.add_times.remove(item) {
             self.latency.observe(start.elapsed().as_secs_f64());
         }
@@ -331,7 +334,8 @@ impl<T: QueueItem> RateLimitingQueue<T> {
             rate_limiter,
             waiting_tx: tx,
             stop,
-            retries: (!name.is_empty()).then(|| metrics::WQ_RETRIES.with_label_values(&[name, name])),
+            retries: (!name.is_empty())
+                .then(|| metrics::WQ_RETRIES.with_label_values(&[name, name])),
         })
     }
 
@@ -731,8 +735,10 @@ mod tests {
 
     #[tokio::test]
     async fn named_queue_records_metrics() {
-        let q: Arc<RateLimitingQueue<String>> =
-            RateLimitingQueue::new("wq-metrics-test", Box::new(default_controller_rate_limiter()));
+        let q: Arc<RateLimitingQueue<String>> = RateLimitingQueue::new(
+            "wq-metrics-test",
+            Box::new(default_controller_rate_limiter()),
+        );
         q.add("a".into());
         q.add("a".into());
         let item = q.get().await.unwrap();

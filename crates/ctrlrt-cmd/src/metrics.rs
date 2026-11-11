@@ -115,7 +115,9 @@ impl MetricsServerOptions {
 
 /// Logger of the package (`logf.RuntimeLog.WithName("metrics")`).
 pub fn log() -> Logger {
-    Logger::root().with_name("controller-runtime").with_name("metrics")
+    Logger::root()
+        .with_name("controller-runtime")
+        .with_name("metrics")
 }
 
 /// `http.Error(w, msg, code)`
@@ -126,8 +128,10 @@ pub fn http_error(msg: &str, code: StatusCode) -> HttpResponse {
         header::CONTENT_TYPE,
         HeaderValue::from_static("text/plain; charset=utf-8"),
     );
-    r.headers_mut()
-        .insert("x-content-type-options", HeaderValue::from_static("nosniff"));
+    r.headers_mut().insert(
+        "x-content-type-options",
+        HeaderValue::from_static("nosniff"),
+    );
     r
 }
 
@@ -151,7 +155,10 @@ impl std::fmt::Debug for MetricsServer {
 impl MetricsServer {
     /// `metricsserver.NewServer(o, config, httpClient)`; `Ok(None)` when the bind address is
     /// `"0"` (metrics disabled).
-    pub fn new(mut o: MetricsServerOptions, client: &ctrlrt::Client) -> ctrlrt::Result<Option<Arc<Self>>> {
+    pub fn new(
+        mut o: MetricsServerOptions,
+        client: &ctrlrt::Client,
+    ) -> ctrlrt::Result<Option<Arc<Self>>> {
         o.set_defaults();
         if o.bind_address == "0" {
             return Ok(None);
@@ -186,7 +193,10 @@ impl MetricsServer {
 
     /// `AddExtraHandler(path, handler)`
     pub fn add_extra_handler(&self, path: &str, handler: Handler) -> ctrlrt::Result<()> {
-        let mut extra = self.extra.lock().map_err(|_| anyhow::anyhow!("lock poisoned"))?;
+        let mut extra = self
+            .extra
+            .lock()
+            .map_err(|_| anyhow::anyhow!("lock poisoned"))?;
         if path == DEFAULT_METRICS_ENDPOINT {
             return Err(anyhow::anyhow!(
                 "overriding builtin {DEFAULT_METRICS_ENDPOINT} endpoint is not allowed"
@@ -223,7 +233,8 @@ impl MetricsServer {
         }
 
         let mut routes: BTreeMap<String, Handler> = BTreeMap::new();
-        let mut handler: Handler = Arc::new(|parts: Parts| Box::pin(async move { prometheus_handler(&parts) }));
+        let mut handler: Handler =
+            Arc::new(|parts: Parts| Box::pin(async move { prometheus_handler(&parts) }));
         if let Some(f) = &self.metrics_filter {
             let l = log.with_values(kv!["path" => DEFAULT_METRICS_ENDPOINT]);
             handler = f(l, handler).map_err(|e| {
@@ -276,8 +287,10 @@ impl MetricsServer {
         }
 
         if cfg.cert_resolver.is_none() {
-            let cert_path = std::path::Path::new(&self.options.cert_dir).join(&self.options.cert_name);
-            let key_path = std::path::Path::new(&self.options.cert_dir).join(&self.options.key_name);
+            let cert_path =
+                std::path::Path::new(&self.options.cert_dir).join(&self.options.cert_name);
+            let key_path =
+                std::path::Path::new(&self.options.cert_dir).join(&self.options.key_name);
             let exists = |p: &std::path::Path| match std::fs::metadata(p) {
                 Ok(_) => true,
                 Err(e) => e.kind() != std::io::ErrorKind::NotFound,
@@ -341,8 +354,8 @@ fn alpn_protocols(next_protos: &[String]) -> Vec<Vec<u8>> {
 /// `[serving, CA]`. (ECDSA P-256 keys instead of Go's RSA-2048.)
 pub fn generate_self_signed_cert_key(host: &str) -> Result<Arc<CertifiedKey>, String> {
     use rcgen::{
-        BasicConstraints, CertificateParams, DistinguishedName, DnType, ExtendedKeyUsagePurpose, IsCa,
-        KeyPair, KeyUsagePurpose, SanType,
+        BasicConstraints, CertificateParams, DistinguishedName, DnType, ExtendedKeyUsagePurpose,
+        IsCa, KeyPair, KeyUsagePurpose, SanType,
     };
     let now = std::time::SystemTime::now();
     let unix = now
@@ -352,7 +365,8 @@ pub fn generate_self_signed_cert_key(host: &str) -> Result<Arc<CertifiedKey>, St
     let not_before = time_from_system(now);
     let not_after = time_from_system(now + Duration::from_secs(365 * 24 * 3600));
 
-    let ca_key = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).map_err(|e| e.to_string())?;
+    let ca_key =
+        KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).map_err(|e| e.to_string())?;
     let mut ca = CertificateParams::default();
     ca.distinguished_name = DistinguishedName::new();
     ca.distinguished_name
@@ -501,7 +515,11 @@ impl Mux {
 
     async fn serve(&self, parts: Parts) -> HttpResponse {
         let path = parts.uri.path().to_string();
-        let path = if path.is_empty() { "/".to_string() } else { path };
+        let path = if path.is_empty() {
+            "/".to_string()
+        } else {
+            path
+        };
         let clean = clean_path(&path);
         if clean != path && parts.method != hyper::Method::CONNECT {
             let mut loc = clean;
@@ -509,7 +527,10 @@ impl Mux {
                 loc.push('?');
                 loc.push_str(q);
             }
-            return redirect(&loc, parts.method == hyper::Method::GET || parts.method == hyper::Method::HEAD);
+            return redirect(
+                &loc,
+                parts.method == hyper::Method::GET || parts.method == hyper::Method::HEAD,
+            );
         }
         match self.find(&path) {
             Some(h) => h(parts).await,
@@ -520,7 +541,10 @@ impl Mux {
 
 fn redirect(loc: &str, with_body: bool) -> HttpResponse {
     let body = if with_body {
-        format!("<a href=\"{}\">Moved Permanently</a>.\n\n", html_escape(loc))
+        format!(
+            "<a href=\"{}\">Moved Permanently</a>.\n\n",
+            html_escape(loc)
+        )
     } else {
         String::new()
     };
@@ -530,8 +554,10 @@ fn redirect(loc: &str, with_body: bool) -> HttpResponse {
         r.headers_mut().insert(header::LOCATION, v);
     }
     if with_body {
-        r.headers_mut()
-            .insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8"));
+        r.headers_mut().insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/html; charset=utf-8"),
+        );
     }
     r
 }
@@ -546,7 +572,11 @@ fn html_escape(s: &str) -> String {
 
 /// `http.cleanPath` (path.Clean, keeping a trailing slash).
 fn clean_path(p: &str) -> String {
-    let p = if p.starts_with('/') { p.to_string() } else { format!("/{p}") };
+    let p = if p.starts_with('/') {
+        p.to_string()
+    } else {
+        format!("/{p}")
+    };
     let mut stack: Vec<&str> = Vec::new();
     for seg in p.split('/') {
         match seg {
@@ -735,12 +765,19 @@ async fn serve(
         }
     }
     drop(listener);
-    log.info("Shutting down metrics server with timeout of 1 minute", kv![]);
+    log.info(
+        "Shutting down metrics server with timeout of 1 minute",
+        kv![],
+    );
     if tokio::time::timeout(Duration::from_secs(60), graceful.shutdown())
         .await
         .is_err()
     {
-        log.error(&"context deadline exceeded", "error shutting down the HTTP server", kv![]);
+        log.error(
+            &"context deadline exceeded",
+            "error shutting down the HTTP server",
+            kv![],
+        );
     }
     Ok(())
 }
@@ -767,13 +804,22 @@ mod tests {
 
     #[test]
     fn split_host_port_like_go() {
-        assert_eq!(split_host_port(":8443").unwrap(), ("".into(), "8443".into()));
-        assert_eq!(split_host_port("[::1]:80").unwrap(), ("::1".into(), "80".into()));
+        assert_eq!(
+            split_host_port(":8443").unwrap(),
+            ("".into(), "8443".into())
+        );
+        assert_eq!(
+            split_host_port("[::1]:80").unwrap(),
+            ("::1".into(), "80".into())
+        );
         assert_eq!(
             split_host_port("8443").unwrap_err(),
             "address 8443: missing port in address"
         );
-        assert_eq!(split_host_port("a:b:c").unwrap_err(), "address a:b:c: too many colons in address");
+        assert_eq!(
+            split_host_port("a:b:c").unwrap_err(),
+            "address a:b:c: too many colons in address"
+        );
     }
 
     #[test]
@@ -793,7 +839,13 @@ mod tests {
 
     #[test]
     fn alpn() {
-        assert_eq!(alpn_protocols(&["h2".into()]), vec![b"h2".to_vec(), b"http/1.1".to_vec()]);
-        assert_eq!(alpn_protocols(&["http/1.1".into()]), vec![b"http/1.1".to_vec()]);
+        assert_eq!(
+            alpn_protocols(&["h2".into()]),
+            vec![b"h2".to_vec(), b"http/1.1".to_vec()]
+        );
+        assert_eq!(
+            alpn_protocols(&["http/1.1".into()]),
+            vec![b"http/1.1".to_vec()]
+        );
     }
 }

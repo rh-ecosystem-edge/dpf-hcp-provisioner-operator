@@ -20,8 +20,10 @@ pub fn setup_signal_handler() -> CancellationToken {
     let t = token.clone();
     tokio::spawn(async move {
         use tokio::signal::unix::{SignalKind, signal};
-        let (Ok(mut term), Ok(mut int)) = (signal(SignalKind::terminate()), signal(SignalKind::interrupt()))
-        else {
+        let (Ok(mut term), Ok(mut int)) = (
+            signal(SignalKind::terminate()),
+            signal(SignalKind::interrupt()),
+        ) else {
             return;
         };
         tokio::select! {

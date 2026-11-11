@@ -61,7 +61,11 @@ fn make_event(step: &Value, t: DateTime<Utc>) -> Event {
     Event {
         metadata: ObjectMeta {
             name: Some(generate_event_name(name, t.timestamp_nanos_opt().unwrap())),
-            namespace: Some(if ns.is_empty() { "default".into() } else { ns.into() }),
+            namespace: Some(if ns.is_empty() {
+                "default".into()
+            } else {
+                ns.into()
+            }),
             ..Default::default()
         },
         involved_object: r,
@@ -83,8 +87,10 @@ fn make_event(step: &Value, t: DateTime<Utc>) -> Event {
 
 #[test]
 fn correlator_matches_client_go() {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/events/correlator.json");
-    let results: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/events/correlator.json");
+    let results: Vec<Value> =
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     let now = Arc::new(Mutex::new(base()));
     let n2 = now.clone();
     let c = EventCorrelator::new(Arc::new(move || *n2.lock().unwrap()));
@@ -113,7 +119,11 @@ fn correlator_matches_client_go() {
             None => assert_eq!(want_patch, "", "step {i}"),
             Some(p) => assert_eq!(p.to_string(), want_patch, "step {i}"),
         }
-        let action = if res.event.count.unwrap_or(0) > 1 { "patch" } else { "create" };
+        let action = if res.event.count.unwrap_or(0) > 1 {
+            "patch"
+        } else {
+            "create"
+        };
         assert_eq!(action, r["action"].as_str().unwrap(), "step {i}");
         let mut new_event = res.event.clone();
         rv += 1;
@@ -133,7 +143,11 @@ struct FakeApi {
 impl FakeApi {
     fn next_err(&self) -> Option<ctrlrt::Error> {
         let mut e = self.errors.lock().unwrap();
-        if e.is_empty() { None } else { Some(e.remove(0)) }
+        if e.is_empty() {
+            None
+        } else {
+            Some(e.remove(0))
+        }
     }
     fn calls(&self) -> Vec<(String, Value)> {
         self.calls.lock().unwrap().clone()
@@ -150,26 +164,43 @@ impl ClientBackend for FakeApi {
     }
     async fn create(&self, res: &ResourceInfo, mut obj: Value) -> ctrlrt::Result<Value> {
         assert_eq!(res.kind, "Event");
-        self.calls.lock().unwrap().push(("create".into(), obj.clone()));
+        self.calls
+            .lock()
+            .unwrap()
+            .push(("create".into(), obj.clone()));
         if let Some(e) = self.next_err() {
             return Err(e);
         }
-        obj["metadata"]["resourceVersion"] = json!(self.rv.fetch_add(1, Ordering::SeqCst).to_string());
+        obj["metadata"]["resourceVersion"] =
+            json!(self.rv.fetch_add(1, Ordering::SeqCst).to_string());
         Ok(obj)
     }
     async fn update(&self, _: &ResourceInfo, _: Value) -> ctrlrt::Result<Value> {
         unimplemented!()
     }
-    async fn update_subresource(&self, _: &ResourceInfo, _: &str, _: Value) -> ctrlrt::Result<Value> {
+    async fn update_subresource(
+        &self,
+        _: &ResourceInfo,
+        _: &str,
+        _: Value,
+    ) -> ctrlrt::Result<Value> {
         unimplemented!()
     }
-    async fn patch(&self, res: &ResourceInfo, ns: &str, name: &str, patch: &Patch) -> ctrlrt::Result<Value> {
+    async fn patch(
+        &self,
+        res: &ResourceInfo,
+        ns: &str,
+        name: &str,
+        patch: &Patch,
+    ) -> ctrlrt::Result<Value> {
         assert_eq!(res.kind, "Event");
-        let Patch::Strategic(p) = patch else { panic!("expected strategic merge patch") };
-        self.calls
-            .lock()
-            .unwrap()
-            .push(("patch".into(), json!({"namespace": ns, "name": name, "patch": p})));
+        let Patch::Strategic(p) = patch else {
+            panic!("expected strategic merge patch")
+        };
+        self.calls.lock().unwrap().push((
+            "patch".into(),
+            json!({"namespace": ns, "name": name, "patch": p}),
+        ));
         if let Some(e) = self.next_err() {
             return Err(e);
         }
@@ -181,10 +212,23 @@ impl ClientBackend for FakeApi {
             "source": {"component": "comp"}
         }))
     }
-    async fn patch_subresource(&self, _: &ResourceInfo, _: &str, _: &str, _: &str, _: &Patch) -> ctrlrt::Result<Value> {
+    async fn patch_subresource(
+        &self,
+        _: &ResourceInfo,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &Patch,
+    ) -> ctrlrt::Result<Value> {
         unimplemented!()
     }
-    async fn delete(&self, _: &ResourceInfo, _: &str, _: &str, _: &DeleteOptions) -> ctrlrt::Result<()> {
+    async fn delete(
+        &self,
+        _: &ResourceInfo,
+        _: &str,
+        _: &str,
+        _: &DeleteOptions,
+    ) -> ctrlrt::Result<()> {
         unimplemented!()
     }
 }
@@ -221,7 +265,11 @@ fn env() -> Env {
         clock,
         Duration::from_millis(10),
     );
-    Env { api, capture, provider }
+    Env {
+        api,
+        capture,
+        provider,
+    }
 }
 
 async fn wait_calls(api: &FakeApi, n: usize) -> Vec<(String, Value)> {
@@ -238,7 +286,9 @@ async fn wait_calls(api: &FakeApi, n: usize) -> Vec<(String, Value)> {
 #[tokio::test]
 async fn records_creates_and_patches_events() {
     let e = env();
-    let rec = e.provider.get_event_recorder_for("dpfhcpprovisioner-controller");
+    let rec = e
+        .provider
+        .get_event_recorder_for("dpfhcpprovisioner-controller");
     rec.event_ref(&obj_ref("ns", "p1"), "Normal", "Created", "created <thing>");
     let calls = wait_calls(&e.api, 1).await;
     let (verb, body) = &calls[0];
@@ -329,7 +379,11 @@ async fn patch_not_found_falls_back_to_create() {
 async fn retries_transport_errors_but_not_api_errors() {
     let e = env();
     let rec = e.provider.get_event_recorder_for("c");
-    e.api.errors.lock().unwrap().push(anyhow::anyhow!("connection refused"));
+    e.api
+        .errors
+        .lock()
+        .unwrap()
+        .push(anyhow::anyhow!("connection refused"));
     rec.event_ref(&obj_ref("ns", "p1"), "Normal", "R", "m");
     let calls = wait_calls(&e.api, 2).await;
     assert_eq!(calls[0].0, "create");

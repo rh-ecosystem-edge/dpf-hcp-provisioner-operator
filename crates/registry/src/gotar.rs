@@ -96,8 +96,15 @@ impl Parser {
     }
 
     fn parse_octal(&mut self, b: &[u8]) -> i64 {
-        let start = b.iter().position(|&c| c != b' ' && c != 0).unwrap_or(b.len());
-        let end = b.iter().rposition(|&c| c != b' ' && c != 0).map(|i| i + 1).unwrap_or(start);
+        let start = b
+            .iter()
+            .position(|&c| c != b' ' && c != 0)
+            .unwrap_or(b.len());
+        let end = b
+            .iter()
+            .rposition(|&c| c != b' ' && c != 0)
+            .map(|i| i + 1)
+            .unwrap_or(start);
         let b = &b[start..end.max(start)];
         if b.is_empty() {
             return 0;
@@ -147,7 +154,12 @@ fn get_format(b: &[u8; BLOCK_SIZE]) -> Format {
 fn is_header_only_type(flag: u8) -> bool {
     matches!(
         flag,
-        typeflag::LINK | typeflag::SYMLINK | typeflag::CHAR | typeflag::BLOCK | typeflag::DIR | typeflag::FIFO
+        typeflag::LINK
+            | typeflag::SYMLINK
+            | typeflag::CHAR
+            | typeflag::BLOCK
+            | typeflag::DIR
+            | typeflag::FIFO
     )
 }
 
@@ -189,9 +201,10 @@ fn parse_pax_time(s: &str) -> Option<i64> {
     };
     let secs: i64 = ss.parse().ok()?;
     if let Some(sn) = sn
-        && !sn.bytes().all(|b| b.is_ascii_digit()) {
-            return None;
-        }
+        && !sn.bytes().all(|b| b.is_ascii_digit())
+    {
+        return None;
+    }
     Some(secs)
 }
 
@@ -230,7 +243,11 @@ impl<R: Read> TarReader<R> {
     }
 
     fn handle_regular_file(&mut self, hdr: &Header) -> io::Result<()> {
-        let nb = if is_header_only_type(hdr.typeflag) { 0 } else { hdr.size };
+        let nb = if is_header_only_type(hdr.typeflag) {
+            0
+        } else {
+            hdr.size
+        };
         if nb < 0 {
             return Err(err_header());
         }
@@ -250,7 +267,10 @@ impl<R: Read> TarReader<R> {
             }
             out.extend_from_slice(&buf[..n]);
             if out.len() as u64 > MAX_SPECIAL_FILE_SIZE {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, ERR_FIELD_TOO_LONG));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    ERR_FIELD_TOO_LONG,
+                ));
             }
         }
         Ok(out)
@@ -500,7 +520,10 @@ mod tests {
         let mut p = Parser::default();
         assert_eq!(p.parse_numeric(b"0000644\0"), 0o644);
         assert_eq!(p.parse_numeric(&[0x80, 0, 0, 0, 0, 0, 0, 1]), 1);
-        assert_eq!(p.parse_numeric(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), -1);
+        assert_eq!(
+            p.parse_numeric(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
+            -1
+        );
         assert!(!p.err);
         p.parse_numeric(b"0009\0");
         assert!(p.err);
@@ -509,7 +532,14 @@ mod tests {
     #[test]
     fn pax_record() {
         let (k, v, r) = parse_pax_record(b"30 mtime=1432668921.098285006\n30 ctime=").unwrap();
-        assert_eq!((&k[..], &v[..], r), (&b"mtime"[..], &b"1432668921.098285006"[..], &b"30 ctime="[..]));
+        assert_eq!(
+            (&k[..], &v[..], r),
+            (
+                &b"mtime"[..],
+                &b"1432668921.098285006"[..],
+                &b"30 ctime="[..]
+            )
+        );
         assert!(parse_pax_record(b"3 a=\n").is_none());
     }
 }

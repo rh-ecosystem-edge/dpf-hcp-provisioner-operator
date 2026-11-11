@@ -72,7 +72,10 @@ fn should_escape_host(c: u8) -> bool {
 }
 
 fn escape_error(s: &[u8]) -> String {
-    format!("invalid URL escape {}", go_quote(&String::from_utf8_lossy(s)))
+    format!(
+        "invalid URL escape {}",
+        go_quote(&String::from_utf8_lossy(s))
+    )
 }
 
 /// `unescape(s, mode)`: returns the unescaped bytes or the error message.
@@ -341,7 +344,10 @@ mod tests {
 
     #[test]
     fn parses_hosts_and_errors() {
-        assert_eq!(parse("spiffe://cluster.local/ns/a").unwrap(), "cluster.local");
+        assert_eq!(
+            parse("spiffe://cluster.local/ns/a").unwrap(),
+            "cluster.local"
+        );
         assert_eq!(parse("https://[::1]:443/x").unwrap(), "[::1]:443");
         assert_eq!(parse("urn:foo").unwrap(), "");
         assert_eq!(

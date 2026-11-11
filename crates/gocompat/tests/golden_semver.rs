@@ -14,18 +14,30 @@ fn parse_matches_go() {
                 assert_eq!(Some(v.to_string().as_str()), c["coreos"].as_str(), "{c}");
                 assert_eq!(v.major, c["coreos_major"].as_i64().unwrap(), "{c}");
             }
-            Err(e) => assert_eq!(Some(e.to_string().as_str()), c["coreos_err"].as_str(), "{c}"),
+            Err(e) => assert_eq!(
+                Some(e.to_string().as_str()),
+                c["coreos_err"].as_str(),
+                "{c}"
+            ),
         }
         match blang::parse(input) {
             Ok(v) => {
                 assert_eq!(Some(v.to_string().as_str()), c["blang"].as_str(), "{c}");
-                assert_eq!(v.finalize_version(), c["blang_final"].as_str().unwrap(), "{c}");
+                assert_eq!(
+                    v.finalize_version(),
+                    c["blang_final"].as_str().unwrap(),
+                    "{c}"
+                );
             }
             Err(e) => assert_eq!(Some(e.to_string().as_str()), c["blang_err"].as_str(), "{c}"),
         }
         match blang::parse_tolerant(input) {
             Ok(v) => assert_eq!(Some(v.to_string().as_str()), c["tolerant"].as_str(), "{c}"),
-            Err(e) => assert_eq!(Some(e.to_string().as_str()), c["tolerant_err"].as_str(), "{c}"),
+            Err(e) => assert_eq!(
+                Some(e.to_string().as_str()),
+                c["tolerant_err"].as_str(),
+                "{c}"
+            ),
         }
     }
 }
@@ -57,5 +69,8 @@ fn operator_usage() {
     assert!(v.gte(&min));
     // internal/ignition/validate.go
     let e = coreos::Version::new("3.x.0").unwrap_err();
-    assert_eq!(e.to_string(), "strconv.ParseInt: parsing \"x\": invalid syntax");
+    assert_eq!(
+        e.to_string(),
+        "strconv.ParseInt: parsing \"x\": invalid syntax"
+    );
 }
