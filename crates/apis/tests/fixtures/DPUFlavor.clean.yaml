@@ -1,0 +1,76 @@
+apiVersion: s2
+kind: s1
+metadata:
+  name: s3
+  namespace: s5
+spec:
+  bfcfgParameters:
+  - s34
+  configFiles:
+  - contentFrom:
+      configMapKeyRef:
+        key: s40
+        name: s39
+        optional: true
+    operation: s37
+    path: s36
+    permissions: s41
+    raw: s38
+    type: s35
+  containerdConfig:
+    registryEndpoint: s48
+  dma:
+    enabled: true
+  dpuMode: s53
+  dpuResources:
+    k49: 50k
+  ewNicConfigurations:
+  - force: true
+    linkType: s59
+    networkBay:
+      conf: s66
+    numVfs: 58
+    rawNvConfig:
+    - name: s64
+      value: s65
+    spectrumXOptimized:
+      enabled: true
+      multiplaneMode: s62
+      numberOfPlanes: 63
+      overlay: s61
+      version: s60
+  grub:
+    kernelParameters:
+    - s29
+  hostNetworkInterfaceConfigs:
+  - dhcp: true
+    mtu: 54
+    nvconfig:
+      device: s56
+      force: true
+      parameters:
+      - s57
+    portNumber: 55
+  nvconfig:
+  - device: s31
+    force: true
+    parameters:
+    - s32
+  ovs:
+    rawConfigScript: s33
+  packages:
+  - name: s42
+    repoFileRef: s45
+    version:
+      matchPolicy: s44
+      value: s43
+  serviceReadiness:
+    gate: s67
+  sysctl:
+    parameters:
+    - s30
+  systemReservedResources:
+    k51: "78"
+  systemdServices:
+  - name: s46
+    operation: s47

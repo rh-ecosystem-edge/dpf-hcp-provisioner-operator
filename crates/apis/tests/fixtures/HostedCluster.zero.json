@@ -1,0 +1,1 @@
+{"metadata":{},"spec":{"release":{"image":""},"platform":{"type":""},"dns":{"baseDomain":""},"networking":{},"autoscaling":{},"etcd":{"managementType":""},"services":null,"pullSecret":{},"sshKey":{},"fips":false},"status":{"controlPlaneEndpoint":{"host":"","port":0}}}

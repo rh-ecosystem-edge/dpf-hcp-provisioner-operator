@@ -1,0 +1,18 @@
+[package]
+name = "apis"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ctrlrt = { path = "../ctrlrt" }
+k8s-openapi.workspace = true
+kube.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+fastrand = "2.3.0"
+
+[lib]
+# Generated doc comments (from CRD descriptions) contain indented examples that are not Rust.
+doctest = false

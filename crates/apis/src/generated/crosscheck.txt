@@ -1,0 +1,1 @@
+# Schema cross-check report (Go types vs CRD/kopium). Generated; do not edit.

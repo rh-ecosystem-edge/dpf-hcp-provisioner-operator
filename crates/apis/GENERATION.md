@@ -1,0 +1,99 @@
+# `apis` crate: how the types are generated
+
+Everything under `src/generated/` is produced by **`hack/gen-rust-apis.sh`**. Don't edit it
+by hand. To regenerate it:
+
+```sh
+./hack/gen-rust-apis.sh                    # regenerate src/generated/*
+go run -mod=vendor ./hack/golden/apis      # regenerate tests/fixtures/* (Go golden encodings)
+CARGO_TARGET_DIR=target/apis cargo test -p apis
+```
+
+The script installs its tools into `target/apis/tools/bin`:
+
+- `kopium` 0.24.1, through `cargo install --locked`
+- `controller-gen` v0.18.0, through `go install`
+
+## Pipeline
+
+1. **Collect CRDs** for every kind the operator uses:
+   - `config/crd/bases`: DPFHCPProvisioner and DPFHCPProvisionerConfig.
+   - `internal/controller/testdata/crds`: DPU, DPUCluster, DPUFlavor, DPUDeployment,
+     DPUServiceTemplate, HostedCluster and NodePool.
+   - `controller-gen crd` over the vendored Go packages, written to a temp dir. This covers
+     DPFOperatorConfig (doca-platform `operator/v1alpha1`), IPAddressPool and L2Advertisement
+     (metallb `v1beta1`), and ClusterVersion (openshift `config/v1`).
+2. **Run kopium** on each CRD with
+   `--hide-kube --docs --derive Default --derive PartialEq --no-condition --no-object-reference`.
+3. **Post-process with `hack/gen-rust-apis/main.go`** (`go run -mod=vendor`). It walks the vendored
+   Go types with reflection and the kopium structs in parallel, then emits the Rust modules.
+   It also writes `src/generated/crosscheck.txt`, which lists every Go field missing from the CRD
+   schema and every CRD field missing from the Go type. The file is currently empty.
+4. **Run `rustfmt`** on the output.
+
+kopium supplies the documentation (the CRD descriptions) and the schema cross-check. The Go
+types supply everything that decides the JSON encoding.
+
+## Post-processing overrides (kopium output → Go-compatible output)
+
+A CRD schema doesn't record what is needed to reproduce Go's `encoding/json` output, so
+the post-processor applies the following to every struct:
+
+| # | kopium output | Override |
+|---|---|---|
+| 1 | Struct names derived from the JSON path (`DpuFlavorConfigFiles`), with one struct per use site | One struct per Go type, using the Go name (`ConfigFile`). Each lives in the module of its Go package (`generated/<pkg>.rs`). |
+| 2 | Fields in alphabetical order | Fields follow **Go declaration order**. Embedded `json:",inline"` structs, such as `TypeMeta` or `LocalObjectReference` inside `ConfigMapKeySelector`, are expanded in place. |
+| 3 | `Option<T>` + `skip_serializing_if = "Option::is_none"` for every optional field | Go semantics: `omitempty` → `skip_serializing_if = "crate::go::is_empty"`, which skips `""`, `0`, `false`, None, and empty vec/map. Without `omitempty`, the zero value is always emitted. Go pointer → `Option<T>`, which gives `null` when there is no `omitempty`. Non-pointer struct → `T`, never skipped. |
+| 4 | Required/optional from the schema | A nil slice/map without `omitempty` → `Option<Vec/BTreeMap>`, so `null` and `[]` stay distinct. |
+| 5 | (none) | Go 1.24 `omitzero`: `crate::go::is_zero_time` for `metav1.Time` and `crate::go::is_default` for structs. |
+| 6 | Deserialization fails on `null` for non-`Option` fields | `deserialize_with = "crate::go::null_default"`: JSON `null` gives the zero value, as in Go. `#[serde(default)]` is on every struct, so missing fields also give the zero value. |
+| 7 | Rust enums for `enum:` schemas | Go string types become `pub type X = String;`. Values come from **every exported Go constant** in the package, plus package-level `var`s initialized with constants (for example `hyperv1.APIServer`), emitted as `pub const SCREAMING_SNAKE: &str`. Unknown enum values from newer servers still round-trip. |
+| 8 | `IntOrString` for `x-kubernetes-int-or-string` resources | `resource.Quantity` → `k8s_openapi::Quantity`. On both encode and decode it goes through `crate::go::ser`/`de`, which produces Go's canonical form (`crate::resource::canonical`). Zero is `"0"`. |
+| 9 | `String` (date-time) | `metav1.Time` → `Option<Time>` (k8s-openapi), for both pointer and non-pointer fields. A zero time encodes as `null`. |
+| 10 | `serde_json::Value` / `BTreeMap` for `x-kubernetes-preserve-unknown-fields` | `runtime.RawExtension` / `apiextensionsv1.JSON` → `crate::go::Json`. It preserves member order, like Go's raw bytes. |
+| 11 | `String` | `metav1.Duration` → `crate::go::Duration`, which uses Go `time.Duration` string format and parsing. |
+| 12 | `String` | hypershift `ipnet.IPNet` → `crate::ipnet::IPNet`. It uses `net.IPNet` CIDR formatting, and empty encodes as `null`. |
+| 13 | Generated object structs | `metav1.ObjectMeta`, `ListMeta` and `Condition` → the k8s-openapi types, serialized through `crate::go` in Go field order with Go `omitempty`/`omitzero`. Decoding of `Condition` is lenient: a missing `lastTransitionTime` is accepted. |
+| 14 | k8s-openapi `Condition` / `ObjectReference` (kopium defaults) | Disabled (`--no-condition --no-object-reference`). Other embedded k8s/openshift/nicconfig types are generated as Go-order mirrors in `k8s_core_v1`, `k8s_meta_v1`, `openshift_operator_v1` and `nicconfig_v1alpha1`. `LocalObjectReference`/`ObjectReference` get `From` conversions to and from k8s-openapi in `lib.rs`. |
+| 15 | No unknown-field handling | Every struct gets `#[serde(flatten)] pub extra: serde_json::Map<String, Value>`, so read-modify-write keeps fields unknown to the vendored API version. A Go field whose JSON name is `extra` would become `extra_`. |
+| 16 | Field names snake_cased by kopium | Fields are snake_case of the **JSON name**. Rust keywords get a `_` suffix (`type_`, as in k8s-openapi). Word splitting is acronym-aware (`CIDRs`, `OAuth`, `IPv4`, `QoS`, `VSphere`, `S390X`). |
+| 17 | `#[kube(...)]` / `CustomResource` derive | Not used: kopium runs with `--hide-kube`. Kinds are registered with `ctrlrt::impl_resource!` using group/plural/scope from the CRD, and `<Kind>List` types are generated from the Go list types. ctrlrt's `Object` trait needs `metadata: ObjectMeta` and a `Default` impl, which `CustomResource`'s wrapper does not give in the required shape. |
+| 18 | Doc comments | Taken from kopium (CRD descriptions). The CRD root description is used for the kind. Every field also gets a `Go: \`Field type\` json:\`tag\`` line. Doc tests are disabled (`doctest = false`) because the CRD text contains indented non-Rust examples. |
+
+Hand-written code, not generated:
+
+- `src/go.rs`: serde helpers, Go encodings of k8s-openapi types, `Duration`, `Json`.
+- `src/resource.rs`: `resource.Quantity` parse/canonicalize.
+- `src/ipnet.rs` and `src/infraid.rs`.
+- `src/provisioning.rs`: this repo's `api/v1alpha1` constants, `DefaultConfigName`,
+  `should_expose_through_load_balancer` and `is_vip_required`.
+- `src/lib.rs`: the module tree that re-exports the generated modules under Go-like paths, plus
+  the k8s-openapi conversions.
+
+## Known deviations from Go
+
+- **Unknown fields are preserved.** Go drops them on read-modify-write. If byte-exact Go output
+  matters for an object read from a newer server (for example the DPUFlavor embedded in
+  ignition), clear `extra` before encoding.
+- `serde_json` does not escape `<`, `>`, `&` (Go's `json.Marshal` writes `<` and so on).
+  Callers that need Go's exact bytes for such strings must encode with the `gocompat` JSON
+  writer.
+- `Quantity` arithmetic uses `i128` rather than `inf.Dec`. Values with more than about 38
+  significant digits are passed through unchanged instead of being canonicalized.
+- `Json` numbers are re-encoded from `serde_json::Number`. A raw number written as `1e3` comes
+  back as `1000.0`; Go would keep the raw text.
+- A zero `metav1.Time` is the Unix epoch in Rust (`ctrlrt::meta::zero_time()`). Go's real zero
+  `0001-01-01T00:00:00Z` is also treated as zero.
+
+## Tests
+
+`tests/golden.rs` checks every kind and list type against fixtures from `hack/golden/apis`:
+
+- `T::default()` must encode byte-for-byte like Go's zero value.
+- Go's filled encoding is decoded, re-encoded and compared **byte-for-byte** with Go's
+  `Unmarshal → Marshal` round trip.
+- Unknown fields injected at the root, in `spec` and in list items must survive.
+
+There are also tables for `Quantity`, `Duration` and `IPNet` (Go parse/format results), and a
+byte-exact check of the ignition `cleanDPUFlavor` JSON. `tests/fixtures/DPUFlavor.clean.yaml`
+holds `sigs.k8s.io/yaml.Marshal` of that cleaned DPUFlavor, for the ignition/gocompat YAML port.
