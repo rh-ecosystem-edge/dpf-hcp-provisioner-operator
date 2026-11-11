@@ -1,0 +1,26 @@
+{
+  "name": "no_config",
+  "steps": [
+    {
+      "label": "no config",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "",
+      "actions": [],
+      "events": [],
+      "exists": true,
+      "status": {},
+      "finalizers": []
+    },
+    {
+      "label": "not found",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "",
+      "actions": [],
+      "events": [],
+      "exists": false,
+      "finalizers": []
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+[package]
+name = "manager"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "DPF HCP provisioner operator manager binary (port of cmd/main.go)"
+
+[[bin]]
+name = "manager"
+path = "src/main.rs"
+
+[dependencies]
+ctrlrt = { path = "../ctrlrt" }
+ctrlrt-runtime = { path = "../ctrlrt-runtime" }
+ctrlrt-cmd = { path = "../ctrlrt-cmd" }
+common = { path = "../common" }
+hostedclient = { path = "../hostedclient" }
+controller = { path = "../controller" }
+ctrl-bfocplookup = { path = "../ctrl-bfocplookup" }
+ctrl-csrapproval = { path = "../ctrl-csrapproval" }
+ctrl-dpucluster = { path = "../ctrl-dpucluster" }
+ctrl-dpuservicetemplate = { path = "../ctrl-dpuservicetemplate" }
+ctrl-finalizer = { path = "../ctrl-finalizer" }
+ctrl-hostedcluster = { path = "../ctrl-hostedcluster" }
+ctrl-ignitiongenerator = { path = "../ctrl-ignitiongenerator" }
+ctrl-kubeconfiginjection = { path = "../ctrl-kubeconfiginjection" }
+ctrl-metallb = { path = "../ctrl-metallb" }
+ctrl-ovshugepages = { path = "../ctrl-ovshugepages" }
+ctrl-secrets = { path = "../ctrl-secrets" }
+anyhow.workspace = true
+tokio.workspace = true
+k8s-openapi.workspace = true
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+
+[dev-dependencies]
+ctrlrt-envtest = { path = "../ctrlrt-envtest" }
+kube.workspace = true
+serde_json.workspace = true
+http = "1"
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+tempfile = "3"
+rustix = { version = "1", features = ["process"] }

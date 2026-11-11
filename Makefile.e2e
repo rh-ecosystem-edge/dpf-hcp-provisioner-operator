@@ -13,9 +13,8 @@ E2E_TEST_TIMEOUT ?= 90m
 #   export IMAGE_DPF_HCP_PROVISIONER_OPERATOR_CI=quay.io/your-org/your-image:tag
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests on an existing OCP cluster.
-	go test ./test/e2e/ -v -ginkgo.v \
-		-ginkgo.timeout=$(E2E_TEST_TIMEOUT) \
-		-timeout $(E2E_TEST_TIMEOUT)
+	E2E_SUITE_TIMEOUT=$(E2E_TEST_TIMEOUT) \
+		cargo test -p e2e --test e2e_suite -- --ignored --nocapture
 
 .PHONY: e2e-deploy-hypershift
 e2e-deploy-hypershift: ## [E2E] Deploy HyperShift operator on the OCP management cluster.
@@ -49,7 +48,6 @@ E2E_KIND_TIMEOUT ?= 10m
 
 .PHONY: test-e2e-kind
 test-e2e-kind: manifests apply-crds-for-e2e ## Run kind-compatible e2e tests (no OCP required).
-	KIND_ONLY_TESTS=true go test ./test/e2e/ -v -ginkgo.v \
-		-ginkgo.label-filter='!ocp-required' \
-		-ginkgo.timeout=$(E2E_KIND_TIMEOUT) \
-		-timeout $(E2E_KIND_TIMEOUT)
+	KIND_ONLY_TESTS=true E2E_LABEL_FILTER='!ocp-required' \
+		E2E_SUITE_TIMEOUT=$(E2E_KIND_TIMEOUT) \
+		cargo test -p e2e --test e2e_suite -- --ignored --nocapture

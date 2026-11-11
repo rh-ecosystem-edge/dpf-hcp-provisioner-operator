@@ -1,0 +1,6 @@
+# Build outputs and caches (not needed in the image build context)
+target/
+bin/
+.git/
+# Go dependencies are not used by the Rust build
+vendor/

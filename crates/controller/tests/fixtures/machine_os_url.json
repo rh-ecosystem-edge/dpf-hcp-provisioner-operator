@@ -1,0 +1,832 @@
+{
+  "name": "machine_os_url",
+  "steps": [
+    {
+      "label": "lookup skipped, no nodes",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "failed to detect node address: no nodes found in cluster",
+      "actions": [
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
+                  "observedGeneration": 1,
+                  "reason": "LookupSkipped",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "create",
+          "kind": "Secret",
+          "namespace": "clusters",
+          "name": "dpf-hcp-pull-secret-e72fb833",
+          "object": {
+            "data": {
+              ".dockerconfigjson": "eyJhdXRocyI6eyJxdWF5LmlvIjp7ImF1dGgiOiJkR1Z6ZERwMFpYTjAifX19"
+            },
+            "metadata": {
+              "labels": {
+                "provisioning.dpu.hcp.io/credential-secret-copy": "pull-secret"
+              },
+              "name": "dpf-hcp-pull-secret-e72fb833",
+              "namespace": "clusters",
+              "ownerReferences": [
+                {
+                  "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+                  "blockOwnerDeletion": true,
+                  "controller": true,
+                  "kind": "DPFHCPProvisioner",
+                  "name": "dpf-hcp",
+                  "uid": "cr-uid-1234"
+                }
+              ]
+            },
+            "type": "kubernetes.io/dockerconfigjson"
+          }
+        },
+        {
+          "verb": "create",
+          "kind": "Secret",
+          "namespace": "clusters",
+          "name": "dpf-hcp-ssh-key-f9b60cc7",
+          "object": {
+            "data": {
+              "id_rsa.pub": "c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVEuLi4="
+            },
+            "metadata": {
+              "labels": {
+                "provisioning.dpu.hcp.io/credential-secret-copy": "ssh-key"
+              },
+              "name": "dpf-hcp-ssh-key-f9b60cc7",
+              "namespace": "clusters",
+              "ownerReferences": [
+                {
+                  "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+                  "blockOwnerDeletion": true,
+                  "controller": true,
+                  "kind": "DPFHCPProvisioner",
+                  "name": "dpf-hcp",
+                  "uid": "cr-uid-1234"
+                }
+              ]
+            },
+            "type": "Opaque"
+          }
+        },
+        {
+          "verb": "create",
+          "kind": "Secret",
+          "namespace": "clusters",
+          "name": "dpf-hcp-etcd-encryption-key",
+          "object": {
+            "data": {
+              "key": "S0VZ"
+            },
+            "metadata": {
+              "name": "dpf-hcp-etcd-encryption-key",
+              "namespace": "clusters",
+              "ownerReferences": [
+                {
+                  "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+                  "blockOwnerDeletion": true,
+                  "controller": true,
+                  "kind": "DPFHCPProvisioner",
+                  "name": "dpf-hcp",
+                  "uid": "cr-uid-1234"
+                }
+              ]
+            },
+            "type": "Opaque"
+          }
+        }
+      ],
+      "events": [
+        "Normal ClusterTypeValid DPUCluster type 'static' is supported",
+        "Normal DPUClusterAvailable DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+        "Normal DPUClusterFound DPUCluster 'dpu' found in namespace 'dpu-system'",
+        "Normal SecretsValid Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid"
+      ],
+      "exists": true,
+      "status": {
+        "conditions": [
+          {
+            "message": "DPUCluster type 'static' is supported",
+            "observedGeneration": 1,
+            "reason": "ClusterTypeValid",
+            "status": "True",
+            "type": "ClusterTypeValid"
+          },
+          {
+            "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+            "observedGeneration": 1,
+            "reason": "DPUClusterAvailable",
+            "status": "False",
+            "type": "DPUClusterInUse"
+          },
+          {
+            "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+            "observedGeneration": 1,
+            "reason": "DPUClusterFound",
+            "status": "False",
+            "type": "DPUClusterMissing"
+          },
+          {
+            "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+            "observedGeneration": 1,
+            "reason": "SecretsValid",
+            "status": "True",
+            "type": "SecretsValid"
+          },
+          {
+            "message": "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
+            "observedGeneration": 1,
+            "reason": "LookupSkipped",
+            "status": "True",
+            "type": "BlueFieldOCPLayerImageFound"
+          }
+        ],
+        "phase": "Pending"
+      },
+      "finalizers": [
+        "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+      ]
+    },
+    {
+      "label": "again",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "failed to detect node address: no nodes found in cluster",
+      "actions": [
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
+                  "observedGeneration": 1,
+                  "reason": "LookupSkipped",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
+                  "observedGeneration": 1,
+                  "reason": "LookupSkipped",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
+                  "observedGeneration": 1,
+                  "reason": "LookupSkipped",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "machineOSURL": "https://example.com/rhcos.qcow2",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
+                  "observedGeneration": 1,
+                  "reason": "LookupSkipped",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "phase": "Pending"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "exists": true,
+      "status": {
+        "conditions": [
+          {
+            "message": "DPUCluster type 'static' is supported",
+            "observedGeneration": 1,
+            "reason": "ClusterTypeValid",
+            "status": "True",
+            "type": "ClusterTypeValid"
+          },
+          {
+            "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+            "observedGeneration": 1,
+            "reason": "DPUClusterAvailable",
+            "status": "False",
+            "type": "DPUClusterInUse"
+          },
+          {
+            "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+            "observedGeneration": 1,
+            "reason": "DPUClusterFound",
+            "status": "False",
+            "type": "DPUClusterMissing"
+          },
+          {
+            "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+            "observedGeneration": 1,
+            "reason": "SecretsValid",
+            "status": "True",
+            "type": "SecretsValid"
+          },
+          {
+            "message": "BlueField OCP layer lookup skipped - machineOSURL provided in spec",
+            "observedGeneration": 1,
+            "reason": "LookupSkipped",
+            "status": "True",
+            "type": "BlueFieldOCPLayerImageFound"
+          }
+        ],
+        "phase": "Pending"
+      },
+      "finalizers": [
+        "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+      ]
+    }
+  ]
+}

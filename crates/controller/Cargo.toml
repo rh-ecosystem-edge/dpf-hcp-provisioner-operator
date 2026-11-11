@@ -1,0 +1,45 @@
+[package]
+name = "controller"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ctrlrt = { path = "../ctrlrt" }
+apis = { path = "../apis" }
+common = { path = "../common" }
+ctrl-bfocplookup = { path = "../ctrl-bfocplookup" }
+ctrl-dpucluster = { path = "../ctrl-dpucluster" }
+ctrl-finalizer = { path = "../ctrl-finalizer" }
+ctrl-hostedcluster = { path = "../ctrl-hostedcluster" }
+ctrl-ignitiongenerator = { path = "../ctrl-ignitiongenerator" }
+ctrl-kubeconfiginjection = { path = "../ctrl-kubeconfiginjection" }
+ctrl-metallb = { path = "../ctrl-metallb" }
+ctrl-ovshugepages = { path = "../ctrl-ovshugepages" }
+ctrl-secrets = { path = "../ctrl-secrets" }
+anyhow.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+futures.workspace = true
+k8s-openapi.workspace = true
+
+[dev-dependencies]
+ctrlrt-fake = { path = "../ctrlrt-fake" }
+ctrlrt-envtest = { path = "../ctrlrt-envtest" }
+ctrlrt-runtime = { path = "../ctrlrt-runtime" }
+registry = { path = "../registry" }
+hostedclient = { path = "../hostedclient" }
+ctrl-dpuservicetemplate = { path = "../ctrl-dpuservicetemplate" }
+tokio-util.workspace = true
+base64 = "0.22.1"
+rustls = { version = "0.23.31", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rcgen = { version = "0.14.5", default-features = false, features = ["crypto", "pem", "ring"] }
+tokio-rustls = { version = "0.26.2", default-features = false, features = ["ring", "tls12", "logging"] }
+hyper = { version = "1.12.0", features = ["server", "http1"] }
+hyper-util = { version = "0.1.21", features = ["tokio"] }
+http-body-util = "0.1.5"
+bytes = "1.10.1"
+kube.workspace = true

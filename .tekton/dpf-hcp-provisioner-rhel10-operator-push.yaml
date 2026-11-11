@@ -34,7 +34,7 @@ spec:
     - name: build-source-image
       value: "true"
     - name: prefetch-input
-      value: '[{"type": "gomod", "path": "."}]'
+      value: '[{"type": "cargo", "path": "."}]'
     - name: additional-tags
       value: [ "latest" ]
   pipelineSpec:

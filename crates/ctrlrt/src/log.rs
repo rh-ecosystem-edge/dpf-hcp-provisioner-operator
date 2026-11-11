@@ -30,6 +30,19 @@ pub trait LogSink: Send + Sync + 'static {
     fn info(&self, level: i32, name: &str, msg: &str, kvs: &[(String, Value)]);
     /// Emit an error record. `err` is `err.Error()` (None for `log.Error(nil, ...)`).
     fn error(&self, err: Option<&str>, name: &str, msg: &str, kvs: &[(String, Value)]);
+    /// Emit an error record for an error with causes (Go `Errors() []error`); zap adds an
+    /// `errorCauses` field. Defaults to [`LogSink::error`].
+    fn error_with_causes(
+        &self,
+        err: &str,
+        causes: &[String],
+        name: &str,
+        msg: &str,
+        kvs: &[(String, Value)],
+    ) {
+        let _ = causes;
+        self.error(Some(err), name, msg, kvs)
+    }
 }
 
 /// Sink discarding everything.
@@ -189,6 +202,22 @@ impl Logger {
         let e = err.to_string();
         self.sink()
             .error(Some(&e), &self.name, msg, &self.merged(kvs));
+    }
+
+    /// `Error(err, msg, ...)` for an `anyhow` error: like [`Logger::error`], but errors that
+    /// carry causes ([`crate::error::Aggregate`]) are logged with zap's `errorCauses` field,
+    /// as Go does for errors implementing `Errors() []error`.
+    pub fn error_err(&self, err: &crate::Error, msg: &str, kvs: KeyValues) {
+        match crate::error::aggregate_causes(err) {
+            Some(causes) => self.sink().error_with_causes(
+                &err.to_string(),
+                causes,
+                &self.name,
+                msg,
+                &self.merged(kvs),
+            ),
+            None => self.error(err, msg, kvs),
+        }
     }
 
     /// `Error(nil, msg, keysAndValues...)`

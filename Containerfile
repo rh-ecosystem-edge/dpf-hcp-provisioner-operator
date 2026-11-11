@@ -1,29 +1,37 @@
 # Build the manager binary
-# Use Red Hat UBI instead of Docker Hub to avoid rate limits
-FROM registry.access.redhat.com/ubi10/go-toolset:1.26 AS builder
+# A musl-native Rust toolchain produces a fully static binary (RHEL/UBI Rust packages ship
+# no musl target and UBI lacks glibc-static). The image is multi-arch (amd64/arm64).
+FROM docker.io/library/rust:1.99-alpine3.24 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
 # Run as root to ensure write permissions in workspace
 USER 0
 WORKDIR /workspace
-# Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
-COPY vendor/ vendor/
 
-# Copy the go source
-COPY cmd/main.go cmd/main.go
-COPY api/ api/
-COPY internal/ internal/
+# Cargo manifests and sources
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
+COPY crates/ crates/
+# Data embedded into the binary at compile time
+COPY internal/dpfdefaults/dpfversions.json internal/dpfdefaults/dpfversions.json
+COPY internal/ignition/resources/ internal/ignition/resources/
 
 # Build
-# the GOARCH has not a default value to allow the binary be built according to the host where the command
-# was called. For example, if we call make container-build in a local env which has the Apple Silicon M1 SO
-# the container build tool's BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
-# by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -o manager cmd/main.go
+# The binary is built for the platform of the builder image (TARGETARCH), so the container
+# and the binary shipped in it always match. On a musl host target `crt-static` is the
+# default, so the result is a statically linked executable. Dependencies come from the
+# prefetched cargo sources in hermetic builds (`--locked` enforces Cargo.lock).
+RUN cargo build --release --locked --bin manager \
+    && cp target/release/manager /workspace/manager \
+    && strip /workspace/manager \
+    && if readelf -d /workspace/manager | grep -q NEEDED; then \
+         echo "manager binary is not statically linked" >&2; exit 1; \
+       fi
 
+# CA bundle for outbound TLS (e.g. quay.io when resolving the corresponding ARM OVN-K image
+# tag); ubi-micro has no CA certs.
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest AS certs
 
 FROM registry.access.redhat.com/ubi10-micro:latest
 
@@ -31,7 +39,7 @@ WORKDIR /
 
 # ubi-micro has no CA certs; needed for outbound TLS (e.g. quay.io when
 # resolving the corresponding ARM OVN-K image tag)
-COPY --from=builder /etc/pki/tls/certs/ca-bundle.crt /etc/pki/tls/certs/
+COPY --from=certs /etc/pki/tls/certs/ca-bundle.crt /etc/pki/tls/certs/
 
 COPY --from=builder /workspace/manager .
 

@@ -59,6 +59,9 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+# RUST_TARGET is the musl target used for the static manager binary.
+RUST_TARGET ?= $(shell uname -m | sed 's/arm64/aarch64/')-unknown-linux-musl
+
 # CONTAINER_TOOL defines the container tool to be used for building images.
 CONTAINER_TOOL ?= podman
 CONTAINER_FILE ?= Containerfile
@@ -107,45 +110,54 @@ generate-test-crds: controller-gen ## Generate external CRDs for unit tests from
 	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/nvidia/doca-platform/api/dpuservice/v1alpha1/..." output:crd:dir=internal/controller/testdata/crds
 	GOCACHE=/tmp/gocache GOMODCACHE=/tmp/gomodcache GOFLAGS="-mod=readonly" $(CONTROLLER_GEN) crd paths="github.com/openshift/hypershift/api/hypershift/v1beta1/..." output:crd:dir=internal/controller/testdata/crds
 
+.PHONY: generate-rust-apis
+generate-rust-apis: ## Regenerate the Rust API types (crates/apis) from the CRDs with kopium.
+	./hack/gen-rust-apis.sh
+
 .PHONY: verify-generate
 verify-generate: ## Verify that all generated files are up to date.
 	./hack/verify-generate.sh
 
 .PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
+fmt: ## Run cargo fmt against code.
+	cargo fmt --all
 
 .PHONY: vet
-vet: ## Run go vet against code.
-	go vet ./...
+vet: ## Run cargo clippy against code.
+	cargo clippy --workspace --all-targets
 
 .PHONY: test
 test: manifests generate fmt vet setup-envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" cargo test --workspace --exclude e2e
 
 include Makefile.e2e
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter
-	$(GOLANGCI_LINT) run
+lint: ## Run clippy (warnings are errors) and check formatting
+	cargo clippy --workspace --all-targets -- -D warnings
+	cargo fmt --all -- --check
 
 .PHONY: lint-fix
-lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
-	$(GOLANGCI_LINT) run --fix
+lint-fix: ## Run clippy and rustfmt and apply fixes
+	cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged
+	cargo fmt --all
 
 .PHONY: lint-config
-lint-config: golangci-lint ## Verify golangci-lint linter configuration
-	$(GOLANGCI_LINT) config verify
+lint-config: ## Verify the Rust lint toolchain
+	cargo clippy --version
+	cargo fmt --version
 
 ##@ Build
 
 .PHONY: build
-build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+build: manifests generate fmt vet ## Build the static manager binary (musl).
+	cargo build --release --locked --target $(RUST_TARGET) --bin manager
+	mkdir -p bin
+	cp target/$(RUST_TARGET)/release/manager bin/manager
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/main.go
+	cargo run --bin manager --
 
 .PHONY: container-build
 container-build: ## Build container image with the manager.

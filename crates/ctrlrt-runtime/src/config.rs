@@ -180,6 +180,19 @@ fn config_log() -> ctrlrt::Logger {
 
 const NO_CONFIG_ERR: &str = "invalid configuration: no configuration has been provided, try setting KUBERNETES_MASTER environment variable";
 
+/// clientcmd's `ErrEmptyConfig` wrapped in `errConfigurationInvalid` (a `utilerrors.Aggregate`).
+fn no_config_error() -> anyhow::Error {
+    ctrlrt::error::Aggregate {
+        message: NO_CONFIG_ERR.to_string(),
+        causes: vec![
+            NO_CONFIG_ERR
+                .trim_start_matches("invalid configuration: ")
+                .to_string(),
+        ],
+    }
+    .into()
+}
+
 /// `ctrl.GetConfig()` with the value of the `--kubeconfig` flag (empty when not set).
 ///
 /// Precedence: `--kubeconfig` file, `$KUBECONFIG`, in-cluster config, `$HOME/.kube/config`.
@@ -197,7 +210,7 @@ pub async fn get_config_or_die(kubeconfig_flag: &str) -> RestConfig {
     match get_config(kubeconfig_flag).await {
         Ok(c) => c,
         Err(e) => {
-            config_log().error(&e, "unable to get kubeconfig", ctrlrt::kv![]);
+            config_log().error_err(&e, "unable to get kubeconfig", ctrlrt::kv![]);
             std::process::exit(1);
         }
     }
@@ -259,10 +272,10 @@ async fn load_default_rules(kubeconfig_env: &str) -> crate::Result<RestConfig> {
         });
     }
     let Some(kc) = merged else {
-        return Err(anyhow::anyhow!(NO_CONFIG_ERR));
+        return Err(no_config_error());
     };
     if kc.clusters.is_empty() && kc.current_context.as_deref().unwrap_or("").is_empty() {
-        return Err(anyhow::anyhow!(NO_CONFIG_ERR));
+        return Err(no_config_error());
     }
     rest_config_from_kubeconfig(kc).await
 }

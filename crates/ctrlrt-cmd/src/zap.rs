@@ -598,7 +598,13 @@ impl ZapSink {
             if spaced {
                 out.push(' ');
             }
-            self.field_value(&mut out, v, spaced);
+            if k == "errorCauses" {
+                // Encoded by zap's own encoder (errArray/ObjectMarshaler), not json.Marshal,
+                // so nested objects follow the encoder's spacing.
+                zap_marshaler_into(&mut out, v, spaced);
+            } else {
+                self.field_value(&mut out, v, spaced);
+            }
         }
         out
     }
@@ -841,6 +847,70 @@ impl ctrlrt::log::LogSink for ZapSink {
             None => self.write(ERROR_LEVEL, name, msg, kvs),
         }
     }
+
+    /// zap's `Error` field for an error implementing `errorGroup` (`Errors() []error`):
+    /// `"error": <msg>, "errorCauses": [{"error": <cause>}, ...]`.
+    fn error_with_causes(
+        &self,
+        err: &str,
+        causes: &[String],
+        name: &str,
+        msg: &str,
+        kvs: &[(String, Value)],
+    ) {
+        if !self.level_enabled(ERROR_LEVEL) {
+            return;
+        }
+        let mut all = Vec::with_capacity(kvs.len() + 2);
+        all.extend_from_slice(kvs);
+        all.push(("error".to_string(), Value::String(err.to_string())));
+        all.push((
+            "errorCauses".to_string(),
+            Value::Array(
+                causes
+                    .iter()
+                    .map(|c| serde_json::json!({ "error": c }))
+                    .collect(),
+            ),
+        ));
+        self.write(ERROR_LEVEL, name, msg, &all);
+    }
+}
+
+/// Render a value the way zap's encoder renders `ArrayMarshaler`/`ObjectMarshaler` content
+/// (console encoder: `", "` and `": "` separators; JSON encoder: none).
+fn zap_marshaler_into(out: &mut String, v: &Value, spaced: bool) {
+    match v {
+        Value::Array(a) => {
+            out.push('[');
+            for (i, e) in a.iter().enumerate() {
+                if i > 0 {
+                    out.push_str(if spaced { ", " } else { "," });
+                }
+                zap_marshaler_into(out, e, spaced);
+            }
+            out.push(']');
+        }
+        Value::Object(m) => {
+            out.push('{');
+            for (i, (k, e)) in m.iter().enumerate() {
+                if i > 0 {
+                    out.push_str(if spaced { ", " } else { "," });
+                }
+                out.push('"');
+                gofmt::zap_escape_into(out, k);
+                out.push_str(if spaced { "\": " } else { "\":" });
+                zap_marshaler_into(out, e, spaced);
+            }
+            out.push('}');
+        }
+        Value::String(st) => {
+            out.push('"');
+            gofmt::zap_escape_into(out, st);
+            out.push('"');
+        }
+        other => gofmt::json_value_into(out, other),
+    }
 }
 
 /// A fixed clock (for tests and golden comparisons).
@@ -857,6 +927,36 @@ pub fn utc_now() -> DateTime<FixedOffset> {
 mod tests {
     use super::*;
     use chrono::TimeZone;
+
+    #[test]
+    fn error_causes_rendering_matches_zap() {
+        // Go: zap console encoder, `unable to get kubeconfig` with clientcmd's aggregate error.
+        let causes = ["no configuration has been provided".to_string()];
+        let mut out = String::new();
+        zap_marshaler_into(
+            &mut out,
+            &Value::Array(
+                causes
+                    .iter()
+                    .map(|c| serde_json::json!({"error": c}))
+                    .collect(),
+            ),
+            true,
+        );
+        assert_eq!(out, r#"[{"error": "no configuration has been provided"}]"#);
+        let mut out = String::new();
+        zap_marshaler_into(
+            &mut out,
+            &Value::Array(
+                causes
+                    .iter()
+                    .map(|c| serde_json::json!({"error": c}))
+                    .collect(),
+            ),
+            false,
+        );
+        assert_eq!(out, r#"[{"error":"no configuration has been provided"}]"#);
+    }
 
     #[test]
     fn time_formats() {

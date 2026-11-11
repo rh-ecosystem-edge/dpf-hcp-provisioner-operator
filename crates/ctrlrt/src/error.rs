@@ -354,6 +354,29 @@ impl fmt::Display for NoResourceMatchError {
 }
 impl std::error::Error for NoResourceMatchError {}
 
+/// An error carrying sub-errors (Go's `utilerrors.Aggregate` or any error implementing
+/// `Errors() []error`). zap logs such errors with an extra `errorCauses` field listing each
+/// cause; see [`crate::log::Logger::error`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Aggregate {
+    /// The full `Error()` text.
+    pub message: String,
+    /// `Error()` of each cause, in order.
+    pub causes: Vec<String>,
+}
+
+impl fmt::Display for Aggregate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+impl std::error::Error for Aggregate {}
+
+/// Causes of the first [`Aggregate`] in the chain (zap's `errorCauses`).
+pub fn aggregate_causes(err: &Error) -> Option<&[String]> {
+    find_in_chain::<Aggregate>(err).map(|a| a.causes.as_slice())
+}
+
 /// Error with a Go-style pre-rendered message that wraps a cause (`fmt.Errorf("...%w", err)`).
 #[derive(Debug)]
 pub struct Wrapped {

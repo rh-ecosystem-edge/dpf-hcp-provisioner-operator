@@ -1,0 +1,3672 @@
+{
+  "name": "dependency_deleted",
+  "steps": [
+    {
+      "label": "dpudeployment deleted",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "",
+      "actions": [
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig injected",
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "Ignition ConfigMap bfcfg-dpu.cfg created successfully",
+                  "observedGeneration": 1,
+                  "reason": "IgnitionGenerated",
+                  "status": "True",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "phase": "ClusterVersionProgressing"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig injected",
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "Ignition ConfigMap bfcfg-dpu.cfg created successfully",
+                  "observedGeneration": 1,
+                  "reason": "IgnitionGenerated",
+                  "status": "True",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "phase": "ClusterVersionProgressing"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig injected",
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "Ignition ConfigMap bfcfg-dpu.cfg created successfully",
+                  "observedGeneration": 1,
+                  "reason": "IgnitionGenerated",
+                  "status": "True",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "phase": "ClusterVersionProgressing"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig injected",
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "Ignition ConfigMap bfcfg-dpu.cfg created successfully",
+                  "observedGeneration": 1,
+                  "reason": "IgnitionGenerated",
+                  "status": "True",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "phase": "ClusterVersionProgressing"
+            }
+          }
+        },
+        {
+          "verb": "create",
+          "kind": "Secret",
+          "namespace": "clusters",
+          "name": "dpf-hcp-pull-secret-e72fb833",
+          "object": {
+            "data": {
+              ".dockerconfigjson": "eyJhdXRocyI6eyJxdWF5LmlvIjp7ImF1dGgiOiJkR1Z6ZERwMFpYTjAifX19"
+            },
+            "metadata": {
+              "labels": {
+                "provisioning.dpu.hcp.io/credential-secret-copy": "pull-secret"
+              },
+              "name": "dpf-hcp-pull-secret-e72fb833",
+              "namespace": "clusters",
+              "ownerReferences": [
+                {
+                  "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+                  "blockOwnerDeletion": true,
+                  "controller": true,
+                  "kind": "DPFHCPProvisioner",
+                  "name": "dpf-hcp",
+                  "uid": "cr-uid-1234"
+                }
+              ]
+            },
+            "type": "kubernetes.io/dockerconfigjson"
+          }
+        },
+        {
+          "verb": "create",
+          "kind": "Secret",
+          "namespace": "clusters",
+          "name": "dpf-hcp-ssh-key-f9b60cc7",
+          "object": {
+            "data": {
+              "id_rsa.pub": "c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVEuLi4="
+            },
+            "metadata": {
+              "labels": {
+                "provisioning.dpu.hcp.io/credential-secret-copy": "ssh-key"
+              },
+              "name": "dpf-hcp-ssh-key-f9b60cc7",
+              "namespace": "clusters",
+              "ownerReferences": [
+                {
+                  "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+                  "blockOwnerDeletion": true,
+                  "controller": true,
+                  "kind": "DPFHCPProvisioner",
+                  "name": "dpf-hcp",
+                  "uid": "cr-uid-1234"
+                }
+              ]
+            },
+            "type": "Opaque"
+          }
+        },
+        {
+          "verb": "create",
+          "kind": "NodePool",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "ownerReferences": [
+                {
+                  "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+                  "blockOwnerDeletion": true,
+                  "controller": true,
+                  "kind": "DPFHCPProvisioner",
+                  "name": "dpf-hcp",
+                  "uid": "cr-uid-1234"
+                }
+              ]
+            },
+            "spec": {
+              "clusterName": "dpf-hcp",
+              "management": {
+                "autoRepair": false,
+                "upgradeType": "Replace"
+              },
+              "platform": {
+                "type": "None"
+              },
+              "release": {
+                "image": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi"
+              },
+              "replicas": 0
+            },
+            "status": {
+              "replicas": 0
+            }
+          }
+        },
+        {
+          "verb": "create",
+          "kind": "Secret",
+          "namespace": "dpu-system",
+          "name": "dpf-hcp-admin-kubeconfig",
+          "object": {
+            "data": {
+              "super-admin.conf": "YXBpVmVyc2lvbjogdjEKa2luZDogQ29uZmlnCmNsdXN0ZXJzOiBbXQo="
+            },
+            "metadata": {
+              "labels": {
+                "dpfhcpprovisioner.dpu.hcp.io/name": "dpf-hcp",
+                "dpfhcpprovisioner.dpu.hcp.io/namespace": "clusters"
+              },
+              "name": "dpf-hcp-admin-kubeconfig",
+              "namespace": "dpu-system"
+            },
+            "type": "Opaque"
+          }
+        },
+        {
+          "verb": "update",
+          "kind": "DPUCluster",
+          "namespace": "dpu-system",
+          "name": "dpu",
+          "object": {
+            "metadata": {
+              "name": "dpu",
+              "namespace": "dpu-system"
+            },
+            "spec": {
+              "kubeconfig": "dpf-hcp-admin-kubeconfig",
+              "type": "static"
+            },
+            "status": {
+              "nodesCount": 0,
+              "phase": "Ready",
+              "version": ""
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "Ignition ConfigMap bfcfg-dpu.cfg created successfully",
+                  "observedGeneration": 1,
+                  "reason": "IgnitionGenerated",
+                  "status": "True",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "ClusterVersionProgressing"
+            }
+          }
+        },
+        {
+          "verb": "delete",
+          "kind": "ConfigMap",
+          "namespace": "dpu-system",
+          "name": "bfcfg-dpu.cfg"
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        }
+      ],
+      "events": [
+        "Normal ClusterTypeValid DPUCluster type 'static' is supported",
+        "Normal DPUClusterAvailable DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+        "Normal DPUClusterFound DPUCluster 'dpu' found in namespace 'dpu-system'",
+        "Normal SecretsValid Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+        "Normal KubeConfigInjected Kubeconfig secret dpf-hcp-admin-kubeconfig created in namespace dpu-system",
+        "Normal DPUClusterUpdated DPUCluster dpu-system/dpu updated with kubeconfig reference",
+        "Normal Injected Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+        "Warning DependencyDeleted DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap"
+      ],
+      "exists": true,
+      "status": {
+        "conditions": [
+          {
+            "message": "The hosted control plane is available",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "True",
+            "type": "HostedClusterAvailable"
+          },
+          {
+            "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+            "observedGeneration": 1,
+            "reason": "Injected",
+            "status": "True",
+            "type": "KubeConfigInjected"
+          },
+          {
+            "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+            "observedGeneration": 1,
+            "reason": "DependencyDeleted",
+            "status": "False",
+            "type": "IgnitionConfigured"
+          },
+          {
+            "message": "DPUCluster type 'static' is supported",
+            "observedGeneration": 1,
+            "reason": "ClusterTypeValid",
+            "status": "True",
+            "type": "ClusterTypeValid"
+          },
+          {
+            "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+            "observedGeneration": 1,
+            "reason": "DPUClusterAvailable",
+            "status": "False",
+            "type": "DPUClusterInUse"
+          },
+          {
+            "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+            "observedGeneration": 1,
+            "reason": "DPUClusterFound",
+            "status": "False",
+            "type": "DPUClusterMissing"
+          },
+          {
+            "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+            "observedGeneration": 1,
+            "reason": "SecretsValid",
+            "status": "True",
+            "type": "SecretsValid"
+          },
+          {
+            "message": "HostedCluster is at expected version",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterProgressing"
+          },
+          {
+            "message": "",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterDegraded"
+          },
+          {
+            "message": "Waiting for ignition configuration to complete",
+            "reason": "IgnitionNotConfigured",
+            "status": "False",
+            "type": "Ready"
+          }
+        ],
+        "hostedClusterRef": {
+          "apiVersion": "hypershift.openshift.io/v1beta1",
+          "kind": "HostedCluster",
+          "name": "dpf-hcp",
+          "namespace": "clusters"
+        },
+        "kubeConfigSecretRef": {
+          "name": "dpf-hcp-admin-kubeconfig"
+        },
+        "phase": "GeneratingIgnition"
+      },
+      "finalizers": [
+        "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+      ]
+    },
+    {
+      "label": "dpudeployment still missing",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "",
+      "actions": [
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        }
+      ],
+      "events": [
+        "Normal ImageFound BlueField OCP layer image found for OCP version 4.19.0: quay.io/example/bf-ocp-layer:4.19.0"
+      ],
+      "exists": true,
+      "status": {
+        "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+        "conditions": [
+          {
+            "message": "The hosted control plane is available",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "True",
+            "type": "HostedClusterAvailable"
+          },
+          {
+            "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+            "observedGeneration": 1,
+            "reason": "Injected",
+            "status": "True",
+            "type": "KubeConfigInjected"
+          },
+          {
+            "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+            "observedGeneration": 1,
+            "reason": "DependencyDeleted",
+            "status": "False",
+            "type": "IgnitionConfigured"
+          },
+          {
+            "message": "DPUCluster type 'static' is supported",
+            "observedGeneration": 1,
+            "reason": "ClusterTypeValid",
+            "status": "True",
+            "type": "ClusterTypeValid"
+          },
+          {
+            "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+            "observedGeneration": 1,
+            "reason": "DPUClusterAvailable",
+            "status": "False",
+            "type": "DPUClusterInUse"
+          },
+          {
+            "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+            "observedGeneration": 1,
+            "reason": "DPUClusterFound",
+            "status": "False",
+            "type": "DPUClusterMissing"
+          },
+          {
+            "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+            "observedGeneration": 1,
+            "reason": "SecretsValid",
+            "status": "True",
+            "type": "SecretsValid"
+          },
+          {
+            "message": "HostedCluster is at expected version",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterProgressing"
+          },
+          {
+            "message": "",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterDegraded"
+          },
+          {
+            "message": "Waiting for ignition configuration to complete",
+            "reason": "IgnitionNotConfigured",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+            "observedGeneration": 1,
+            "reason": "ImageFound",
+            "status": "True",
+            "type": "BlueFieldOCPLayerImageFound"
+          }
+        ],
+        "hostedClusterRef": {
+          "apiVersion": "hypershift.openshift.io/v1beta1",
+          "kind": "HostedCluster",
+          "name": "dpf-hcp",
+          "namespace": "clusters"
+        },
+        "kubeConfigSecretRef": {
+          "name": "dpf-hcp-admin-kubeconfig"
+        },
+        "phase": "GeneratingIgnition"
+      },
+      "finalizers": [
+        "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+      ]
+    },
+    {
+      "label": "dpudeployment without flavor",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "",
+      "actions": [
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        }
+      ],
+      "events": [
+        "Warning DependencyDeleted DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap"
+      ],
+      "exists": true,
+      "status": {
+        "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+        "conditions": [
+          {
+            "message": "The hosted control plane is available",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "True",
+            "type": "HostedClusterAvailable"
+          },
+          {
+            "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+            "observedGeneration": 1,
+            "reason": "Injected",
+            "status": "True",
+            "type": "KubeConfigInjected"
+          },
+          {
+            "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+            "observedGeneration": 1,
+            "reason": "DependencyDeleted",
+            "status": "False",
+            "type": "IgnitionConfigured"
+          },
+          {
+            "message": "DPUCluster type 'static' is supported",
+            "observedGeneration": 1,
+            "reason": "ClusterTypeValid",
+            "status": "True",
+            "type": "ClusterTypeValid"
+          },
+          {
+            "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+            "observedGeneration": 1,
+            "reason": "DPUClusterAvailable",
+            "status": "False",
+            "type": "DPUClusterInUse"
+          },
+          {
+            "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+            "observedGeneration": 1,
+            "reason": "DPUClusterFound",
+            "status": "False",
+            "type": "DPUClusterMissing"
+          },
+          {
+            "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+            "observedGeneration": 1,
+            "reason": "SecretsValid",
+            "status": "True",
+            "type": "SecretsValid"
+          },
+          {
+            "message": "HostedCluster is at expected version",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterProgressing"
+          },
+          {
+            "message": "",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterDegraded"
+          },
+          {
+            "message": "Waiting for ignition configuration to complete",
+            "reason": "IgnitionNotConfigured",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+            "observedGeneration": 1,
+            "reason": "ImageFound",
+            "status": "True",
+            "type": "BlueFieldOCPLayerImageFound"
+          }
+        ],
+        "hostedClusterRef": {
+          "apiVersion": "hypershift.openshift.io/v1beta1",
+          "kind": "HostedCluster",
+          "name": "dpf-hcp",
+          "namespace": "clusters"
+        },
+        "kubeConfigSecretRef": {
+          "name": "dpf-hcp-admin-kubeconfig"
+        },
+        "phase": "GeneratingIgnition"
+      },
+      "finalizers": [
+        "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+      ]
+    },
+    {
+      "label": "flavor missing",
+      "requeue": false,
+      "requeueAfter": "0s",
+      "error": "",
+      "actions": [
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUDeployment dpf-operator-system/dd has no flavor configured, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        },
+        {
+          "verb": "update-status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "dpf-hcp",
+          "object": {
+            "metadata": {
+              "finalizers": [
+                "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+              ],
+              "generation": 1,
+              "name": "dpf-hcp",
+              "namespace": "clusters",
+              "uid": "cr-uid-1234"
+            },
+            "spec": {
+              "baseDomain": "example.com",
+              "controlPlaneAvailabilityPolicy": "SingleReplica",
+              "dpuClusterRef": {
+                "name": "dpu",
+                "namespace": "dpu-system"
+              },
+              "dpuDeploymentRef": {
+                "name": "dd",
+                "namespace": "dpf-operator-system"
+              },
+              "etcdStorageClass": "standard",
+              "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+              "pullSecretRef": {
+                "name": "my-pull-secret"
+              },
+              "sshKeySecretRef": {
+                "name": "my-ssh-key"
+              }
+            },
+            "status": {
+              "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+              "conditions": [
+                {
+                  "message": "The hosted control plane is available",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "True",
+                  "type": "HostedClusterAvailable"
+                },
+                {
+                  "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+                  "observedGeneration": 1,
+                  "reason": "Injected",
+                  "status": "True",
+                  "type": "KubeConfigInjected"
+                },
+                {
+                  "message": "DPUFlavor dpf-operator-system/missing-flavor not found, removing ignition ConfigMap",
+                  "observedGeneration": 1,
+                  "reason": "DependencyDeleted",
+                  "status": "False",
+                  "type": "IgnitionConfigured"
+                },
+                {
+                  "message": "DPUCluster type 'static' is supported",
+                  "observedGeneration": 1,
+                  "reason": "ClusterTypeValid",
+                  "status": "True",
+                  "type": "ClusterTypeValid"
+                },
+                {
+                  "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterAvailable",
+                  "status": "False",
+                  "type": "DPUClusterInUse"
+                },
+                {
+                  "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+                  "observedGeneration": 1,
+                  "reason": "DPUClusterFound",
+                  "status": "False",
+                  "type": "DPUClusterMissing"
+                },
+                {
+                  "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+                  "observedGeneration": 1,
+                  "reason": "SecretsValid",
+                  "status": "True",
+                  "type": "SecretsValid"
+                },
+                {
+                  "message": "HostedCluster is at expected version",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterProgressing"
+                },
+                {
+                  "message": "",
+                  "observedGeneration": 1,
+                  "reason": "AsExpected",
+                  "status": "False",
+                  "type": "HostedClusterDegraded"
+                },
+                {
+                  "message": "Waiting for ignition configuration to complete",
+                  "reason": "IgnitionNotConfigured",
+                  "status": "False",
+                  "type": "Ready"
+                },
+                {
+                  "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+                  "observedGeneration": 1,
+                  "reason": "ImageFound",
+                  "status": "True",
+                  "type": "BlueFieldOCPLayerImageFound"
+                }
+              ],
+              "hostedClusterRef": {
+                "apiVersion": "hypershift.openshift.io/v1beta1",
+                "kind": "HostedCluster",
+                "name": "dpf-hcp",
+                "namespace": "clusters"
+              },
+              "kubeConfigSecretRef": {
+                "name": "dpf-hcp-admin-kubeconfig"
+              },
+              "phase": "GeneratingIgnition"
+            }
+          }
+        }
+      ],
+      "events": [
+        "Warning DependencyDeleted DPUFlavor dpf-operator-system/missing-flavor not found, removing ignition ConfigMap"
+      ],
+      "exists": true,
+      "status": {
+        "blueFieldOCPLayerImage": "quay.io/example/bf-ocp-layer:4.19.0",
+        "conditions": [
+          {
+            "message": "The hosted control plane is available",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "True",
+            "type": "HostedClusterAvailable"
+          },
+          {
+            "message": "Kubeconfig secret successfully created in namespace dpu-system and DPUCluster CR updated",
+            "observedGeneration": 1,
+            "reason": "Injected",
+            "status": "True",
+            "type": "KubeConfigInjected"
+          },
+          {
+            "message": "DPUFlavor dpf-operator-system/missing-flavor not found, removing ignition ConfigMap",
+            "observedGeneration": 1,
+            "reason": "DependencyDeleted",
+            "status": "False",
+            "type": "IgnitionConfigured"
+          },
+          {
+            "message": "DPUCluster type 'static' is supported",
+            "observedGeneration": 1,
+            "reason": "ClusterTypeValid",
+            "status": "True",
+            "type": "ClusterTypeValid"
+          },
+          {
+            "message": "DPUCluster 'dpu-system/dpu' is available (not in use by another DPFHCPProvisioner)",
+            "observedGeneration": 1,
+            "reason": "DPUClusterAvailable",
+            "status": "False",
+            "type": "DPUClusterInUse"
+          },
+          {
+            "message": "DPUCluster 'dpu' found in namespace 'dpu-system'",
+            "observedGeneration": 1,
+            "reason": "DPUClusterFound",
+            "status": "False",
+            "type": "DPUClusterMissing"
+          },
+          {
+            "message": "Both SSH key secret 'my-ssh-key' and pull secret 'my-pull-secret' are valid",
+            "observedGeneration": 1,
+            "reason": "SecretsValid",
+            "status": "True",
+            "type": "SecretsValid"
+          },
+          {
+            "message": "HostedCluster is at expected version",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterProgressing"
+          },
+          {
+            "message": "",
+            "observedGeneration": 1,
+            "reason": "AsExpected",
+            "status": "False",
+            "type": "HostedClusterDegraded"
+          },
+          {
+            "message": "Waiting for ignition configuration to complete",
+            "reason": "IgnitionNotConfigured",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "message": "BlueField OCP layer image found: quay.io/example/bf-ocp-layer:4.19.0",
+            "observedGeneration": 1,
+            "reason": "ImageFound",
+            "status": "True",
+            "type": "BlueFieldOCPLayerImageFound"
+          }
+        ],
+        "hostedClusterRef": {
+          "apiVersion": "hypershift.openshift.io/v1beta1",
+          "kind": "HostedCluster",
+          "name": "dpf-hcp",
+          "namespace": "clusters"
+        },
+        "kubeConfigSecretRef": {
+          "name": "dpf-hcp-admin-kubeconfig"
+        },
+        "phase": "GeneratingIgnition"
+      },
+      "finalizers": [
+        "dpfhcpprovisioner.provisioning.dpu.hcp.io/finalizer"
+      ]
+    }
+  ]
+}
