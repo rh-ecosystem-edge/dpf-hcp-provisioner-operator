@@ -1,0 +1,414 @@
+{
+  "name": "zero_trust_redfish_node_port_discovery",
+  "input": {
+    "cr": {
+      "metadata": {
+        "name": "doca",
+        "namespace": "clusters",
+        "uid": "cr-uid-1234",
+        "generation": 3
+      },
+      "spec": {
+        "dpuClusterRef": {
+          "name": "dpucluster-1",
+          "namespace": "dpf-operator-system"
+        },
+        "baseDomain": "",
+        "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+        "sshKeySecretRef": {},
+        "pullSecretRef": {},
+        "dpuDeploymentRef": {
+          "name": "my-deployment",
+          "namespace": "dpf-operator-system"
+        },
+        "machineOSURL": "https://registry.example.com/rhcos-bf:4.17"
+      },
+      "status": {
+        "phase": "GeneratingIgnition",
+        "conditions": [
+          {
+            "type": "HostedClusterAvailable",
+            "status": "True",
+            "observedGeneration": 3,
+            "lastTransitionTime": "2025-01-01T00:00:00Z",
+            "reason": "AsExpected",
+            "message": "The hosted control plane is available"
+          }
+        ],
+        "hostedClusterRef": {
+          "namespace": "clusters",
+          "name": "doca"
+        }
+      }
+    },
+    "crInClient": true,
+    "objects": [
+      {
+        "kind": "Secret",
+        "object": {
+          "metadata": {
+            "name": "ignition-server-ca-cert",
+            "namespace": "clusters-doca"
+          },
+          "data": {
+            "tls.crt": "Q0FfUExBQ0VIT0xERVI="
+          }
+        }
+      },
+      {
+        "kind": "Secret",
+        "object": {
+          "metadata": {
+            "name": "token-doca-abc123",
+            "namespace": "clusters-doca"
+          },
+          "data": {
+            "token": "dGVzdC1iZWFyZXItdG9rZW4="
+          }
+        }
+      },
+      {
+        "kind": "HostedCluster",
+        "object": {
+          "metadata": {
+            "name": "doca",
+            "namespace": "clusters"
+          },
+          "spec": {
+            "release": {
+              "image": ""
+            },
+            "platform": {
+              "type": ""
+            },
+            "dns": {
+              "baseDomain": ""
+            },
+            "networking": {},
+            "autoscaling": {},
+            "etcd": {
+              "managementType": ""
+            },
+            "services": null,
+            "pullSecret": {},
+            "sshKey": {},
+            "fips": false
+          },
+          "status": {
+            "ignitionEndpoint": "ENDPOINT_PLACEHOLDER",
+            "controlPlaneEndpoint": {
+              "host": "",
+              "port": 0
+            }
+          }
+        }
+      },
+      {
+        "kind": "DPUDeployment",
+        "object": {
+          "metadata": {
+            "name": "my-deployment",
+            "namespace": "dpf-operator-system"
+          },
+          "spec": {
+            "dpus": {
+              "bfb": "test-bfb",
+              "flavor": "test-flavor",
+              "nodeEffect": {},
+              "dpuSetStrategy": {
+                "type": ""
+              }
+            },
+            "services": null
+          },
+          "status": {}
+        }
+      },
+      {
+        "kind": "DPUFlavor",
+        "object": {
+          "metadata": {
+            "name": "test-flavor",
+            "namespace": "dpf-operator-system",
+            "resourceVersion": "5",
+            "labels": {
+              "app": "golden"
+            }
+          },
+          "spec": {
+            "grub": {
+              "kernelParameters": [
+                "console=hvc0",
+                "console=ttyAMA0",
+                "hugepagesz=2048kB",
+                "hugepages=3072"
+              ]
+            },
+            "sysctl": {
+              "parameters": [
+                "net.ipv4.ip_forward=1",
+                "net.ipv4.ip_nonlocal_bind=1"
+              ]
+            },
+            "nvconfig": [
+              {
+                "device": "*",
+                "parameters": [
+                  "PF_BAR2_ENABLE=0",
+                  "PER_PF_NUM_SF=1",
+                  "LINK_TYPE_P1=2"
+                ]
+              }
+            ],
+            "ovs": {
+              "rawConfigScript": "#!/bin/bash\n_ovs-vsctl() {\n  ovs-vsctl --no-wait --timeout 15 \"$@\"\n}\n_ovs-vsctl set Open_vSwitch . other_config:doca-init=true\n_ovs-vsctl add-br br-sfc\n"
+            },
+            "bfcfgParameters": [
+              "UPDATE_ATF_UEFI=yes",
+              "UPDATE_DPU_OS=yes"
+            ],
+            "configFiles": [
+              {
+                "path": "/etc/sysctl.d/98-dpunet.conf",
+                "operation": "append",
+                "raw": "net.core.rmem_max=16777216\n",
+                "permissions": "0644"
+              },
+              {
+                "path": "/etc/mellanox/mlnx-bf.conf",
+                "operation": "override",
+                "raw": "ALLOW_SHARED_RQ=\"no\"\nIPSEC_FULL_OFFLOAD=\"no\"\nENABLE_ESWITCH_MULTIPORT=\"yes\"\n",
+                "permissions": "0600"
+              },
+              {
+                "path": "/etc/dpf/custom.conf",
+                "raw": "key=value\n"
+              },
+              {
+                "path": "",
+                "raw": "ignored"
+              }
+            ],
+            "containerdConfig": {
+              "registryEndpoint": "https://registry.example.com"
+            },
+            "dpuResources": {
+              "cpu": "16",
+              "memory": "16Gi"
+            },
+            "systemReservedResources": {
+              "cpu": "500m",
+              "memory": "1Gi"
+            }
+          }
+        }
+      },
+      {
+        "kind": "DPFOperatorConfig",
+        "object": {
+          "metadata": {
+            "name": "dpfoperatorconfig",
+            "namespace": "dpf-operator-system"
+          },
+          "spec": {
+            "networking": {
+              "controlPlaneMTU": 9000
+            },
+            "deploymentMode": "",
+            "provisioningController": {
+              "installInterface": {
+                "installViaRedfish": {}
+              }
+            }
+          },
+          "status": {}
+        }
+      },
+      {
+        "kind": "Service",
+        "object": {
+          "metadata": {
+            "name": "bfb-registry",
+            "namespace": "dpf-operator-system"
+          },
+          "spec": {
+            "ports": [
+              {
+                "name": "metrics",
+                "port": 9090,
+                "targetPort": 0
+              },
+              {
+                "name": "http",
+                "port": 80,
+                "targetPort": 0,
+                "nodePort": 30080
+              },
+              {
+                "name": "https",
+                "port": 443,
+                "targetPort": 0,
+                "nodePort": 30443
+              }
+            ],
+            "type": "NodePort"
+          },
+          "status": {
+            "loadBalancer": {}
+          }
+        }
+      },
+      {
+        "kind": "Node",
+        "object": {
+          "metadata": {
+            "name": "node-a"
+          },
+          "spec": {},
+          "status": {
+            "addresses": [
+              {
+                "type": "Hostname",
+                "address": "node-a"
+              },
+              {
+                "type": "ExternalIP",
+                "address": "203.0.113.10"
+              }
+            ],
+            "daemonEndpoints": {
+              "kubeletEndpoint": {
+                "Port": 0
+              }
+            },
+            "nodeInfo": {
+              "machineID": "",
+              "systemUUID": "",
+              "bootID": "",
+              "kernelVersion": "",
+              "osImage": "",
+              "containerRuntimeVersion": "",
+              "kubeletVersion": "",
+              "kubeProxyVersion": "",
+              "operatingSystem": "",
+              "architecture": ""
+            }
+          }
+        }
+      },
+      {
+        "kind": "Node",
+        "object": {
+          "metadata": {
+            "name": "node-b"
+          },
+          "spec": {},
+          "status": {
+            "addresses": [
+              {
+                "type": "InternalIP",
+                "address": "10.1.2.3"
+              },
+              {
+                "type": "InternalIP",
+                "address": "10.1.2.4"
+              }
+            ],
+            "daemonEndpoints": {
+              "kubeletEndpoint": {
+                "Port": 0
+              }
+            },
+            "nodeInfo": {
+              "machineID": "",
+              "systemUUID": "",
+              "bootID": "",
+              "kernelVersion": "",
+              "osImage": "",
+              "containerRuntimeVersion": "",
+              "kubeletVersion": "",
+              "kubeProxyVersion": "",
+              "operatingSystem": "",
+              "architecture": ""
+            }
+          }
+        }
+      }
+    ],
+    "server": {
+      "payload": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{\"shouldExist\":[\"systemd.unified_cgroup_hierarchy=1\"]},\"passwd\":{\"users\":[{\"name\":\"core\",\"sshAuthorizedKeys\":[\"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ golden@example.com\"]}]},\"storage\":{\"directories\":[{\"group\":{},\"path\":\"/var/lib/kubelet\",\"user\":{},\"mode\":493}],\"files\":[{\"group\":{},\"overwrite\":true,\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22config%22%3A%7B%22ignition%22%3A%7B%22version%22%3A%223.2.0%22%7D%7D%2C%22osImageURL%22%3A%22https%3A%2F%2Fregistry.example.com%2Frhcos%3A4.17%22%7D%7D\",\"verification\":{}},\"mode\":420},{\"group\":{},\"overwrite\":true,\"path\":\"/etc/kubernetes/kubelet.conf\",\"user\":{},\"contents\":{\"source\":\"data:,kind%3A%20KubeletConfiguration%0A\",\"verification\":{}},\"mode\":420},{\"group\":{},\"overwrite\":true,\"path\":\"/etc/precompressed\",\"user\":{},\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/0rLz+cCAAAA//8BAAD//7l5dXUEAAAA\",\"verification\":{}},\"mode\":384}]},\"systemd\":{\"units\":[{\"contents\":\"[Unit]\\nDescription=Kubelet\\n[Service]\\nExecStart=/usr/bin/kubelet\\n[Install]\\nWantedBy=multi-user.target\",\"enabled\":true,\"name\":\"kubelet.service\"}]}}",
+      "acceptTokens": null,
+      "status": 0
+    },
+    "runs": [
+      {}
+    ]
+  },
+  "outputs": [
+    {
+      "requeueAfter": "0s",
+      "error": "",
+      "events": [
+        "Normal IgnitionConfigured Ignition ConfigMap bfcfg-dpucluster-1.cfg configured successfully"
+      ],
+      "conditions": [
+        {
+          "type": "HostedClusterAvailable",
+          "status": "True",
+          "reason": "AsExpected",
+          "message": "The hosted control plane is available",
+          "observedGeneration": 3
+        },
+        {
+          "type": "IgnitionConfigured",
+          "status": "True",
+          "reason": "IgnitionGenerated",
+          "message": "Ignition ConfigMap bfcfg-dpucluster-1.cfg created successfully",
+          "observedGeneration": 3
+        }
+      ],
+      "actions": [
+        {
+          "verb": "create",
+          "subresource": "",
+          "kind": "ConfigMap",
+          "namespace": "dpf-operator-system",
+          "name": "bfcfg-dpucluster-1.cfg"
+        },
+        {
+          "verb": "update",
+          "subresource": "status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "doca"
+        }
+      ],
+      "configMap": {
+        "name": "bfcfg-dpucluster-1.cfg",
+        "namespace": "dpf-operator-system",
+        "resourceVersion": "1",
+        "labels": {
+          "provisioning.dpu.nvidia.com/bfcfg-template": "true"
+        },
+        "annotations": {
+          "dpfhcpprovisioner.dpu.hcp.io/bfcfg-template-machine-os-url": "https://registry.example.com/rhcos-bf:4.17",
+          "dpfhcpprovisioner.dpu.hcp.io/bfcfg-template-ocp-release-image": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+          "provisioning.dpu.nvidia.com/bfcfg-template-bfb-name": "test-bfb",
+          "provisioning.dpu.nvidia.com/bfcfg-template-bfb-namespace": "dpf-operator-system",
+          "provisioning.dpu.nvidia.com/bfcfg-template-cluster-name": "dpucluster-1",
+          "provisioning.dpu.nvidia.com/bfcfg-template-cluster-namespace": "dpf-operator-system",
+          "provisioning.dpu.nvidia.com/bfcfg-template-dpuflavor-name": "test-flavor",
+          "provisioning.dpu.nvidia.com/bfcfg-template-dpuflavor-namespace": "dpf-operator-system"
+        },
+        "ownerReferences": null,
+        "data": {
+          "BF_CFG_TEMPLATE": "{\"ignition\":{\"version\":\"3.4.0\"},\"passwd\":{\"users\":[{\"name\":\"core\",\"sshAuthorizedKeys\":[\"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ golden@example.com\"]}]},\"storage\":{\"files\":[{\"contents\":{\"source\":\"data:,bfb_pre_install%20bfb_modify_os%20bfb_post_install\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/temp_bfcfg_strings.env\"},{\"contents\":{\"source\":\"data:,{{.DPUHostName}}\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/hostname\"},{\"contents\":{\"source\":\"data:,DPUName={{.DPUName}}%0ADPUNamespace={{.DPUNamespace}}%0ADPUUID={{.DPUUID}}%0ADPUMode=zero-trust%0AControlPlaneMTU={{.ControlPlaneMTU}}%0A\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/dpf/environment\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,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\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/install-rhcos-dpf.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/7STTY/TMBCG7/4Vgzg4ESEBNlqhoB5Y1F1VoBZB4VJVlRM7rdnWtuxJS4X631E+3C+CtELiZs+8Y79+Zvz8WVI5m+RSJWaPK61uCJEboy1Czpy4Tf3uh9PKr7XzK7d3hIwexqPpaDJe3I8+DWFQB2Nml9vZ6zkZjr/7ME0EFgk3ZSLUVlqtNkIhJXeTyfTr9Mv7z4uP3+6GHybj+9FDo94ym6xl3lRwU7GlUJjkWqNDy8zLxyoXhValXFJC5FJJlFrBoDEarzXjgTZCBRfmwpCQlXao2EZk4NDCABpV682naBhbwXgQxg6tNEF4umBGHWrLloLOZ7SUa+HoPGbGCMWDXwQAgBqGK5rB1ZFRm9RbYXdWoqAZTG0luvBG8zqSvnnVBQqtUCh0NIP22CbqdGWLWkg5Q5ZFFF6Av6FRHcihNsuFQol7/zrfBP+so2CR36Yw6Dod57epUIXmIvD5uNuHYcxFu/oHEv76/4HgXeu9IXH+qnMaJWgX115i8VM6dEHfyIVZU3KaKg+vV3w9H3WpLM+qs6Pjx+JvlE/qPs6+/um8j4w67n3Oo0tlfy+O6a4nN2/Tq0Rvb57So5bGRcnhuKu7tZO4gj9/bgR0R0NgDsoWbfPNebUxgQcUQRmBVPUQDNKQ/A4AAP//TAZRNNoEAAA=\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/update_ignition.py\"},{\"contents\":{\"source\":\"data:;base64,{{ .BootstrapKubeconfig | b64enc }}\"},\"mode\":384,\"overwrite\":true,\"path\":\"/var/lib/dpf/dpuagent/bootstrap-kubeconfig\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4r2TSxJzojlCkgsybAtyEksScsvytX19fGLcHIzMLQyMOByKcosSy2yLcssKsnMj89LLeHiivbJzMuO5fJLzE21LclNy0wDixuABQLyczKTK225uAABAAD//6l66R5aAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/network/10-tmfifo_net.link\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4r2TSxJzojlCkgsybAtyEksScsvytX19fGLcHIzNLcyMOByKcosSy2yzc2pSEqLT89MT+XiivbJzMuO5fJLzE21zc9Pis9LLTEA8wLyczKTK225uAABAAD//5mBbZhXAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/network/10-oob_net.link\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/1SPwWrDMBBE7/sVgpxN0xJMCehLjClbaRSLWrtGXrn074uDfchxYOa93SGoCIJllZFy9FZSTvolsCvZ3wIPm1AFRlkMNXFAJ1zwUuRmenC81Qai4ZyNRENetttIF1dRdEN0e3ZxaY5jrFhXKrBJo4955e8Zkeiyd3onsF+tP1keLmndJ9w9IOZM3aSrdfxMQUtpkgPvXzx1/XgyC0vjmQ7Tu0/4vN7vH2/9jQQbaheRuM3H3f8BAAD//0sgK4YOAQAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/0TMTQrCMBTE8f3cRXAh7nKSECRNRvrAvlfiVPD2In50++c3k1u4s8nCC6yniOni1BF6rkzUzOEUzMVxrY0Hrwt3VTfF9yFpbATyb1OAbOvjVLBQc/T0tp92/rdu9zrd2PEKAAD//wMgDUCIAAAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/oob_net0.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/yTKS6rDMAxG4bn3Irhjg1dyKUWR/7iisRRU9bH8Yjr9zvnveKmA3Dcy5N+lTE650Y+bWiJ2FpDxRHXfrusqd+Akcdt1PINT3Zp54ePwN/oKBln6aPgIzqweOtSqTVLTjE4DhuD0KN8AAAD//4dhNaODAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/NetworkManager/conf.d/10-oob-net0.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,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\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/dpuagent-client.py\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/5TNMUvGMBCH8f0+xf/NWzoIch2cFB0cnNRZEClpc2kCaRNyoVTE7+4mIji4P/ye84mnuPFkNdAZ1tnSxMHXvGKVlOyWD0xe5xpLU6KqIeVlLLaFW8P6ruxkj7Mol2Sbz3Xlp8fnl/uH4ep6GNjVuEvlqmFMeTEUPV5xwqXAdB8/rE+Dtxu0IBsB/3x84z4S/amj7yFHbEQyhwzTXRjc/c7oKwAA//99qhrhDgEAAA==\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/bflog.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/5TMMUs0MRCH8X4+xf9yL9e9zgpWihYiVqfYCILIkd1MTCC7CZnssYf43QUVBOEK++f5rVfcx4l7q4HWsM6WJg6+5hGjpGSnvKD3OtRYmhLxrJVTHmz62nzKrycaYLZxmhfMxRxPbh4eERVVrDsYoqy7ueyKbeHSsB6UnezjIMol2eZzHflue/90fdudnXcduxr3UvlzMhQ9nrHCf4H59/YDvRu8XKAFmQj4m/8N+0h0TMZmA1liI5IhZJzi6ldCHwEAAP//Smh9gU0BAAA=\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/bfupsignal.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/7RXW2/buBJ+16+YsDqtdVondtMCQQIfIGhroMBpskjSdLHdwqClkU1EJlWSUto6/u8LXnTzJXEf9s0WyZlvvvlmhnx2cDRl/GhK1TwImJr8QikmWhZK9yJYwlcg4fs/Pn8SCRIYATHLfbtM4NsZrILg5uOnD5efb0bDk8EguL45v7qZmE+jsJdQjfDyPyoK/n9+fTP5cHV1eTUiJDh/d/Px8mJEwuXwtL8iQYAZzRUmxmEAgPFcQNjrtQxAHxrLURSsgiCeY3w30WyBotD+JEst3p63FxHozxBI6CFaxHqOPADwbogFdQoKdZH3y1T1Eywzxu+gFzqYERgfCYhCA001SgiX3t5KnUK4bGJbEWvYo3DHLWmxRKrRmCfwDZ4/hwPoMN1CBXBUKHmUiZhmNjFJXtAZct2PM4ZcH+Y/QSFP+iilkEBux9cG+o3BeFloAn97MwDksaBSyjJM9owoZY6xH0zDMLD/V0EwQz3JVB6ziTWvqiwA2K/Qf5/A8O30+BQeYCYxh3eCc4z1n/AA9P4OXixzybiGcLh6UdlTGlEyPpssRILenuUCEixHoXFexZJgCTmVdAFqLu6B5DE7CpcJlisCnC4Q0kzcdw3C6/8dJVge8SLL4AE0ZRn0h+twLsYOj9oPj/tr1kfh6+34UO8Hr6RZYfS6NP9WBGL7VRbcSNBAegZXqAvJFQyMzGiWNaQmWLIYFVCJwDioe6bjuQFhjLyCIQg9R3nPFB4GJUqW/pzUe3xkqZAWNuMQ9jbSG51BImx+XbC9dqTobG3JRZfzDtPHqxdRu2QWtsscjIDUyLo1C9DuJI0X4EJvBg09B9TRGRFvwhX+l/Ori61iB5CWY6t0r/1EcAzqhYFJRSI26HOGP16ML09NWlI2K0xuoUqyAzXFVEhsoB4eHpLf4L4yNnK7ugIioaGsw2m1wTaiZGFbUIfRNuoWo13QTIE5+8poWZuvWoBapMqD/1dEsUUWGc5o/HM9gm7N1U7Xq84G4iz4g76vWUcHoHbQaQNdc9iW4di1UsMI6jXezFEQHDyG+vyTGvTQGvWt6eva56GK1nozENZkdT9nGcIBrFd8rafOHA2c0z2l6Hnbn/yW951sVtaaUq7p80Pr91msCARQGWIOb3eQOmacqTkmjXPiS91N8EmZqi21fmu5tZXe7T+UJ2BPmrXbcVUtlrXNhGy/mTTqcifWfJCNyVyPJMPWJBYF16NB/TGjSk8kThlPRoOgFoiWBe6QxHqCSFC1l913mDY7f9U3Rj+J1B3Lc8NI7Hsk9udCaXNRsYzdjh2CKolTifSuqoaglt3T96RN+ztHyRYoXbE9ITXMFG6JfYvZ2AxtVcQxYlKZr+IqU5+vpo3mQmrXP7st016o+jGQNKOlKKRp3WXabf2VOXMN1jB4pO+PRcETqA8YrT7K/lfocyBhQ8NjY5oLYw9S68NdODd52ZPnCkNL22Gv1/yDlzCMHAnP4Nz6Oq7uukZXthgFB6o1LnKtXoGrBYMdDBZIJCtRmnqTGAvzM5ViARSmNIFF9uPtJDbj229Tmmo89P6uzCU/YwumXcEKHiPkKOHNyUBB72TBeARTjGmh0Dp0vv1ppmCaifjOVAZtI+KIibKvENvgNZ2yjP1CTyWtoEjMBE0O2wJoeHEvoWP3+vi6+bpqtYUosnvfnGwXjE9Ni/JYcIVxoVmJlupCouX1e4HKdr42r84H2fut4/Y7mXgTDw8dKFt2dEu33fLaj1I/IrpdspGYGxXHgx2z4gtlNjg3LFNaZBqkKDR2Bu8TfdU00dwdc0VeWaoK/Hv1pZOJTk1uGWtdpO/b6ICWlGV0miHZOf1az1X70qYKW+9ZxoN6BEXWYzPEAoCzs6A579eb6ek2/DeqXX9WdIanEA5gWVt5aAzYsq+n29lZgIrGwT8BAAD//+PIBaC0EAAA\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/setup-vfs-devlink.sh\"},{\"contents\":{\"source\":\"data:text/plain;charset=utf-8;base64,eyJtZXRhZGF0YSI6eyJuYW1lIjoidGVzdC1mbGF2b3IiLCJuYW1lc3BhY2UiOiJkcGYtb3BlcmF0b3Itc3lzdGVtIn0sInNwZWMiOnsiZ3J1YiI6eyJrZXJuZWxQYXJhbWV0ZXJzIjpbImNvbnNvbGU9aHZjMCIsImNvbnNvbGU9dHR5QU1BMCIsImh1Z2VwYWdlc3o9MjA0OGtCIiwiaHVnZXBhZ2VzPTMwNzIiXX0sInN5c2N0bCI6eyJwYXJhbWV0ZXJzIjpbIm5ldC5pcHY0LmlwX2ZvcndhcmQ9MSIsIm5ldC5pcHY0LmlwX25vbmxvY2FsX2JpbmQ9MSJdfSwibnZjb25maWciOlt7ImRldmljZSI6IioiLCJwYXJhbWV0ZXJzIjpbIlBGX0JBUjJfRU5BQkxFPTAiLCJQRVJfUEZfTlVNX1NGPTEiLCJMSU5LX1RZUEVfUDE9MiJdfV0sIm92cyI6eyJyYXdDb25maWdTY3JpcHQiOiIjIS9iaW4vYmFzaFxuX292cy12c2N0bCgpIHtcbiAgb3ZzLXZzY3RsIC0tbm8td2FpdCAtLXRpbWVvdXQgMTUgXCIkQFwiXG59XG5fb3ZzLXZzY3RsIHNldCBPcGVuX3ZTd2l0Y2ggLiBvdGhlcl9jb25maWc6ZG9jYS1pbml0PXRydWVcbl9vdnMtdnNjdGwgYWRkLWJyIGJyLXNmY1xuIn0sImJmY2ZnUGFyYW1ldGVycyI6WyJVUERBVEVfQVRGX1VFRkk9eWVzIiwiVVBEQVRFX0RQVV9PUz15ZXMiXSwiY29uZmlnRmlsZXMiOlt7InBhdGgiOiIvZXRjL3N5c2N0bC5kLzk4LWRwdW5ldC5jb25mIiwib3BlcmF0aW9uIjoiYXBwZW5kIiwicmF3IjoibmV0LmNvcmUucm1lbV9tYXg9MTY3NzcyMTZcbiIsInBlcm1pc3Npb25zIjoiMDY0NCJ9LHsicGF0aCI6Ii9ldGMvbWVsbGFub3gvbWxueC1iZi5jb25mIiwib3BlcmF0aW9uIjoib3ZlcnJpZGUiLCJyYXciOiJBTExPV19TSEFSRURfUlE9XCJub1wiXG5JUFNFQ19GVUxMX09GRkxPQUQ9XCJub1wiXG5FTkFCTEVfRVNXSVRDSF9NVUxUSVBPUlQ9XCJ5ZXNcIlxuIiwicGVybWlzc2lvbnMiOiIwNjAwIn0seyJwYXRoIjoiL2V0Yy9kcGYvY3VzdG9tLmNvbmYiLCJyYXciOiJrZXk9dmFsdWVcbiJ9LHsicGF0aCI6IiIsInJhdyI6Imlnbm9yZWQifV0sImNvbnRhaW5lcmRDb25maWciOnsicmVnaXN0cnlFbmRwb2ludCI6Imh0dHBzOi8vcmVnaXN0cnkuZXhhbXBsZS5jb20ifSwiZHB1UmVzb3VyY2VzIjp7ImNwdSI6IjE2IiwibWVtb3J5IjoiMTZHaSJ9LCJzeXN0ZW1SZXNlcnZlZFJlc291cmNlcyI6eyJjcHUiOiI1MDBtIiwibWVtb3J5IjoiMUdpIn19fQ==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/dpf/dpuflavor.json\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,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\"},\"mode\":420,\"overwrite\":true,\"path\":\"/var/target.ign\"}]},\"systemd\":{\"units\":[{\"contents\":\"[Unit]\\nDescription=Install RHCOS\\nAfter=multi-user.target\\nSuccessExitStatus=0\\nSuccessAction=reboot-force\\n\\n[Service]\\nType=oneshot\\nEnvironmentFile=/etc/dpf/environment\\nExecStart=/usr/local/bin/install-rhcos-dpf.sh\\nRemainAfterExit=yes\\nTimeoutSec=0\\nStandardInput=null\\nStandardOutput=journal+console\\nStandardError=journal+console\\nTTYPath=/dev/hvc0\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"install-rhcos-dpf.service\"},{\"contents\":\"[Unit]\\nDescription=Activate devlink\\nBefore=network-pre.target\\n# Don't start if this file exists:\\nConditionPathExists=!/etc/mlnx-release\\n\\n[Service]\\nType=oneshot\\nRestart=on-failure\\nRestartSec=5\\nExecStart=/usr/local/bin/setup-vfs-devlink.sh switchdev\\n\\n[Install]\\nWantedBy=multi-user.target\\n\\n\",\"enabled\":true,\"name\":\"devlink-activate.service\"}]}}\n"
+        }
+      },
+      "targetIgnition": "{\"ignition\":{\"version\":\"3.4.0\"},\"kernelArguments\":{\"shouldExist\":[\"systemd.unified_cgroup_hierarchy=1\"]},\"passwd\":{\"users\":[{\"name\":\"core\",\"sshAuthorizedKeys\":[\"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ golden@example.com\"]}]},\"storage\":{\"directories\":[{\"mode\":493,\"path\":\"/var/lib/kubelet\"}],\"files\":[{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/xzGXQoCIRAH8Lv8n2vsCwJvEPQUdIBNZt2BdMSRKBbvHu7bb4UVDvArguZZ4pDELE00D3+42kac6UQH9L6D2i1NkZ+POzyW1op55ypHsVZ/xN8plTdT0OTqEtT2r9lf6HhF7/8AAAD//0QGvGJuAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/ignition-machine-config-encapsulated.json\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/8rOzEuxUvAuTUrNSS1xzs9Ly0wvLUosyczP4wIEAAD//+Y6dlobAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/kubernetes/kubelet.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/0rLz+cCAAAA//8BAAD//7l5dXUEAAAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/precompressed\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/3L08fEPjw/2cAxydYkPCrRVystX4vIMCHZ1jncL9fGJ93dz8/F3dIGIu/o5Ovm4xrsGh3uGOHvE+4b6hHgG+AeF2CpVphYrcQECAAD//7QsUZJMAAAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/mellanox/mlnx-bf.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/+JyDnJ1DHGN9w8LjncK8nRxdw22VcrLV+ICCbj4OzvaKlWmFitxAQIAAP//UyPXZCgAAAA=\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/mellanox/mlnx-ovs.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/zSMOwrDMAyGd93FoLWDT2I8OMrvxlDJRlEDvX2hJfP3KDLNIDGmVRp7Xp2vzhSfhYw44IagYQHvTZCsKW5H2xnwvHmSqZrkoPPVLqRfu/nYnyAq96SSxjs/mJmo/Gla06N+AwAA//8sE+iKggAAAA==\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/pf0vf0.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4TOMW7zMAwF4J134ZD/N5wuOomhQSaZmIAkChIdNLcvBHdop64f+PjeRlarkKvVCMph70hWCtIB/m4S9q78FNDq0h+JBGsq8vMqnW7fP7BZ9xFuv2zk9JKJsIkf0qt4BMpWhbEkwsTcZYwwPO1ZALarMcLwFh4pj2naXksEPqghZZXqqBxKootci9jp4d9tuS8f/9flDkX8MA5zyBVfI8wmfErFYixBTl2Xv/KsY65igK11+3zHrwAAAP//yW/zfS8BAAA=\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/br-comm-ch.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4pOLsrM1ysqzSvJzE2N5UpJTUsszSmJL83JzM0sKVawVYjmUlBQystPy8xJtTU1MjGysLCCUEpcsVyAAAAA//+P20enPgAAAA==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/crio/crio.conf.d/99-ulimits.conf\"},{\"append\":[{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/8pLLdFLzi9K1SvKTc2Nz02ssDU0Mzc3NzI04wIEAAD//z7nWVQbAAAA\"}],\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/+LKSy3RyywoM9HLLIhPyy8qTyxKsTUEiyYVZaakp0Ip3bw03eTEnBzdzIKSxKSc1GICisxQVIEtSM7PS9NLzMnRKyqIT8vMKUktsjXiAgQAAP//VyFGdIAAAAA=\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/sysctl.d/98-dpunet.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4oOTi0qy0xOjeUKycxNzS8tCS5JLCoJTk22NTMw4AIEAAD//1jTNRoeAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/system/chrony-wait.service.d/override.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4oOTi0qy0xOjeVyrUhNDi5JLCqxRWLqlxYX6Sdl5unn5erm5+Vk5qUq6BYq6OqWZOam5peW2JpYGHABAgAA//97ckdmQwAAAA==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/system/NetworkManager-wait-online.service.d/override.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4oOzcssieUKSi0szSxKLbbNzCsuSczJ0U0pKNVNTE/NK9ErTi0qy0xO5XJMK0ktwiMPCAAA//+d3szUSgAAAA==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/system/machine-config-daemon-firstboot.service.d/10-mcd-firstboot-dpuagent.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4oOzcssieUKSi0szSxKLbYtTi0pLdAtSyvWTUkty8nMy9YrTi0qy0xO5XJMK0ktwiMPCAAA//+5//2kSgAAAA==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/system/machine-config-daemon-pull.service.d/10-require-setup-vfs.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/9RVW2/bNhR+568449TC7krJ7tBhS2EDKZICBVo0cB0UWFEEtHhoE6FIjaQcO5f/PlDyZPmSrS32Ur+Y5Ll95zufyJ9/ymbKZDPuF4TgCnMYw7gXEGHcu1kojeCQC2AOtDL4CoSFrPIu0zbnugmV2s5TvwCaRBcafQz2+/Bi/HRIiJLwGZjcjxJlxfgcTYAvryAs0BAAAMwXFujWxnWsvgZlfOBao3gO/lqVpTJz2gSsVIABkYqQJvZt46nMHNo0aZpSQpS/ukVnr4KrfOj14Q4+A03OLi7fW4EURkCjmdVmGlE9ELKpe4XOWRdjOijPJ5MPkxNIhg2SnfRwf3+k4RoMy7WKmMo1eDSC1amBnl1cnkbzBv8brjQKCvSf9HWjQ/JQE7pT64C+P9s2oLACT0DYG6MtFzukgHS2gJmcMYdz5YNbAw+QvH7zerLZX07eUdL0Vs/wFui+eWd4tWeXsAMo4PCvSjn0sF8mxsYhxv/p2/fnHy6no18Hg3r/cXo6mY6SnuAB4Zcnvl+fNuIMrqpFuQUgIa+cBuYlMFbwFQuqQHh5gD1zZZE5LK3ggdeLQqSrQlMYZwKXmam0riW812H8zRzy6/ZEqnZ5/u704uP52Sjp9Tp4gTU99PtdmFF9G38KbI5Ak03nh7QeoXaqChRgqwA3XIU4Wmndf8/zCOhGNZ8ey5JbYzAPaqnCOk1T6CV3G9gPPkvuNpgffH+b3GvEEl7W+3gZNHPNBWShKJtTI1tZdjTJmFCezzTGeYyeAWNxEZVa8rAY3YbGLx4+PzpQGr+8PaYeqXWof9l8dAS1xx0l/vGdSoz3FLDfgOVDYJ+GIPH3wcnJ8EkopJL2ymAYwNOt3H4opXVlAcHCwvoADbNLxaHT4leK7usTfpMKh/+HCtG021aA36C0ja7iBefK4kVeKrs1P0tdWcA91KdMiQIYM5bxmbe6Csik0mh4gZ7U76gtQyZK2b4n8OUIkOb5iCziKjiehw6akufXfI6UFMvDZI++0v9Wo7BL7BSYKcPdmhKHPliHuTXfl7YT3wZQ8ncAAAD////7JO+xCAAA\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/install-dpu-agent.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,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\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/dpu-fw-upgrade.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/3yS3U7bThTE7/cp5r9/t7EFjl2kXhTkSBa1JdS0RMT9kCiKFvv4Ay1e491AKCD1IfqEfZLKdkmdXvR2dc7M7G/O//95l1XtXQpdMkYbSjHDzDZEmNl3ZSUJLYkMbgtZ1XSETMFb69aTKhVyWM2lKqa6BLe6Ed7N1OQ4OJi9fMVYPA8/nZ6t4pN5FHCPTOplTe5lzTqX4la103txLTlj0ZdFdJxEbwPLLlpq4KoFJot4lZwm4Xy1jIOv7859983F3gTcGmlyHMy8jG69ei2lw6oc53C/gVvPghwXeHzE+c6TSzfwcXEEU1LNAEpLBX7yIT49xMgUtTLQZKBaVBr+PmqFZaxBm4ZSQxl+fv+BRmhd1QUKYYh3YpvKwGd5xdgyCc+SVXLyPgosOxOGsPdCO2xs91lUptvOVYttwt7EKFwS0paEoWw6nXLGhkZMu+6bYEB4nHwM54FlX8t64+ocroAu1R3cqzEYPOLqBhNJdWFKeB78icOAnha3HgaVQ9d/4nAL2qW3hbSLKZSyT9mdxz3sZyLBdnUfIjVrIQNrkHf4oDHQATo+QDQPF8u+dhsjRHDxhx0c56+OOuOum8H8nsy/A4w+uA+SotHd3MNv7yfdR9OSqMFr1l0v+xUAAP//Av251xcDAAA=\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/wait-for-sfs.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/6yTW0vcTBzG7+dTPM67yoa3k2wEpV1xQapFoYelbhFqpcwm/5ihszMh88+qrf3uJVkPWW1vSi8HnjyHX2b+20jmxiVzHUoh6JoyTDAZMhEmw6vSWEJNOoeqYY2jPeQeSRPqxPpM29WnhfWXcSghB61EthpHUYTtyVYqhClwDjk4nH5653OS2If8TrVXXDeBJS72wCU5AQCUlR7y5P2bD2N8ftBg4XN6gfDNVJVxl+BFYQqP0geGviTHuNKG5crh2jBGojBCnM4OPs72B8NcM+H/zRAJ0fc/04Zbt8LXOJkud5F55yhjszR8A17zXxp9l/rVEY/iOJZixWYDXSW1C5WlUGcpCno5Go/TzZ4eW5Mkp2XiGmtbOF3To7cH09Ojw/3BcIheSSh0xRFFz5CcsrG2G3tfvB+y1n9IVleBcgx+3AX9DFHXuzUNlqjCjmj/0xqU5yAosJ5bE0rKY/lngj1Yx7PZFIHqJdVroLKmtlAByuOBBpS6S1NsFuQbxg6UWujr7ox0BFkyV+MkOb8Hu73TW30xTtPR9qtE/luuv5/zt1SPH91MaJ9TVuq5pZbnk6eUV02nU5k15DiubtBU7YYWU27YeIcvAp3jQSt8vaJHOWZ1Q3g8yl7oQ+LTiyxxewuuGxK/AgAA//9Up92ZBgQAAA==\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/tmfifo-agent-link.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/0oqis9LLUnLzClJLQIEAAD//2D8ZosMAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/modules-load.d/br_netfilter.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC//IPC44PDXYNivd0sVUqys8vsQIRSoAAAAD///E12WEXAAAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/sysconfig/openvswitch\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/ypX0C+uLNZPK9ZPTi/KLy0A8UpSc/WKczKTU/UzStNTS3KS9Ix8nfRyEysUwEAXCnMTK7iI115UXJYCNgNZOyAAAP//XsB2S34AAAA=\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/tmpfiles.d/99-hugetlbfs-dpf.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/2yQsY4UMRBEc39FSZOAxAy6DG2G9kSCBCcQ5F67vGOt12267T1dxkfwhXwJ2rm94CTCrn7q6qoJXy9UzZFIomBNooFfJPJjKRJ894dC/P39B8pWfKChr0Rk8qN0nMaBhR1BaspHGEPPUhfnW/5JtSx198Isz8xy+mBLlveXuwO7v3OnXOMOn5+Z/YYM9dcr7v/P7NyMJtHchPtsVyXuoPw1stJgT9Z5/kajXhj3R5XR3uFxFSPCNsHYR0PwFbl2aqLSTXjMfcU6juzlcI3TVUqhovm+GqTi/uETqkQaeGFFX2UcV8xBzk1plq89SS1Pbnpp0fBqqTQZm/xm//Dj7YLvJHwxQT+3lAttvvknm2NLW2GLmzDfUs16i/XK1P0LAAD//zdhUnfDAQAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/openshift/kubelet.conf.d/kubelet-dpf-override.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4r2TSxJzojlCkgsybAtyEksScsvytX19fGLcHIzMLQyMOByKcosSy2yLcssKsnMj89LLeHiivbJzMuO5fJLzE21LclNy0wDixuABQLyczKTK225uAABAAD//6l66R5aAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/network/10-tmfifo_net.link\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4r2TSxJzojlCkgsybAtyEksScsvytX19fGLcHIzNLcyMOByKcosSy2yzc2pSEqLT89MT+XiivbJzMuO5fJLzE21zc9Pis9LLTEA8wLyczKTK225uAABAAD//5mBbZhXAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/systemd/network/10-oob_net.link\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/1SPwWrDMBBE7/sVgpxN0xJMCehLjClbaRSLWrtGXrn074uDfchxYOa93SGoCIJllZFy9FZSTvolsCvZ3wIPm1AFRlkMNXFAJ1zwUuRmenC81Qai4ZyNRENetttIF1dRdEN0e3ZxaY5jrFhXKrBJo4955e8Zkeiyd3onsF+tP1keLmndJ9w9IOZM3aSrdfxMQUtpkgPvXzx1/XgyC0vjmQ7Tu0/4vN7vH2/9jQQbaheRuM3H3f8BAAD//0sgK4YOAQAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/tmfifo_net0.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/0TMTQrCMBTE8f3cRXAh7nKSECRNRvrAvlfiVPD2In50++c3k1u4s8nCC6yniOni1BF6rkzUzOEUzMVxrY0Hrwt3VTfF9yFpbATyb1OAbOvjVLBQc/T0tp92/rdu9zrd2PEKAAD//wMgDUCIAAAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/oob_net0.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/yTKS6rDMAxG4bn3Irhjg1dyKUWR/7iisRRU9bH8Yjr9zvnveKmA3Dcy5N+lTE650Y+bWiJ2FpDxRHXfrusqd+Akcdt1PINT3Zp54ePwN/oKBln6aPgIzqweOtSqTVLTjE4DhuD0KN8AAAD//4dhNaODAAAA\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/NetworkManager/conf.d/10-oob-net0.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,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\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/dpuagent-client.py\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/5TNMUvGMBCH8f0+xf/NWzoIch2cFB0cnNRZEClpc2kCaRNyoVTE7+4mIji4P/ye84mnuPFkNdAZ1tnSxMHXvGKVlOyWD0xe5xpLU6KqIeVlLLaFW8P6ruxkj7Mol2Sbz3Xlp8fnl/uH4ep6GNjVuEvlqmFMeTEUPV5xwqXAdB8/rE+Dtxu0IBsB/3x84z4S/amj7yFHbEQyhwzTXRjc/c7oKwAA//99qhrhDgEAAA==\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/bflog.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/5TMMUs0MRCH8X4+xf9yL9e9zgpWihYiVqfYCILIkd1MTCC7CZnssYf43QUVBOEK++f5rVfcx4l7q4HWsM6WJg6+5hGjpGSnvKD3OtRYmhLxrJVTHmz62nzKrycaYLZxmhfMxRxPbh4eERVVrDsYoqy7ueyKbeHSsB6UnezjIMol2eZzHflue/90fdudnXcduxr3UvlzMhQ9nrHCf4H59/YDvRu8XKAFmQj4m/8N+0h0TMZmA1liI5IhZJzi6ldCHwEAAP//Smh9gU0BAAA=\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/bfupsignal.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/7RXW2/buBJ+16+YsDqtdVondtMCQQIfIGhroMBpskjSdLHdwqClkU1EJlWSUto6/u8LXnTzJXEf9s0WyZlvvvlmhnx2cDRl/GhK1TwImJr8QikmWhZK9yJYwlcg4fs/Pn8SCRIYATHLfbtM4NsZrILg5uOnD5efb0bDk8EguL45v7qZmE+jsJdQjfDyPyoK/n9+fTP5cHV1eTUiJDh/d/Px8mJEwuXwtL8iQYAZzRUmxmEAgPFcQNjrtQxAHxrLURSsgiCeY3w30WyBotD+JEst3p63FxHozxBI6CFaxHqOPADwbogFdQoKdZH3y1T1Eywzxu+gFzqYERgfCYhCA001SgiX3t5KnUK4bGJbEWvYo3DHLWmxRKrRmCfwDZ4/hwPoMN1CBXBUKHmUiZhmNjFJXtAZct2PM4ZcH+Y/QSFP+iilkEBux9cG+o3BeFloAn97MwDksaBSyjJM9owoZY6xH0zDMLD/V0EwQz3JVB6ziTWvqiwA2K/Qf5/A8O30+BQeYCYxh3eCc4z1n/AA9P4OXixzybiGcLh6UdlTGlEyPpssRILenuUCEixHoXFexZJgCTmVdAFqLu6B5DE7CpcJlisCnC4Q0kzcdw3C6/8dJVge8SLL4AE0ZRn0h+twLsYOj9oPj/tr1kfh6+34UO8Hr6RZYfS6NP9WBGL7VRbcSNBAegZXqAvJFQyMzGiWNaQmWLIYFVCJwDioe6bjuQFhjLyCIQg9R3nPFB4GJUqW/pzUe3xkqZAWNuMQ9jbSG51BImx+XbC9dqTobG3JRZfzDtPHqxdRu2QWtsscjIDUyLo1C9DuJI0X4EJvBg09B9TRGRFvwhX+l/Ori61iB5CWY6t0r/1EcAzqhYFJRSI26HOGP16ML09NWlI2K0xuoUqyAzXFVEhsoB4eHpLf4L4yNnK7ugIioaGsw2m1wTaiZGFbUIfRNuoWo13QTIE5+8poWZuvWoBapMqD/1dEsUUWGc5o/HM9gm7N1U7Xq84G4iz4g76vWUcHoHbQaQNdc9iW4di1UsMI6jXezFEQHDyG+vyTGvTQGvWt6eva56GK1nozENZkdT9nGcIBrFd8rafOHA2c0z2l6Hnbn/yW951sVtaaUq7p80Pr91msCARQGWIOb3eQOmacqTkmjXPiS91N8EmZqi21fmu5tZXe7T+UJ2BPmrXbcVUtlrXNhGy/mTTqcifWfJCNyVyPJMPWJBYF16NB/TGjSk8kThlPRoOgFoiWBe6QxHqCSFC1l913mDY7f9U3Rj+J1B3Lc8NI7Hsk9udCaXNRsYzdjh2CKolTifSuqoaglt3T96RN+ztHyRYoXbE9ITXMFG6JfYvZ2AxtVcQxYlKZr+IqU5+vpo3mQmrXP7st016o+jGQNKOlKKRp3WXabf2VOXMN1jB4pO+PRcETqA8YrT7K/lfocyBhQ8NjY5oLYw9S68NdODd52ZPnCkNL22Gv1/yDlzCMHAnP4Nz6Oq7uukZXthgFB6o1LnKtXoGrBYMdDBZIJCtRmnqTGAvzM5ViARSmNIFF9uPtJDbj229Tmmo89P6uzCU/YwumXcEKHiPkKOHNyUBB72TBeARTjGmh0Dp0vv1ppmCaifjOVAZtI+KIibKvENvgNZ2yjP1CTyWtoEjMBE0O2wJoeHEvoWP3+vi6+bpqtYUosnvfnGwXjE9Ni/JYcIVxoVmJlupCouX1e4HKdr42r84H2fut4/Y7mXgTDw8dKFt2dEu33fLaj1I/IrpdspGYGxXHgx2z4gtlNjg3LFNaZBqkKDR2Bu8TfdU00dwdc0VeWaoK/Hv1pZOJTk1uGWtdpO/b6ICWlGV0miHZOf1az1X70qYKW+9ZxoN6BEXWYzPEAoCzs6A579eb6ek2/DeqXX9WdIanEA5gWVt5aAzYsq+n29lZgIrGwT8BAAD//+PIBaC0EAAA\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/setup-vfs-devlink.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/0zLPY7CMBAG0N6n+DZLAcUQUdAgIXEDCg5g+S94JPAge+IUiLvToZSveP9/o+cyeteysdIb9Rb0sd3hbYCfQVSEFscKIuVnkllxOGLYXAbzWUW0pLi+UrH9trCGjD1Ec6o2SJn4fooSHHFhPWud03q6GMlX+EptCuYbAAD//z1K5hOYAAAA\"},\"mode\":493,\"overwrite\":true,\"path\":\"/usr/local/bin/dpf-ovs-script.sh\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/8pOrbQtS8wpTeUCBAAA///uOW4ECgAAAA==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/dpf/custom.conf\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/3SUW2/bNhTH3/0pzrQB3QbIsrPU6QQImJJIrTEn1nxBsSeCJo9sIuIFJCVHu3z3QpbSOm77JvzO7a9zoURPOfU0HgEoKjEGj86HZUUbbQfmDGUYAzdlqA1a6rUNXes8ypEzyLrQXcnKfUEtlejRug6FsC3u001G0k1Otlk+T1p05/y+2JLleqBMq1Lsc1HhENxXElrFQI1BxUcAAIb6QwwReha51jFfjXn0+7uQm1qhH3dJeje0UjgntHIxBJPZ9XVw4pYeY/jv9AnQR1gcW4mSSPqcTGc3NzdX09mlAN2gtYLjpQSJVUWVfo5kpZ7DXfl9AZPJNwSki8XyI1l/SFfZPVn9lQRKB4NpXqyzO5JvFwuyzPPFMr0/t2aP6e0iI9n643xz94E8bBebebFcbZKgRRec1J+p5KaMWO28ll/0vdLxhG3S0KrGs8jgTK/YK22R91PyVCi0/O40r7h3wr1w3raZ4kYL5WM4eG9cHEUvljE+U2kqHDMtRwDc1Ct0urasnzYAM3UMwXTWV5UotW1jmM7eixHA3ta73u0JrcLq9Z51mplWTleYHBo2uUDet+lD+kIP9R4N3aP7J7maXL97ur3kyW+Tm6tu7xv2+Q9D4NiI7gTe/Ppm2IFLBUVObtPVFelHk7zUK7IVKXLyuH0g6zyZDnQxf/yTbP4uMlJMk66aboZElh77zq6ZFcZ/mdGPP0Q7oaIddYeBEN24sOlu4Odf4N8BnlL1FMJQ6fBIhYcw9EKirj1M30Lw0x8ve/T/V6nAoYelQUWa9VF4doAxaH9AS4Z2cM1oKJTwibc1fh1POQ93FnY2dCUbAfRXGn+na90JCtNcj4UhpbZHavnnJp3blFaVZrQiO6F6j/79WaFD2yD/1ja9nUzk6216L0afAgAA//8WZcfa7wQAAA==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/dpf/dpuflavor.yaml\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4pOzs/LS00uyczPi+XKTLEtMOAqqSxItU0tyUgtykst4crMK0ktSktMTtXNS8xNBclzRcMkY7lyS0ptLQ0MDLgAAQAA///h3pntSAAAAA==\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/p0.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/4pOzs/LS00uyczPi+XKTLEtMOQqqSxItU0tyUgtykst4crMK0ktSktMTtXNS8xNBclzRcMkY7lyS0ptLQ0MDLgAAQAA//8lh+lUSAAAAA==\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/p1.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/zTKoQ3AIBQEUP93afJtBZMQBKFHQHAQchXdvgr/Ypkkivpksv6EVb2tavoWAtSwCVmnsGsuuJgHjrF4QLKhN9zubn8AAAD//13oqbRQAAAA\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/pf0hpf.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/zTKIQ7EIBQEUP/vsgkrKzgJQRA6BATDD5mK3r4K/1JdJKrGYrZxR2//7s30OiLUsQnZoLBbqfixTBxj6YBsU0+8Qgj2BQAA//+6rq/lUAAAAA==\"},\"mode\":384,\"overwrite\":true,\"path\":\"/etc/NetworkManager/system-connections/pf1hpf.nmconnection\"},{\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/3JycwpKTc8sLimqDA3ysc0oKSmw0tc3NNAz1DPSM7YyNjCwMOACBAAA///cRmcaJQAAAA==\"},\"mode\":420,\"overwrite\":true,\"path\":\"/etc/dpf/bfb-registry\"}],\"links\":[{\"overwrite\":true,\"path\":\"/etc/localtime\",\"target\":\"/usr/share/zoneinfo/UTC\"}]},\"systemd\":{\"units\":[{\"contents\":\"[Unit]\\nDescription=Kubelet\\n[Service]\\nExecStart=/usr/bin/kubelet\\n[Install]\\nWantedBy=multi-user.target\",\"enabled\":true,\"name\":\"kubelet.service\"},{\"contents\":\"[Unit]\\nDescription=bfup signal\\nAfter=devlink-activate.service\\n# Don't start if this file exists, OS layer has bfup.service preinstalled\\nConditionPathExists=!/etc/mlnx-release\\n\\n[Service]\\nType=oneshot\\nExecStart=/usr/local/bin/bfupsignal.sh\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"bfupsignal.service\"},{\"contents\":\"[Unit]\\nDescription=DPF OVS setup\\nAfter=network.target openvswitch.service\\nRequires=openvswitch.service\\nConditionPathExists=/etc/mlnx-release\\nConditionPathExists=!/run/dpf-ovs-configured\\n\\n[Service]\\nType=oneshot\\nExecStart=/bin/bash /usr/local/bin/dpf-ovs-script.sh\\nExecStartPost=/bin/touch /run/dpf-ovs-configured\\nRemainAfterExit=true\\nRestartSec=5s\\nRestart=on-failure\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"dpf-ovs.service\"},{\"contents\":\"[Unit]\\nDescription=DPF DPU Firmware Upgrade\\nAfter=tmfifo-agent-link.service\\nRequires=tmfifo-agent-link.service\\nBefore=dpu-agent.service\\nConditionPathExists=/etc/mlnx-release\\n\\n[Service]\\nType=oneshot\\nRemainAfterExit=yes\\nEnvironmentFile=/etc/dpf/environment\\nExecStart=/usr/local/bin/dpu-fw-upgrade.sh\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"dpu-fw-upgrade.service\"},{\"contents\":\"[Unit]\\nDescription=Wait for DPU SFs before kubelet\\nAfter=dpu-agent.service\\nBefore=kubelet-dependencies.target\\nConditionPathExists=/etc/mlnx-release\\nConditionPathExists=/etc/dpf/dpuflavor.yaml\\n\\n[Service]\\nType=oneshot\\nExecStart=/usr/local/bin/wait-for-sfs.sh\\nTimeoutStartSec=infinity\\n\\n[Install]\\nRequiredBy=kubelet-dependencies.target\\n\",\"enabled\":true,\"name\":\"dpu-sf-gate.service\"},{\"contents\":\"[Unit]\\nDescription=Install DPU agent\\nAfter=tmfifo-agent-link.service\\nRequires=tmfifo-agent-link.service\\nBefore=machine-config-daemon-firstboot.service\\n\\n[Service]\\nType=oneshot\\nEnvironmentFile=/etc/dpf/environment\\nEnvironmentFile=-/etc/dpf/bfb-registry\\nRemainAfterExit=yes\\nExecStart=/usr/local/bin/install-dpu-agent.sh\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"install-dpu-agent.service\"},{\"contents\":\"[Unit]\\nDescription=Setup Host VFs and Activate devlink\\nAfter=tmfifo-agent-link.service devlink-activate.service\\nRequires=tmfifo-agent-link.service\\nBefore=install-dpu-agent.service\\nConditionPathExists=!/etc/mlnx-release\\n\\n[Service]\\nEnvironmentFile=/etc/dpf/environment\\nType=oneshot\\nExecStart=/usr/local/bin/setup-vfs-devlink.sh create-vfs\\nRestart=on-failure\\nRestartSec=30\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"setup-vfs-devlink.service\"},{\"contents\":\"[Unit]\\nDescription=Wait for host agent connectivity via tmfifo\\nAfter=sys-subsystem-net-devices-tmfifo_net0.device\\nWants=sys-subsystem-net-devices-tmfifo_net0.device\\n\\n[Service]\\nType=oneshot\\nEnvironmentFile=/etc/dpf/environment\\nRemainAfterExit=yes\\nExecStart=/usr/local/bin/tmfifo-agent-link.sh\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"tmfifo-agent-link.service\"},{\"contents\":\"[Unit]\\nDescription=DPF DPU Agent - Provisioning and Configuration\\nAfter=tmfifo-agent-link.service install-dpu-agent.service dpu-fw-upgrade.service\\nBefore=nodeip-configuration.service kubelet-dependencies.target ovs-configuration.service\\nRequires=tmfifo-agent-link.service\\nWants=install-dpu-agent.service dpu-fw-upgrade.service\\nConditionPathExists=/etc/mlnx-release\\nConditionPathExists=/usr/local/bin/dpu-agent\\n\\n[Service]\\nType=simple\\nEnvironmentFile=/etc/dpf/environment\\nExecStart=/usr/local/bin/dpu-agent \\\\\\n  --dpu-name $DPUName \\\\\\n  --dpu-namespace $DPUNamespace \\\\\\n  --dpu-uid $DPUUID \\\\\\n  --dpuflavor /etc/dpf/dpuflavor.yaml \\\\\\n  --control-plane-mtu $ControlPlaneMTU \\\\\\n  --skip-containerd-config \\\\\\n  --skip-dns-config \\\\\\n  --skip-kernel-cmd-line \\\\\\n  --skip-network-config \\\\\\n  --skip-remove-builtin-kubelet \\\\\\n  --skip-configure-kubelet \\\\\\n  --skip-start-kubelet \\\\\\n  --skip-ovs-raw-script \\\\\\n  --kubeadm-secret-name=unused \\\\\\n  --zero-trust-mode \\\\\\n  --bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig\\nRestart=on-failure\\nRestartSec=5\\n\\n[Install]\\nWantedBy=multi-user.target\\n\",\"enabled\":true,\"name\":\"dpu-agent.service\"},{\"contents\":\"[Unit]\\nDescription=Activate devlink\\nBefore=network-pre.target\\n# Don't start if this file exists:\\nConditionPathExists=!/etc/mlnx-release\\n\\n[Service]\\nType=oneshot\\nRestart=on-failure\\nRestartSec=5\\nExecStart=/usr/local/bin/setup-vfs-devlink.sh switchdev\\n\\n[Install]\\nWantedBy=multi-user.target\\n\\n\",\"enabled\":true,\"name\":\"devlink-activate.service\"}]}}",
+      "requests": [
+        "Bearer dGVzdC1iZWFyZXItdG9rZW4="
+      ]
+    }
+  ]
+}

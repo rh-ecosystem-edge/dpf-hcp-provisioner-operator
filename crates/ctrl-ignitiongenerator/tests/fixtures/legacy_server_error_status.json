@@ -1,0 +1,276 @@
+{
+  "name": "legacy_server_error_status",
+  "input": {
+    "cr": {
+      "metadata": {
+        "name": "doca",
+        "namespace": "clusters",
+        "uid": "cr-uid-1234",
+        "generation": 3
+      },
+      "spec": {
+        "dpuClusterRef": {
+          "name": "dpucluster-1",
+          "namespace": "dpf-operator-system"
+        },
+        "baseDomain": "",
+        "ocpReleaseImage": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi",
+        "sshKeySecretRef": {},
+        "pullSecretRef": {},
+        "dpuDeploymentRef": {
+          "name": "my-deployment",
+          "namespace": "dpf-operator-system"
+        },
+        "machineOSURL": "https://registry.example.com/rhcos-bf:4.17"
+      },
+      "status": {
+        "phase": "GeneratingIgnition",
+        "conditions": [
+          {
+            "type": "HostedClusterAvailable",
+            "status": "True",
+            "observedGeneration": 3,
+            "lastTransitionTime": "2025-01-01T00:00:00Z",
+            "reason": "AsExpected",
+            "message": "The hosted control plane is available"
+          }
+        ],
+        "hostedClusterRef": {
+          "namespace": "clusters",
+          "name": "doca"
+        }
+      }
+    },
+    "crInClient": true,
+    "objects": [
+      {
+        "kind": "Secret",
+        "object": {
+          "metadata": {
+            "name": "ignition-server-ca-cert",
+            "namespace": "clusters-doca"
+          },
+          "data": {
+            "tls.crt": "Q0FfUExBQ0VIT0xERVI="
+          }
+        }
+      },
+      {
+        "kind": "Secret",
+        "object": {
+          "metadata": {
+            "name": "token-doca-abc123",
+            "namespace": "clusters-doca"
+          },
+          "data": {
+            "token": "dGVzdC1iZWFyZXItdG9rZW4="
+          }
+        }
+      },
+      {
+        "kind": "HostedCluster",
+        "object": {
+          "metadata": {
+            "name": "doca",
+            "namespace": "clusters"
+          },
+          "spec": {
+            "release": {
+              "image": ""
+            },
+            "platform": {
+              "type": ""
+            },
+            "dns": {
+              "baseDomain": ""
+            },
+            "networking": {},
+            "autoscaling": {},
+            "etcd": {
+              "managementType": ""
+            },
+            "services": null,
+            "pullSecret": {},
+            "sshKey": {},
+            "fips": false
+          },
+          "status": {
+            "ignitionEndpoint": "ENDPOINT_PLACEHOLDER",
+            "controlPlaneEndpoint": {
+              "host": "",
+              "port": 0
+            }
+          }
+        }
+      },
+      {
+        "kind": "DPUDeployment",
+        "object": {
+          "metadata": {
+            "name": "my-deployment",
+            "namespace": "dpf-operator-system"
+          },
+          "spec": {
+            "dpus": {
+              "bfb": "test-bfb",
+              "flavor": "test-flavor",
+              "nodeEffect": {},
+              "dpuSetStrategy": {
+                "type": ""
+              }
+            },
+            "services": null
+          },
+          "status": {}
+        }
+      },
+      {
+        "kind": "DPUFlavor",
+        "object": {
+          "metadata": {
+            "name": "test-flavor",
+            "namespace": "dpf-operator-system",
+            "resourceVersion": "5",
+            "labels": {
+              "app": "golden"
+            }
+          },
+          "spec": {
+            "grub": {
+              "kernelParameters": [
+                "console=hvc0",
+                "console=ttyAMA0",
+                "hugepagesz=2048kB",
+                "hugepages=3072"
+              ]
+            },
+            "sysctl": {
+              "parameters": [
+                "net.ipv4.ip_forward=1",
+                "net.ipv4.ip_nonlocal_bind=1"
+              ]
+            },
+            "nvconfig": [
+              {
+                "device": "*",
+                "parameters": [
+                  "PF_BAR2_ENABLE=0",
+                  "PER_PF_NUM_SF=1",
+                  "LINK_TYPE_P1=2"
+                ]
+              }
+            ],
+            "ovs": {
+              "rawConfigScript": "#!/bin/bash\n_ovs-vsctl() {\n  ovs-vsctl --no-wait --timeout 15 \"$@\"\n}\n_ovs-vsctl set Open_vSwitch . other_config:doca-init=true\n_ovs-vsctl add-br br-sfc\n"
+            },
+            "bfcfgParameters": [
+              "UPDATE_ATF_UEFI=yes",
+              "UPDATE_DPU_OS=yes"
+            ],
+            "configFiles": [
+              {
+                "path": "/etc/sysctl.d/98-dpunet.conf",
+                "operation": "append",
+                "raw": "net.core.rmem_max=16777216\n",
+                "permissions": "0644"
+              },
+              {
+                "path": "/etc/mellanox/mlnx-bf.conf",
+                "operation": "override",
+                "raw": "ALLOW_SHARED_RQ=\"no\"\nIPSEC_FULL_OFFLOAD=\"no\"\nENABLE_ESWITCH_MULTIPORT=\"yes\"\n",
+                "permissions": "0600"
+              },
+              {
+                "path": "/etc/dpf/custom.conf",
+                "raw": "key=value\n"
+              },
+              {
+                "path": "",
+                "raw": "ignored"
+              }
+            ],
+            "containerdConfig": {
+              "registryEndpoint": "https://registry.example.com"
+            },
+            "dpuResources": {
+              "cpu": "16",
+              "memory": "16Gi"
+            },
+            "systemReservedResources": {
+              "cpu": "500m",
+              "memory": "1Gi"
+            }
+          }
+        }
+      },
+      {
+        "kind": "DPFOperatorConfig",
+        "object": {
+          "metadata": {
+            "name": "dpfoperatorconfig",
+            "namespace": "dpf-operator-system"
+          },
+          "spec": {
+            "networking": {
+              "controlPlaneMTU": 9000
+            },
+            "deploymentMode": "host-trusted",
+            "provisioningController": {
+              "installInterface": {
+                "installViaHostAgent": {}
+              }
+            }
+          },
+          "status": {}
+        }
+      }
+    ],
+    "server": {
+      "payload": "{\"ignition\":{\"config\":{\"replace\":{\"verification\":{}}},\"proxy\":{},\"security\":{\"tls\":{}},\"timeouts\":{},\"version\":\"3.4.0\"},\"kernelArguments\":{\"shouldExist\":[\"systemd.unified_cgroup_hierarchy=1\"]},\"passwd\":{\"users\":[{\"name\":\"core\",\"sshAuthorizedKeys\":[\"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ golden@example.com\"]}]},\"storage\":{\"directories\":[{\"group\":{},\"path\":\"/var/lib/kubelet\",\"user\":{},\"mode\":493}],\"files\":[{\"group\":{},\"overwrite\":true,\"path\":\"/etc/ignition-machine-config-encapsulated.json\",\"user\":{},\"contents\":{\"source\":\"data:,%7B%22spec%22%3A%7B%22config%22%3A%7B%22ignition%22%3A%7B%22version%22%3A%223.2.0%22%7D%7D%2C%22osImageURL%22%3A%22https%3A%2F%2Fregistry.example.com%2Frhcos%3A4.17%22%7D%7D\",\"verification\":{}},\"mode\":420},{\"group\":{},\"overwrite\":true,\"path\":\"/etc/kubernetes/kubelet.conf\",\"user\":{},\"contents\":{\"source\":\"data:,kind%3A%20KubeletConfiguration%0A\",\"verification\":{}},\"mode\":420},{\"group\":{},\"overwrite\":true,\"path\":\"/etc/precompressed\",\"user\":{},\"contents\":{\"compression\":\"gzip\",\"source\":\"data:;base64,H4sIAAAAAAAC/0rLz+cCAAAA//8BAAD//7l5dXUEAAAA\",\"verification\":{}},\"mode\":384}]},\"systemd\":{\"units\":[{\"contents\":\"[Unit]\\nDescription=Kubelet\\n[Service]\\nExecStart=/usr/bin/kubelet\\n[Install]\\nWantedBy=multi-user.target\",\"enabled\":true,\"name\":\"kubelet.service\"}]}}",
+      "acceptTokens": null,
+      "status": 500
+    },
+    "runs": [
+      {}
+    ]
+  },
+  "outputs": [
+    {
+      "requeueAfter": "30s",
+      "error": "",
+      "events": [
+        "Warning IgnitionGenerationFailed failed to download HCP ignition: all 1 token candidate(s) rejected by ignition server at https://ENDPOINT_PLACEHOLDER/ignition"
+      ],
+      "conditions": [
+        {
+          "type": "HostedClusterAvailable",
+          "status": "True",
+          "reason": "AsExpected",
+          "message": "The hosted control plane is available",
+          "observedGeneration": 3
+        },
+        {
+          "type": "IgnitionConfigured",
+          "status": "False",
+          "reason": "IgnitionGenerationFailed",
+          "message": "Failed to generate ignition: failed to download HCP ignition: all 1 token candidate(s) rejected by ignition server at https://ENDPOINT_PLACEHOLDER/ignition",
+          "observedGeneration": 3
+        }
+      ],
+      "actions": [
+        {
+          "verb": "update",
+          "subresource": "status",
+          "kind": "DPFHCPProvisioner",
+          "namespace": "clusters",
+          "name": "doca"
+        }
+      ],
+      "configMap": null,
+      "targetIgnition": "",
+      "requests": [
+        "Bearer dGVzdC1iZWFyZXItdG9rZW4="
+      ]
+    }
+  ]
+}

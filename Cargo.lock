@@ -384,6 +384,7 @@ dependencies = [
  "anyhow",
  "apis",
  "async-trait",
+ "base64 0.22.1",
  "common",
  "ctrl-bfocplookup",
  "ctrl-dpucluster",
@@ -391,6 +392,7 @@ dependencies = [
  "ctrl-hostedcluster",
  "ctrl-kubeconfiginjection",
  "ctrl-metallb",
+ "ctrl-ovshugepages",
  "ctrl-secrets",
  "ctrlrt",
  "ctrlrt-envtest",
@@ -403,6 +405,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -601,16 +604,24 @@ dependencies = [
  "anyhow",
  "apis",
  "async-trait",
+ "bytes",
  "common",
  "ctrl-hostedcluster",
  "ctrlrt",
  "ctrlrt-fake",
  "gocompat",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
  "ignition",
  "k8s-openapi",
+ "rcgen",
+ "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-rustls",
 ]
 
 [[package]]
