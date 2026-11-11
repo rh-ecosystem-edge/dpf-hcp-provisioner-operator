@@ -185,6 +185,22 @@ impl ObjectKey {
     }
 }
 
+/// `types.NamespacedName.MarshalLog()`: `{"name": ..., "namespace": ...}` (namespace omitted
+/// when empty) — how zap renders a NamespacedName log value.
+impl serde::Serialize for ObjectKey {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut st = s.serialize_struct("NamespacedName", 2)?;
+        st.serialize_field("name", &self.name)?;
+        if self.namespace.is_empty() {
+            st.skip_field("namespace")?;
+        } else {
+            st.serialize_field("namespace", &self.namespace)?;
+        }
+        st.end()
+    }
+}
+
 /// `types.NamespacedName.String()`: `namespace/name`, or `name` when namespace is empty.
 impl std::fmt::Display for ObjectKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
