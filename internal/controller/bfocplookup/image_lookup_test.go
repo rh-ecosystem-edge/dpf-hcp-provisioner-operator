@@ -24,15 +24,27 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	operatorv1alpha1 "github.com/nvidia/doca-platform/api/operator/v1alpha1"
+	provisioningv1alpha1 "github.com/rh-ecosystem-edge/dpf-hcp-provisioner-operator/api/v1alpha1"
 )
 
 // fakeImageChecker implements ImageChecker for testing
 type fakeImageChecker struct {
-	err error
+	tags []string
+	err  error
 }
 
-func (f *fakeImageChecker) CheckTag(ctx context.Context, ref name.Reference, keychain authn.Keychain) error {
-	return f.err
+func (f *fakeImageChecker) ListTags(ctx context.Context, repo name.Repository, keychain authn.Keychain) ([]string, error) {
+	return f.tags, f.err
 }
 
 const testRepository = "quay.io/test-org/bluefield-os"
@@ -71,69 +83,139 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		})
 	})
 
-	Describe("Registry Tag Lookup", func() {
-		var lookup *ImageLookup
+	Describe("Registry Tag Selection", func() {
+		selectTag := func(tags []string, ocpVersion string) (string, error) {
+			lookup := &ImageLookup{ImageChecker: &fakeImageChecker{tags: tags}}
+			return lookup.selectImageTag(context.Background(), testRepository, ocpVersion, "3.4", authn.DefaultKeychain)
+		}
+
+		DescribeTable("should select the tag matching the OCP and DOCA versions",
+			func(tags []string, ocpVersion, expected string) {
+				image, err := selectTag(tags, ocpVersion)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(image).To(Equal(testRepository + ":" + expected))
+			},
+			Entry("DOCA tag",
+				[]string{"4.22.1-doca3.4.2", "4.22.11", "4.22.11-doca3.4.2", "4.22.110-doca3.4.2"},
+				"4.22.11", "4.22.11-doca3.4.2"),
+			Entry("4k build",
+				[]string{"4.22.17-doca3.4.2", "4.22.17-4k-doca3.4.2", "4.22.17-4k-doca3.4.2-1792683047"},
+				"4.22.17", "4.22.17-4k-doca3.4.2"),
+			Entry("DOCA major.minor tag",
+				[]string{"4.22.17", "4.22.17-4k-doca3.4"},
+				"4.22.17", "4.22.17-4k-doca3.4"),
+			Entry("highest DOCA version",
+				[]string{"4.22.11-doca3.4.1", "4.22.11-doca3.4.10", "4.22.11-doca3.4.2"},
+				"4.22.11", "4.22.11-doca3.4.10"),
+			Entry("OCP version tag when no tag names the DOCA version",
+				[]string{"4.22.7", "v4.22.7", "4.22.7-1787823170", "4.22.70-doca3.4.2"},
+				"4.22.7", "4.22.7"),
+			Entry("DOCA tag over the OCP version tag",
+				[]string{"4.22.7", "4.22.7-doca3.4.2"},
+				"4.22.7", "4.22.7-doca3.4.2"),
+			Entry("engineering candidate",
+				[]string{"4.23.0-doca3.4.2", "4.23.0-ec.5-doca3.4.2", "4.23.0-ec.5-4k-doca3.4.2", "4.23.0-ec.50-doca3.4.2"},
+				"4.23.0-ec.5", "4.23.0-ec.5-4k-doca3.4.2"),
+			Entry("release candidate",
+				[]string{"4.23.0-doca3.4.2", "4.23.0-rc.2-doca3.4.2", "4.23.0-rc.20-4k-doca3.4.2"},
+				"4.23.0-rc.2", "4.23.0-rc.2-doca3.4.2"),
+			Entry("release over candidates",
+				[]string{"4.23.0-ec.5-4k-doca3.4.2", "4.23.0-rc.2-4k-doca3.4.2", "4.23.0-doca3.4.2"},
+				"4.23.0", "4.23.0-doca3.4.2"),
+		)
+
+		DescribeTable("should return VersionNotFoundError when no tag matches",
+			func(tags []string) {
+				_, err := selectTag(tags, "4.22.11")
+				var versionNotFoundErr *VersionNotFoundError
+				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
+			},
+			Entry("no DOCA or OCP version tag", []string{"v4.22.11", "4.22.11-1787823170", "4.22.110"}),
+			Entry("different DOCA minor", []string{"4.22.11-doca3.5.0", "4.22.11-doca3.40.1"}),
+			Entry("timestamped alias only", []string{"4.22.11-4k-doca3.4.2-1792683047"}),
+			Entry("only candidates of the release", []string{"4.22.11-ec.5-doca3.4.2", "4.22.11-rc.2-4k-doca3.4.2"}),
+		)
+
+		DescribeTable("should classify tag listing errors",
+			func(listErr error, expected error) {
+				lookup := &ImageLookup{ImageChecker: &fakeImageChecker{err: listErr}}
+				_, err := lookup.selectImageTag(context.Background(), testRepository, "4.22.11", "3.4", authn.DefaultKeychain)
+				Expect(err).To(BeAssignableToTypeOf(expected))
+			},
+			Entry("unauthorized", fmt.Errorf("UNAUTHORIZED: authentication required"), &RegistryAuthError{}),
+			Entry("unreachable", fmt.Errorf("connection refused"), &RegistryAccessError{}),
+		)
+	})
+
+	Describe("LookupBlueFieldOCPLayerImage", func() {
+		var cr *provisioningv1alpha1.DPFHCPProvisioner
+
+		// newLookup returns an ImageLookup whose cluster holds cr, a pull secret
+		// and a DPFOperatorConfig reporting dpfVersion.
+		newLookup := func(dpfVersion *string) *ImageLookup {
+			s := runtime.NewScheme()
+			Expect(clientgoscheme.AddToScheme(s)).To(Succeed())
+			Expect(provisioningv1alpha1.AddToScheme(s)).To(Succeed())
+			Expect(operatorv1alpha1.AddToScheme(s)).To(Succeed())
+			return &ImageLookup{
+				Client: fake.NewClientBuilder().
+					WithScheme(s).
+					WithObjects(cr,
+						&operatorv1alpha1.DPFOperatorConfig{
+							ObjectMeta: metav1.ObjectMeta{Name: "dpfoperatorconfig", Namespace: "dpf-operator-system"},
+							Status:     operatorv1alpha1.DPFOperatorConfigStatus{Version: dpfVersion},
+						},
+						&corev1.Secret{
+							ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: "test-ns"},
+							Data:       map[string][]byte{".dockerconfigjson": []byte(`{"auths":{}}`)},
+						}).
+					WithStatusSubresource(&provisioningv1alpha1.DPFHCPProvisioner{}).
+					Build(),
+				Recorder:     record.NewFakeRecorder(10),
+				ImageChecker: &fakeImageChecker{tags: []string{"4.22.17-doca3.4.2", "4.22.17-doca3.5.0"}},
+				Repository:   testRepository,
+			}
+		}
 
 		BeforeEach(func() {
-			lookup = &ImageLookup{}
+			cr = &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test-ns"},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					OCPReleaseImage: "quay.io/openshift-release-dev/ocp-release:4.22.17-multi",
+					PullSecretRef:   corev1.LocalObjectReference{Name: "pull-secret"},
+				},
+			}
 		})
 
-		Context("When version tag exists in registry", func() {
-			It("should return the full image reference", func() {
-				lookup.ImageChecker = &fakeImageChecker{err: nil}
-				image, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+		DescribeTable("should select the tag for the DOCA version of the installed DPF version",
+			func(dpfVersion, expected string) {
+				result, err := newLookup(&dpfVersion).LookupBlueFieldOCPLayerImage(context.Background(), cr)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(image).To(Equal(testRepository + ":4.19.0-ec.5"))
-			})
-		})
+				Expect(result.RequeueAfter).To(BeZero())
+				Expect(cr.Status.BlueFieldOCPLayerImage).To(Equal(testRepository + ":" + expected))
 
-		Context("When version tag does not exist in registry", func() {
-			It("should return VersionNotFoundError", func() {
-				lookup.ImageChecker = &fakeImageChecker{
-					err: fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"),
-				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.20.0-ec.1", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var versionNotFoundErr *VersionNotFoundError
-				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
-			})
-		})
+				cond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound)
+				Expect(cond).NotTo(BeNil())
+				Expect(cond.Status).To(Equal(metav1.ConditionTrue))
+				Expect(cond.Reason).To(Equal("ImageFound"))
+			},
+			Entry("DPF 26.4 uses DOCA 3.4", "v26.4.1", "4.22.17-doca3.4.2"),
+			Entry("unknown DPF version uses the default DOCA version", "v26.12.0", "4.22.17-doca3.4.2"),
+		)
 
-		Context("When registry returns a 404 not found error", func() {
-			It("should return VersionNotFoundError", func() {
-				lookup.ImageChecker = &fakeImageChecker{
-					err: fmt.Errorf("unexpected status code 404 not found"),
-				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
+		DescribeTable("should retry when the DPF version is not available",
+			func(dpfVersion *string) {
+				_, err := newLookup(dpfVersion).LookupBlueFieldOCPLayerImage(context.Background(), cr)
 				Expect(err).To(HaveOccurred())
-				var versionNotFoundErr *VersionNotFoundError
-				Expect(err).To(BeAssignableToTypeOf(versionNotFoundErr))
-			})
-		})
 
-		Context("When registry returns an auth error", func() {
-			It("should return RegistryAuthError", func() {
-				lookup.ImageChecker = &fakeImageChecker{
-					err: fmt.Errorf("UNAUTHORIZED: authentication required"),
-				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var authErr *RegistryAuthError
-				Expect(err).To(BeAssignableToTypeOf(authErr))
-			})
-		})
-
-		Context("When registry returns a transient error", func() {
-			It("should return RegistryAccessError", func() {
-				lookup.ImageChecker = &fakeImageChecker{
-					err: fmt.Errorf("connection refused"),
-				}
-				_, err := lookup.validateTagExists(context.Background(), testRepository, "4.19.0-ec.5", authn.DefaultKeychain)
-				Expect(err).To(HaveOccurred())
-				var accessErr *RegistryAccessError
-				Expect(err).To(BeAssignableToTypeOf(accessErr))
-			})
-		})
+				cond := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound)
+				Expect(cond).NotTo(BeNil())
+				Expect(cond.Status).To(Equal(metav1.ConditionFalse))
+				Expect(cond.Reason).To(Equal("DPFVersionNotFound"))
+			},
+			Entry("status.version not set", nil),
+			Entry("status.version without a minor version", ptr.To("v26")),
+		)
 	})
 
 	Describe("BlueField OCP Layer Image URL Validation", func() {
@@ -199,10 +281,12 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 		Context("VersionNotFoundError", func() {
 			It("should include version and repository in error message", func() {
 				err := &VersionNotFoundError{
-					Version:    "4.19.0-ec.5",
-					Repository: testRepository,
+					Version:     "4.19.0-ec.5",
+					DocaVersion: "3.4",
+					Repository:  testRepository,
 				}
 				Expect(err.Error()).To(ContainSubstring("4.19.0-ec.5"))
+				Expect(err.Error()).To(ContainSubstring("3.4"))
 				Expect(err.Error()).To(ContainSubstring(testRepository))
 			})
 		})
@@ -246,24 +330,6 @@ var _ = Describe("BlueField OCP Layer Image Lookup", func() {
 
 		It("should not match non-auth errors", func() {
 			Expect(isAuthError(fmt.Errorf("connection refused"))).To(BeFalse())
-		})
-	})
-
-	Describe("isNotFoundError", func() {
-		It("should detect MANIFEST_UNKNOWN errors", func() {
-			Expect(isNotFoundError(fmt.Errorf("MANIFEST_UNKNOWN: manifest unknown"))).To(BeTrue())
-		})
-
-		It("should detect NOT_FOUND errors", func() {
-			Expect(isNotFoundError(fmt.Errorf("NOT_FOUND: resource not found"))).To(BeTrue())
-		})
-
-		It("should detect 404 errors", func() {
-			Expect(isNotFoundError(fmt.Errorf("unexpected status code 404"))).To(BeTrue())
-		})
-
-		It("should not match non-not-found errors", func() {
-			Expect(isNotFoundError(fmt.Errorf("connection refused"))).To(BeFalse())
 		})
 	})
 })
