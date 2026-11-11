@@ -34,7 +34,7 @@ spec:
     - name: build-source-image
       value: "true"
     - name: prefetch-input
-      value: '[{"type": "cargo", "path": "."}]'
+      value: '[{"type": "rpm", "path": "rpm-prefetching"}, {"type": "cargo", "path": "."}]'
     - name: additional-tags
       value: [ "latest" ]
   pipelineSpec:

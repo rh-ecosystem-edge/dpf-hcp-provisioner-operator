@@ -973,9 +973,9 @@ impl DPFHCPProvisionerReconciler {
             }
         }
 
-        if !ign_configured
+        if ign_configured
             .as_ref()
-            .is_some_and(|c| c.status == CONDITION_TRUE)
+            .is_none_or(|c| c.status != CONDITION_TRUE)
         {
             return Ok((false, ReconcileResult::default()));
         }
@@ -1205,8 +1205,8 @@ impl DPFHCPProvisionerReconciler {
     ) -> bool {
         let log = &ctx.log;
 
-        if !find(cr, provisioningv1alpha1::IGNITION_CONFIGURED)
-            .is_some_and(|c| c.status == CONDITION_TRUE)
+        if find(cr, provisioningv1alpha1::IGNITION_CONFIGURED)
+            .is_none_or(|c| c.status != CONDITION_TRUE)
         {
             return false;
         }
@@ -1440,8 +1440,8 @@ impl DPFHCPProvisionerReconciler {
             return false;
         }
 
-        if !find(cr, provisioningv1alpha1::HOSTED_CLUSTER_AVAILABLE)
-            .is_some_and(|c| c.status == CONDITION_TRUE)
+        if find(cr, provisioningv1alpha1::HOSTED_CLUSTER_AVAILABLE)
+            .is_none_or(|c| c.status != CONDITION_TRUE)
         {
             return false;
         }
@@ -1469,8 +1469,8 @@ impl DPFHCPProvisionerReconciler {
         // This is only required when exposing services through LoadBalancer
         // Checked first because MetalLB configuration happens before HostedCluster creation
         if cr.should_expose_through_load_balancer()
-            && !find(cr, provisioningv1alpha1::METAL_LB_CONFIGURED)
-                .is_some_and(|c| c.status == CONDITION_TRUE)
+            && find(cr, provisioningv1alpha1::METAL_LB_CONFIGURED)
+                .is_none_or(|c| c.status != CONDITION_TRUE)
         {
             set_condition(
                 cr,
@@ -1487,8 +1487,8 @@ impl DPFHCPProvisionerReconciler {
 
         // HostedCluster must be available
         // This is set by the StatusSyncer after mirroring HostedCluster status
-        if !find(cr, provisioningv1alpha1::HOSTED_CLUSTER_AVAILABLE)
-            .is_some_and(|c| c.status == CONDITION_TRUE)
+        if find(cr, provisioningv1alpha1::HOSTED_CLUSTER_AVAILABLE)
+            .is_none_or(|c| c.status != CONDITION_TRUE)
         {
             set_condition(
                 cr,
@@ -1506,8 +1506,8 @@ impl DPFHCPProvisionerReconciler {
 
         // Kubeconfig must be injected
         // This is set by the KubeconfigInjector after successful injection
-        if !find(cr, provisioningv1alpha1::KUBE_CONFIG_INJECTED)
-            .is_some_and(|c| c.status == CONDITION_TRUE)
+        if find(cr, provisioningv1alpha1::KUBE_CONFIG_INJECTED)
+            .is_none_or(|c| c.status != CONDITION_TRUE)
         {
             set_condition(
                 cr,
@@ -1991,7 +1991,7 @@ impl DPFHCPProvisionerReconciler {
             &hc.status.conditions,
             hyperv1::CLUSTER_VERSION_PROGRESSING,
         );
-        !cv_progressing.is_some_and(|c| c.status == CONDITION_TRUE)
+        cv_progressing.is_none_or(|c| c.status != CONDITION_TRUE)
     }
 
     /// hasCompletedDifferentVersion checks if the HostedCluster version history contains at least

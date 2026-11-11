@@ -190,7 +190,7 @@ impl Controller {
             LABEL_SUCCESS,
         ] {
             metrics::RECONCILE_TOTAL
-                .with_label_values(&[&self.name, l])
+                .with_label_values(&[self.name.as_str(), l])
                 .inc_by(0.0);
         }
         metrics::RECONCILE_ERRORS
@@ -381,7 +381,7 @@ impl Controller {
                     .with_label_values(&[&self.name])
                     .inc();
                 metrics::RECONCILE_TOTAL
-                    .with_label_values(&[&self.name, LABEL_ERROR])
+                    .with_label_values(&[self.name.as_str(), LABEL_ERROR])
                     .inc();
                 if !ctrlrt::reconcile::result_of_error(&err).is_zero() {
                     log.info("Warning: Reconciler returned both a non-zero result and a non-nil error. The result will always be ignored if the error is non-nil and the non-nil error causes requeuing with exponential backoff. For more details, see: https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile#Reconciler", kv![]);
@@ -399,21 +399,21 @@ impl Controller {
                 queue.forget(&req);
                 queue.add_after(req, result.requeue_after);
                 metrics::RECONCILE_TOTAL
-                    .with_label_values(&[&self.name, LABEL_REQUEUE_AFTER])
+                    .with_label_values(&[self.name.as_str(), LABEL_REQUEUE_AFTER])
                     .inc();
             }
             Ok(result) if result.requeue => {
                 log.v(5).info("Reconcile done, requeueing", kv![]);
                 queue.add_rate_limited(req);
                 metrics::RECONCILE_TOTAL
-                    .with_label_values(&[&self.name, LABEL_REQUEUE])
+                    .with_label_values(&[self.name.as_str(), LABEL_REQUEUE])
                     .inc();
             }
             Ok(_) => {
                 log.v(5).info("Reconcile successful", kv![]);
                 queue.forget(&req);
                 metrics::RECONCILE_TOTAL
-                    .with_label_values(&[&self.name, LABEL_SUCCESS])
+                    .with_label_values(&[self.name.as_str(), LABEL_SUCCESS])
                     .inc();
             }
         }

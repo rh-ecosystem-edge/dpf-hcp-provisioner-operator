@@ -90,6 +90,8 @@ pub fn append_string(dst: &mut Vec<u8>, src: &[u8], escape_html: bool) {
 
 /// Go `floatEncoder` (bits 32 or 64). The caller must ensure `f` is finite (Go returns an
 /// `UnsupportedValueError` otherwise).
+// Kept as written in Go (`abs < 1e-6 || abs >= 1e21`); the range form differs for NaN.
+#[allow(clippy::manual_range_contains)]
 pub fn append_float(dst: &mut Vec<u8>, f: f64, bits: i64) {
     let abs = f.abs();
     let mut fmt = b'f';
