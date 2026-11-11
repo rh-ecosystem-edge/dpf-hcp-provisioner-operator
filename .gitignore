@@ -40,3 +40,6 @@ agents_outputs
 
 # Generated helm charts
 *.tgz
+
+# Rust
+/target/
