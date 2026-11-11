@@ -15,6 +15,10 @@
 # (`go get ...` + `go mod tidy` in that directory), then run `make generate`.
 set -euo pipefail
 
+# Build environments (e.g. the OpenShift CI Go build root) may export GOFLAGS=-mod=vendor;
+# the generator module is not vendored, so start from a clean GOFLAGS.
+unset GOFLAGS
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
