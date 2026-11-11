@@ -1,0 +1,263 @@
+[
+  {
+    "headers": [
+      "Bearer realm=\"https://auth.example.com/token\",service=\"registry.example.com\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "https://auth.example.com/token",
+          "service": "registry.example.com"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"https://auth.example.com/token\",service=\"registry.example.com\",scope=\"repository:foo/bar:pull\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "https://auth.example.com/token",
+          "scope": "repository:foo/bar:pull",
+          "service": "registry.example.com"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "bearer Realm=\"https://auth.example.com/token\", Service=\"x\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "https://auth.example.com/token",
+          "service": "x"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Basic realm=\"Registry Realm\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "basic",
+        "Parameters": {
+          "realm": "Registry Realm"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Basic"
+    ],
+    "challenges": [
+      {
+        "Scheme": "basic",
+        "Parameters": {}
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Negotiate",
+      "Basic realm=\"x\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "negotiate",
+        "Parameters": {}
+      },
+      {
+        "Scheme": "basic",
+        "Parameters": {
+          "realm": "x"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=https://unquoted/token,service=svc"
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "https"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"a\\\"b\\\\c\",service=\"s\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "a\"b\\c",
+          "service": "s"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"unterminated"
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {}
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm="
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {}
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"x\",,service=\"y\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "x"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"x\" service=\"y\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "x"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer  realm=\"x\" ,  service=\"y\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "x",
+          "service": "y"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"x\",service=\"y\",error=\"insufficient_scope\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "error": "insufficient_scope",
+          "realm": "x",
+          "service": "y"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      ""
+    ],
+    "challenges": []
+  },
+  {
+    "headers": [
+      "=foo"
+    ],
+    "challenges": []
+  },
+  {
+    "headers": [
+      "Bearer realm=\"x\",realm=\"y\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "y"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"esc\\\"aped\",service=\"s\\\\\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {
+          "realm": "esc\"aped",
+          "service": "s\\"
+        }
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm=\"a\\"
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {}
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer,realm=\"x\""
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {}
+      }
+    ]
+  },
+  {
+    "headers": [
+      "Bearer realm"
+    ],
+    "challenges": [
+      {
+        "Scheme": "bearer",
+        "Parameters": {}
+      }
+    ]
+  }
+]

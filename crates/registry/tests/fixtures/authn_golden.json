@@ -1,0 +1,568 @@
+[
+  {
+    "input": "{}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"username\":\"u\",\"password\":\"p\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "u",
+    "password": "p",
+    "auth": "dTpw",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"u\",\"password\":\"p\",\"auth\":\"dTpw\"}"
+  },
+  {
+    "input": "{\"username\":\"u\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "u",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"u\",\"auth\":\"dTo=\"}"
+  },
+  {
+    "input": "{\"password\":\"p\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "p",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"password\":\"p\",\"auth\":\"OnA=\"}"
+  },
+  {
+    "input": "{\"auth\":\"dTpw\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "u",
+    "password": "p",
+    "auth": "dTpw",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"u\",\"password\":\"p\",\"auth\":\"dTpw\"}"
+  },
+  {
+    "input": "{\"auth\":\"dTpw\",\"username\":\"x\",\"password\":\"y\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "u",
+    "password": "p",
+    "auth": "dTpw",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"u\",\"password\":\"p\",\"auth\":\"dTpw\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjpwYXNzd29yZA==\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "user",
+    "password": "password",
+    "auth": "dXNlcjpwYXNzd29yZA==",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"user\",\"password\":\"password\",\"auth\":\"dXNlcjpwYXNzd29yZA==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjpwYXNzd29yZA\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "user",
+    "password": "password",
+    "auth": "dXNlcjpwYXNzd29yZA",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"user\",\"password\":\"password\",\"auth\":\"dXNlcjpwYXNzd29yZA==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjpwYXNzd29yZA=\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 19",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "dXNlcjpwYXNzd29yZA=",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjpwYXNz\\nd29yZA==\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "user",
+    "password": "password",
+    "auth": "dXNlcjpwYXNz\nd29yZA==",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"user\",\"password\":\"password\",\"auth\":\"dXNlcjpwYXNzd29yZA==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjpwYXNz\\r\\nd29yZA==\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "user",
+    "password": "password",
+    "auth": "dXNlcjpwYXNz\r\nd29yZA==",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"user\",\"password\":\"password\",\"auth\":\"dXNlcjpwYXNzd29yZA==\"}"
+  },
+  {
+    "input": "{\"auth\":\"  dXNlcjpwYXNzd29yZA== \"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 0",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "  dXNlcjpwYXNzd29yZA== ",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcg==\"}",
+    "ok": false,
+    "err": "unable to decode auth field: must be formatted as base64(username:password)",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "dXNlcg==",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcg\"}",
+    "ok": false,
+    "err": "unable to decode auth field: must be formatted as base64(username:password)",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "dXNlcg",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"!!!!\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 0",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "!!!!",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjpwYXNz!\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 12",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "dXNlcjpwYXNz!",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjp=\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "user",
+    "password": "",
+    "auth": "dXNlcjp=",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"user\",\"auth\":\"dXNlcjo=\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjp=x\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 7",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "dXNlcjp=x",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjp==\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 8",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "dXNlcjp==",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dXNlcjpw===\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 8",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "dXNlcjpw===",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"=\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 0",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "=",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"a\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 0",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "a",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"ab\"}",
+    "ok": false,
+    "err": "unable to decode auth field: must be formatted as base64(username:password)",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "ab",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"abc\"}",
+    "ok": false,
+    "err": "unable to decode auth field: must be formatted as base64(username:password)",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "abc",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"abcd\"}",
+    "ok": false,
+    "err": "unable to decode auth field: must be formatted as base64(username:password)",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "abcd",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"OjpwYXNzOndvcmQ=\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": ":pass:word",
+    "auth": "OjpwYXNzOndvcmQ=",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"password\":\":pass:word\",\"auth\":\"OjpwYXNzOndvcmQ=\"}"
+  },
+  {
+    "input": "{\"auth\":\"OjpwYXNzOnd vcmQ=\"}",
+    "ok": false,
+    "err": "unable to decode auth field: illegal base64 data at input byte 11",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "OjpwYXNzOnd vcmQ=",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dTpw\",\"identitytoken\":\"idt\",\"registrytoken\":\"rt\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "u",
+    "password": "p",
+    "auth": "dTpw",
+    "identitytoken": "idt",
+    "registrytoken": "rt",
+    "marshaled": "{\"username\":\"u\",\"password\":\"p\",\"auth\":\"dTpw\",\"identitytoken\":\"idt\",\"registrytoken\":\"rt\"}"
+  },
+  {
+    "input": "{\"identitytoken\":\"idt\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "idt",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\",\"identitytoken\":\"idt\"}"
+  },
+  {
+    "input": "{\"registrytoken\":\"rt\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "rt",
+    "marshaled": "{\"auth\":\"Og==\",\"registrytoken\":\"rt\"}"
+  },
+  {
+    "input": "{\"Username\":\"U\",\"PASSWORD\":\"P\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "U",
+    "password": "P",
+    "auth": "VTpQ",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"U\",\"password\":\"P\",\"auth\":\"VTpQ\"}"
+  },
+  {
+    "input": "{\"username\":null,\"password\":\"p\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "p",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"password\":\"p\",\"auth\":\"OnA=\"}"
+  },
+  {
+    "input": "{\"username\":\"u\",\"password\":\"p\",\"email\":\"e@x\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "u",
+    "password": "p",
+    "auth": "dTpw",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"u\",\"password\":\"p\",\"auth\":\"dTpw\"}"
+  },
+  {
+    "input": "{\"username\":\"üser\",\"password\":\"päss\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "üser",
+    "password": "päss",
+    "auth": "w7xzZXI6cMOkc3M=",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"üser\",\"password\":\"päss\",\"auth\":\"w7xzZXI6cMOkc3M=\"}"
+  },
+  {
+    "input": "{\"auth\":\"w7xzZXI6cMOkc3M=\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "üser",
+    "password": "päss",
+    "auth": "w7xzZXI6cMOkc3M=",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"üser\",\"password\":\"päss\",\"auth\":\"w7xzZXI6cMOkc3M=\"}"
+  },
+  {
+    "input": "{\"username\":5,\"password\":\"p\"}",
+    "ok": false,
+    "err": "json: cannot unmarshal number into Go struct field authConfig.username of type string",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":5}",
+    "ok": false,
+    "err": "json: cannot unmarshal number into Go struct field authConfig.auth of type string",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"auth\":\"dTpw\",\"username\":true}",
+    "ok": false,
+    "err": "json: cannot unmarshal bool into Go struct field authConfig.username of type string",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "null",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "\"str\"",
+    "ok": false,
+    "err": "json: cannot unmarshal string into Go value of type authn.authConfig",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "[]",
+    "ok": false,
+    "err": "json: cannot unmarshal array into Go value of type authn.authConfig",
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "",
+    "password": "",
+    "auth": "",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"auth\":\"Og==\"}"
+  },
+  {
+    "input": "{\"username\":\"\u003ca\u0026b\u003e\",\"password\":\"\\u2028\"}",
+    "ok": true,
+    "config": {
+      "auth": "Og=="
+    },
+    "username": "\u003ca\u0026b\u003e",
+    "password": "\u2028",
+    "auth": "PGEmYj464oCo",
+    "identitytoken": "",
+    "registrytoken": "",
+    "marshaled": "{\"username\":\"\\u003ca\\u0026b\\u003e\",\"password\":\"\\u2028\",\"auth\":\"PGEmYj464oCo\"}"
+  }
+]

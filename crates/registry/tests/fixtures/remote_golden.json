@@ -1,0 +1,914 @@
+[
+  {
+    "name": "head-ok",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "HEAD",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Length": "123",
+          "Content-Type": "application/vnd.oci.image.index.v1+json",
+          "Docker-Content-Digest": "sha256:62c66a7a5dd70c3146618063c344e531e6d4b59e379808443ce962b3abd63c5a"
+        }
+      }
+    ],
+    "expected": "",
+    "result": "application/vnd.oci.image.index.v1+json sha256:62c66a7a5dd70c3146618063c344e531e6d4b59e379808443ce962b3abd63c5a 123",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "head-404",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      }
+    ],
+    "expected": "HEAD http://HOST/v2/foo/bar/manifests/v1: unexpected status code 404 Not Found (HEAD responses have no body, use GET for details)",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "get-404-json",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 404,
+        "body": "{\"errors\":[{\"code\":\"MANIFEST_UNKNOWN\",\"message\":\"manifest unknown\",\"detail\":{\"Tag\":\"v1\"}}]}"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/manifests/v1: MANIFEST_UNKNOWN: manifest unknown; map[Tag:v1]",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "name-unknown",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 404,
+        "body": "{\"errors\":[{\"code\":\"NAME_UNKNOWN\",\"message\":\"repository name not known to registry\",\"detail\":{\"name\":\"foo/bar\"}}]}"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/manifests/v1: NAME_UNKNOWN: repository name not known to registry; map[name:foo/bar]",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "denied",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 403,
+        "body": "{\"errors\":[{\"code\":\"DENIED\",\"message\":\"requested access to the resource is denied\"}]}"
+      }
+    ],
+    "expected": "HEAD http://HOST/v2/foo/bar/manifests/v1: unexpected status code 403 Forbidden (HEAD responses have no body, use GET for details)",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "token-401",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "user": "u",
+    "pass": "p",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer realm=\"http://HOST/token\",service=\"svc\""
+        }
+      },
+      {
+        "method": "",
+        "path": "/token",
+        "status": 401,
+        "body": "{\"errors\":[{\"code\":\"UNAUTHORIZED\",\"message\":\"access to the requested resource is not authorized\",\"detail\":[{\"Type\":\"repository\",\"Name\":\"foo/bar\",\"Action\":\"pull\"}]}]}"
+      }
+    ],
+    "expected": "GET http://HOST/token?scope=repository%3Afoo%2Fbar%3Apull\u0026service=svc: UNAUTHORIZED: access to the requested resource is not authorized; [map[Action:pull Name:foo/bar Type:repository]]",
+    "requests": [
+      "GET /v2/",
+      "GET /token?scope=repository%3Afoo%2Fbar%3Apull\u0026service=svc"
+    ]
+  },
+  {
+    "name": "token-ok-manifest-401",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer realm=\"http://HOST/token\",service=\"svc\""
+        }
+      },
+      {
+        "method": "",
+        "path": "/token",
+        "status": 200,
+        "body": "{\"token\":\"t\"}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 401,
+        "body": "{\"errors\":[{\"code\":\"UNAUTHORIZED\",\"message\":\"authentication required\",\"detail\":null}]}"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/manifests/v1: UNAUTHORIZED: authentication required",
+    "requests": [
+      "GET /v2/",
+      "GET /token?scope=repository%3Afoo%2Fbar%3Apull\u0026service=svc",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "token-ok-manifest-401-challenge",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer realm=\"http://HOST/token\",service=\"svc\""
+        }
+      },
+      {
+        "method": "",
+        "path": "/token",
+        "status": 200,
+        "body": "{\"access_token\":\"t\",\"refresh_token\":\"r\"}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer realm=\"http://HOST/token\",service=\"svc\",scope=\"repository:foo/bar:pull,push\""
+        }
+      }
+    ],
+    "expected": "HEAD http://HOST/v2/foo/bar/manifests/v1: unexpected status code 401 Unauthorized (HEAD responses have no body, use GET for details)",
+    "requests": [
+      "GET /v2/",
+      "GET /token?scope=repository%3Afoo%2Fbar%3Apull\u0026service=svc",
+      "HEAD /v2/foo/bar/manifests/v1",
+      "POST /token",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "basic-401",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Basic realm=\"r\""
+        }
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 401
+      }
+    ],
+    "expected": "HEAD http://HOST/v2/foo/bar/manifests/v1: unexpected status code 401 Unauthorized (HEAD responses have no body, use GET for details)",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "negotiate-401",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Negotiate"
+        }
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 401,
+        "body": "nope"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/manifests/v1: unexpected status code 401 Unauthorized: nope",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "missing-realm",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer service=\"svc\",scope=\"x\""
+        }
+      }
+    ],
+    "expected": "malformed www-authenticate, missing realm: map[scope:x service:svc]",
+    "requests": [
+      "GET /v2/"
+    ]
+  },
+  {
+    "name": "no-token",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer realm=\"http://HOST/token\",service=\"svc\""
+        }
+      },
+      {
+        "method": "",
+        "path": "/token",
+        "status": 200,
+        "body": "{\"expires_in\":300}"
+      }
+    ],
+    "expected": "no token in bearer response:\n{\"expires_in\":300}",
+    "requests": [
+      "GET /v2/",
+      "GET /token?scope=repository%3Afoo%2Fbar%3Apull\u0026service=svc"
+    ]
+  },
+  {
+    "name": "token-html",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer realm=\"http://HOST/token\",service=\"svc\""
+        }
+      },
+      {
+        "method": "",
+        "path": "/token",
+        "status": 200,
+        "body": "\u003chtml\u003e"
+      }
+    ],
+    "expected": "invalid character '\u003c' looking for beginning of value",
+    "requests": [
+      "GET /v2/",
+      "GET /token?scope=repository%3Afoo%2Fbar%3Apull\u0026service=svc"
+    ]
+  },
+  {
+    "name": "token-bad-type",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 401,
+        "headers": {
+          "WWW-Authenticate": "Bearer realm=\"http://HOST/token\",service=\"svc\""
+        }
+      },
+      {
+        "method": "",
+        "path": "/token",
+        "status": 200,
+        "body": "{\"token\":5}"
+      }
+    ],
+    "expected": "json: cannot unmarshal number into Go struct field Token.token of type string",
+    "requests": [
+      "GET /v2/",
+      "GET /token?scope=repository%3Afoo%2Fbar%3Apull\u0026service=svc"
+    ]
+  },
+  {
+    "name": "head-503",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 503,
+        "body": "busy"
+      }
+    ],
+    "expected": "HEAD http://HOST/v2/foo/bar/manifests/v1: unexpected status code 503 Service Unavailable (HEAD responses have no body, use GET for details)",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1",
+      "HEAD /v2/foo/bar/manifests/v1",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "get-500-json",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 500,
+        "body": "{\"errors\":[{\"code\":\"UNKNOWN\",\"message\":\"boom\"}]}"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/manifests/v1: unexpected status code 500 Internal Server Error",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "get-429",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 429,
+        "body": "{\"errors\":[{\"code\":\"TOOMANYREQUESTS\",\"message\":\"slow down\"}]}"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/manifests/v1: TOOMANYREQUESTS: slow down",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "ping-404",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 404,
+        "body": "no registry here"
+      }
+    ],
+    "expected": "Get \"https://HOST/v2/\": http: server gave HTTP response to HTTPS client; GET http://HOST/v2/: unexpected status code 404 Not Found: no registry here",
+    "requests": [
+      "GET /v2/"
+    ]
+  },
+  {
+    "name": "ping-502",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 502,
+        "body": "bad gateway"
+      }
+    ],
+    "expected": "Get \"https://HOST/v2/\": http: server gave HTTP response to HTTPS client; GET http://HOST/v2/: unexpected status code 502 Bad Gateway",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/",
+      "GET /v2/"
+    ]
+  },
+  {
+    "name": "dead",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "dead": true,
+    "rules": null,
+    "expected": "Get \"https://HOST/v2/\": dial tcp HOST: connect: connection refused; Get \"http://HOST/v2/\": dial tcp HOST: connect: connection refused"
+  },
+  {
+    "name": "head-no-digest",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Length": "10",
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        }
+      }
+    ],
+    "expected": "HEAD http://HOST/v2/foo/bar/manifests/v1: response did not include Docker-Content-Digest header",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "head-no-content-type",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Length": "10",
+          "Docker-Content-Digest": "sha256:62c66a7a5dd70c3146618063c344e531e6d4b59e379808443ce962b3abd63c5a"
+        }
+      }
+    ],
+    "expected": "HEAD http://HOST/v2/foo/bar/manifests/v1: response did not include Content-Type header",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "head-bad-digest",
+    "op": "head",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Length": "10",
+          "Content-Type": "x",
+          "Docker-Content-Digest": "sha256:xyz"
+        }
+      }
+    ],
+    "expected": "found non-hex character in hash: x",
+    "requests": [
+      "GET /v2/",
+      "HEAD /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "digest-mismatch",
+    "op": "get",
+    "ref": "HOST/foo/bar@sha256:d9298a10d1b0735837dc4bd85dac641b0f3cef27a47e5d53a54f2f3f5b2fcffa",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/sha256:d9298a10d1b0735837dc4bd85dac641b0f3cef27a47e5d53a54f2f3f5b2fcffa",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"config\":{\"mediaType\":\"application/vnd.oci.image.config.v1+json\",\"size\":53,\"digest\":\"sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07\"},\"layers\":[]}"
+      }
+    ],
+    "expected": "manifest digest: \"sha256:d037670f124ab83097db9cb429db92059c73fe238226fa728d89e3ed4af95ee9\" does not match requested digest: \"sha256:d9298a10d1b0735837dc4bd85dac641b0f3cef27a47e5d53a54f2f3f5b2fcffa\" for \"HOST/foo/bar@sha256:d9298a10d1b0735837dc4bd85dac641b0f3cef27a47e5d53a54f2f3f5b2fcffa\"",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/sha256:d9298a10d1b0735837dc4bd85dac641b0f3cef27a47e5d53a54f2f3f5b2fcffa"
+    ]
+  },
+  {
+    "name": "config-ok",
+    "op": "config",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"config\":{\"mediaType\":\"application/vnd.oci.image.config.v1+json\",\"size\":53,\"digest\":\"sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07\"},\"layers\":[]}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07",
+        "status": 200,
+        "body": "{\"config\":{\"Labels\":{\"io.openshift.release\":\"4.19\"}}}"
+      }
+    ],
+    "expected": "",
+    "result": "map[io.openshift.release:4.19]",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07"
+    ]
+  },
+  {
+    "name": "config-tampered",
+    "op": "config",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"config\":{\"mediaType\":\"application/vnd.oci.image.config.v1+json\",\"size\":53,\"digest\":\"sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07\"},\"layers\":[]}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07",
+        "status": 200,
+        "body": "{\"config\":{\"Labels\":{\"io.openshift.release\":\"4.20\"}}}"
+      }
+    ],
+    "expected": "error verifying sha256 checksum after reading 53 bytes; got \"sha256:e0c546986f24e733775369750a901f3578f88df0f5e8ecb39a44896a0a56f11c\", want \"sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07\"",
+    "result": "sha256:d037670f124ab83097db9cb429db92059c73fe238226fa728d89e3ed4af95ee9",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07"
+    ]
+  },
+  {
+    "name": "config-short",
+    "op": "config",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"config\":{\"mediaType\":\"application/vnd.oci.image.config.v1+json\",\"size\":53,\"digest\":\"sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07\"},\"layers\":[]}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07",
+        "status": 200,
+        "body": "{\"config\":{\"Labels\":"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07: Content-Length header 20 does not match expected size 53",
+    "result": "sha256:d037670f124ab83097db9cb429db92059c73fe238226fa728d89e3ed4af95ee9",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07"
+    ]
+  },
+  {
+    "name": "config-missing",
+    "op": "config",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"config\":{\"mediaType\":\"application/vnd.oci.image.config.v1+json\",\"size\":53,\"digest\":\"sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07\"},\"layers\":[]}"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07: unexpected status code 404 Not Found",
+    "result": "sha256:d037670f124ab83097db9cb429db92059c73fe238226fa728d89e3ed4af95ee9",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/blobs/sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07"
+    ]
+  },
+  {
+    "name": "config-bad-json",
+    "op": "config",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"config\":{\"mediaType\":\"application/vnd.oci.image.config.v1+json\",\"size\":53,\"digest\":\"sha256:dabd3aff769f07eb2965401eb029974ebba3407afd02b26ddb564ea5f8efae72\"},\"layers\":[]}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/blobs/sha256:dabd3aff769f07eb2965401eb029974ebba3407afd02b26ddb564ea5f8efae72",
+        "status": 200,
+        "body": "\u003c"
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/blobs/sha256:dabd3aff769f07eb2965401eb029974ebba3407afd02b26ddb564ea5f8efae72: Content-Length header 1 does not match expected size 53",
+    "result": "sha256:120a72a5c0edd9d8c1c0f8aebf123b75635d38913effe1aaa32a931f110149ae",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/blobs/sha256:dabd3aff769f07eb2965401eb029974ebba3407afd02b26ddb564ea5f8efae72"
+    ]
+  },
+  {
+    "name": "index-no-platform",
+    "op": "image",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.index.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.index.v1+json\",\"manifests\":[{\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"size\":1,\"digest\":\"sha256:2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"platform\":{\"architecture\":\"arm64\",\"os\":\"linux\",\"variant\":\"v8\"}}]}"
+      }
+    ],
+    "expected": "no child with platform linux/amd64 in index HOST/foo/bar:v1",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "schema1",
+    "op": "image",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.docker.distribution.manifest.v1+prettyjws"
+        },
+        "body": "{}"
+      }
+    ],
+    "expected": "unsupported MediaType: \"application/vnd.docker.distribution.manifest.v1+prettyjws\", see https://github.com/google/go-containerregistry/issues/377",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "redirect-loop",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 302,
+        "headers": {
+          "Location": "/v2/foo/bar/manifests/v1"
+        }
+      }
+    ],
+    "expected": "Get \"/v2/foo/bar/manifests/v1\": stopped after 10 redirects",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  },
+  {
+    "name": "redirect-ok",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 301,
+        "headers": {
+          "Location": "/elsewhere?x=1"
+        }
+      },
+      {
+        "method": "",
+        "path": "/elsewhere",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json"
+        },
+        "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.oci.image.manifest.v1+json\",\"config\":{\"mediaType\":\"application/vnd.oci.image.config.v1+json\",\"size\":53,\"digest\":\"sha256:b68326eefc1a0b620e8c75f7d436e97040ae41ffdba3b96fe1a3ea4ee8513c07\"},\"layers\":[]}"
+      }
+    ],
+    "expected": "",
+    "result": "application/vnd.oci.image.manifest.v1+json sha256:d037670f124ab83097db9cb429db92059c73fe238226fa728d89e3ed4af95ee9 247",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1",
+      "GET /elsewhere?x=1"
+    ]
+  },
+  {
+    "name": "redirect-no-location",
+    "op": "get",
+    "ref": "HOST/foo/bar:v1",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/",
+        "status": 200,
+        "body": "{}"
+      },
+      {
+        "method": "",
+        "path": "/v2/foo/bar/manifests/v1",
+        "status": 302
+      }
+    ],
+    "expected": "GET http://HOST/v2/foo/bar/manifests/v1: unexpected status code 302 Found",
+    "requests": [
+      "GET /v2/",
+      "GET /v2/foo/bar/manifests/v1"
+    ]
+  }
+]

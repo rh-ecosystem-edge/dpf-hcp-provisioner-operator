@@ -1,0 +1,274 @@
+[
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":\"MANIFEST_UNKNOWN\",\"message\":\"manifest unknown\",\"detail\":{\"Tag\":\"latest\"}}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: MANIFEST_UNKNOWN: manifest unknown; map[Tag:latest]",
+    "temporary": false
+  },
+  {
+    "method": "HEAD",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "",
+    "error": "HEAD https://quay.io/v2/foo/bar/manifests/latest: unexpected status code 404 Not Found (HEAD responses have no body, use GET for details)",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: unexpected status code 404 Not Found",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 401,
+    "body": "{\"errors\":[{\"code\":\"UNAUTHORIZED\",\"message\":\"access to the requested resource is not authorized\",\"detail\":[{\"Type\":\"repository\",\"Name\":\"foo/bar\",\"Action\":\"pull\"}]}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: UNAUTHORIZED: access to the requested resource is not authorized; [map[Action:pull Name:foo/bar Type:repository]]",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 403,
+    "body": "{\"errors\":[{\"code\":\"DENIED\",\"message\":\"requested access to the resource is denied\"}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: DENIED: requested access to the resource is denied",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 400,
+    "body": "{\"errors\":[{\"code\":\"NAME_INVALID\",\"message\":\"a\"},{\"code\":\"TAG_INVALID\",\"message\":\"b\",\"detail\":\"c\"}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: multiple errors returned: NAME_INVALID: a; TAG_INVALID: b; c",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 500,
+    "body": "\u003chtml\u003eoops\u003c/html\u003e",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: unexpected status code 500 Internal Server Error: \u003chtml\u003eoops\u003c/html\u003e",
+    "temporary": true
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 503,
+    "body": "{\"errors\":[{\"code\":\"UNAVAILABLE\",\"message\":\"x\"}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: UNAVAILABLE: x",
+    "temporary": true
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 429,
+    "body": "{\"errors\":[{\"code\":\"TOOMANYREQUESTS\",\"message\":\"slow down\"}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: TOOMANYREQUESTS: slow down",
+    "temporary": true
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 429,
+    "body": "{\"errors\":[{\"code\":\"TOOMANYREQUESTS\",\"message\":\"slow down\"},{\"code\":\"DENIED\",\"message\":\"no\"}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: multiple errors returned: TOOMANYREQUESTS: slow down; DENIED: no",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 418,
+    "body": "{\"errors\":[]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: unexpected status code 418 I'm a teapot: {\"errors\":[]}",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 599,
+    "body": "",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: unexpected status code 599 ",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":\"NAME_UNKNOWN\",\"message\":\"repository name not known to registry\",\"detail\":{\"name\":\"foo/bar\"}}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: NAME_UNKNOWN: repository name not known to registry; map[name:foo/bar]",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":\"MANIFEST_UNKNOWN\",\"detail\":null}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: MANIFEST_UNKNOWN: ",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":\"MANIFEST_UNKNOWN\",\"message\":\"m\",\"detail\":1.5}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: MANIFEST_UNKNOWN: m; 1.5",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":\"MANIFEST_UNKNOWN\",\"message\":\"m\",\"detail\":true}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: MANIFEST_UNKNOWN: m; true",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":\"MANIFEST_UNKNOWN\",\"message\":\"m\",\"detail\":{\"b\":[1,\"x\",null],\"a\":{\"z\":1}}}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: MANIFEST_UNKNOWN: m; map[a:map[z:1] b:[1 x \u003cnil\u003e]]",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":\"notalist\"}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: unexpected status code 404 Not Found: {\"errors\":\"notalist\"}",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/manifests/latest",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":5}]}",
+    "error": "GET https://quay.io/v2/foo/bar/manifests/latest: : ",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/auth?scope=repository%3Afoo%2Fbar%3Apull\u0026service=quay.io\u0026account=me\u0026secret=x",
+    "status": 401,
+    "body": "{\"details\":\"bad\"}",
+    "error": "GET https://quay.io/v2/auth?account=REDACTED\u0026scope=repository%3Afoo%2Fbar%3Apull\u0026secret=REDACTED\u0026service=quay.io: unexpected status code 401 Unauthorized: {\"details\":\"bad\"}",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://user:pass@quay.io/v2/auth?b=2\u0026a=1\u0026a=3\u0026scope=s",
+    "status": 401,
+    "body": "",
+    "error": "GET https://user:xxxxx@quay.io/v2/auth?a=REDACTED\u0026a=REDACTED\u0026b=REDACTED\u0026scope=s: unexpected status code 401 Unauthorized",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/auth?x",
+    "status": 401,
+    "body": "",
+    "error": "GET https://quay.io/v2/auth?x=REDACTED: unexpected status code 401 Unauthorized",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/auth?=v\u0026k=",
+    "status": 401,
+    "body": "",
+    "error": "GET https://quay.io/v2/auth?=REDACTED\u0026k=REDACTED: unexpected status code 401 Unauthorized",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/auth?scope=a+b\u0026scope=c%20d",
+    "status": 401,
+    "body": "",
+    "error": "GET https://quay.io/v2/auth?scope=a+b\u0026scope=c+d: unexpected status code 401 Unauthorized",
+    "temporary": false
+  },
+  {
+    "method": "POST",
+    "url": "https://auth.example.com/oauth2/token",
+    "status": 404,
+    "body": "not found",
+    "error": "POST https://auth.example.com/oauth2/token: unexpected status code 404 Not Found: not found",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "http://127.0.0.1:5000/v2/",
+    "status": 502,
+    "body": "bad gateway",
+    "error": "GET http://127.0.0.1:5000/v2/: unexpected status code 502 Bad Gateway: bad gateway",
+    "temporary": true
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/blobs/sha256:abc",
+    "status": 408,
+    "body": "",
+    "error": "GET https://quay.io/v2/foo/bar/blobs/sha256:abc: unexpected status code 408 Request Timeout",
+    "temporary": true
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/blobs/sha256:abc",
+    "status": 504,
+    "body": "",
+    "error": "GET https://quay.io/v2/foo/bar/blobs/sha256:abc: unexpected status code 504 Gateway Timeout",
+    "temporary": true
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/blobs/sha256:abc",
+    "status": 499,
+    "body": "",
+    "error": "GET https://quay.io/v2/foo/bar/blobs/sha256:abc: unexpected status code 499 ",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/blobs/sha256:abc",
+    "status": 522,
+    "body": "",
+    "error": "GET https://quay.io/v2/foo/bar/blobs/sha256:abc: unexpected status code 522 ",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/blobs/sha256:abc",
+    "status": 200,
+    "body": "",
+    "error": "",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/foo/bar/blobs/sha256:abc",
+    "status": 404,
+    "body": "{\"errors\":[{\"code\":\"BLOB_UNKNOWN\",\"message\":\"blob unknown to registry\",\"detail\":\"sha256:abc\"}]}",
+    "error": "GET https://quay.io/v2/foo/bar/blobs/sha256:abc: BLOB_UNKNOWN: blob unknown to registry; sha256:abc",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/a%20b/c?q=%zz",
+    "status": 404,
+    "body": "",
+    "error": "GET https://quay.io/a%20b/c: unexpected status code 404 Not Found",
+    "temporary": false
+  },
+  {
+    "method": "GET",
+    "url": "https://quay.io/v2/x/manifests/y?n=1\u0026last=a\u0026digest=d\u0026mount=m\u0026from=f\u0026other=o",
+    "status": 404,
+    "body": "",
+    "error": "GET https://quay.io/v2/x/manifests/y?digest=d\u0026from=f\u0026last=a\u0026mount=m\u0026n=1\u0026other=REDACTED: unexpected status code 404 Not Found",
+    "temporary": false
+  }
+]

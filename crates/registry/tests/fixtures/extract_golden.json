@@ -1,0 +1,3689 @@
+[
+  {
+    "name": "single-uncompressed",
+    "layers": [
+      "single-uncompressed-0.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "single-gzip",
+    "layers": [
+      "single-gzip-0.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "single-zstd",
+    "layers": [
+      "single-zstd-0.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "three-layers-mixed",
+    "layers": [
+      "three-layers-mixed-0.bin",
+      "three-layers-mixed-1.bin",
+      "three-layers-mixed-2.bin"
+    ],
+    "entries": [
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/again.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 5,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "b4c9e14061c2fd453b36700e3b0da008db2189c711ac629f0f583089164e267d"
+      },
+      {
+        "name": "dir-then-file",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 448,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 28,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "6396fe812b51f52dc45358e00b53629dea28ee610d367885b15ca258c4809697"
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "5924a1408ab47c9d383bbec68bf4c416c26d044f6d2602c71c14368c0a3849ac"
+      },
+      {
+        "name": "new",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "four-layers",
+    "layers": [
+      "four-layers-0.bin",
+      "four-layers-1.bin",
+      "four-layers-2.bin",
+      "four-layers-3.bin"
+    ],
+    "entries": [
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/again.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 5,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "b4c9e14061c2fd453b36700e3b0da008db2189c711ac629f0f583089164e267d"
+      },
+      {
+        "name": "dir-then-file",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 448,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 28,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "6396fe812b51f52dc45358e00b53629dea28ee610d367885b15ca258c4809697"
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "5924a1408ab47c9d383bbec68bf4c416c26d044f6d2602c71c14368c0a3849ac"
+      },
+      {
+        "name": "new",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      },
+      {
+        "name": "dir-then-file/child",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 5,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ddc9e669194254cef019a29d3619a2c16592e5d52e1a81e98b01bd52319149a3"
+      }
+    ]
+  },
+  {
+    "name": "empty-layer",
+    "layers": [
+      "empty-layer-0.bin",
+      "empty-layer-1.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "pax-format",
+    "layers": [
+      "pax-format-0.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "gnu-format",
+    "layers": [
+      "gnu-format-0.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "multistream-gzip",
+    "layers": [
+      "multistream-gzip-0.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "truncated-mid-entry",
+    "layers": [
+      "truncated-mid-entry-0.bin",
+      "truncated-mid-entry-1.bin"
+    ],
+    "entries": [
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 448,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 28,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "6396fe812b51f52dc45358e00b53629dea28ee610d367885b15ca258c4809697"
+      },
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "truncated-at-boundary",
+    "layers": [
+      "truncated-at-boundary-0.bin",
+      "truncated-at-boundary-1.bin"
+    ],
+    "entries": [
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 448,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      }
+    ],
+    "err": "read: unexpected EOF"
+  },
+  {
+    "name": "garbage-layer",
+    "layers": [
+      "garbage-layer-0.bin",
+      "garbage-layer-1.bin"
+    ],
+    "entries": null
+  },
+  {
+    "name": "corrupt-gzip",
+    "layers": [
+      "corrupt-gzip-0.bin",
+      "corrupt-gzip-1.bin"
+    ],
+    "entries": null
+  },
+  {
+    "name": "empty-blob",
+    "layers": [
+      "empty-blob-0.bin",
+      "empty-blob-1.bin"
+    ],
+    "entries": [
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "partial-header",
+    "layers": [
+      "partial-header-0.bin",
+      "partial-header-1.bin"
+    ],
+    "entries": [
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 448,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 28,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "6396fe812b51f52dc45358e00b53629dea28ee610d367885b15ca258c4809697"
+      }
+    ]
+  },
+  {
+    "name": "mid-entry-lower-layer",
+    "layers": [
+      "mid-entry-lower-layer-0.bin",
+      "mid-entry-lower-layer-1.bin"
+    ],
+    "entries": [
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 448,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 28,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "6396fe812b51f52dc45358e00b53629dea28ee610d367885b15ca258c4809697"
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "5924a1408ab47c9d383bbec68bf4c416c26d044f6d2602c71c14368c0a3849ac"
+      },
+      {
+        "name": "new",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "new/file",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "11507a0e2f5e69d5dfa40a62a1bd7b6ee57e6bcd85c67c9b8431b36fff21c437"
+      },
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      }
+    ]
+  },
+  {
+    "name": "truncated-padding-gzip",
+    "layers": [
+      "truncated-padding-gzip-0.bin",
+      "truncated-padding-gzip-1.bin"
+    ],
+    "entries": [
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 448,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 28,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "6396fe812b51f52dc45358e00b53629dea28ee610d367885b15ca258c4809697"
+      },
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "global-header",
+    "layers": [
+      "global-header-0.bin"
+    ],
+    "entries": [
+      {
+        "name": "pax_global_header",
+        "typeflag": 103,
+        "mode": 0,
+        "size": 0,
+        "uid": 0,
+        "gid": 0,
+        "mtime": -62135596800
+      },
+      {
+        "name": "g/file",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 2,
+        "uid": 0,
+        "gid": 0,
+        "mtime": 0,
+        "sha256": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4"
+      }
+    ]
+  },
+  {
+    "name": "typeflag-rega",
+    "layers": [
+      "typeflag-rega-0.bin"
+    ],
+    "entries": [
+      {
+        "name": "olddir",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "olddir/oldfile",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 6,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c49fea7425fa7f8699897a97c159c6690267d9003bb78c53fafa8fc15c325d84"
+      }
+    ]
+  },
+  {
+    "name": "symlink-with-size",
+    "layers": [
+      "symlink-with-size-0.bin"
+    ],
+    "entries": [
+      {
+        "name": "a",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 5,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "a7937b64b8caa58f03721bb6bacf5c78cb235febe0e70b1b84cd99541461a08e"
+      },
+      {
+        "name": "sym",
+        "typeflag": 50,
+        "mode": 511,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      }
+    ]
+  },
+  {
+    "name": "zero-block-then-header",
+    "layers": [
+      "zero-block-then-header-0.bin",
+      "zero-block-then-header-1.bin"
+    ],
+    "entries": [
+      {
+        "name": "a",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 5,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "a7937b64b8caa58f03721bb6bacf5c78cb235febe0e70b1b84cd99541461a08e"
+      }
+    ]
+  },
+  {
+    "name": "single-zero-block",
+    "layers": [
+      "single-zero-block-0.bin",
+      "single-zero-block-1.bin"
+    ],
+    "entries": [
+      {
+        "name": "a",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 5,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "a7937b64b8caa58f03721bb6bacf5c78cb235febe0e70b1b84cd99541461a08e"
+      },
+      {
+        "name": ".",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "etc/os-release",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 8,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "d12badf7030e310cbe733dc64239a907094d187558dd8f523ac8da6773bd875a"
+      },
+      {
+        "name": "etc/passwd",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 11,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "7cf1f940025c27c78e5e4a707519f0e06178702e6dc16722f3d48e13f5e60d9e"
+      },
+      {
+        "name": "usr",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/tool",
+        "typeflag": 48,
+        "mode": 493,
+        "size": 20,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "82f36671bb46ac71d5ad557a15115879e85cb26045475d9f95936e23d972cd25"
+      },
+      {
+        "name": "usr/bin/link",
+        "typeflag": 50,
+        "linkname": "tool",
+        "mode": 511,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "usr/bin/hard",
+        "typeflag": 49,
+        "linkname": "usr/bin/tool",
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/a.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      },
+      {
+        "name": "opt/app/b.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      },
+      {
+        "name": "opt/app/sub",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "opt/app/sub/c.txt",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      },
+      {
+        "name": "var/empty",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "var/lib/x",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 7,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "bf8bf72bb146bc9c12ad26551e7f9b8f336ae299771692c4de970193aeefafd9"
+      },
+      {
+        "name": "/abs/path",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 3,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "78da4a596a88bc5114f071ba590793bf3b37329d761230f33129983a747f414e"
+      },
+      {
+        "name": "dev/fifo",
+        "typeflag": 54,
+        "mode": 384,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests",
+        "typeflag": 53,
+        "mode": 493,
+        "size": 0,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0
+      },
+      {
+        "name": "release-manifests/image-references",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 73,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "c261c0263ec48e38f0a28171fc93d278ad8604cc568c192922f375e79e2eb032"
+      },
+      {
+        "name": "long/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 9,
+        "uid": 1000,
+        "gid": 1000,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 0,
+        "sha256": "e634cc1daabcf0e599ab0e2123095ab4386337e2dda988ff10ec813c8141c245"
+      }
+    ]
+  },
+  {
+    "name": "gnu-base256",
+    "layers": [
+      "gnu-base256-0.bin"
+    ],
+    "entries": [
+      {
+        "name": "big-ids",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 3,
+        "uid": 1073741824,
+        "gid": 2147483648,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 1700000000,
+        "sha256": "23466067f626bf8a3ae1a39cdf81f31303220b331b5064c6e00662dcc34deaaf"
+      },
+      {
+        "name": "dir/nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+        "typeflag": 50,
+        "linkname": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+        "mode": 511,
+        "size": 0,
+        "uid": 1073741824,
+        "gid": 2147483648,
+        "uname": "user",
+        "gname": "group",
+        "mtime": 1700000000
+      }
+    ]
+  },
+  {
+    "name": "pax-overrides",
+    "layers": [
+      "pax-overrides-0.bin"
+    ],
+    "entries": [
+      {
+        "name": "pax-ids",
+        "typeflag": 48,
+        "mode": 420,
+        "size": 3,
+        "uid": 1073741824,
+        "gid": 1000,
+        "uname": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu",
+        "gname": "group",
+        "mtime": 1700000000,
+        "sha256": "23466067f626bf8a3ae1a39cdf81f31303220b331b5064c6e00662dcc34deaaf"
+      },
+      {
+        "name": "dir/pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+        "typeflag": 48,
+        "mode": 384,
+        "size": 1,
+        "uid": 1073741824,
+        "gid": 1000,
+        "uname": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu",
+        "gname": "group",
+        "mtime": 1700000000,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+      }
+    ]
+  }
+]
