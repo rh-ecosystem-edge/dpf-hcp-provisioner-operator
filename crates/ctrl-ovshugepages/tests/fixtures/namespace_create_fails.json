@@ -1,0 +1,34 @@
+{
+  "pullSecret": "valid",
+  "injectClient": true,
+  "reader": {
+    "quay.io/openshift-release-dev/ocp-release:4.17.6-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa"
+    },
+    "quay.io/openshift-release-dev/ocp-release:4.18.1-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:bbbb"
+    },
+    "registry.invalid/ocp-release:4.17.6-aarch64": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:a64a"
+    }
+  },
+  "steps": [
+    {
+      "size": "2Mi",
+      "amount": 250,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "fail": {
+        "verb": "create",
+        "resource": "namespaces",
+        "message": "namespaces create boom"
+      },
+      "error": "failed to ensure namespace openshift-doca-hugepages-holder: namespaces create boom",
+      "panic": false,
+      "cached": false,
+      "readerCalls": null,
+      "logs": null,
+      "namespace": "",
+      "daemonSet": ""
+    }
+  ]
+}

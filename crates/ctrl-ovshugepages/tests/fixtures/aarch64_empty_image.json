@@ -1,0 +1,25 @@
+{
+  "pullSecret": "valid",
+  "injectClient": true,
+  "reader": {
+    "registry.invalid/ocp-release:4.17.6-aarch64": {
+      "image": ""
+    }
+  },
+  "steps": [
+    {
+      "size": "2Mi",
+      "amount": 250,
+      "release": "registry.invalid/ocp-release:4.17.6-x86_64",
+      "error": "resolving aarch64 pause image from release \"registry.invalid/ocp-release:4.17.6-x86_64\": component \"pod\" resolved to an empty image from release \"registry.invalid/ocp-release:4.17.6-aarch64\"",
+      "panic": false,
+      "cached": true,
+      "readerCalls": [
+        "registry.invalid/ocp-release:4.17.6-aarch64 pod"
+      ],
+      "logs": null,
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": ""
+    }
+  ]
+}

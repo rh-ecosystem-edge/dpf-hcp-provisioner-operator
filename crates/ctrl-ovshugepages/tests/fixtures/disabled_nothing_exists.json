@@ -1,0 +1,45 @@
+{
+  "pullSecret": "valid",
+  "injectClient": true,
+  "reader": {
+    "quay.io/openshift-release-dev/ocp-release:4.17.6-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa"
+    },
+    "quay.io/openshift-release-dev/ocp-release:4.18.1-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:bbbb"
+    },
+    "registry.invalid/ocp-release:4.17.6-aarch64": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:a64a"
+    }
+  },
+  "steps": [
+    {
+      "size": "2Mi",
+      "amount": 0,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Hugepages reservation disabled in hosted cluster [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\"]"
+      ],
+      "namespace": "",
+      "daemonSet": ""
+    },
+    {
+      "size": "bogus",
+      "amount": 0,
+      "release": "",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Hugepages reservation disabled in hosted cluster [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\"]"
+      ],
+      "namespace": "",
+      "daemonSet": ""
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "pullSecret": "valid",
+  "injectClient": true,
+  "reader": {
+    "quay.io/openshift-release-dev/ocp-release:4.17.6-multi": {
+      "image": "",
+      "err": "manifest unknown"
+    }
+  },
+  "steps": [
+    {
+      "size": "2Mi",
+      "amount": 250,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "resolving pause image from release \"quay.io/openshift-release-dev/ocp-release:4.17.6-multi\": manifest unknown",
+      "panic": false,
+      "cached": true,
+      "readerCalls": [
+        "quay.io/openshift-release-dev/ocp-release:4.17.6-multi pod"
+      ],
+      "logs": null,
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": ""
+    }
+  ]
+}

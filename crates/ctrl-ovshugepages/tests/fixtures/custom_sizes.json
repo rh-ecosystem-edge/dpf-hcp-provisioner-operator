@@ -1,0 +1,132 @@
+{
+  "pullSecret": "valid",
+  "injectClient": true,
+  "reader": {
+    "quay.io/openshift-release-dev/ocp-release:4.17.6-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa"
+    },
+    "quay.io/openshift-release-dev/ocp-release:4.18.1-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:bbbb"
+    },
+    "registry.invalid/ocp-release:4.17.6-aarch64": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:a64a"
+    }
+  },
+  "steps": [
+    {
+      "size": "1Gi",
+      "amount": 4,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": [
+        "quay.io/openshift-release-dev/ocp-release:4.17.6-multi pod"
+      ],
+      "logs": [
+        "V1 : Resolved hugepages reservation pause image [\"releaseImage\",\"quay.io/openshift-release-dev/ocp-release:4.17.6-multi\",\"pauseImage\",\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\"]",
+        "V1 : Created hugepages reservation DaemonSet in hosted cluster [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"1Gi\",\"hugepagesCount\",4]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-1Gi\":\"4Gi\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-1Gi\":\"4Gi\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "32Mi",
+      "amount": 8,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Updated hugepages reservation DaemonSet in hosted cluster (drift corrected) [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"32Mi\",\"hugepagesCount\",8]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-32Mi\":\"256Mi\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-32Mi\":\"256Mi\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "64Ki",
+      "amount": 1000,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Updated hugepages reservation DaemonSet in hosted cluster (drift corrected) [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"64Ki\",\"hugepagesCount\",1000]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-64Ki\":\"64000Ki\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-64Ki\":\"64000Ki\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "1.5Mi",
+      "amount": 3,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Updated hugepages reservation DaemonSet in hosted cluster (drift corrected) [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"1.5Mi\",\"hugepagesCount\",3]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-1.5Mi\":\"4608Ki\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-1.5Mi\":\"4608Ki\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "1k",
+      "amount": 1,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Updated hugepages reservation DaemonSet in hosted cluster (drift corrected) [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"1k\",\"hugepagesCount\",1]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-1k\":\"1k\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-1k\":\"1k\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "500",
+      "amount": 3,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Updated hugepages reservation DaemonSet in hosted cluster (drift corrected) [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"500\",\"hugepagesCount\",3]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-500\":\"1500\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-500\":\"1500\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "-2Mi",
+      "amount": 250,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Updated hugepages reservation DaemonSet in hosted cluster (drift corrected) [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"-2Mi\",\"hugepagesCount\",250]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages--2Mi\":\"-500Mi\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages--2Mi\":\"-500Mi\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "2Mi",
+      "amount": 2147483647,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": null,
+      "logs": [
+        "V1 : Updated hugepages reservation DaemonSet in hosted cluster (drift corrected) [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"2Mi\",\"hugepagesCount\",2147483647]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-2Mi\":\"4294967294Mi\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-2Mi\":\"4294967294Mi\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    }
+  ]
+}

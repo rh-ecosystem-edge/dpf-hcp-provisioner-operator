@@ -389,10 +389,8 @@ dependencies = [
  "ctrl-dpucluster",
  "ctrl-finalizer",
  "ctrl-hostedcluster",
- "ctrl-ignitiongenerator",
  "ctrl-kubeconfiginjection",
  "ctrl-metallb",
- "ctrl-ovshugepages",
  "ctrl-secrets",
  "ctrlrt",
  "ctrlrt-envtest",
@@ -1913,6 +1911,33 @@ name = "log"
 version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
+
+[[package]]
+name = "manager"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "common",
+ "controller",
+ "ctrl-bfocplookup",
+ "ctrl-csrapproval",
+ "ctrl-dpucluster",
+ "ctrl-dpuservicetemplate",
+ "ctrl-finalizer",
+ "ctrl-hostedcluster",
+ "ctrl-ignitiongenerator",
+ "ctrl-kubeconfiginjection",
+ "ctrl-metallb",
+ "ctrl-ovshugepages",
+ "ctrl-secrets",
+ "ctrlrt",
+ "ctrlrt-cmd",
+ "ctrlrt-runtime",
+ "hostedclient",
+ "k8s-openapi",
+ "rustls",
+ "tokio",
+]
 
 [[package]]
 name = "matchit"

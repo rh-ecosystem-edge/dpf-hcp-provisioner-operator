@@ -1,0 +1,1598 @@
+[
+  {
+    "size": "1Gi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1Gi",
+    "amount": 1,
+    "quantity": "1Gi",
+    "error": ""
+  },
+  {
+    "size": "1Gi",
+    "amount": 3,
+    "quantity": "3Gi",
+    "error": ""
+  },
+  {
+    "size": "1Gi",
+    "amount": 250,
+    "quantity": "250Gi",
+    "error": ""
+  },
+  {
+    "size": "1Gi",
+    "amount": 1000,
+    "quantity": "1000Gi",
+    "error": ""
+  },
+  {
+    "size": "1Gi",
+    "amount": 2147483647,
+    "quantity": "2147483647Gi",
+    "error": ""
+  },
+  {
+    "size": "1Gi",
+    "amount": -1,
+    "quantity": "-1Gi",
+    "error": ""
+  },
+  {
+    "size": "2Mi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "2Mi",
+    "amount": 1,
+    "quantity": "2Mi",
+    "error": ""
+  },
+  {
+    "size": "2Mi",
+    "amount": 3,
+    "quantity": "6Mi",
+    "error": ""
+  },
+  {
+    "size": "2Mi",
+    "amount": 250,
+    "quantity": "500Mi",
+    "error": ""
+  },
+  {
+    "size": "2Mi",
+    "amount": 1000,
+    "quantity": "2000Mi",
+    "error": ""
+  },
+  {
+    "size": "2Mi",
+    "amount": 2147483647,
+    "quantity": "4294967294Mi",
+    "error": ""
+  },
+  {
+    "size": "2Mi",
+    "amount": -1,
+    "quantity": "-2Mi",
+    "error": ""
+  },
+  {
+    "size": "32Mi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "32Mi",
+    "amount": 1,
+    "quantity": "32Mi",
+    "error": ""
+  },
+  {
+    "size": "32Mi",
+    "amount": 3,
+    "quantity": "96Mi",
+    "error": ""
+  },
+  {
+    "size": "32Mi",
+    "amount": 250,
+    "quantity": "8000Mi",
+    "error": ""
+  },
+  {
+    "size": "32Mi",
+    "amount": 1000,
+    "quantity": "32000Mi",
+    "error": ""
+  },
+  {
+    "size": "32Mi",
+    "amount": 2147483647,
+    "quantity": "68719476704Mi",
+    "error": ""
+  },
+  {
+    "size": "32Mi",
+    "amount": -1,
+    "quantity": "-32Mi",
+    "error": ""
+  },
+  {
+    "size": "64Ki",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "64Ki",
+    "amount": 1,
+    "quantity": "64Ki",
+    "error": ""
+  },
+  {
+    "size": "64Ki",
+    "amount": 3,
+    "quantity": "192Ki",
+    "error": ""
+  },
+  {
+    "size": "64Ki",
+    "amount": 250,
+    "quantity": "16000Ki",
+    "error": ""
+  },
+  {
+    "size": "64Ki",
+    "amount": 1000,
+    "quantity": "64000Ki",
+    "error": ""
+  },
+  {
+    "size": "64Ki",
+    "amount": 2147483647,
+    "quantity": "137438953408Ki",
+    "error": ""
+  },
+  {
+    "size": "64Ki",
+    "amount": -1,
+    "quantity": "-64Ki",
+    "error": ""
+  },
+  {
+    "size": "1.5Mi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1.5Mi",
+    "amount": 1,
+    "quantity": "1536Ki",
+    "error": ""
+  },
+  {
+    "size": "1.5Mi",
+    "amount": 3,
+    "quantity": "4608Ki",
+    "error": ""
+  },
+  {
+    "size": "1.5Mi",
+    "amount": 250,
+    "quantity": "375Mi",
+    "error": ""
+  },
+  {
+    "size": "1.5Mi",
+    "amount": 1000,
+    "quantity": "1500Mi",
+    "error": ""
+  },
+  {
+    "size": "1.5Mi",
+    "amount": 2147483647,
+    "quantity": "3298534881792Ki",
+    "error": ""
+  },
+  {
+    "size": "1.5Mi",
+    "amount": -1,
+    "quantity": "-1536Ki",
+    "error": ""
+  },
+  {
+    "size": "500m",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "500m",
+    "amount": 1,
+    "quantity": "1",
+    "error": ""
+  },
+  {
+    "size": "500m",
+    "amount": 3,
+    "quantity": "3",
+    "error": ""
+  },
+  {
+    "size": "500m",
+    "amount": 250,
+    "quantity": "250",
+    "error": ""
+  },
+  {
+    "size": "500m",
+    "amount": 1000,
+    "quantity": "1k",
+    "error": ""
+  },
+  {
+    "size": "500m",
+    "amount": 2147483647,
+    "quantity": "2147483647",
+    "error": ""
+  },
+  {
+    "size": "500m",
+    "amount": -1,
+    "quantity": "-1",
+    "error": ""
+  },
+  {
+    "size": "1k",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1k",
+    "amount": 1,
+    "quantity": "1k",
+    "error": ""
+  },
+  {
+    "size": "1k",
+    "amount": 3,
+    "quantity": "3000",
+    "error": ""
+  },
+  {
+    "size": "1k",
+    "amount": 250,
+    "quantity": "250000",
+    "error": ""
+  },
+  {
+    "size": "1k",
+    "amount": 1000,
+    "quantity": "1000000",
+    "error": ""
+  },
+  {
+    "size": "1k",
+    "amount": 2147483647,
+    "quantity": "2147483647000",
+    "error": ""
+  },
+  {
+    "size": "1k",
+    "amount": -1,
+    "quantity": "-1k",
+    "error": ""
+  },
+  {
+    "size": "0",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0",
+    "amount": 1,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0",
+    "amount": 3,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0",
+    "amount": 250,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0",
+    "amount": 1000,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0",
+    "amount": 2147483647,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0",
+    "amount": -1,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e3",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e3",
+    "amount": 1,
+    "quantity": "1k",
+    "error": ""
+  },
+  {
+    "size": "1e3",
+    "amount": 3,
+    "quantity": "3000",
+    "error": ""
+  },
+  {
+    "size": "1e3",
+    "amount": 250,
+    "quantity": "250000",
+    "error": ""
+  },
+  {
+    "size": "1e3",
+    "amount": 1000,
+    "quantity": "1000000",
+    "error": ""
+  },
+  {
+    "size": "1e3",
+    "amount": 2147483647,
+    "quantity": "2147483647000",
+    "error": ""
+  },
+  {
+    "size": "1e3",
+    "amount": -1,
+    "quantity": "-1k",
+    "error": ""
+  },
+  {
+    "size": "-2Mi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "-2Mi",
+    "amount": 1,
+    "quantity": "-2Mi",
+    "error": ""
+  },
+  {
+    "size": "-2Mi",
+    "amount": 3,
+    "quantity": "-6Mi",
+    "error": ""
+  },
+  {
+    "size": "-2Mi",
+    "amount": 250,
+    "quantity": "-500Mi",
+    "error": ""
+  },
+  {
+    "size": "-2Mi",
+    "amount": 1000,
+    "quantity": "-2000Mi",
+    "error": ""
+  },
+  {
+    "size": "-2Mi",
+    "amount": 2147483647,
+    "quantity": "-4294967294Mi",
+    "error": ""
+  },
+  {
+    "size": "-2Mi",
+    "amount": -1,
+    "quantity": "2Mi",
+    "error": ""
+  },
+  {
+    "size": "1Ei",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1Ei",
+    "amount": 1,
+    "quantity": "1Ei",
+    "error": ""
+  },
+  {
+    "size": "1Ei",
+    "amount": 3,
+    "quantity": "3Ei",
+    "error": ""
+  },
+  {
+    "size": "1Ei",
+    "amount": 250,
+    "quantity": "-6Ei",
+    "error": ""
+  },
+  {
+    "size": "1Ei",
+    "amount": 1000,
+    "quantity": "-9223372036854775808",
+    "error": ""
+  },
+  {
+    "size": "1Ei",
+    "amount": 2147483647,
+    "quantity": "-1Ei",
+    "error": ""
+  },
+  {
+    "size": "1Ei",
+    "amount": -1,
+    "quantity": "-1Ei",
+    "error": ""
+  },
+  {
+    "size": "8Ei",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "8Ei",
+    "amount": 1,
+    "quantity": "9223372036854775807",
+    "error": ""
+  },
+  {
+    "size": "8Ei",
+    "amount": 3,
+    "quantity": "9223372036854775805",
+    "error": ""
+  },
+  {
+    "size": "8Ei",
+    "amount": 250,
+    "quantity": "-250",
+    "error": ""
+  },
+  {
+    "size": "8Ei",
+    "amount": 1000,
+    "quantity": "-1k",
+    "error": ""
+  },
+  {
+    "size": "8Ei",
+    "amount": 2147483647,
+    "quantity": "9223372034707292161",
+    "error": ""
+  },
+  {
+    "size": "8Ei",
+    "amount": -1,
+    "quantity": "-9223372036854775807",
+    "error": ""
+  },
+  {
+    "size": "1.5",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1.5",
+    "amount": 1,
+    "quantity": "2",
+    "error": ""
+  },
+  {
+    "size": "1.5",
+    "amount": 3,
+    "quantity": "6",
+    "error": ""
+  },
+  {
+    "size": "1.5",
+    "amount": 250,
+    "quantity": "500",
+    "error": ""
+  },
+  {
+    "size": "1.5",
+    "amount": 1000,
+    "quantity": "2000",
+    "error": ""
+  },
+  {
+    "size": "1.5",
+    "amount": 2147483647,
+    "quantity": "4294967294",
+    "error": ""
+  },
+  {
+    "size": "1.5",
+    "amount": -1,
+    "quantity": "-2",
+    "error": ""
+  },
+  {
+    "size": "-1.5",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "-1.5",
+    "amount": 1,
+    "quantity": "-2",
+    "error": ""
+  },
+  {
+    "size": "-1.5",
+    "amount": 3,
+    "quantity": "-6",
+    "error": ""
+  },
+  {
+    "size": "-1.5",
+    "amount": 250,
+    "quantity": "-500",
+    "error": ""
+  },
+  {
+    "size": "-1.5",
+    "amount": 1000,
+    "quantity": "-2000",
+    "error": ""
+  },
+  {
+    "size": "-1.5",
+    "amount": 2147483647,
+    "quantity": "-4294967294",
+    "error": ""
+  },
+  {
+    "size": "-1.5",
+    "amount": -1,
+    "quantity": "2",
+    "error": ""
+  },
+  {
+    "size": "0.5n",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0.5n",
+    "amount": 1,
+    "quantity": "1",
+    "error": ""
+  },
+  {
+    "size": "0.5n",
+    "amount": 3,
+    "quantity": "3",
+    "error": ""
+  },
+  {
+    "size": "0.5n",
+    "amount": 250,
+    "quantity": "250",
+    "error": ""
+  },
+  {
+    "size": "0.5n",
+    "amount": 1000,
+    "quantity": "1k",
+    "error": ""
+  },
+  {
+    "size": "0.5n",
+    "amount": 2147483647,
+    "quantity": "2147483647",
+    "error": ""
+  },
+  {
+    "size": "0.5n",
+    "amount": -1,
+    "quantity": "-1",
+    "error": ""
+  },
+  {
+    "size": "1.5e-10",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1.5e-10",
+    "amount": 1,
+    "quantity": "1",
+    "error": ""
+  },
+  {
+    "size": "1.5e-10",
+    "amount": 3,
+    "quantity": "3",
+    "error": ""
+  },
+  {
+    "size": "1.5e-10",
+    "amount": 250,
+    "quantity": "250",
+    "error": ""
+  },
+  {
+    "size": "1.5e-10",
+    "amount": 1000,
+    "quantity": "1k",
+    "error": ""
+  },
+  {
+    "size": "1.5e-10",
+    "amount": 2147483647,
+    "quantity": "2147483647",
+    "error": ""
+  },
+  {
+    "size": "1.5e-10",
+    "amount": -1,
+    "quantity": "-1",
+    "error": ""
+  },
+  {
+    "size": "12345678901234567890",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "12345678901234567890",
+    "amount": 1,
+    "quantity": "-6101065172474983726",
+    "error": ""
+  },
+  {
+    "size": "12345678901234567890",
+    "amount": 3,
+    "quantity": "143548556284600438",
+    "error": ""
+  },
+  {
+    "size": "12345678901234567890",
+    "amount": 250,
+    "quantity": "5813464999146852628",
+    "error": ""
+  },
+  {
+    "size": "12345678901234567890",
+    "amount": 1000,
+    "quantity": "4807115922877858896",
+    "error": ""
+  },
+  {
+    "size": "12345678901234567890",
+    "amount": 2147483647,
+    "quantity": "-3874542791109315282",
+    "error": ""
+  },
+  {
+    "size": "12345678901234567890",
+    "amount": -1,
+    "quantity": "6101065172474983726",
+    "error": ""
+  },
+  {
+    "size": "-12345678901234567890",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "-12345678901234567890",
+    "amount": 1,
+    "quantity": "-5097733591",
+    "error": ""
+  },
+  {
+    "size": "-12345678901234567890",
+    "amount": 3,
+    "quantity": "-15293200773",
+    "error": ""
+  },
+  {
+    "size": "-12345678901234567890",
+    "amount": 250,
+    "quantity": "-1274433397750",
+    "error": ""
+  },
+  {
+    "size": "-12345678901234567890",
+    "amount": 1000,
+    "quantity": "-5097733591000",
+    "error": ""
+  },
+  {
+    "size": "-12345678901234567890",
+    "amount": 2147483647,
+    "quantity": "7499444550274465239",
+    "error": ""
+  },
+  {
+    "size": "-12345678901234567890",
+    "amount": -1,
+    "quantity": "5097733591",
+    "error": ""
+  },
+  {
+    "size": "1Pi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1Pi",
+    "amount": 1,
+    "quantity": "1Pi",
+    "error": ""
+  },
+  {
+    "size": "1Pi",
+    "amount": 3,
+    "quantity": "3Pi",
+    "error": ""
+  },
+  {
+    "size": "1Pi",
+    "amount": 250,
+    "quantity": "250Pi",
+    "error": ""
+  },
+  {
+    "size": "1Pi",
+    "amount": 1000,
+    "quantity": "1000Pi",
+    "error": ""
+  },
+  {
+    "size": "1Pi",
+    "amount": 2147483647,
+    "quantity": "-1Pi",
+    "error": ""
+  },
+  {
+    "size": "1Pi",
+    "amount": -1,
+    "quantity": "-1Pi",
+    "error": ""
+  },
+  {
+    "size": "3Ti",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "3Ti",
+    "amount": 1,
+    "quantity": "3Ti",
+    "error": ""
+  },
+  {
+    "size": "3Ti",
+    "amount": 3,
+    "quantity": "9Ti",
+    "error": ""
+  },
+  {
+    "size": "3Ti",
+    "amount": 250,
+    "quantity": "750Ti",
+    "error": ""
+  },
+  {
+    "size": "3Ti",
+    "amount": 1000,
+    "quantity": "3000Ti",
+    "error": ""
+  },
+  {
+    "size": "3Ti",
+    "amount": 2147483647,
+    "quantity": "-3Ti",
+    "error": ""
+  },
+  {
+    "size": "3Ti",
+    "amount": -1,
+    "quantity": "-3Ti",
+    "error": ""
+  },
+  {
+    "size": "123Ti",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "123Ti",
+    "amount": 1,
+    "quantity": "123Ti",
+    "error": ""
+  },
+  {
+    "size": "123Ti",
+    "amount": 3,
+    "quantity": "369Ti",
+    "error": ""
+  },
+  {
+    "size": "123Ti",
+    "amount": 250,
+    "quantity": "30750Ti",
+    "error": ""
+  },
+  {
+    "size": "123Ti",
+    "amount": 1000,
+    "quantity": "123000Ti",
+    "error": ""
+  },
+  {
+    "size": "123Ti",
+    "amount": 2147483647,
+    "quantity": "-123Ti",
+    "error": ""
+  },
+  {
+    "size": "123Ti",
+    "amount": -1,
+    "quantity": "-123Ti",
+    "error": ""
+  },
+  {
+    "size": "100000Gi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "100000Gi",
+    "amount": 1,
+    "quantity": "100000Gi",
+    "error": ""
+  },
+  {
+    "size": "100000Gi",
+    "amount": 3,
+    "quantity": "300000Gi",
+    "error": ""
+  },
+  {
+    "size": "100000Gi",
+    "amount": 250,
+    "quantity": "25000000Gi",
+    "error": ""
+  },
+  {
+    "size": "100000Gi",
+    "amount": 1000,
+    "quantity": "100000000Gi",
+    "error": ""
+  },
+  {
+    "size": "100000Gi",
+    "amount": 2147483647,
+    "quantity": "-100000Gi",
+    "error": ""
+  },
+  {
+    "size": "100000Gi",
+    "amount": -1,
+    "quantity": "-100000Gi",
+    "error": ""
+  },
+  {
+    "size": "1.Gi",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1.Gi",
+    "amount": 1,
+    "quantity": "1Gi",
+    "error": ""
+  },
+  {
+    "size": "1.Gi",
+    "amount": 3,
+    "quantity": "3Gi",
+    "error": ""
+  },
+  {
+    "size": "1.Gi",
+    "amount": 250,
+    "quantity": "250Gi",
+    "error": ""
+  },
+  {
+    "size": "1.Gi",
+    "amount": 1000,
+    "quantity": "1000Gi",
+    "error": ""
+  },
+  {
+    "size": "1.Gi",
+    "amount": 2147483647,
+    "quantity": "2147483647Gi",
+    "error": ""
+  },
+  {
+    "size": "1.Gi",
+    "amount": -1,
+    "quantity": "-1Gi",
+    "error": ""
+  },
+  {
+    "size": "+4Ki",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "+4Ki",
+    "amount": 1,
+    "quantity": "4Ki",
+    "error": ""
+  },
+  {
+    "size": "+4Ki",
+    "amount": 3,
+    "quantity": "12Ki",
+    "error": ""
+  },
+  {
+    "size": "+4Ki",
+    "amount": 250,
+    "quantity": "1000Ki",
+    "error": ""
+  },
+  {
+    "size": "+4Ki",
+    "amount": 1000,
+    "quantity": "4000Ki",
+    "error": ""
+  },
+  {
+    "size": "+4Ki",
+    "amount": 2147483647,
+    "quantity": "8589934588Ki",
+    "error": ""
+  },
+  {
+    "size": "+4Ki",
+    "amount": -1,
+    "quantity": "-4Ki",
+    "error": ""
+  },
+  {
+    "size": "007",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "007",
+    "amount": 1,
+    "quantity": "7",
+    "error": ""
+  },
+  {
+    "size": "007",
+    "amount": 3,
+    "quantity": "21",
+    "error": ""
+  },
+  {
+    "size": "007",
+    "amount": 250,
+    "quantity": "1750",
+    "error": ""
+  },
+  {
+    "size": "007",
+    "amount": 1000,
+    "quantity": "7000",
+    "error": ""
+  },
+  {
+    "size": "007",
+    "amount": 2147483647,
+    "quantity": "15032385529",
+    "error": ""
+  },
+  {
+    "size": "007",
+    "amount": -1,
+    "quantity": "-7",
+    "error": ""
+  },
+  {
+    "size": "10E",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "10E",
+    "amount": 1,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "10E",
+    "amount": 3,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "10E",
+    "amount": 250,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "10E",
+    "amount": 1000,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "10E",
+    "amount": 2147483647,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "10E",
+    "amount": -1,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e30",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e30",
+    "amount": 1,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e30",
+    "amount": 3,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e30",
+    "amount": 250,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e30",
+    "amount": 1000,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e30",
+    "amount": 2147483647,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1e30",
+    "amount": -1,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "999",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "999",
+    "amount": 1,
+    "quantity": "999",
+    "error": ""
+  },
+  {
+    "size": "999",
+    "amount": 3,
+    "quantity": "2997",
+    "error": ""
+  },
+  {
+    "size": "999",
+    "amount": 250,
+    "quantity": "249750",
+    "error": ""
+  },
+  {
+    "size": "999",
+    "amount": 1000,
+    "quantity": "999000",
+    "error": ""
+  },
+  {
+    "size": "999",
+    "amount": 2147483647,
+    "quantity": "2145336163353",
+    "error": ""
+  },
+  {
+    "size": "999",
+    "amount": -1,
+    "quantity": "-999",
+    "error": ""
+  },
+  {
+    "size": "bogus",
+    "amount": 0,
+    "quantity": "",
+    "error": "cannot parse 'bogus': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "bogus",
+    "amount": 1,
+    "quantity": "",
+    "error": "cannot parse 'bogus': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "bogus",
+    "amount": 3,
+    "quantity": "",
+    "error": "cannot parse 'bogus': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "bogus",
+    "amount": 250,
+    "quantity": "",
+    "error": "cannot parse 'bogus': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "bogus",
+    "amount": 1000,
+    "quantity": "",
+    "error": "cannot parse 'bogus': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "bogus",
+    "amount": 2147483647,
+    "quantity": "",
+    "error": "cannot parse 'bogus': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "bogus",
+    "amount": -1,
+    "quantity": "",
+    "error": "cannot parse 'bogus': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "",
+    "amount": 0,
+    "quantity": "",
+    "error": "cannot parse '': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "",
+    "amount": 1,
+    "quantity": "",
+    "error": "cannot parse '': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "",
+    "amount": 3,
+    "quantity": "",
+    "error": "cannot parse '': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "",
+    "amount": 250,
+    "quantity": "",
+    "error": "cannot parse '': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "",
+    "amount": 1000,
+    "quantity": "",
+    "error": "cannot parse '': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "",
+    "amount": 2147483647,
+    "quantity": "",
+    "error": "cannot parse '': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "",
+    "amount": -1,
+    "quantity": "",
+    "error": "cannot parse '': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1Zi",
+    "amount": 0,
+    "quantity": "",
+    "error": "cannot parse '1Zi': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1Zi",
+    "amount": 1,
+    "quantity": "",
+    "error": "cannot parse '1Zi': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1Zi",
+    "amount": 3,
+    "quantity": "",
+    "error": "cannot parse '1Zi': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1Zi",
+    "amount": 250,
+    "quantity": "",
+    "error": "cannot parse '1Zi': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1Zi",
+    "amount": 1000,
+    "quantity": "",
+    "error": "cannot parse '1Zi': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1Zi",
+    "amount": 2147483647,
+    "quantity": "",
+    "error": "cannot parse '1Zi': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1Zi",
+    "amount": -1,
+    "quantity": "",
+    "error": "cannot parse '1Zi': quantities must match the regular expression '^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$'"
+  },
+  {
+    "size": "1.5Ki",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1.5Ki",
+    "amount": 1,
+    "quantity": "1536",
+    "error": ""
+  },
+  {
+    "size": "1.5Ki",
+    "amount": 3,
+    "quantity": "4608",
+    "error": ""
+  },
+  {
+    "size": "1.5Ki",
+    "amount": 250,
+    "quantity": "375Ki",
+    "error": ""
+  },
+  {
+    "size": "1.5Ki",
+    "amount": 1000,
+    "quantity": "1500Ki",
+    "error": ""
+  },
+  {
+    "size": "1.5Ki",
+    "amount": 2147483647,
+    "quantity": "3298534881792",
+    "error": ""
+  },
+  {
+    "size": "1.5Ki",
+    "amount": -1,
+    "quantity": "-1536",
+    "error": ""
+  },
+  {
+    "size": "0.001",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "0.001",
+    "amount": 1,
+    "quantity": "1",
+    "error": ""
+  },
+  {
+    "size": "0.001",
+    "amount": 3,
+    "quantity": "3",
+    "error": ""
+  },
+  {
+    "size": "0.001",
+    "amount": 250,
+    "quantity": "250",
+    "error": ""
+  },
+  {
+    "size": "0.001",
+    "amount": 1000,
+    "quantity": "1k",
+    "error": ""
+  },
+  {
+    "size": "0.001",
+    "amount": 2147483647,
+    "quantity": "2147483647",
+    "error": ""
+  },
+  {
+    "size": "0.001",
+    "amount": -1,
+    "quantity": "-1",
+    "error": ""
+  },
+  {
+    "size": "-0.5n",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "-0.5n",
+    "amount": 1,
+    "quantity": "1",
+    "error": ""
+  },
+  {
+    "size": "-0.5n",
+    "amount": 3,
+    "quantity": "3",
+    "error": ""
+  },
+  {
+    "size": "-0.5n",
+    "amount": 250,
+    "quantity": "250",
+    "error": ""
+  },
+  {
+    "size": "-0.5n",
+    "amount": 1000,
+    "quantity": "1k",
+    "error": ""
+  },
+  {
+    "size": "-0.5n",
+    "amount": 2147483647,
+    "quantity": "2147483647",
+    "error": ""
+  },
+  {
+    "size": "-0.5n",
+    "amount": -1,
+    "quantity": "-1",
+    "error": ""
+  },
+  {
+    "size": "1023",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1023",
+    "amount": 1,
+    "quantity": "1023",
+    "error": ""
+  },
+  {
+    "size": "1023",
+    "amount": 3,
+    "quantity": "3069",
+    "error": ""
+  },
+  {
+    "size": "1023",
+    "amount": 250,
+    "quantity": "255750",
+    "error": ""
+  },
+  {
+    "size": "1023",
+    "amount": 1000,
+    "quantity": "1023000",
+    "error": ""
+  },
+  {
+    "size": "1023",
+    "amount": 2147483647,
+    "quantity": "2196875770881",
+    "error": ""
+  },
+  {
+    "size": "1023",
+    "amount": -1,
+    "quantity": "-1023",
+    "error": ""
+  },
+  {
+    "size": "1024",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1024",
+    "amount": 1,
+    "quantity": "1Ki",
+    "error": ""
+  },
+  {
+    "size": "1024",
+    "amount": 3,
+    "quantity": "3Ki",
+    "error": ""
+  },
+  {
+    "size": "1024",
+    "amount": 250,
+    "quantity": "250Ki",
+    "error": ""
+  },
+  {
+    "size": "1024",
+    "amount": 1000,
+    "quantity": "1000Ki",
+    "error": ""
+  },
+  {
+    "size": "1024",
+    "amount": 2147483647,
+    "quantity": "2147483647Ki",
+    "error": ""
+  },
+  {
+    "size": "1024",
+    "amount": -1,
+    "quantity": "-1Ki",
+    "error": ""
+  },
+  {
+    "size": "1M",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "1M",
+    "amount": 1,
+    "quantity": "1000000",
+    "error": ""
+  },
+  {
+    "size": "1M",
+    "amount": 3,
+    "quantity": "3000000",
+    "error": ""
+  },
+  {
+    "size": "1M",
+    "amount": 250,
+    "quantity": "250000000",
+    "error": ""
+  },
+  {
+    "size": "1M",
+    "amount": 1000,
+    "quantity": "1000000000",
+    "error": ""
+  },
+  {
+    "size": "1M",
+    "amount": 2147483647,
+    "quantity": "2147483647000000",
+    "error": ""
+  },
+  {
+    "size": "1M",
+    "amount": -1,
+    "quantity": "-1000000",
+    "error": ""
+  },
+  {
+    "size": "2G",
+    "amount": 0,
+    "quantity": "0",
+    "error": ""
+  },
+  {
+    "size": "2G",
+    "amount": 1,
+    "quantity": "1953125Ki",
+    "error": ""
+  },
+  {
+    "size": "2G",
+    "amount": 3,
+    "quantity": "5859375Ki",
+    "error": ""
+  },
+  {
+    "size": "2G",
+    "amount": 250,
+    "quantity": "488281250Ki",
+    "error": ""
+  },
+  {
+    "size": "2G",
+    "amount": 1000,
+    "quantity": "1953125000Ki",
+    "error": ""
+  },
+  {
+    "size": "2G",
+    "amount": 2147483647,
+    "quantity": "4194303998046875Ki",
+    "error": ""
+  },
+  {
+    "size": "2G",
+    "amount": -1,
+    "quantity": "-1953125Ki",
+    "error": ""
+  }
+]

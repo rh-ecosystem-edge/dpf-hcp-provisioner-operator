@@ -1,0 +1,51 @@
+{
+  "pullSecret": "valid",
+  "injectClient": true,
+  "reader": {
+    "quay.io/openshift-release-dev/ocp-release:4.17.6-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa"
+    },
+    "quay.io/openshift-release-dev/ocp-release:4.18.1-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:bbbb"
+    },
+    "registry.invalid/ocp-release:4.17.6-aarch64": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:a64a"
+    }
+  },
+  "steps": [
+    {
+      "size": "2Mi",
+      "amount": 250,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "",
+      "panic": false,
+      "cached": true,
+      "readerCalls": [
+        "quay.io/openshift-release-dev/ocp-release:4.17.6-multi pod"
+      ],
+      "logs": [
+        "V1 : Resolved hugepages reservation pause image [\"releaseImage\",\"quay.io/openshift-release-dev/ocp-release:4.17.6-multi\",\"pauseImage\",\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\"]",
+        "V1 : Created hugepages reservation DaemonSet in hosted cluster [\"namespace\",\"openshift-doca-hugepages-holder\",\"name\",\"ovs-hugepages-reservation\",\"hugepagesSize\",\"2Mi\",\"hugepagesCount\",250]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-2Mi\":\"500Mi\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-2Mi\":\"500Mi\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    },
+    {
+      "size": "2Mi",
+      "amount": 300,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "fail": {
+        "verb": "update",
+        "resource": "daemonsets",
+        "message": "daemonsets update boom"
+      },
+      "error": "failed to ensure DaemonSet openshift-doca-hugepages-holder/ovs-hugepages-reservation: daemonsets update boom",
+      "panic": false,
+      "cached": false,
+      "readerCalls": null,
+      "logs": null,
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": "{\"metadata\":{\"name\":\"ovs-hugepages-reservation\",\"namespace\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"selector\":{\"matchLabels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{\"containers\":[{\"name\":\"allocate\",\"image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\",\"resources\":{\"limits\":{\"cpu\":\"1m\",\"hugepages-2Mi\":\"500Mi\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"1m\",\"hugepages-2Mi\":\"500Mi\",\"memory\":\"32Mi\"}}}],\"tolerations\":[{\"operator\":\"Exists\"}],\"priorityClassName\":\"system-node-critical\"}},\"updateStrategy\":{}},\"status\":{\"currentNumberScheduled\":0,\"numberMisscheduled\":0,\"desiredNumberScheduled\":0,\"numberReady\":0}}"
+    }
+  ]
+}

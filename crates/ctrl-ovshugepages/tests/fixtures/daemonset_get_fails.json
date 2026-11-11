@@ -1,0 +1,38 @@
+{
+  "pullSecret": "valid",
+  "injectClient": true,
+  "reader": {
+    "quay.io/openshift-release-dev/ocp-release:4.17.6-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa"
+    },
+    "quay.io/openshift-release-dev/ocp-release:4.18.1-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:bbbb"
+    },
+    "registry.invalid/ocp-release:4.17.6-aarch64": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:a64a"
+    }
+  },
+  "steps": [
+    {
+      "size": "2Mi",
+      "amount": 250,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "fail": {
+        "verb": "get",
+        "resource": "daemonsets",
+        "message": "daemonsets get boom"
+      },
+      "error": "failed to ensure DaemonSet openshift-doca-hugepages-holder/ovs-hugepages-reservation: daemonsets get boom",
+      "panic": false,
+      "cached": false,
+      "readerCalls": [
+        "quay.io/openshift-release-dev/ocp-release:4.17.6-multi pod"
+      ],
+      "logs": [
+        "V1 : Resolved hugepages reservation pause image [\"releaseImage\",\"quay.io/openshift-release-dev/ocp-release:4.17.6-multi\",\"pauseImage\",\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa\"]"
+      ],
+      "namespace": "{\"metadata\":{\"name\":\"openshift-doca-hugepages-holder\",\"labels\":{\"app.kubernetes.io/managed-by\":\"dpf-hcp-provisioner-operator\",\"app.kubernetes.io/name\":\"ovs-hugepages-reservation\"}},\"spec\":{},\"status\":{}}",
+      "daemonSet": ""
+    }
+  ]
+}

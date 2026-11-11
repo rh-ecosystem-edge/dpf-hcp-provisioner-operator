@@ -1,0 +1,41 @@
+{
+  "pullSecret": "valid",
+  "injectClient": false,
+  "reader": {
+    "quay.io/openshift-release-dev/ocp-release:4.17.6-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaaa"
+    },
+    "quay.io/openshift-release-dev/ocp-release:4.18.1-multi": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:bbbb"
+    },
+    "registry.invalid/ocp-release:4.17.6-aarch64": {
+      "image": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:a64a"
+    }
+  },
+  "steps": [
+    {
+      "size": "2Mi",
+      "amount": 250,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "failed to get hosted cluster client: failed to get kubeconfig: failed to get kubeconfig secret test-ns/test-admin-kubeconfig: secrets \"test-admin-kubeconfig\" not found",
+      "panic": false,
+      "cached": false,
+      "readerCalls": null,
+      "logs": null,
+      "namespace": "",
+      "daemonSet": ""
+    },
+    {
+      "size": "2Mi",
+      "amount": 0,
+      "release": "quay.io/openshift-release-dev/ocp-release:4.17.6-multi",
+      "error": "failed to get hosted cluster client: failed to get kubeconfig: failed to get kubeconfig secret test-ns/test-admin-kubeconfig: secrets \"test-admin-kubeconfig\" not found",
+      "panic": false,
+      "cached": false,
+      "readerCalls": null,
+      "logs": null,
+      "namespace": "",
+      "daemonSet": ""
+    }
+  ]
+}
