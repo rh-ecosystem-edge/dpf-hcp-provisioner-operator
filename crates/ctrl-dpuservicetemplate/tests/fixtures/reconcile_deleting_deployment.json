@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "{\"metadata\":{\"name\":\"hbn\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"999\"},\"spec\":{\"deploymentServiceName\":\"hbn\",\"helmChart\":{\"source\":{\"repoURL\":\"oci://x\",\"path\":\"\",\"version\":\"1\",\"chart\":\"old-chart\"}}},\"status\":{}}",
+    "ovn": ""
+  }
+}

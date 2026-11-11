@@ -1,0 +1,18 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Warning InvalidImageFormat Invalid ocpReleaseImage format: failed to parse image reference REGISTRY/ocp/release@sha256:abc: could not parse reference: REGISTRY/ocp/release@sha256:abc (URL: REGISTRY/ocp/release@sha256:abc)"
+      ],
+      "checked": []
+    }
+  ],
+  "objects": {
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:abc\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InvalidImageFormat\",\"message\":\"Invalid ocpReleaseImage format: failed to parse image reference REGISTRY/ocp/release@sha256:abc: could not parse reference: REGISTRY/ocp/release@sha256:abc (URL: REGISTRY/ocp/release@sha256:abc)\"}]}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:abc\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InvalidImageFormat\",\"message\":\"Invalid ocpReleaseImage format: failed to parse image reference REGISTRY/ocp/release@sha256:abc: could not parse reference: REGISTRY/ocp/release@sha256:abc (URL: REGISTRY/ocp/release@sha256:abc)\"}]}}"
+  }
+}

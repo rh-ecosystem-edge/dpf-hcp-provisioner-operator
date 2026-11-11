@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "determining DPUServiceTemplate values: DPF version \"garbage\" does not contain a minor component",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

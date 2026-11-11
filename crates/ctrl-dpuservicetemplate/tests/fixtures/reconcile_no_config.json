@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

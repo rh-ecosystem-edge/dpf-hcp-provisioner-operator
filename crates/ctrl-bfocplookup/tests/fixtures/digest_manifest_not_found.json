@@ -1,0 +1,18 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "failed to fetch image descriptor for REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: GET http://REGISTRY/v2/ocp/release/manifests/sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: unexpected status code 404 Not Found",
+      "events": [
+        "Warning RegistryAccessError Transient error accessing registry: failed to fetch image descriptor for REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: GET http://REGISTRY/v2/ocp/release/manifests/sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: unexpected status code 404 Not Found"
+      ],
+      "checked": []
+    }
+  ],
+  "objects": {
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"RegistryAccessError\",\"message\":\"Transient error accessing registry: failed to fetch image descriptor for REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: GET http://REGISTRY/v2/ocp/release/manifests/sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: unexpected status code 404 Not Found\"}]}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"RegistryAccessError\",\"message\":\"Transient error accessing registry: failed to fetch image descriptor for REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: GET http://REGISTRY/v2/ocp/release/manifests/sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9: unexpected status code 404 Not Found\"}]}}"
+  }
+}

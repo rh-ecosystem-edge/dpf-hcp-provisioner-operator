@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "determining DPUServiceTemplate values: applying overrides from configmap: json: cannot unmarshal string into Go struct field DTSTemplateValues.dts.prometheusPort of type int32",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

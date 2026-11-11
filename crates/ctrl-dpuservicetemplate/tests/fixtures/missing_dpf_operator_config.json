@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "determining DPUServiceTemplate values: determining DPF version: expected exactly one DPFOperatorConfig, found 0",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

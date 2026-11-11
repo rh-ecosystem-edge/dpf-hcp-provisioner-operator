@@ -471,8 +471,8 @@ mod setup_with_manager {
         let specs = mgr.specs.lock().unwrap();
         assert_eq!(specs.len(), 1);
         assert_eq!(specs[0].name, "csrapproval");
-        assert_eq!(specs[0].for_resource.kind, "DPFHCPProvisioner");
-        assert_eq!(specs[0].for_resource.group, "provisioning.dpu.hcp.io");
+        assert_eq!(specs[0].for_resource.as_ref().unwrap().kind, "DPFHCPProvisioner");
+        assert_eq!(specs[0].for_resource.as_ref().unwrap().group, "provisioning.dpu.hcp.io");
         assert_eq!(specs[0].watches.len(), 1);
         assert_eq!(specs[0].max_concurrent_reconciles, 1);
     }

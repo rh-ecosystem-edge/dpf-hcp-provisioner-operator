@@ -1,0 +1,25 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Warning InvalidImageFormat Invalid ocpReleaseImage format: ocpReleaseImage is required but empty (URL: )"
+      ],
+      "checked": []
+    },
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [],
+      "checked": []
+    }
+  ],
+  "objects": {
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1001\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InvalidImageFormat\",\"message\":\"Invalid ocpReleaseImage format: ocpReleaseImage is required but empty (URL: )\"}]}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1001\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InvalidImageFormat\",\"message\":\"Invalid ocpReleaseImage format: ocpReleaseImage is required but empty (URL: )\"}]}}"
+  }
+}

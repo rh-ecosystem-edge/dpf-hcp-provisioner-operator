@@ -1,0 +1,40 @@
+{
+  "rules": [
+    {
+      "method": "",
+      "path": "/v2/ocp/release/blobs/sha256:c63e2553c19cabe23c8754dfe1f2da36551f0000534fb47434e23f266f2a146e",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/octet-stream"
+      },
+      "body": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6eyJMYWJlbHMiOnsiaW8ub3BlbnNoaWZ0LnJlbGVhc2UiOiI0LjIwLjEiLCJvdGhlciI6IngifX19"
+    },
+    {
+      "method": "",
+      "path": "/v2/ocp/release/manifests/sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+        "Docker-Content-Digest": "sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9"
+      },
+      "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjE0NCwiZGlnZXN0Ijoic2hhMjU2OmM2M2UyNTUzYzE5Y2FiZTIzYzg3NTRkZmUxZjJkYTM2NTUxZjAwMDA1MzRmYjQ3NDM0ZTIzZjI2NmYyYTE0NmUifSwibGF5ZXJzIjpbXX0="
+    }
+  ],
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Normal ImageFound BlueField OCP layer image found for OCP version 4.20.1: quay.io/test-org/bluefield-os:4.20.1"
+      ],
+      "checked": [
+        "quay.io/test-org/bluefield-os:4.20.1"
+      ]
+    }
+  ],
+  "objects": {
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"True\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"ImageFound\",\"message\":\"BlueField OCP layer image found: quay.io/test-org/bluefield-os:4.20.1\"}],\"blueFieldOCPLayerImage\":\"quay.io/test-org/bluefield-os:4.20.1\"}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:4a7c7275d05eabb68469432acf30ba040beb2bb45bf45cf56efbdc3c6e72f7f9\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"True\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"ImageFound\",\"message\":\"BlueField OCP layer image found: quay.io/test-org/bluefield-os:4.20.1\"}],\"blueFieldOCPLayerImage\":\"quay.io/test-org/bluefield-os:4.20.1\"}}"
+  }
+}

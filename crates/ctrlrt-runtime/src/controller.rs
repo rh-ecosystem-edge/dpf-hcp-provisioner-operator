@@ -76,18 +76,20 @@ impl Default for ControllerOptions {
 #[derive(Clone)]
 pub struct LogConstructor {
     base: Logger,
-    kind: String,
+    /// Kind of the `For()` type; `None` when the controller has no GVK.
+    kind: Option<String>,
 }
 
 impl LogConstructor {
-    pub fn new(root: &Logger, spec_name: &str, group: &str, kind: &str) -> Self {
+    /// `gvk` is `Some((group, kind))` when the builder had a `For()` type.
+    pub fn new(root: &Logger, spec_name: &str, gvk: Option<(&str, &str)>) -> Self {
+        let mut base = root.with_values(kv!["controller" => spec_name]);
+        if let Some((group, kind)) = gvk {
+            base = base.with_values(kv!["controllerGroup" => group, "controllerKind" => kind]);
+        }
         Self {
-            base: root.with_values(kv![
-                "controller" => spec_name,
-                "controllerGroup" => group,
-                "controllerKind" => kind,
-            ]),
-            kind: kind.to_string(),
+            base,
+            kind: gvk.map(|(_, k)| k.to_string()),
         }
     }
 
@@ -98,11 +100,13 @@ impl LogConstructor {
 
     /// `LogConstructor(&req)`
     pub fn for_request(&self, req: &Request) -> Logger {
-        self.base.with_values(vec![
-            (self.kind.clone(), kref(&req.namespace, &req.name)),
-            ("namespace".into(), Value::String(req.namespace.clone())),
-            ("name".into(), Value::String(req.name.clone())),
-        ])
+        let mut kvs = Vec::with_capacity(3);
+        if let Some(kind) = &self.kind {
+            kvs.push((kind.clone(), kref(&req.namespace, &req.name)));
+        }
+        kvs.push(("namespace".into(), Value::String(req.namespace.clone())));
+        kvs.push(("name".into(), Value::String(req.name.clone())));
+        self.base.with_values(kvs)
     }
 }
 
@@ -141,8 +145,9 @@ impl Controller {
         let log = LogConstructor::new(
             root_log,
             &spec.name,
-            &spec.for_resource.group,
-            &spec.for_resource.kind,
+            spec.for_resource
+                .as_ref()
+                .map(|f| (f.group.as_str(), f.kind.as_str())),
         );
         Ok(Arc::new(Self {
             name: spec.name,
@@ -795,5 +800,30 @@ mod tests {
         check_name("unique-ctrl-name-test").unwrap();
         let e = check_name("unique-ctrl-name-test").unwrap_err();
         assert!(e.to_string().starts_with("controller with name unique-ctrl-name-test already exists."));
+    }
+}
+
+#[cfg(test)]
+mod log_constructor_tests {
+    use super::*;
+    use ctrlrt::log::CaptureSink;
+
+    #[test]
+    fn omits_gvk_keys_without_for() {
+        let sink = Arc::new(CaptureSink::default());
+        let root = Logger::with_sink(sink.clone());
+        LogConstructor::new(&root, "dpuservicetemplate", None)
+            .for_request(&Request::new("", "ns1"))
+            .info("x", kv![]);
+        LogConstructor::new(&root, "dpfhcpprovisioner", Some(("provisioning.dpu.hcp.io", "DPFHCPProvisioner")))
+            .for_request(&Request::new("ns", "n"))
+            .info("y", kv![]);
+        let recs = sink.records.lock().unwrap();
+        let keys = |i: usize| recs[i].2.iter().map(|(k, _)| k.clone()).collect::<Vec<_>>();
+        assert_eq!(keys(0), vec!["controller", "namespace", "name"]);
+        assert_eq!(
+            keys(1),
+            vec!["controller", "controllerGroup", "controllerKind", "DPFHCPProvisioner", "namespace", "name"]
+        );
     }
 }

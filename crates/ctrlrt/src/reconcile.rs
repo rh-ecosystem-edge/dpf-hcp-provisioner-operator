@@ -361,8 +361,9 @@ pub struct WatchSpec {
 #[derive(Clone)]
 pub struct ControllerSpec {
     pub name: String,
-    /// GVK of the `For()` type (used for logging keys like the Go controller does).
-    pub for_resource: ResourceInfo,
+    /// GVK of the `For()` type (used for logging keys like the Go controller does); `None` for
+    /// controllers built with `Named()` and `Watches()` only (Go's `hasGVK == false`).
+    pub for_resource: Option<ResourceInfo>,
     pub watches: Vec<WatchSpec>,
     pub max_concurrent_reconciles: usize,
     pub reconciler: Arc<dyn Reconciler>,
@@ -575,14 +576,15 @@ impl Builder {
     }
 
     /// `.Complete(r)` — produce the spec. The default name is the lower-cased kind of the
-    /// `For()` type (controller-runtime behaviour).
+    /// `For()` type; without `For()` a `Named()` call is required (controller-runtime
+    /// `getControllerName`).
     pub fn build(self, reconciler: Arc<dyn Reconciler>) -> Result<ControllerSpec> {
-        let for_resource = self
-            .for_resource
-            .ok_or_else(|| anyhow::anyhow!("must provide an object for reconciliation"))?;
-        let name = self
-            .name
-            .unwrap_or_else(|| for_resource.kind.to_lowercase());
+        let for_resource = self.for_resource;
+        let name = match (self.name, &for_resource) {
+            (Some(n), _) if !n.is_empty() => n,
+            (_, Some(f)) => f.kind.to_lowercase(),
+            _ => return Err(anyhow::anyhow!("one of For() or Named() must be called")),
+        };
         Ok(ControllerSpec {
             name,
             for_resource,

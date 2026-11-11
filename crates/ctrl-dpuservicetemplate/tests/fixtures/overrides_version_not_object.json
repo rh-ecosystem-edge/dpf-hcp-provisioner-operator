@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "determining DPUServiceTemplate values: applying overrides from configmap: json: cannot unmarshal string into Go value of type dpfdefaults.DPUServiceTemplateValues",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

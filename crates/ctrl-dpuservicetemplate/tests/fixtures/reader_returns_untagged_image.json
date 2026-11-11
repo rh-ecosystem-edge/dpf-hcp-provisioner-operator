@@ -1,0 +1,16 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "ensuring OVN template: resolving OVN kubernetes image: image reference \"quay.io/no/tag\" has no tag or digest",
+      "readerCalls": [
+        "REGISTRY/ocp/release:4.19.0-ec.5-aarch64 ovn-kubernetes"
+      ]
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

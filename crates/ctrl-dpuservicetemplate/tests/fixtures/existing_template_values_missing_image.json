@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "ensuring OVN template: reading existing OVN template values: existing OVN template has empty image repository or tag",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": "{\"metadata\":{\"name\":\"ovn\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"999\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"},\"annotations\":{\"dpfhcpprovisioner.dpu.hcp.io/source-x86-ovn-image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaa111\"}},\"spec\":{\"deploymentServiceName\":\"ovn\",\"helmChart\":{\"source\":{\"repoURL\":\"oci://example.com\",\"path\":\"\",\"version\":\"1.0.0\",\"chart\":\"old-chart\"},\"values\":{\"dpuManifests\":{\"image\":{\"repository\":\"\",\"tag\":\"t\"}}}}},\"status\":{}}"
+  }
+}

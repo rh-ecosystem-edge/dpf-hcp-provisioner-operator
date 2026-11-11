@@ -1,0 +1,20 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "dpfhcpprovisioners.provisioning.dpu.hcp.io \"test-provisioner\" not found",
+      "events": [
+        "Normal ImageFound BlueField OCP layer image found for OCP version 4.19.0-ec.5: quay.io/test-org/bluefield-os:4.19.0-ec.5"
+      ],
+      "checked": [
+        "quay.io/test-org/bluefield-os:4.19.0-ec.5"
+      ]
+    }
+  ],
+  "objects": {
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"quay.io/openshift-release-dev/ocp-release:4.19.0-ec.5-x86_64\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"True\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"ImageFound\",\"message\":\"BlueField OCP layer image found: quay.io/test-org/bluefield-os:4.19.0-ec.5\"}],\"blueFieldOCPLayerImage\":\"quay.io/test-org/bluefield-os:4.19.0-ec.5\"}}",
+    "provisioner.stored": ""
+  }
+}

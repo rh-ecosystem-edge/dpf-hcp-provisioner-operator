@@ -1,0 +1,16 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "",
+      "readerCalls": [
+        "REGISTRY/ocp/release:4.19.0-aarch64 ovn-kubernetes"
+      ]
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "{\"metadata\":{\"name\":\"doca-telemetry-service\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"1\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"}},\"spec\":{\"deploymentServiceName\":\"doca-telemetry-service\",\"helmChart\":{\"source\":{\"repoURL\":\"https://helm.ngc.nvidia.com/nvidia/doca\",\"path\":\"\",\"version\":\"1.25.5\",\"chart\":\"doca-telemetry\"},\"values\":{\"configMapData\":{\"prometheus\":{\"port\":9189}},\"hostVolumePrefix\":\"/var/lib\",\"imageDTS\":\"nvcr.io/nvidia/doca/doca_telemetry:1.25.5-doca3.4.0\"}},\"resourceRequirements\":{\"cpu\":\"1\",\"memory\":\"1Gi\",\"storage\":\"1Gi\"}},\"status\":{}}",
+    "hbn": "{\"metadata\":{\"name\":\"hbn\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"1\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"}},\"spec\":{\"deploymentServiceName\":\"hbn\",\"helmChart\":{\"source\":{\"repoURL\":\"https://helm.ngc.nvidia.com/nvidia/doca\",\"path\":\"\",\"version\":\"3.4.0\",\"chart\":\"doca-hbn\"},\"values\":{\"image\":{\"repository\":\"nvcr.io/nvidia/doca/doca_hbn\",\"tag\":\"3.4.0-doca3.4.0\"},\"resources\":{\"memory\":\"6Gi\",\"nvidia.com/bf_sf\":3}}}},\"status\":{}}",
+    "ovn": "{\"metadata\":{\"name\":\"ovn\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"999\",\"deletionTimestamp\":\"2025-01-01T00:00:00Z\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"},\"finalizers\":[\"dpu.nvidia.com/dpuservicetemplate\"]},\"spec\":{\"deploymentServiceName\":\"ovn\",\"helmChart\":{\"source\":{\"repoURL\":\"https://stale\",\"path\":\"\",\"version\":\"stale\",\"chart\":\"old-chart\"}}},\"status\":{}}"
+  }
+}

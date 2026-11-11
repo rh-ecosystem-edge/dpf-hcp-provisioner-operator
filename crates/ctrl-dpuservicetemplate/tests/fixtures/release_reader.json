@@ -1,0 +1,323 @@
+[
+  {
+    "name": "found",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:6b2d291c98dc6dcd297d8cd7e823360a05b3a9e5a6f528c90c0634096d5e1a7e",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+yTQWvrMAzHc+6nMD7XqVLcFHJ6h3d55we7jFG8VGlNazuT3dBS8t2HMzJGOyisZWUsv4uTKNJfwvoTblF5FEZZXaEPfgIAsABY7NODMtvkBsSKuZTdCQCnJwBkH54hgUzmc5kwuIX4JXY+KErgaq3T4X4I+3s3MHBXzv2vjVqhIKyQ0Jbor9e45P98Oj3x/2wuYfD/d3AcMcY32i55wfi/ePX/A6EyfBwDqtYPSF47G8PdZqSuRuvXugqpdpMme/vR11jygsVqjPGgVp4X7LF7Y+zIrTIYK2x2zyhqcvsDHzNekTMx6V3/rys3SF0XMd5nvezUIYq5sEb649dqOsuLLMt4247PJFxjRZQhiwH9l2T6AUVvjiU2E1fWopEpCEUhfuj7UGRy6Rr7aTNo6nB51LbtEp9GjLWj9t4bMTAw8Ft4DQAA//9rJQ4/AAwAAA=="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/4.19.0-aarch64",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:6f6582dff4e6b8fcc25dc42a8640abe2c212d26830e3f07db062a31010ea2fae"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjozNDYsImRpZ2VzdCI6InNoYTI1Njo2YjJkMjkxYzk4ZGM2ZGNkMjk3ZDhjZDdlODIzMzYwYTA1YjNhOWU1YTZmNTI4YzkwYzA2MzQwOTZkNWUxYTdlIn1dfQ=="
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:4.19.0-aarch64",
+    "component": "ovn-kubernetes",
+    "result": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:arm64ovn",
+    "error": ""
+  },
+  {
+    "name": "found_dot_slash_name",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:bb7c3012d54585af3c0f7b20d44d14e44da7601283e58a050c27eb2e3957d4f0",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+yTwU7DMAyGd95TWDkvbTp1ReqJAxfOSFwQB9O5WzSSFCermKa+O0pQdxhIIHZAiP4Xt3bsz1acLGd6JvQkDVrdkg8+1wY3JJlaYrIN+dmFUkqpqiyTVUqdW1Utl6fv5C8qdbWagboU/B3tfUCeqYtZ58P9ER3nAGKn7VrUIG7jxd8FJjRiEQPY6Xtir52N4bQXmevI+q1uQ6Zd3hfvB31HjaghVgMQATde1PCQ/gCOwqKhWGG3fyLZsXs9iAWIlp2JSSf+jWt2xKmLGB+zXvZ4iDAXtsTXfovLVVUXRSGGYfEB4XorI4YtBfI/wowDyvFprKnPXdPJvsyURA7RMfaBbKrS9fbTZsh04etRhyElPs4Bhvnw2xsxadKk/6K3AAAA//+5h2p5AAgAAA=="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/4.19.0-aarch64",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:c16254257fc8caf0d9f10371ef93742dda9ec5dbd97d97f52f884dcd75e6b628"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjozMTAsImRpZ2VzdCI6InNoYTI1NjpiYjdjMzAxMmQ1NDU4NWFmM2MwZjdiMjBkNDRkMTRlNDRkYTc2MDEyODNlNThhMDUwYzI3ZWIyZTM5NTdkNGYwIn1dfQ=="
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:4.19.0-aarch64",
+    "component": "kube-proxy",
+    "result": "quay.io/other@sha256:111",
+    "error": ""
+  },
+  {
+    "name": "upper_layer_wins",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:90b2528af158baaa610adea6acfe452484bd4c02232d9d8aae61f3bd42b4fec9",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+zPwQrCMBAE0H6K7Nni1laF/op4iHVaik0qu6mXkn8XC3roRbAHEfIuE5LAMIIORpFa49oa6nXTWtMgFdQQuAqaLMbMvC+KKZl5npxx/j5P99nukG+TFS+v/mxQbyThxV3zcX9iJL2honIkbxql8jiSMxZUUn936XU4Qxw8lNZUS2+fH1/v3YVCOIXw6wlRFEXRFx4BAAD//yCfOYcACAAA"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:fd968a52dd86145976d5537ce5892da16167b5404fd3a04566c5f695656e2285",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+yTwU7DMAyGd95TWDkvmzt1ReqJAxfOSFwQB9O5WzSSFCermKa+O0pRdxhIk9gBIfpf3NqxP1txhF+ZAmtLztQcYlgYSxvWwjULu4rD5GohIhZ53ltEPLdYLJen796frW5ynABej76sfYgkE7yadT7cH9FxCqB2xq1VCeo+Xf1DFCarZilAjXlkCca7FO43Y+4bdmFr6jg3ftFmnwdDw5UqIVUDUJE2QZXw1P8BHJUjy6nCbv/CuhH/flAzULV4m5JO/Dtf7Vj6LlJ8yHrb0yHBfNyy3IYtLVdFmWWZ6rrZF4RvnU4YcRw5/AgzDKiHx7HmduGrRrf5HDVJTI6hDxJb5L513zbDtomXR+26PvF5CtBNu9/eiFGjRv0XfQQAAP//8NSFugAIAAA="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/4.19.0-aarch64",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:9b47f1568c83d53c1bf8e900af3fbef54d7fd3e6ad460f64884796581774d640"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjoxNzEsImRpZ2VzdCI6InNoYTI1Njo5MGIyNTI4YWYxNThiYWFhNjEwYWRlYTZhY2ZlNDUyNDg0YmQ0YzAyMjMyZDlkOGFhZTYxZjNiZDQyYjRmZWM5In0seyJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLmxheWVyLnYxLnRhcitnemlwIiwic2l6ZSI6MzA4LCJkaWdlc3QiOiJzaGEyNTY6ZmQ5NjhhNTJkZDg2MTQ1OTc2ZDU1MzdjZTU4OTJkYTE2MTY3YjU0MDRmZDNhMDQ1NjZjNWY2OTU2NTZlMjI4NSJ9XX0="
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:4.19.0-aarch64",
+    "component": "ovn-kubernetes",
+    "result": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:arm64ovn",
+    "error": ""
+  },
+  {
+    "name": "component_missing",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:fd968a52dd86145976d5537ce5892da16167b5404fd3a04566c5f695656e2285",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+yTwU7DMAyGd95TWDkvmzt1ReqJAxfOSFwQB9O5WzSSFCermKa+O0pRdxhIk9gBIfpf3NqxP1txhF+ZAmtLztQcYlgYSxvWwjULu4rD5GohIhZ53ltEPLdYLJen796frW5ynABej76sfYgkE7yadT7cH9FxCqB2xq1VCeo+Xf1DFCarZilAjXlkCca7FO43Y+4bdmFr6jg3ftFmnwdDw5UqIVUDUJE2QZXw1P8BHJUjy6nCbv/CuhH/flAzULV4m5JO/Dtf7Vj6LlJ8yHrb0yHBfNyy3IYtLVdFmWWZ6rrZF4RvnU4YcRw5/AgzDKiHx7HmduGrRrf5HDVJTI6hDxJb5L513zbDtomXR+26PvF5CtBNu9/eiFGjRv0XfQQAAP//8NSFugAIAAA="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:30609877645bd6ae8a482fd9c182ffa1ba5323da2780cdb57b5a150c8edcb6eb"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjozMDgsImRpZ2VzdCI6InNoYTI1NjpmZDk2OGE1MmRkODYxNDU5NzZkNTUzN2NlNTg5MmRhMTYxNjdiNTQwNGZkM2EwNDU2NmM1ZjY5NTY1NmUyMjg1In1dfQ=="
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:v1",
+    "component": "pause",
+    "result": "",
+    "error": "extracting pause from release image \"REGISTRY/ocp/release:v1\": component \"pause\" not found in release-manifests/image-references"
+  },
+  {
+    "name": "component_empty",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:fd968a52dd86145976d5537ce5892da16167b5404fd3a04566c5f695656e2285",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+yTwU7DMAyGd95TWDkvmzt1ReqJAxfOSFwQB9O5WzSSFCermKa+O0pRdxhIk9gBIfpf3NqxP1txhF+ZAmtLztQcYlgYSxvWwjULu4rD5GohIhZ53ltEPLdYLJen796frW5ynABej76sfYgkE7yadT7cH9FxCqB2xq1VCeo+Xf1DFCarZilAjXlkCca7FO43Y+4bdmFr6jg3ftFmnwdDw5UqIVUDUJE2QZXw1P8BHJUjy6nCbv/CuhH/flAzULV4m5JO/Dtf7Vj6LlJ8yHrb0yHBfNyy3IYtLVdFmWWZ6rrZF4RvnU4YcRw5/AgzDKiHx7HmduGrRrf5HDVJTI6hDxJb5L513zbDtomXR+26PvF5CtBNu9/eiFGjRv0XfQQAAP//8NSFugAIAAA="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:30609877645bd6ae8a482fd9c182ffa1ba5323da2780cdb57b5a150c8edcb6eb"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjozMDgsImRpZ2VzdCI6InNoYTI1NjpmZDk2OGE1MmRkODYxNDU5NzZkNTUzN2NlNTg5MmRhMTYxNjdiNTQwNGZkM2EwNDU2NmM1ZjY5NTY1NmUyMjg1In1dfQ=="
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:v1",
+    "component": "empty",
+    "result": "",
+    "error": "extracting empty from release image \"REGISTRY/ocp/release:v1\": component \"empty\" has empty image reference"
+  },
+  {
+    "name": "file_missing",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:e4ac82d88029cc9068d4cfb3b9890ebd7b8d7af1e8e296e143b12e0c03646ef3",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/8ovyUgtYqAtMDAwMDAzMQHTBgYG6LSBgYEhEtuAwcDQwMjEgEHBgMbuAoPS4pLEIgYDiu1C99wQARUD7YBRMApGwSgYBQMCAAEAAP//JmIlSgAIAAA="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:8a891f50719aba2ffa1fd712a101b149b99f09151e97a376a2439f7b62199e49"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjo5NSwiZGlnZXN0Ijoic2hhMjU2OmU0YWM4MmQ4ODAyOWNjOTA2OGQ0Y2ZiM2I5ODkwZWJkN2I4ZDdhZjFlOGUyOTZlMTQzYjEyZTBjMDM2NDZlZjMifV19"
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:v1",
+    "component": "ovn-kubernetes",
+    "result": "",
+    "error": "extracting ovn-kubernetes from release image \"REGISTRY/ocp/release:v1\": file release-manifests/image-references not found in release image"
+  },
+  {
+    "name": "malformed_json",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:81504cd1ee5eaf8f5136ccbdcde442eeaf42116c62a04eaa094a089e14637c0b",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+zPMQvCQAwF4Pspx+3Fp1cV+lecQnktBVskOaf+edFF6OJwoAj5lheyvER5pRibWZZpoBXbTbOMbJQDlUtPC9UA4NS2rwSwTeCQ3/Nzvz+ecw4R9dWf3a2IBlR3bZ/7E2uyG/vUxTUVGS118fLrk5xzzn3BIwAA//8Sj+IaAAgAAA=="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:fda537faf3db99f0fddff4bd39e52c5408056b4c28d1d10d55f78398d886a27b"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjoxMzksImRpZ2VzdCI6InNoYTI1Njo4MTUwNGNkMWVlNWVhZjhmNTEzNmNjYmRjZGU0NDJlZWFmNDIxMTZjNjJhMDRlYWEwOTRhMDg5ZTE0NjM3YzBiIn1dfQ=="
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:v1",
+    "component": "ovn-kubernetes",
+    "result": "",
+    "error": "extracting ovn-kubernetes from release image \"REGISTRY/ocp/release:v1\": parsing release-manifests/image-references: unexpected end of JSON input"
+  },
+  {
+    "name": "wrong_json_type",
+    "rules": [
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:051a3b51a8f3867fc3f309996182b1520af6a09a73faa14cc8abc1c32636e74d",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6e319"
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/blobs/sha256:e50abd703bea69e4a355a4217371f7dc3d132d3025316dfbda7b20a6af89c95b",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/octet-stream"
+        },
+        "body": "H4sIAAAAAAAA/+zPwQqCQBAGYB9lmXPSFJrgq0SHTX5FateYWSMQ3z3sEngJ2kME+13+ZefwzwiusIrcWd+30KDb3tkOuaCFwDfQLBoz86EoXsnM62Suyvd7+d+VVbHPDMdXfzZqsJJxdNf6uD8xkd7QUG0mCrZTqs1xIm8dqDY03H1+Gc8QjwCljaFWBrdMHjSf5vnXyydJkiRfewYAAP//qbhnFAAIAAA="
+      },
+      {
+        "method": "",
+        "path": "/v2/ocp/release/manifests/v1",
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+          "Docker-Content-Digest": "sha256:276dcc0e9d5aec70e7bf0d9fb2526ee493b5306921dcbed814f048c4a205373b"
+        },
+        "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjkwLCJkaWdlc3QiOiJzaGEyNTY6MDUxYTNiNTFhOGYzODY3ZmMzZjMwOTk5NjE4MmIxNTIwYWY2YTA5YTczZmFhMTRjYzhhYmMxYzMyNjM2ZTc0ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5vY2kuaW1hZ2UubGF5ZXIudjEudGFyK2d6aXAiLCJzaXplIjoxNzAsImRpZ2VzdCI6InNoYTI1NjplNTBhYmQ3MDNiZWE2OWU0YTM1NWE0MjE3MzcxZjdkYzNkMTMyZDMwMjUzMTZkZmJkYTdiMjBhNmFmODljOTViIn1dfQ=="
+      }
+    ],
+    "ref": "REGISTRY/ocp/release:v1",
+    "component": "ovn-kubernetes",
+    "result": "",
+    "error": "extracting ovn-kubernetes from release image \"REGISTRY/ocp/release:v1\": parsing release-manifests/image-references: json: cannot unmarshal string into Go struct field .spec.tags.from of type struct { Name string \"json:\\\"name\\\"\" }"
+  },
+  {
+    "name": "manifest_not_found",
+    "rules": [],
+    "ref": "REGISTRY/ocp/release:v1",
+    "component": "ovn-kubernetes",
+    "result": "",
+    "error": "pulling release image \"REGISTRY/ocp/release:v1\": GET http://REGISTRY/v2/ocp/release/manifests/v1: unexpected status code 404 Not Found"
+  },
+  {
+    "name": "bad_reference",
+    "rules": [],
+    "ref": "REGISTRY/ocp/Release:v1",
+    "component": "ovn-kubernetes",
+    "result": "",
+    "error": "parsing release image ref \"REGISTRY/ocp/Release:v1\": could not parse reference: REGISTRY/ocp/Release:v1"
+  }
+]

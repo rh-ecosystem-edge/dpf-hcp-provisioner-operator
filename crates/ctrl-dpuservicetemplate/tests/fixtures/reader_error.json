@@ -1,0 +1,16 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "ensuring OVN template: resolving OVN kubernetes image: resolving aarch64 OVN image from release \"REGISTRY/ocp/release:4.19.0-ec.5-aarch64\": unable to pull release image",
+      "readerCalls": [
+        "REGISTRY/ocp/release:4.19.0-ec.5-aarch64 ovn-kubernetes"
+      ]
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

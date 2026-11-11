@@ -1,0 +1,38 @@
+{
+  "rules": [
+    {
+      "method": "",
+      "path": "/v2/ocp/release/blobs/sha256:da686bd8f0a6cc2d83bed1871fa9253a58c6ffd6093fdf54432efca9f29baf9b",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/octet-stream"
+      },
+      "body": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6eyJMYWJlbHMiOnsib3RoZXIiOiJ4In19fQ=="
+    },
+    {
+      "method": "",
+      "path": "/v2/ocp/release/manifests/sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+        "Docker-Content-Digest": "sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82"
+      },
+      "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjExMiwiZGlnZXN0Ijoic2hhMjU2OmRhNjg2YmQ4ZjBhNmNjMmQ4M2JlZDE4NzFmYTkyNTNhNThjNmZmZDYwOTNmZGY1NDQzMmVmY2E5ZjI5YmFmOWIifSwibGF5ZXJzIjpbXX0="
+    }
+  ],
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Warning InvalidImageFormat Invalid ocpReleaseImage format: image REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82 does not have label io.openshift.release (URL: REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82)"
+      ],
+      "checked": []
+    }
+  ],
+  "objects": {
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InvalidImageFormat\",\"message\":\"Invalid ocpReleaseImage format: image REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82 does not have label io.openshift.release (URL: REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82)\"}]}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InvalidImageFormat\",\"message\":\"Invalid ocpReleaseImage format: image REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82 does not have label io.openshift.release (URL: REGISTRY/ocp/release@sha256:56bf1ba8107d4124aba3784212b49c1dccad31e5e1e2bd8575f7eee07854bc82)\"}]}}"
+  }
+}

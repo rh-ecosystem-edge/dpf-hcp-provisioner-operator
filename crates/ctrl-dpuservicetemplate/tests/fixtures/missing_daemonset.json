@@ -1,0 +1,14 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "ensuring OVN template: reading OVN DaemonSet: getting DaemonSet openshift-ovn-kubernetes/ovnkube-node-dpu-host: daemonsets.apps \"ovnkube-node-dpu-host\" not found",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "",
+    "hbn": "",
+    "ovn": ""
+  }
+}

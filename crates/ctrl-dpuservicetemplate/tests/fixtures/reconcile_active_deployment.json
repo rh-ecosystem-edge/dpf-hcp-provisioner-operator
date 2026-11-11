@@ -1,0 +1,16 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "",
+      "readerCalls": [
+        "REGISTRY/ocp/release:4.19.0-aarch64 ovn-kubernetes"
+      ]
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "{\"metadata\":{\"name\":\"doca-telemetry-service\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"1\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"}},\"spec\":{\"deploymentServiceName\":\"doca-telemetry-service\",\"helmChart\":{\"source\":{\"repoURL\":\"https://helm.ngc.nvidia.com/nvidia/doca\",\"path\":\"\",\"version\":\"1.25.5\",\"chart\":\"doca-telemetry\"},\"values\":{\"configMapData\":{\"prometheus\":{\"port\":9189}},\"hostVolumePrefix\":\"/var/lib\",\"imageDTS\":\"nvcr.io/nvidia/doca/doca_telemetry:1.25.5-doca3.4.0\",\"imagePullSecrets\":[{\"name\":\"cfg-pull-secret\"}]}},\"resourceRequirements\":{\"cpu\":\"1\",\"memory\":\"1Gi\",\"storage\":\"1Gi\"}},\"status\":{}}",
+    "hbn": "{\"metadata\":{\"name\":\"hbn\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"1\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"}},\"spec\":{\"deploymentServiceName\":\"hbn\",\"helmChart\":{\"source\":{\"repoURL\":\"https://helm.ngc.nvidia.com/nvidia/doca\",\"path\":\"\",\"version\":\"3.4.0\",\"chart\":\"doca-hbn\"},\"values\":{\"image\":{\"repository\":\"nvcr.io/nvidia/doca/doca_hbn\",\"tag\":\"3.4.0-doca3.4.0\"},\"imagePullSecrets\":[{\"name\":\"cfg-pull-secret\"}],\"resources\":{\"memory\":\"6Gi\",\"nvidia.com/bf_sf\":3}}}},\"status\":{}}",
+    "ovn": "{\"metadata\":{\"name\":\"ovn\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"1\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"},\"annotations\":{\"dpfhcpprovisioner.dpu.hcp.io/source-x86-ovn-image\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:aaa111\"}},\"spec\":{\"deploymentServiceName\":\"ovn\",\"helmChart\":{\"source\":{\"repoURL\":\"oci://ghcr.io/mellanox/charts\",\"path\":\"\",\"version\":\"v26.4.1-ocp-release-v4.22\",\"chart\":\"ovn-kubernetes-chart\"},\"values\":{\"commonManifests\":{\"enabled\":true},\"dpuManifests\":{\"cniBinDir\":\"/var/lib/cni/bin/\",\"cniConfDir\":\"/run/multus/cni/net.d\",\"enabled\":true,\"image\":{\"repository\":\"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256\",\"tag\":\"bbb222\"}},\"gatewayOpts\":\"--gateway-interface=br-dpu\",\"leaseNamespace\":\"openshift-ovn-kubernetes\",\"ovnDaemonsetVersion\":\"1.3.0\"}}},\"status\":{}}"
+  }
+}

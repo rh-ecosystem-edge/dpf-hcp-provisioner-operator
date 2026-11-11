@@ -1,0 +1,38 @@
+{
+  "rules": [
+    {
+      "method": "",
+      "path": "/v2/ocp/release/blobs/sha256:d195f9d395c236f1d026d1fde44a243c5f18bafe07f4bb00d4fe465ae4cf317e",
+      "status": 404,
+      "headers": {
+        "Content-Type": "application/octet-stream"
+      },
+      "body": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbXX0sImNvbmZpZyI6eyJMYWJlbHMiOnsiaW8ub3BlbnNoaWZ0LnJlbGVhc2UiOiI0LjIwLjEifX19"
+    },
+    {
+      "method": "",
+      "path": "/v2/ocp/release/manifests/sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/vnd.oci.image.manifest.v1+json",
+        "Docker-Content-Digest": "sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24"
+      },
+      "body": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJjb25maWciOnsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsInNpemUiOjEzMiwiZGlnZXN0Ijoic2hhMjU2OmQxOTVmOWQzOTVjMjM2ZjFkMDI2ZDFmZGU0NGEyNDNjNWYxOGJhZmUwN2Y0YmIwMGQ0ZmU0NjVhZTRjZjMxN2UifSwibGF5ZXJzIjpbXX0="
+    }
+  ],
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "failed to get config file for REGISTRY/ocp/release@sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24: GET http://REGISTRY/v2/ocp/release/blobs/sha256:d195f9d395c236f1d026d1fde44a243c5f18bafe07f4bb00d4fe465ae4cf317e: unexpected status code 404 Not Found: {\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[]},\"config\":{\"Labels\":{\"io.openshift.release\":\"4.20.1\"}}}",
+      "events": [
+        "Warning RegistryAccessError Transient error accessing registry: failed to get config file for REGISTRY/ocp/release@sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24: GET http://REGISTRY/v2/ocp/release/blobs/sha256:d195f9d395c236f1d026d1fde44a243c5f18bafe07f4bb00d4fe465ae4cf317e: unexpected status code 404 Not Found: {\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[]},\"config\":{\"Labels\":{\"io.openshift.release\":\"4.20.1\"}}}"
+      ],
+      "checked": []
+    }
+  ],
+  "objects": {
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"RegistryAccessError\",\"message\":\"Transient error accessing registry: failed to get config file for REGISTRY/ocp/release@sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24: GET http://REGISTRY/v2/ocp/release/blobs/sha256:d195f9d395c236f1d026d1fde44a243c5f18bafe07f4bb00d4fe465ae4cf317e: unexpected status code 404 Not Found: {\\\"architecture\\\":\\\"amd64\\\",\\\"os\\\":\\\"linux\\\",\\\"rootfs\\\":{\\\"type\\\":\\\"layers\\\",\\\"diff_ids\\\":[]},\\\"config\\\":{\\\"Labels\\\":{\\\"io.openshift.release\\\":\\\"4.20.1\\\"}}}\"}]}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"REGISTRY/ocp/release@sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24\",\"sshKeySecretRef\":{},\"pullSecretRef\":{\"name\":\"pull-secret\"}},\"status\":{\"conditions\":[{\"type\":\"BlueFieldOCPLayerImageFound\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"RegistryAccessError\",\"message\":\"Transient error accessing registry: failed to get config file for REGISTRY/ocp/release@sha256:7d0d77b0fd8297ee91907bf762cb53f83dcb94e935faad39074e7ffab781af24: GET http://REGISTRY/v2/ocp/release/blobs/sha256:d195f9d395c236f1d026d1fde44a243c5f18bafe07f4bb00d4fe465ae4cf317e: unexpected status code 404 Not Found: {\\\"architecture\\\":\\\"amd64\\\",\\\"os\\\":\\\"linux\\\",\\\"rootfs\\\":{\\\"type\\\":\\\"layers\\\",\\\"diff_ids\\\":[]},\\\"config\\\":{\\\"Labels\\\":{\\\"io.openshift.release\\\":\\\"4.20.1\\\"}}}\"}]}}"
+  }
+}

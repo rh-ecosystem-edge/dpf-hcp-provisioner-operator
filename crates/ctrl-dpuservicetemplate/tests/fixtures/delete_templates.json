@@ -1,0 +1,18 @@
+{
+  "rules": [],
+  "steps": [
+    {
+      "error": "",
+      "readerCalls": []
+    },
+    {
+      "error": "",
+      "readerCalls": []
+    }
+  ],
+  "objects": {
+    "doca-telemetry-service": "{\"metadata\":{\"name\":\"doca-telemetry-service\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"1001\",\"deletionTimestamp\":\"2025-01-01T00:00:00Z\",\"labels\":{\"dpfhcpprovisioner.dpu.hcp.io/managed\":\"true\"},\"finalizers\":[\"dpu.nvidia.com/dpuservicetemplate\"]},\"spec\":{\"deploymentServiceName\":\"doca-telemetry-service\",\"helmChart\":{\"source\":{\"repoURL\":\"oci://x\",\"path\":\"\",\"version\":\"1\",\"chart\":\"old-chart\"}}},\"status\":{}}",
+    "hbn": "{\"metadata\":{\"name\":\"hbn\",\"namespace\":\"dpf-operator-system\",\"resourceVersion\":\"999\",\"labels\":{\"owner\":\"user\"}},\"spec\":{\"deploymentServiceName\":\"hbn\",\"helmChart\":{\"source\":{\"repoURL\":\"oci://x\",\"path\":\"\",\"version\":\"1\",\"chart\":\"old-chart\"}}},\"status\":{}}",
+    "ovn": ""
+  }
+}
