@@ -444,6 +444,108 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctrl-dpucluster"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "futures",
+ "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ctrl-finalizer"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "futures",
+ "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ctrl-hostedcluster"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "futures",
+ "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ctrl-kubeconfiginjection"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "futures",
+ "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ctrl-metallb"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "futures",
+ "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ctrl-secrets"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "apis",
+ "async-trait",
+ "common",
+ "ctrlrt",
+ "ctrlrt-fake",
+ "futures",
+ "k8s-openapi",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "ctrlrt"
 version = "0.0.1"
 dependencies = [
@@ -744,16 +846,6 @@ name = "fastrand"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
-
-[[package]]
-name = "filetime"
-version = "0.2.29"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c287a33c7f0a620c38e641e7f60827713987b3c0f26e8ddc9462cc69cf75759"
-dependencies = [
- "cfg-if",
- "libc",
-]
 
 [[package]]
 name = "find-msvc-tools"
@@ -2137,7 +2229,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
- "tar",
  "tokio",
  "tokio-util",
  "url",
@@ -2629,16 +2720,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.10",
-]
-
-[[package]]
-name = "tar"
-version = "0.4.46"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840"
-dependencies = [
- "filetime",
- "libc",
 ]
 
 [[package]]

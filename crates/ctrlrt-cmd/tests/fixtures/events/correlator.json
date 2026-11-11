@@ -1,0 +1,2265 @@
+[
+  {
+    "step": {
+      "at": 0,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Created",
+      "message": "created thing",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc988c390715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Created",
+      "message": "created thing",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:09Z",
+      "lastTimestamp": "2024-03-05T07:08:09Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Created",
+      "message": "created thing",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc988c390715",
+        "namespace": "ns",
+        "resourceVersion": "101"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Created",
+      "message": "created thing",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:09Z",
+      "lastTimestamp": "2024-03-05T07:08:10Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "patch": "{\"count\":2,\"lastTimestamp\":\"2024-03-05T07:08:10Z\",\"message\":\"created thing\"}",
+    "action": "patch"
+  },
+  {
+    "step": {
+      "at": 2.5,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Created",
+      "message": "created thing",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc988c390715",
+        "namespace": "ns",
+        "resourceVersion": "102"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Created",
+      "message": "created thing",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:09Z",
+      "lastTimestamp": "2024-03-05T07:08:11Z",
+      "count": 3,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "patch": "{\"count\":3,\"lastTimestamp\":\"2024-03-05T07:08:11Z\",\"message\":\"created thing\"}",
+    "action": "patch"
+  },
+  {
+    "step": {
+      "at": 4,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 1",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc997aa42f15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 1",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:13Z",
+      "lastTimestamp": "2024-03-05T07:08:13Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 5,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 2",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc99b63ef915",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 2",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:14Z",
+      "lastTimestamp": "2024-03-05T07:08:14Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 6,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 3",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc99f1d9c315",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 3",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:15Z",
+      "lastTimestamp": "2024-03-05T07:08:15Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 7,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 4",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9a2d748d15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 4",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:16Z",
+      "lastTimestamp": "2024-03-05T07:08:16Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 8,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 5",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9a690f5715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 5",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:17Z",
+      "lastTimestamp": "2024-03-05T07:08:17Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 9,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 6",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9aa4aa2115",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 6",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:18Z",
+      "lastTimestamp": "2024-03-05T07:08:18Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 10,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 7",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9ae044eb15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 7",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:19Z",
+      "lastTimestamp": "2024-03-05T07:08:19Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 11,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 8",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9b1bdfb515",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 8",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:20Z",
+      "lastTimestamp": "2024-03-05T07:08:20Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 12,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 9",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9b577a7f15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "sync message 9",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:21Z",
+      "lastTimestamp": "2024-03-05T07:08:21Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 13,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 10",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9b93154915",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "(combined from similar events): sync message 10",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:22Z",
+      "lastTimestamp": "2024-03-05T07:08:22Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 20,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 11",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9b93154915",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "(combined from similar events): sync message 11",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:22Z",
+      "lastTimestamp": "2024-03-05T07:08:29Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    "patch": "{\"count\":2,\"lastTimestamp\":\"2024-03-05T07:08:29Z\",\"message\":\"(combined from similar events): sync message 11\"}",
+    "action": "patch"
+  },
+  {
+    "step": {
+      "at": 21,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p1",
+      "uid": "uid-p1",
+      "type": "Normal",
+      "reason": "Sync",
+      "message": "sync message 12",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p1.17b9cc9b93154915",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p1",
+        "uid": "uid-p1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Sync",
+      "message": "(combined from similar events): sync message 12",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:08:22Z",
+      "lastTimestamp": "2024-03-05T07:08:30Z",
+      "count": 3,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    "patch": "{\"count\":3,\"lastTimestamp\":\"2024-03-05T07:08:30Z\",\"message\":\"(combined from similar events): sync message 12\"}",
+    "action": "patch"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R1",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R1",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R2",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R2",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R3",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R3",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R4",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R4",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R5",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R5",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R6",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R6",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R7",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R7",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R8",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R8",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R9",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R9",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R10",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R10",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R11",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R11",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R12",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R12",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R13",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R13",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R14",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R14",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R15",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R15",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R16",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R16",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R17",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R17",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R18",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R18",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R19",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R19",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R20",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R20",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R21",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R21",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R22",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R22",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R23",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R23",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R24",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R24",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R25",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccafd4afef15",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "R25",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:09:49Z",
+      "lastTimestamp": "2024-03-05T07:09:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R26",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": true
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R27",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": true
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R28",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": true
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R29",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": true
+  },
+  {
+    "step": {
+      "at": 100,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "R30",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": true
+  },
+  {
+    "step": {
+      "at": 401,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "Late",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p2.17b9ccf5e9af7115",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p2",
+        "uid": "uid-p2",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Late",
+      "message": "spam",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:14:50Z",
+      "lastTimestamp": "2024-03-05T07:14:50Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 401,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p2",
+      "uid": "uid-p2",
+      "type": "Normal",
+      "reason": "Late2",
+      "message": "spam",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": true
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 1",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 1",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 2",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 2",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 3",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 3",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 4",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 4",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 5",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 5",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 6",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 6",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 7",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 7",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 8",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 8",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1000,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 9",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9cd8160de1715",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 9",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:24:49Z",
+      "lastTimestamp": "2024-03-05T07:24:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 1601,
+      "kind": "DPFHCPProvisioner",
+      "namespace": "ns",
+      "name": "p3",
+      "uid": "uid-p3",
+      "type": "Normal",
+      "reason": "Agg",
+      "message": "agg 10",
+      "component": "dpfhcpprovisioner-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "p3.17b9ce0d4f425115",
+        "namespace": "ns"
+      },
+      "involvedObject": {
+        "kind": "DPFHCPProvisioner",
+        "namespace": "ns",
+        "name": "p3",
+        "uid": "uid-p3",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Agg",
+      "message": "agg 10",
+      "source": {
+        "component": "dpfhcpprovisioner-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:34:50Z",
+      "lastTimestamp": "2024-03-05T07:34:50Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "dpfhcpprovisioner-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 2000,
+      "kind": "Node",
+      "namespace": "",
+      "name": "node-1",
+      "uid": "n1",
+      "type": "Warning",
+      "reason": "Bad",
+      "message": "bad node",
+      "component": "csr-approval-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "node-1.17b9ce6a35832715",
+        "namespace": "default"
+      },
+      "involvedObject": {
+        "kind": "Node",
+        "name": "node-1",
+        "uid": "n1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Bad",
+      "message": "bad node",
+      "source": {
+        "component": "csr-approval-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:41:29Z",
+      "lastTimestamp": "2024-03-05T07:41:29Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "csr-approval-controller",
+      "reportingInstance": ""
+    },
+    "action": "create"
+  },
+  {
+    "step": {
+      "at": 2001,
+      "kind": "Node",
+      "namespace": "",
+      "name": "node-1",
+      "uid": "n1",
+      "type": "Warning",
+      "reason": "Bad",
+      "message": "bad node",
+      "component": "csr-approval-controller"
+    },
+    "skip": false,
+    "event": {
+      "metadata": {
+        "name": "node-1.17b9ce6a35832715",
+        "namespace": "default",
+        "resourceVersion": "152"
+      },
+      "involvedObject": {
+        "kind": "Node",
+        "name": "node-1",
+        "uid": "n1",
+        "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+        "resourceVersion": "7"
+      },
+      "reason": "Bad",
+      "message": "bad node",
+      "source": {
+        "component": "csr-approval-controller"
+      },
+      "firstTimestamp": "2024-03-05T07:41:29Z",
+      "lastTimestamp": "2024-03-05T07:41:30Z",
+      "count": 2,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "csr-approval-controller",
+      "reportingInstance": ""
+    },
+    "patch": "{\"count\":2,\"lastTimestamp\":\"2024-03-05T07:41:30Z\",\"message\":\"bad node\"}",
+    "action": "patch"
+  }
+]

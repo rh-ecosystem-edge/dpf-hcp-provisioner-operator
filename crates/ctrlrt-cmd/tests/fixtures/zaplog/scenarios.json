@@ -1,0 +1,5683 @@
+[
+  {
+    "name": "dev-default",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-default.out"
+  },
+  {
+    "name": "dev-tz",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 9000,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-tz.out"
+  },
+  {
+    "name": "dev-negtz",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=iso8601"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": -18000,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-negtz.out"
+  },
+  {
+    "name": "dev-level-info",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-log-level=info"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-level-info.out"
+  },
+  {
+    "name": "dev-level-3",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-log-level=3"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-level-3.out"
+  },
+  {
+    "name": "dev-level-error",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-log-level=error"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-level-error.out"
+  },
+  {
+    "name": "dev-level-panic",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-log-level=PANIC"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-level-panic.out"
+  },
+  {
+    "name": "dev-json",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-encoder=json"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-json.out"
+  },
+  {
+    "name": "prod-default",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-default.out"
+  },
+  {
+    "name": "prod-devel-flag",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-devel=false"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-devel-flag.out"
+  },
+  {
+    "name": "prod-console",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-encoder=console"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-console.out"
+  },
+  {
+    "name": "prod-level-2",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-log-level=2"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-level-2.out"
+  },
+  {
+    "name": "dev-time-epoch",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=epoch"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-time-epoch.out"
+  },
+  {
+    "name": "prod-time-epoch",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=epoch"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-time-epoch.out"
+  },
+  {
+    "name": "dev-time-millis",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=millis"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-time-millis.out"
+  },
+  {
+    "name": "prod-time-millis",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=millis"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-time-millis.out"
+  },
+  {
+    "name": "dev-time-nanos",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=nanos"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-time-nanos.out"
+  },
+  {
+    "name": "prod-time-nanos",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=nanos"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-time-nanos.out"
+  },
+  {
+    "name": "dev-time-iso8601",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=iso8601"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-time-iso8601.out"
+  },
+  {
+    "name": "prod-time-iso8601",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=iso8601"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-time-iso8601.out"
+  },
+  {
+    "name": "dev-time-rfc3339",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=rfc3339"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-time-rfc3339.out"
+  },
+  {
+    "name": "prod-time-rfc3339",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=rfc3339"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-time-rfc3339.out"
+  },
+  {
+    "name": "dev-time-rfc3339nano",
+    "development": true,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=rfc3339nano"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "dev-time-rfc3339nano.out"
+  },
+  {
+    "name": "prod-time-rfc3339nano",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-time-encoding=rfc3339nano"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "starting manager"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "disabling http/2"
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "info",
+        "msg": "Initializing metrics certificate watcher using provided certificates",
+        "kvs": [
+          "metrics-cert-path",
+          "/tmp/certs",
+          "metrics-cert-name",
+          "tls.crt",
+          "metrics-cert-key",
+          "tls.key"
+        ]
+      },
+      {
+        "names": [
+          "controller-runtime",
+          "metrics"
+        ],
+        "kind": "info",
+        "msg": "Serving metrics server",
+        "kvs": [
+          "bindAddress",
+          ":8443",
+          "secure",
+          true
+        ]
+      },
+      {
+        "names": [
+          "a",
+          "b"
+        ],
+        "values": [
+          "controller",
+          "dpfhcpprovisioner",
+          "reconcileID",
+          "abc-123"
+        ],
+        "kind": "info",
+        "msg": "Reconciling",
+        "kvs": [
+          "DPFHCPProvisioner",
+          {
+            "$kref": [
+              "ns1",
+              "name1"
+            ]
+          },
+          "namespace",
+          "ns1",
+          "name",
+          "name1"
+        ]
+      },
+      {
+        "names": [
+          "events"
+        ],
+        "kind": "info",
+        "v": 1,
+        "msg": "Created HostedCluster",
+        "kvs": [
+          "type",
+          "Normal",
+          "object",
+          {
+            "$objref": {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "p1",
+              "namespace": "ns",
+              "resourceVersion": "42",
+              "uid": "1234-5678"
+            }
+          },
+          "reason",
+          "HostedClusterCreated"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 1,
+        "msg": "v1 line",
+        "kvs": [
+          "int",
+          42,
+          "neg",
+          -7,
+          "float",
+          1.5,
+          "float2",
+          100,
+          "big",
+          1e+21,
+          "small",
+          1e-7,
+          "nil",
+          null,
+          "bool",
+          false
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 2,
+        "msg": "v2 line",
+        "kvs": [
+          "k",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "v": 3,
+        "msg": "v3 line"
+      },
+      {
+        "kind": "info",
+        "msg": "special \"chars\"\n\ttab",
+        "kvs": [
+          "str",
+          "quote\" backslash\\ nl\n cr\r tab\t bell\u0007 del \u003c\u003e\u0026 \u2028 ünïcödé 日本",
+          "k\"ey",
+          "v"
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "nested",
+        "kvs": [
+          "map",
+          {
+            "a": "x\u2028\u003c\u003e\u0026\b\f",
+            "b": 1,
+            "c": [
+              1,
+              "two",
+              3.5,
+              null,
+              true,
+              {
+                "x": 0.1,
+                "y": 1e+21,
+                "z": 1e-7
+              }
+            ]
+          },
+          "list",
+          [
+            "a",
+            "b"
+          ],
+          "empty",
+          {},
+          "emptyList",
+          []
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": "error as value",
+        "kvs": [
+          "err",
+          {
+            "$err": "boom"
+          }
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "kind": "error",
+        "msg": "unable to start manager",
+        "err": "failed to get restconfig: no configuration has been provided"
+      },
+      {
+        "kind": "error",
+        "msg": "nil error",
+        "kvs": [
+          "controller",
+          "CSRApproval"
+        ]
+      },
+      {
+        "names": [
+          "setup"
+        ],
+        "values": [
+          "wv",
+          1
+        ],
+        "kind": "error",
+        "msg": "to initialize metrics certificate watcher",
+        "err": "open /x/tls.crt: no such file or directory",
+        "kvs": [
+          "error",
+          {
+            "$err": "open /x/tls.crt: no such file or directory"
+          }
+        ]
+      },
+      {
+        "kind": "info",
+        "msg": ""
+      }
+    ],
+    "outputFile": "prod-time-rfc3339nano.out"
+  },
+  {
+    "name": "prod-kube-object",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "object",
+        "kvs": [
+          "pod",
+          {
+            "$pod": [
+              "ns",
+              "p"
+            ]
+          }
+        ]
+      }
+    ],
+    "outputFile": "prod-kube-object.out"
+  },
+  {
+    "name": "prod-kube-object-console",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic",
+      "--zap-encoder=console"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "object",
+        "kvs": [
+          "pod",
+          {
+            "$pod": [
+              "ns",
+              "p"
+            ]
+          }
+        ]
+      }
+    ],
+    "outputFile": "prod-kube-object-console.out"
+  },
+  {
+    "name": "prod-sampling",
+    "development": false,
+    "flags": [
+      "--zap-stacktrace-level=panic"
+    ],
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "repeated",
+        "repeat": 250
+      },
+      {
+        "kind": "error",
+        "msg": "repeated error",
+        "err": "e",
+        "repeat": 101
+      },
+      {
+        "kind": "info",
+        "msg": "other"
+      }
+    ],
+    "outputFile": "prod-sampling.out"
+  },
+  {
+    "name": "dev-stacktrace",
+    "development": true,
+    "flags": null,
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "no stack"
+      },
+      {
+        "kind": "error",
+        "msg": "with stack",
+        "err": "boom"
+      }
+    ],
+    "outputFile": "dev-stacktrace.out"
+  },
+  {
+    "name": "prod-stacktrace",
+    "development": false,
+    "flags": null,
+    "time": "2024-03-05T07:08:09.123456789Z",
+    "tzOffset": 0,
+    "ops": [
+      {
+        "kind": "info",
+        "msg": "no stack"
+      },
+      {
+        "kind": "error",
+        "msg": "with stack",
+        "err": "boom"
+      }
+    ],
+    "outputFile": "prod-stacktrace.out"
+  }
+]

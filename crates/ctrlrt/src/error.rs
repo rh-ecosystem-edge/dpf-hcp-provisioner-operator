@@ -320,6 +320,27 @@ impl fmt::Display for NoKindMatchError {
 }
 impl std::error::Error for NoKindMatchError {}
 
+/// `*meta.NoResourceMatchError` — the resource is not served (e.g. a group-version vanished
+/// from discovery). `meta.IsNoMatchError` matches it as well as [`NoKindMatchError`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NoResourceMatchError {
+    pub group: String,
+    pub version: String,
+    pub resource: String,
+}
+
+impl fmt::Display for NoResourceMatchError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // "no matches for %v" with schema.GroupVersionResource.String()
+        write!(
+            f,
+            "no matches for {}/{}, Resource={}",
+            self.group, self.version, self.resource
+        )
+    }
+}
+impl std::error::Error for NoResourceMatchError {}
+
 /// Error with a Go-style pre-rendered message that wraps a cause (`fmt.Errorf("...%w", err)`).
 #[derive(Debug)]
 pub struct Wrapped {
@@ -427,7 +448,10 @@ pub fn is_unauthorized(err: &Error) -> bool {
 }
 /// `meta.IsNoMatchError`
 pub fn is_no_match(err: &Error) -> bool {
-    err.chain().any(|e| e.downcast_ref::<NoKindMatchError>().is_some())
+    err.chain().any(|e| {
+        e.downcast_ref::<NoKindMatchError>().is_some()
+            || e.downcast_ref::<NoResourceMatchError>().is_some()
+    })
 }
 
 /// `client.IgnoreNotFound`
