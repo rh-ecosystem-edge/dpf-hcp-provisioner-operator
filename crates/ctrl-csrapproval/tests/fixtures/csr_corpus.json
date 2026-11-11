@@ -1,0 +1,2688 @@
+[
+  {
+    "name": "rsa-bootstrap",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ2dEQ0NBV2dDQVFBd096RVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFERXhsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBCk1JSUJDZ0tDQVFFQW00bUxaOVc2QUpzY1k0ZTd5VVA0dVNiUU1hdHhQaGVoaGRBQXBudW92MGQ5NHJIa2h1VVoKSjZjaFpWZEhseXAxUG9RVnhHejNSZ3crUWlpYy9oNTQzY0pRR04rNkxJM1RiZXBvSFlkSFhmYUl6NUV6alVGegpkK1N2SHh4UktNY1d6Q0kvdHlueGNYSHRMLzF1UXJ0TVZwNWFtSVRLZ1Q1OGVBc25QZGxPc3BVYVdtZ2JHQlV1CmFUZWhINGptSU4xR2p1Sk8zS0sxL01PMmxiMkhOYVlGcEttNEhHZmY3MTY2aWlUTmx3emRta2orbVhLbU9BV2UKQU1QOURTZGs0Q1QvM0lmMElSTVMvQ05aR3RmYkEwbTJRZ0c2cWl0WEY1VHYyaWdwWU8rajVxSVFpOWtjVjlBLwplTU03OGZKSkJqZlVvS3Z6NVVqenN5eFh1aXdnS2RONjFRSURBUUFCb0FBd0RRWUpLb1pJaHZjTkFRRUxCUUFECmdnRUJBR2sxUzNZRWsweitUK3RNM2w5SzkzcFpuQ1FFV0NWT1orVk1vQ1pNQ09JYzdHbUVVZTREVU9ZckJGUGoKdTFDNlFZYXA1anMvNHlMeUt2R092RitZdmVybGlINzNTNGpnL1ViajNJRmtjNWFMWk5vRjBGTGdpQnlNSGZQTgo2MGR6QUdxMTU5T1FYVFJoUVJXR3JpT2l6ODFYS2pSQnM3V1lSNmtHUkdmbXBDOFBZSFF3SFgxWXlFelBiOEhmCkFoeFZjYnZEOU9ER2RxdUlJZTFIcUtwY3l1dlRRQ2piU3YwZWxYT1IrYmRKVXJFeXQxdUtCeEZ6NzdWZVFvNkEKTXpjbEVXSzFrL0VpWFp0UlN2VEk4VDRubUV0MnphanZ1cE5SeVI2UmgzUFB5VXRUTlIrOW1GMWdPNXV0YUdnQQpuZzF5T2lCOXpjc1h1NFhEN3hiM3A3bExnWWs9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "rsa-serving",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ3NUQ0NBWmtDQVFBd096RVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFERXhsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBCk1JSUJDZ0tDQVFFQW00bUxaOVc2QUpzY1k0ZTd5VVA0dVNiUU1hdHhQaGVoaGRBQXBudW92MGQ5NHJIa2h1VVoKSjZjaFpWZEhseXAxUG9RVnhHejNSZ3crUWlpYy9oNTQzY0pRR04rNkxJM1RiZXBvSFlkSFhmYUl6NUV6alVGegpkK1N2SHh4UktNY1d6Q0kvdHlueGNYSHRMLzF1UXJ0TVZwNWFtSVRLZ1Q1OGVBc25QZGxPc3BVYVdtZ2JHQlV1CmFUZWhINGptSU4xR2p1Sk8zS0sxL01PMmxiMkhOYVlGcEttNEhHZmY3MTY2aWlUTmx3emRta2orbVhLbU9BV2UKQU1QOURTZGs0Q1QvM0lmMElSTVMvQ05aR3RmYkEwbTJRZ0c2cWl0WEY1VHYyaWdwWU8rajVxSVFpOWtjVjlBLwplTU03OGZKSkJqZlVvS3Z6NVVqenN5eFh1aXdnS2RONjFRSURBUUFCb0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3CklEQWVCZ05WSFJFRUZ6QVZnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3UUtBQUFGTUEwR0NTcUdTSWIzRFFFQkN3VUEKQTRJQkFRQkMvWERJZkVwVGtFckw5ZmowTUJGeU1QSUdweWpFRG50MVdPeXZjL25CZUg2TC9kZ3hXQVIrZW5Mcwowb3hTMFRHZURNdlJoVmQ3aDJBU212UlBja1BoVDZNNmhYTlRLTmVGb0I1L3EvTTNGMzFmMkNnMTNubk9VbkgrClRrWmdLbkJNTjFqeDFuc3pvWTFMWWNsTTMwblhtL3hMYmhkNTRmT2xubHlxbWVOSmNuZWxqVkhsVTVkckxFSUUKNG5YbGtIalBzbjVhU0E0bEsxWWJFOHNKdDFUUldZQjBDVHBTbm1TT3lBY0RuU1N6aHVLWmxCUHVldFlpNk5UNwpkQ2QxUks0VGY0OERwcWpmVFpSdllsU1Y3bE5DdzBFUi9BVkFpQXVLQlEvTHNieFNNWm9jZG4xVG9jelRJT3NkCnFTejBXY0svT0FKalpzZThpa3hrY1Voc2t6RDgKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "p224-serving",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkZUQ0J3d0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1RqQVFCZ2NxaGtqT1BRSUJCZ1VyZ1FRQUlRTTZBQVNnClF6VVl3Nzh3Zlk1ZzVZRW9mci9lcmtCbVR4WXB3L0l4TmNua3NNaktHRTRybC9xSEIzS0Y4TlVTYkw2c0dBME8KK1E2TGtTOGp1YUF4TUM4R0NTcUdTSWIzRFFFSkRqRWlNQ0F3SGdZRFZSMFJCQmN3RllJTlpIQjFMWGR2Y210bApjaTB3TVljRUNnQUFCVEFLQmdncWhrak9QUVFEQWdOQkFEQStBaDBBbHFuRmwzTFFXMjVyLzZMR3JRV0lzTEMzCnF4OG1SemRtYk4rcjRRSWRBUFNtd2F5OXEzUFRVdVV0KzMvNWd6MmlhL2VtZXZUWG5pMHRmalU9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "p256-bootstrap",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIMk1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBeE1aYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTklBREJGQWlFQWpCRTBiNEJOaVdwKwowRHIwcXFPZmJSY0U1UDhMTXZNQU9weEg5d1lyYzBZQ0lFcGNpVFFOT2pqYkU1ZXdyTXhqVkttV01NY0gvZ0w4ClpVbFdUK0k5SzZYSgotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "p256-serving",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkpqQ0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3UUtBQUFGTUFvR0NDcUdTTTQ5QkFNQ0EwY0FNRVFDSUJKRDI2Rk43WFd6CnR4cTJkcy82Z1JZaG9MVi92czBTUHZreTVONGIwWFdaQWlCeDYxMldWL2lrUDhlK3Uvbm1LemtGNlZQVjNGdEcKSU9DYk9CN21ubVo5WlE9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "p384-serving",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQlpEQ0I2d0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd2RqQVFCZ2NxaGtqT1BRSUJCZ1VyZ1FRQUlnTmlBQVMwCkMzd3c5Smt4bHBTREF2VFJGRWU4Y0ZGcVIwYlcySEdQM0dCVGIxdmxUVzlySnJUSFEwbzVHWENVaGhzU0pqYVAKKzY0SnhOc2swS2xaQ3lYZlg5bm04TUtSSTIrc2xIU0FSYVZNaUdWMXhhcktyemxxVGgwd0srYm04MnBlQkQrZwpNVEF2QmdrcWhraUc5dzBCQ1E0eElqQWdNQjRHQTFVZEVRUVhNQldDRFdSd2RTMTNiM0pyWlhJdE1ER0hCQW9BCkFBVXdDZ1lJS29aSXpqMEVBd01EYUFBd1pRSXhBTWZNNkZiYlMwdkdaT2UzWkxWQW1zRy9HcG5RM1JIVE5UNjMKZ0hDTG44QjNlNWVHYWcrWXZVK3kyS1drNzNRUWxnSXdPb0J0N1hObSttVzg4cGIxdnIwa2RYN2RLSUZPNTdUSQp0WUZ4Q0x0OWw0eW95ZUY5SldmZmM4UHc3Y1ppd0RYdwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "p521-serving",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQnJ6Q0NBUkVDQVFBd096RVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFERXhsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1JR2JNQkFHQnlxR1NNNDlBZ0VHQlN1QkJBQWpBNEdHCkFBUUJ6MUR4bmRYK216d2ZvdHlhWmxGaGQ3ZHlXSkJVRHB2UCtZaCtoTXpFcm96bXBpUWtDb0tkVXRVZklDU1UKalgyczZ4MllnRnY3Z2w2dGkzOExlK1JaRmFNQjdtODZIUUpoTFVZQ2FVYmhwUjJlMTVlTWgzclVaR3NodzRWQwp6V2pQWHZaTDNEL1VpM3dmSTI5anExaklzZjBnQWN3bGx1QVlEaEtmc3VZUXN5OTV2a3lnTVRBdkJna3Foa2lHCjl3MEJDUTR4SWpBZ01CNEdBMVVkRVFRWE1CV0NEV1J3ZFMxM2IzSnJaWEl0TURHSEJBb0FBQVV3Q2dZSUtvWkkKemowRUF3UURnWXNBTUlHSEFrSUJSZkppMjI3NWFVWU1lQ2RkaGtDTjRpOE44NURod01keUJsOFAyS3RSTTF1QwpIRThpWndEb0JYaWtjY01kRW0xWGxNdVJVM1JoVDBINmtOaDFkdXRyRHJjQ1FVdWttbmVoMTRrMGhFc2szOFMvCkdMaTBCdzdrVk9nKzZVSFhEdVUvK3RNNjJxc0ZFQVhzMWZCUXRHWDBsQzZDUTRMZ2ttTnBqblJFU01aK0VoZHcKV20vZwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "ed25519-serving",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIc01JR2ZBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBeE1aYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRBcU1BVUdBeXRsY0FNaEFPeXFrdE9qbVM4Y0FMbGJUYTRVCnJPdkszcmxDeG1qYjMrYkJoRHI3Z0M0aW9ERXdMd1lKS29aSWh2Y05BUWtPTVNJd0lEQWVCZ05WSFJFRUZ6QVYKZ2cxa2NIVXRkMjl5YTJWeUxUQXhod1FLQUFBRk1BVUdBeXRsY0FOQkFLMkt0ZHlYNGliZlVDRXBuS0RUeC9PWApCWlZ1NFlYam5YdjIxaXpKN01hN1FqNnl3UVFSdE1kNjRJaXBXUmk0enI0Q1NBbXJLY1NZYnF3Vmpjc243Z2M9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "cn-only",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIZk1JR0dBZ0VBTUNReElqQWdCZ05WQkFNVEdYTjVjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFdwpXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQ0FBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppCjlDUDFoV0p6UmxMNVdYd2pxVHlpQlF5aXVPT1ZLOFdoeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0FBd0NnWUkKS29aSXpqMEVBd0lEU0FBd1JRSWhBTDh2cVZDYk9BV1l0L2RYT1E5dVppMlkrUjJGdzRPUUFJak1ibkxDYzh6QwpBaUJKb3UxcVNPODFUTnhiSldEemVkWWhYVTg1QS9HdUFjaWhBZGVna0YyZERnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "organization validation failed: expected exactly one organization, got 0",
+    "servingError": "organization validation failed: expected exactly one organization, got 0"
+  },
+  {
+    "name": "cn-invalid-format",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIVU1Ic0NBUUF3R1RFWE1CVUdBMVVFQXhNT2FXNTJZV3hwWkMxbWIzSnRZWFF3V1RBVEJnY3Foa2pPUFFJQgpCZ2dxaGtqT1BRTUJCd05DQUFSZGJVWjJZTGJUNFAwQ3N1UUJVdytXVjVsL1hTSmk5Q1AxaFdKelJsTDVXWHdqCnFUeWlCUXlpdU9PVks4V2h5NjdQK3ptQm1yVzZRdnU1dkd3SVZqN3dvQUF3Q2dZSUtvWkl6ajBFQXdJRFNRQXcKUmdJaEFOajQ3UU94d1p1SGQzeVVnbERRa1VVbXF4SHJKNlU1L0YxMjBZR0NTQzNBQWlFQW9xS3RIVFRGTVFrdApkV1U4Vi9JbkRneUtIc3NNWDQ5ejk0OWVXcXhCZnM4PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "invalid-format",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "invalid CN format, expected 'system:node:\u003chostname\u003e', got: invalid-format",
+    "bootstrapError": "organization validation failed: expected exactly one organization, got 0",
+    "servingError": "organization validation failed: expected exactly one organization, got 0"
+  },
+  {
+    "name": "cn-empty-hostname",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIUU1Ia0NBUUF3RnpFVk1CTUdBMVVFQXhNTWMzbHpkR1Z0T201dlpHVTZNRmt3RXdZSEtvWkl6ajBDQVFZSQpLb1pJemowREFRY0RRZ0FFWFcxR2RtQzIwK0Q5QXJMa0FWTVBsbGVaZjEwaVl2UWo5WVZpYzBaUytWbDhJNms4Cm9nVU1vcmpqbFN2Rm9jdXV6L3M1Z1pxMXVrTDd1YnhzQ0ZZKzhLQUFNQW9HQ0NxR1NNNDlCQU1DQTBjQU1FUUMKSUNONmMzMndRdXZiUCtpUTYrK2Z5cS9QYWJBb25hbVZ5cWpNOUYzN21idzZBaUFLVXFad1hUd05vSkViTGlIYwpkd1kydTl2aHJ6QTlHMGRNV1BOc1Y3ZExzUT09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "invalid CN format, expected 'system:node:\u003chostname\u003e', got: system:node:",
+    "bootstrapError": "organization validation failed: expected exactly one organization, got 0",
+    "servingError": "organization validation failed: expected exactly one organization, got 0"
+  },
+  {
+    "name": "cn-other-host",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIdk1JR1ZBZ0VBTURNeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVhTUJnR0ExVUVBeE1SYzNsegpkR1Z0T201dlpHVTZiM1JvWlhJd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DQUFSZGJVWjJZTGJUCjRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2h5NjdQK3ptQm1yVzYKUXZ1NXZHd0lWajd3b0FBd0NnWUlLb1pJemowRUF3SURTUUF3UmdJaEFJanhtb0l6amJzZkczeWZJcC8zRXY1egpVYVo0WDlTZTk3MlNtS2JvdG1pMkFpRUFxNDdPb1JMNitCVUlqMDJnaFZEUUt1LzZ5QU5ESll2OGkrdzRyU0s2Clpiaz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:other",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "other",
+    "extractError": "",
+    "bootstrapError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got system:node:other",
+    "servingError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got system:node:other"
+  },
+  {
+    "name": "org-two",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkFEQ0Jwd0lCQURCRk1SOHdDQVlEVlFRS0V3RjRNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJdwpJQVlEVlFRREV4bHplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1Ga3dFd1lIS29aSXpqMENBUVlJCktvWkl6ajBEQVFjRFFnQUVYVzFHZG1DMjArRDlBckxrQVZNUGxsZVpmMTBpWXZRajlZVmljMFpTK1ZsOEk2azgKb2dVTW9yampsU3ZGb2N1dXovczVnWnExdWtMN3VieHNDRlkrOEtBQU1Bb0dDQ3FHU000OUJBTUNBMGdBTUVVQwpJSFVDbTlYeXlLZHA3OTlHMmlkdERKS2MzNTNUY2E1ZGplM1FoSDNTLy9xK0FpRUF1cUZ0NDQxZk8yeFpqUTlnCkJyd1ZMZDJXMHM3T0VtckVTVk92R3dGN0ZpTT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "x",
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "organization validation failed: expected exactly one organization, got 2",
+    "servingError": "organization validation failed: expected exactly one organization, got 2"
+  },
+  {
+    "name": "org-wrong",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIME1JR2FBZ0VBTURneEVqQVFCZ05WQkFvVENYZHliMjVuTFc5eVp6RWlNQ0FHQTFVRUF4TVpjM2x6ZEdWdApPbTV2WkdVNlpIQjFMWGR2Y210bGNpMHdNVEJaTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEEwSUFCRjF0ClJuWmd0dFBnL1FLeTVBRlRENVpYbVg5ZEltTDBJL1dGWW5OR1V2bFpmQ09wUEtJRkRLSzQ0NVVyeGFITHJzLzcKT1lHYXRicEMrN204YkFoV1B2Q2dBREFLQmdncWhrak9QUVFEQWdOSkFEQkdBaUVBeHZqN3RFUzVMTmI1dWRzZwpDVlJId1I2VEF3aUl0NzJNVjdoUmJLRGJhbElDSVFEZlVuK01JZWJwaThGZHVoSUZGU1UwVEluMnY0K0RBSEtBCkpFZFh5cDNraUE9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "wrong-org"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "organization validation failed: invalid organization: expected system:nodes, got wrong-org",
+    "servingError": "organization validation failed: invalid organization: expected system:nodes, got wrong-org"
+  },
+  {
+    "name": "san-two-dns",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQktUQ0J6d0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RJd01BWUpLb1pJaHZjTkFRa09NU013SVRBZkJnTlZIUkVFR0RBVwpnZzFrY0hVdGQyOXlhMlZ5TFRBeGdnVmxlSFJ5WVRBS0JnZ3Foa2pPUFFRREFnTkpBREJHQWlFQWszSGhkbDFhCk1XYm1odzd3dCtSalJzTTJub0prYzhja0wyN3ZiM0FOcnRJQ0lRQ2lCYjlWeHVJZTZibll5WjhBZ29zamV3NUUKaXZjUCtnVDJHK1VvdFMwS0JnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01",
+      "extra"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01 extra], IP=[], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 2: [dpu-worker-01 extra]"
+  },
+  {
+    "name": "san-wrong-dns",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQklUQ0J5UUlCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0N3d0tnWUpLb1pJaHZjTkFRa09NUjB3R3pBWkJnTlZIUkVFRWpBUQpnZzUzY205dVp5MW9iM04wYm1GdFpUQUtCZ2dxaGtqT1BRUURBZ05IQURCRUFpQXlnbTNEODlXZm5vRi9NOTQ0CmphQUwrbi9oS2FXSjMvOEtmZWpQb29mUmZ3SWdSVFVXbzRmbEtPQmdxbVBRa3VFQjhlNGlSOU8wLzE1UTVhVlgKS3ExTWdyUT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "wrong-hostname"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[wrong-hostname], IP=[], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR DNS SAN \"wrong-hostname\" does not match hostname \"dpu-worker-01\""
+  },
+  {
+    "name": "san-no-dns-ip-only",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkdUQ0J2d0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0NJd0lBWUpLb1pJaHZjTkFRa09NUk13RVRBUEJnTlZIUkVFQ0RBRwpod1FLQUFBRk1Bb0dDQ3FHU000OUJBTUNBMGtBTUVZQ0lRRFJNVWp4c0pwZU9uMDdxZEtPSTY2SHNnRXZVYjViCitsY0NUenVKY2hvTGxnSWhBTitoV3h5ck1aOWlGUmt4VUxsbzVveFlienhDSlNYOTAvMGNjQ1U5NE04NgotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "san-ip-127.0.0.1",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkp6Q0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3Ui9BQUFCTUFvR0NDcUdTTTQ5QkFNQ0EwZ0FNRVVDSUJiSndqWXhFMmVXClJMckZMTzRmSm16TjliQkw0WExSVDBLY3BBamxUQURqQWlFQSsrTG1Renl2Q0tmdEs4blFiZWVRMHhHR24wZ1QKM01oVmowY3h3aVRRMGY4PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "127.0.0.1"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[127.0.0.1], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR contains invalid IP address: 127.0.0.1"
+  },
+  {
+    "name": "san-ip-0.0.0.0",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkp6Q0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3UUFBQUFBTUFvR0NDcUdTTTQ5QkFNQ0EwZ0FNRVVDSUdiaTQyZDF0WmdFCjdLQ3IzWmxhNEN0dDdZQzQ0WkFQZkswOE5Bb0VBaVBQQWlFQXZyZWNoc3ZubGI0R3RVUHBCL0JuSjZWRmZKaVUKbmd1TnM5NGJnYUtNNjNzPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "0.0.0.0"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[0.0.0.0], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR contains invalid IP address: 0.0.0.0"
+  },
+  {
+    "name": "san-ip-::",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQk1qQ0IyZ0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0Qwd093WUpLb1pJaHZjTkFRa09NUzR3TERBcUJnTlZIUkVFSXpBaApnZzFrY0hVdGQyOXlhMlZ5TFRBeGh4QUFBQUFBQUFBQUFBQUFBQUFBQUFBQU1Bb0dDQ3FHU000OUJBTUNBMGNBCk1FUUNJR0d0a0NtU01oRGNqcExweHg5WFN1WkQ3dThETmNHbFpiNk5zUjJKbWZuNUFpQm0rUnpOVUdwQ0h5SjIKWC9leG41UzRNbnptTkYremkrdGtnUG1hd3BoUTl3PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "::"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[::], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR contains invalid IP address: ::"
+  },
+  {
+    "name": "san-ip-::1",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQk1qQ0IyZ0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0Qwd093WUpLb1pJaHZjTkFRa09NUzR3TERBcUJnTlZIUkVFSXpBaApnZzFrY0hVdGQyOXlhMlZ5TFRBeGh4QUFBQUFBQUFBQUFBQUFBQUFBQUFBQk1Bb0dDQ3FHU000OUJBTUNBMGNBCk1FUUNJQ0NpUnRtMlA2QVEvV3lyU0pnVnEwTjBoekUrR1NKZng3am12ZVFkdUI2RkFpQUlQL1ZVMXQrdTNuUVUKWDhRNmN2WmwxakNJKzdtMmw3R0gwdnQ2blVLZHRnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "::1"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[::1], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR contains invalid IP address: ::1"
+  },
+  {
+    "name": "san-ip-224.0.0.1",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQktEQ0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3VGdBQUFCTUFvR0NDcUdTTTQ5QkFNQ0Ewa0FNRVlDSVFEYXFSZ0c5Y3QvClRyL2F2c0FNSC9RazNVd2t3MGFwaE0zSVNzR0xMQnNvaWdJaEFKU3QrcjJWUFp3bGJlUnJZY3J6UnRIaTlSWVkKaitvZDJvOUV6NlR4bldYegotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "224.0.0.1"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[224.0.0.1], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR contains invalid IP address: 224.0.0.1"
+  },
+  {
+    "name": "san-ip-ff02::1",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQk5EQ0IyZ0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0Qwd093WUpLb1pJaHZjTkFRa09NUzR3TERBcUJnTlZIUkVFSXpBaApnZzFrY0hVdGQyOXlhMlZ5TFRBeGh4RC9BZ0FBQUFBQUFBQUFBQUFBQUFBQk1Bb0dDQ3FHU000OUJBTUNBMGtBCk1FWUNJUURvZ1BRU3VLeXhtQmV3V2t1QUN2WDlzZ1pOait2bFlsUnl0WENMUUN2ZjhBSWhBUEhRUmQ4UHBTVWEKOUZRbjdvaVVPUDBmQThqSmNaYklnYjRIQ0p3RFpLYmYKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "ff02::1"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[ff02::1], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR contains invalid IP address: ff02::1"
+  },
+  {
+    "name": "san-ip-fe80::1",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQk16Q0IyZ0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0Qwd093WUpLb1pJaHZjTkFRa09NUzR3TERBcUJnTlZIUkVFSXpBaApnZzFrY0hVdGQyOXlhMlZ5TFRBeGh4RCtnQUFBQUFBQUFBQUFBQUFBQUFBQk1Bb0dDQ3FHU000OUJBTUNBMGdBCk1FVUNJQkg2UEx4TVhpdDZrc3l3MDQ5eXcveEV0b1BqeHBLcUtnOHFDL0N5dVVGaUFpRUE4WEhGMDl6TXMwWEkKZWRRd0FNSzk0ZzIrNEFlNmI3UzBMbDcwZXY5SHNuND0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "fe80::1"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[fe80::1], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "san-ip-2001:db8::1",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQk16Q0IyZ0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0Qwd093WUpLb1pJaHZjTkFRa09NUzR3TERBcUJnTlZIUkVFSXpBaApnZzFrY0hVdGQyOXlhMlZ5TFRBeGh4QWdBUTI0QUFBQUFBQUFBQUFBQUFBQk1Bb0dDQ3FHU000OUJBTUNBMGdBCk1FVUNJSG84SENLWnAzYUJpZSttVnRDRXpKZXBwdHVXbEREVkd4eVAvdWJBelFoaUFpRUF5ZHAwd2l4N0I1YlEKUnh3TDcvNm1HZTFRVkltYk1wVWVFVU5tZ0kvMlMxYz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "2001:db8::1"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[2001:db8::1], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "san-ip-::ffff:10.1.2.3",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQktEQ0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3UUtBUUlETUFvR0NDcUdTTTQ5QkFNQ0Ewa0FNRVlDSVFDZE9EM3Jjb09MCk8rNlF6b25MdTg3b1JDZ0lRbGJIZ0c0VWRPOU10dmNKQ3dJaEFQdnFRbUttaXN0eHl1aE55S2RCQnNWSmVGMWsKd3NXa1VucmNzQWRteFhFawotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.1.2.3"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.1.2.3], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "san-email",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQktEQ0J6d0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RJd01BWUpLb1pJaHZjTkFRa09NU013SVRBZkJnTlZIUkVFR0RBVwpnZzFrY0hVdGQyOXlhMlZ5TFRBeGdRVmhRR0l1WXpBS0JnZ3Foa2pPUFFRREFnTklBREJGQWlCZnUvMXFrZHNCCnBsRHA2Z2tvK3ErLzkxUUVjWHEwaFZvaUhtK0k0MUV2WmdJaEFMS2lWaUt6MEZENDhXRzNtcXRieTY0azJ5ZW0KTUZUUkFFcGozWnBKVWN5KwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [
+      "a@b.c"
+    ],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[a@b.c], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "san-uri",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQlBqQ0I1UUlCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0Vnd1JnWUpLb1pJaHZjTkFRa09NVGt3TnpBMUJnTlZIUkVFTGpBcwpnZzFrY0hVdGQyOXlhMlZ5TFRBeGhodHpjR2xtWm1VNkx5OWpiSFZ6ZEdWeUxteHZZMkZzTDI1ekwzZ3dDZ1lJCktvWkl6ajBFQXdJRFNBQXdSUUlnYTNPRTB6Z2k4Z0E0RWJ2eDlkbndhTU94eHZSTkgyaWRmWlBVU1NVNHppMEMKSVFEZTZNa0JwTk9uaEZoY1BXZzhpVGFQYktWQjVkeFRvT3RZNlZmaUhVelA3dz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [
+      "spiffe://cluster.local/ns/x"
+    ],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[spiffe://cluster.local/ns/x])",
+    "servingError": ""
+  },
+  {
+    "name": "san-ip-v4-and-v6",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQktUQ0IwUUlCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RRd01nWUpLb1pJaHZjTkFRa09NU1V3SXpBaEJnTlZIUkVFR2pBWQpod1FLQUFBRmh4QWdBUTI0QUFBQUFBQUFBQUFBQUFBRk1Bb0dDQ3FHU000OUJBTUNBMGNBTUVRQ0lBNzFNNXpRClVtQmVjK2Q2V1hkendSRjBtbld2QkM4dHhNVDROOFc3MCtYTkFpQWg4MllvbWg0M21zU0VtUmVFOW9VMlJjWFcKeFlqUHFEUjFWRkFiY3BFaXp3PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [
+      "10.0.0.5",
+      "2001:db8::5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[], IP=[10.0.0.5 2001:db8::5], email=[], URI=[])",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "der-default",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "der-no-attributes-element",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHdk1JR2JBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkF3Q2dZSUtvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: sequence truncated",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated"
+  },
+  {
+    "name": "der-trailing-data",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDQUE9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: trailing data",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: trailing data",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: trailing data",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: trailing data"
+  },
+  {
+    "name": "der-truncated",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUU9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: data truncated",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: data truncated",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: data truncated",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: data truncated"
+  },
+  {
+    "name": "der-empty",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: sequence truncated",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated"
+  },
+  {
+    "name": "der-version-nonminimal",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeU1JR2VBZ0lBQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1NR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0FBd0NnWUlLb1pJemowRUF3SURBd0FCQWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: integer not minimally-encoded",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: integer not minimally-encoded",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: integer not minimally-encoded",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: integer not minimally-encoded"
+  },
+  {
+    "name": "der-version-too-large",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHNU1JR2xBZ2tCQWdNRUJRWUhDQWt3T3pFVk1CTUdBMVVFQ2hNTWMzbHpkR1Z0T201dlpHVnpNU0l3SUFZRApWUVFEREJsemVYTjBaVzA2Ym05a1pUcGtjSFV0ZDI5eWEyVnlMVEF4TUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJCnpqMERBUWNEUWdBRVhXMUdkbUMyMCtEOUFyTGtBVk1QbGxlWmYxMGlZdlFqOVlWaWMwWlMrVmw4STZrOG9nVU0Kb3JqamxTdkZvY3V1ei9zNWdacTF1a0w3dWJ4c0NGWSs4S0FBTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: integer too large",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: integer too large",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: integer too large",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: integer too large"
+  },
+  {
+    "name": "der-version-wrong-tag",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RCQUVBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: tags don't match (2 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} int @2",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: tags don't match (2 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} int @2",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (2 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} int @2",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (2 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} int @2"
+  },
+  {
+    "name": "der-indefinite-length",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlBQUFBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: indefinite length found (not DER)",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: indefinite length found (not DER)",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: indefinite length found (not DER)",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: indefinite length found (not DER)"
+  },
+  {
+    "name": "der-nonminimal-length",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlNQUFMRXdnWjBDQVFBd096RVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFEREJsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEClFnQUVYVzFHZG1DMjArRDlBckxrQVZNUGxsZVpmMTBpWXZRajlZVmljMFpTK1ZsOEk2azhvZ1VNb3JqamxTdkYKb2N1dXovczVnWnExdWtMN3VieHNDRlkrOEtBQU1Bb0dDQ3FHU000OUJBTUNBd01BQVFJPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: superfluous leading zeros in length",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: superfluous leading zeros in length",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: superfluous leading zeros in length",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: superfluous leading zeros in length"
+  },
+  {
+    "name": "der-bad-signature-bits",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHd01JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTUNDQUE9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: invalid padding bits in BIT STRING",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: invalid padding bits in BIT STRING",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid padding bits in BIT STRING",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid padding bits in BIT STRING"
+  },
+  {
+    "name": "der-empty-signature-bits",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHdU1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTUEKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: zero length BIT STRING",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: zero length BIT STRING",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: zero length BIT STRING",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: zero length BIT STRING"
+  },
+  {
+    "name": "der-extra-tbs-field",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHME1JR2dBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQUFJQkJUQUtCZ2dxaGtqT1BRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "der-attrs-wrong-tag",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNoQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: tags don't match (0 vs {class:2 tag:1 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9b90 stringType:0 timeType:0 set:false omitEmpty:false}  @157",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: tags don't match (0 vs {class:2 tag:1 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9b98 stringType:0 timeType:0 set:false omitEmpty:false}  @157",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (0 vs {class:2 tag:1 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9ba0 stringType:0 timeType:0 set:false omitEmpty:false}  @157",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (0 vs {class:2 tag:1 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9ba8 stringType:0 timeType:0 set:false omitEmpty:false}  @157"
+  },
+  {
+    "name": "der-attrs-primitive",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNBQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: tags don't match (0 vs {class:2 tag:0 length:0 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9cd0 stringType:0 timeType:0 set:false omitEmpty:false}  @157",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: tags don't match (0 vs {class:2 tag:0 length:0 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9cd8 stringType:0 timeType:0 set:false omitEmpty:false}  @157",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (0 vs {class:2 tag:0 length:0 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9ce0 stringType:0 timeType:0 set:false omitEmpty:false}  @157",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (0 vs {class:2 tag:0 length:0 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:0x2064bfdc9ce8 stringType:0 timeType:0 set:false omitEmpty:false}  @157"
+  },
+  {
+    "name": "subj-printable",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBeE1aYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-printable-invalid-char",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHdU1JR2FBZ0VBTURneEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVmTUIwR0ExVUVBeE1XYzNsegpkR1Z0T201dlpHVTZaSEIxWDNkdmNtdGxjakJaTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEEwSUFCRjF0ClJuWmd0dFBnL1FLeTVBRlRENVpYbVg5ZEltTDBJL1dGWW5OR1V2bFpmQ09wUEtJRkRLSzQ0NVVyeGFITHJzLzcKT1lHYXRicEMrN204YkFoV1B2Q2dBREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: PrintableString contains invalid character",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: PrintableString contains invalid character",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: PrintableString contains invalid character",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: PrintableString contains invalid character"
+  },
+  {
+    "name": "subj-printable-asterisk-ampersand",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHb01JR1VBZ0VBTURJeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVaTUJjR0ExVUVBeE1RYzNsegpkR1Z0T201dlpHVTZZU29tWWpCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQkYxdFJuWmd0dFBnCi9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSExycy83T1lHYXRicEMKKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:a*\u0026b",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "a*\u0026b",
+    "extractError": "",
+    "bootstrapError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got system:node:a*\u0026b",
+    "servingError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got system:node:a*\u0026b"
+  },
+  {
+    "name": "subj-ia5",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBeFlaYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-ia5-nonascii",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHbE1JR1JBZ0VBTUM4eEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVXTUJRR0ExVUVBeFlOYzNsegpkR1Z0T201dlpHVTY2VEJaTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEEwSUFCRjF0Um5aZ3R0UGcvUUt5CjVBRlRENVpYbVg5ZEltTDBJL1dGWW5OR1V2bFpmQ09wUEtJRkRLSzQ0NVVyeGFITHJzLzdPWUdhdGJwQys3bTgKYkFoV1B2Q2dBREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: IA5String contains invalid character",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: IA5String contains invalid character",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: IA5String contains invalid character",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: IA5String contains invalid character"
+  },
+  {
+    "name": "subj-t61-latin1",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHb01JR1VBZ0VBTURJeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVaTUJjR0ExVUVBeFFRYzNsegpkR1Z0T201dlpHVTZZMkZtNlRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQkYxdFJuWmd0dFBnCi9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSExycy83T1lHYXRicEMKKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:café",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "café",
+    "extractError": "",
+    "bootstrapError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got system:node:café",
+    "servingError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got system:node:café"
+  },
+  {
+    "name": "subj-utf8-invalid",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHbE1JR1JBZ0VBTUM4eEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVXTUJRR0ExVUVBd3dOYzNsegpkR1Z0T201dlpHVTYvekJaTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEEwSUFCRjF0Um5aZ3R0UGcvUUt5CjVBRlRENVpYbVg5ZEltTDBJL1dGWW5OR1V2bFpmQ09wUEtJRkRLSzQ0NVVyeGFITHJzLzdPWUdhdGJwQys3bTgKYkFoV1B2Q2dBREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: invalid UTF-8 string",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: invalid UTF-8 string",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: invalid UTF-8 string",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: invalid UTF-8 string"
+  },
+  {
+    "name": "subj-numeric-bad",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHYk1JR0hBZ0VBTUNVeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVNTUFvR0ExVUVBeElETVRKaApNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVYVzFHZG1DMjArRDlBckxrQVZNUGxsZVpmMTBpCll2UWo5WVZpYzBaUytWbDhJNms4b2dVTW9yampsU3ZGb2N1dXovczVnWnExdWtMN3VieHNDRlkrOEtBQU1Bb0cKQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: NumericString contains invalid character",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: NumericString contains invalid character",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: NumericString contains invalid character",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: NumericString contains invalid character"
+  },
+  {
+    "name": "subj-bmp",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIS01JRzJBZ0VBTUZReEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekU3TURrR0ExVUVBeDR5QUhNQQplUUJ6QUhRQVpRQnRBRG9BYmdCdkFHUUFaUUE2QUdRQWNBQjFBQzBBZHdCdkFISUFhd0JsQUhJQUxRQXdBREV3CldUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DQUFSZGJVWjJZTGJUNFAwQ3N1UUJVdytXVjVsL1hTSmkKOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2h5NjdQK3ptQm1yVzZRdnU1dkd3SVZqN3dvQUF3Q2dZSQpLb1pJemowRUF3SURBd0FCQWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-bmp-odd",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHYk1JR0hBZ0VBTUNVeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVNTUFvR0ExVUVBeDREQUdFQQpNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVYVzFHZG1DMjArRDlBckxrQVZNUGxsZVpmMTBpCll2UWo5WVZpYzBaUytWbDhJNms4b2dVTW9yampsU3ZGb2N1dXovczVnWnExdWtMN3VieHNDRlkrOEtBQU1Bb0cKQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "invalid BMPString",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: invalid BMPString",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: invalid BMPString",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: invalid BMPString"
+  },
+  {
+    "name": "subj-bmp-surrogate",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHYU1JR0dBZ0VBTUNReEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVMTUFrR0ExVUVBeDRDMkFBdwpXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQ0FBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppCjlDUDFoV0p6UmxMNVdYd2pxVHlpQlF5aXVPT1ZLOFdoeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0FBd0NnWUkKS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "invalid BMPString",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: invalid BMPString",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: invalid BMPString",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: invalid BMPString"
+  },
+  {
+    "name": "subj-universalstring-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHY01JR0lBZ0VBTUNZeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVOTUFzR0ExVUVBeHdFQUFBQQpZVEJaTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEEwSUFCRjF0Um5aZ3R0UGcvUUt5NUFGVEQ1WlhtWDlkCkltTDBJL1dGWW5OR1V2bFpmQ09wUEtJRkRLSzQ0NVVyeGFITHJzLzdPWUdhdGJwQys3bThiQWhXUHZDZ0FEQUsKQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "invalid CN format, expected 'system:node:\u003chostname\u003e', got: ",
+    "bootstrapError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got ",
+    "servingError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got "
+  },
+  {
+    "name": "subj-integer-value-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHWk1JR0ZBZ0VBTUNNeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVLTUFnR0ExVUVBd0lCS2pCWgpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwCkkvV0ZZbk5HVXZsWmZDT3BQS0lGREtLNDQ1VXJ4YUhMcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3EKaGtqT1BRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "invalid CN format, expected 'system:node:\u003chostname\u003e', got: ",
+    "bootstrapError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got ",
+    "servingError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got "
+  },
+  {
+    "name": "subj-integer-too-large",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHaE1JR05BZ0VBTUNzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVTTUJBR0ExVUVBd0lKQVFJRApCQVVHQndnSk1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEUWdBRVhXMUdkbUMyMCtEOUFyTGtBVk1QCmxsZVpmMTBpWXZRajlZVmljMFpTK1ZsOEk2azhvZ1VNb3JqamxTdkZvY3V1ei9zNWdacTF1a0w3dWJ4c0NGWSsKOEtBQU1Bb0dDQ3FHU000OUJBTUNBd01BQVFJPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: integer too large",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: integer too large",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: integer too large",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: integer too large"
+  },
+  {
+    "name": "subj-bool-invalid",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHWk1JR0ZBZ0VBTUNNeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVLTUFnR0ExVUVBd0VCQVRCWgpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwCkkvV0ZZbk5HVXZsWmZDT3BQS0lGREtLNDQ1VXJ4YUhMcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3EKaGtqT1BRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: invalid boolean",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: invalid boolean",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid boolean",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid boolean"
+  },
+  {
+    "name": "subj-constructed-value-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHYk1JR0hBZ0VBTUNVeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVNTUFvR0ExVUVBekFERXdGNApNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVYVzFHZG1DMjArRDlBckxrQVZNUGxsZVpmMTBpCll2UWo5WVZpYzBaUytWbDhJNms4b2dVTW9yampsU3ZGb2N1dXovczVnWnExdWtMN3VieHNDRlkrOEtBQU1Bb0cKQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "invalid CN format, expected 'system:node:\u003chostname\u003e', got: ",
+    "bootstrapError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got ",
+    "servingError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got "
+  },
+  {
+    "name": "subj-context-value-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHWk1JR0ZBZ0VBTUNNeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVLTUFnR0ExVUVBNEFCZURCWgpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwCkkvV0ZZbk5HVXZsWmZDT3BQS0lGREtLNDQ1VXJ4YUhMcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3EKaGtqT1BRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "invalid CN format, expected 'system:node:\u003chostname\u003e', got: ",
+    "bootstrapError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got ",
+    "servingError": "CN validation failed: invalid CN: expected system:node:dpu-worker-01, got "
+  },
+  {
+    "name": "subj-utctime-valid",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlISk1JRzFBZ0VBTUZNeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRFV01CUUdBMVVFWXhjTk1qUXdNVEF4TVRJd01EQXdXakJaCk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQkYxdFJuWmd0dFBnL1FLeTVBRlRENVpYbVg5ZEltTDAKSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSExycy83T1lHYXRicEMrN204YkFoV1B2Q2dBREFLQmdncQpoa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-utctime-invalid",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlISk1JRzFBZ0VBTUZNeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRFV01CUUdBMVVFWXhjTk1qUXhNekF4TVRJd01EQXdXakJaCk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQkYxdFJuWmd0dFBnL1FLeTVBRlRENVpYbVg5ZEltTDAKSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSExycy83T1lHYXRicEMrN204YkFoV1B2Q2dBREFLQmdncQpoa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "parsing time \"241301120000Z\": month out of range",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: parsing time \"241301120000Z\": month out of range",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: parsing time \"241301120000Z\": month out of range",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: parsing time \"241301120000Z\": month out of range"
+  },
+  {
+    "name": "subj-gentime-valid",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlITk1JRzVBZ0VBTUZjeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRFYU1CZ0dBMVVFWXhnUk1qQXlOREF4TURFeE1qQXdNREF1Ck5Wb3dXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQ0FBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC8KWFNKaTlDUDFoV0p6UmxMNVdYd2pxVHlpQlF5aXVPT1ZLOFdoeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0FBdwpDZ1lJS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-gentime-trailing-zero",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIT01JRzZBZ0VBTUZneEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRFYk1Ca0dBMVVFWXhnU01qQXlOREF4TURFeE1qQXdNREF1Ck5UQmFNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVYVzFHZG1DMjArRDlBckxrQVZNUGxsZVoKZjEwaVl2UWo5WVZpYzBaUytWbDhJNms4b2dVTW9yampsU3ZGb2N1dXovczVnWnExdWtMN3VieHNDRlkrOEtBQQpNQW9HQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: time did not serialize back to the original value and may be invalid: given \"20240101120000.50Z\", but serialized as \"20240101120000.5Z\"",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: time did not serialize back to the original value and may be invalid: given \"20240101120000.50Z\", but serialized as \"20240101120000.5Z\"",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: time did not serialize back to the original value and may be invalid: given \"20240101120000.50Z\", but serialized as \"20240101120000.5Z\"",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: time did not serialize back to the original value and may be invalid: given \"20240101120000.50Z\", but serialized as \"20240101120000.5Z\""
+  },
+  {
+    "name": "subj-two-cn-last-wins",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlITk1JRzVBZ0VBTUZjeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVhTUJnR0ExVUVBd3dSYzNsegpkR1Z0T201dlpHVTZabWx5YzNReElqQWdCZ05WQkFNTUdYTjVjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0Ck1ERXdXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQ0FBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC8KWFNKaTlDUDFoV0p6UmxMNVdYd2pxVHlpQlF5aXVPT1ZLOFdoeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0FBdwpDZ1lJS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-multi-valued-rdn",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHdk1JR2JBZ0VBTURreE56QVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3V1RBVEJnY3Foa2pPUFFJQkJnZ3Foa2pPUFFNQkJ3TkNBQVJkCmJVWjJZTGJUNFAwQ3N1UUJVdytXVjVsL1hTSmk5Q1AxaFdKelJsTDVXWHdqcVR5aUJReWl1T09WSzhXaHk2N1AKK3ptQm1yVzZRdnU1dkd3SVZqN3dvQUF3Q2dZSUtvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-empty",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUhVd1lnSUJBREFBTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFWFcxR2RtQzIwK0Q5QXJMawpBVk1QbGxlWmYxMGlZdlFqOVlWaWMwWlMrVmw4STZrOG9nVU1vcmpqbFN2Rm9jdXV6L3M1Z1pxMXVrTDd1YnhzCkNGWSs4S0FBTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "invalid CN format, expected 'system:node:\u003chostname\u003e', got: ",
+    "bootstrapError": "organization validation failed: expected exactly one organization, got 0",
+    "servingError": "organization validation failed: expected exactly one organization, got 0"
+  },
+  {
+    "name": "subj-empty-rdn",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHek1JR2ZBZ0VBTUQweEFERVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFEREJsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEClFnQUVYVzFHZG1DMjArRDlBckxrQVZNUGxsZVpmMTBpWXZRajlZVmljMFpTK1ZsOEk2azhvZ1VNb3JqamxTdkYKb2N1dXovczVnWnExdWtMN3VieHNDRlkrOEtBQU1Bb0dDQ3FHU000OUJBTUNBd01BQVFJPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-rdn-not-set",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHYU1JR0dBZ0VBTUNRd0lqQWdCZ05WQkFNTUdYTjVjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFdwpXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQ0FBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppCjlDUDFoV0p6UmxMNVdYd2pxVHlpQlF5aXVPT1ZLOFdoeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0FBd0NnWUkKS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: sequence tag mismatch",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: sequence tag mismatch",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: sequence tag mismatch",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: sequence tag mismatch"
+  },
+  {
+    "name": "subj-not-sequence",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHTU1Ia0NBUUF4RnpFVk1CTUdBMVVFQ2hNTWMzbHpkR1Z0T201dlpHVnpNRmt3RXdZSEtvWkl6ajBDQVFZSQpLb1pJemowREFRY0RRZ0FFWFcxR2RtQzIwK0Q5QXJMa0FWTVBsbGVaZjEwaVl2UWo5WVZpYzBaUytWbDhJNms4Cm9nVU1vcmpqbFN2Rm9jdXV6L3M1Z1pxMXVrTDd1YnhzQ0ZZKzhLQUFNQW9HQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:23 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} RDNSequence @2",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:23 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} RDNSequence @2",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:23 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} RDNSequence @2",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:23 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} RDNSequence @2"
+  },
+  {
+    "name": "subj-atv-missing-value",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUg0d2F3SUJBREFKTVFjd0JRWURWUVFETUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFWFcxRwpkbUMyMCtEOUFyTGtBVk1QbGxlWmYxMGlZdlFqOVlWaWMwWlMrVmw4STZrOG9nVU1vcmpqbFN2Rm9jdXV6L3M1CmdacTF1a0w3dWJ4c0NGWSs4S0FBTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: sequence truncated",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated"
+  },
+  {
+    "name": "subj-atv-extra-field",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHME1JR2dBZ0VBTUQ0eEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVsTUNNR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVF3QmVEQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VICkEwSUFCRjF0Um5aZ3R0UGcvUUt5NUFGVEQ1WlhtWDlkSW1MMEkvV0ZZbk5HVXZsWmZDT3BQS0lGREtLNDQ1VXIKeGFITHJzLzdPWUdhdGJwQys3bThiQWhXUHZDZ0FEQUtCZ2dxaGtqT1BRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "subj-o-twice",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlISU1JRzBBZ0VBTUZJeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVWTUJNR0ExVUVDaE1NYzNsegpkR1Z0T201dlpHVnpNU0l3SUFZRFZRUUREQmx6ZVhOMFpXMDZibTlrWlRwa2NIVXRkMjl5YTJWeUxUQXhNRmt3CkV3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFWFcxR2RtQzIwK0Q5QXJMa0FWTVBsbGVaZjEwaVl2UWoKOVlWaWMwWlMrVmw4STZrOG9nVU1vcmpqbFN2Rm9jdXV6L3M1Z1pxMXVrTDd1YnhzQ0ZZKzhLQUFNQW9HQ0NxRwpTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes",
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "organization validation failed: expected exactly one organization, got 2",
+    "servingError": "organization validation failed: expected exactly one organization, got 2"
+  },
+  {
+    "name": "key-unknown-algorithm",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUdRd1VRSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3RFRBRkJnTXFBd1FEQkFBQkFnT2dBREFLQmdncWhrak9QUVFECkFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "key-ec-unsupported-curve",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHdU1JR2FBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCV01CQUdCeXFHU000OUFnRUdCU3VCQkFBS0EwSUFCRjF0ClJuWmd0dFBnL1FLeTVBRlRENVpYbVg5ZEltTDBJL1dGWW5OR1V2bFpmQ09wUEtJRkRLSzQ0NVVyeGFITHJzLzcKT1lHYXRicEMrN204YkFoV1B2Q2dBREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: unsupported elliptic curve",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: unsupported elliptic curve",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: unsupported elliptic curve",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: unsupported elliptic curve"
+  },
+  {
+    "name": "key-ec-missing-params",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHbk1JR1RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCUE1Ba0dCeXFHU000OUFnRURRZ0FFWFcxR2RtQzIwK0Q5CkFyTGtBVk1QbGxlWmYxMGlZdlFqOVlWaWMwWlMrVmw4STZrOG9nVU1vcmpqbFN2Rm9jdXV6L3M1Z1pxMXVrTDcKdWJ4c0NGWSs4S0FBTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: invalid ECDSA parameters",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: invalid ECDSA parameters",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid ECDSA parameters",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid ECDSA parameters"
+  },
+  {
+    "name": "key-ec-off-curve",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkdnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "P256 point not on curve",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: P256 point not on curve",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: P256 point not on curve",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: P256 point not on curve"
+  },
+  {
+    "name": "key-ec-compressed",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHUU1IMENBUUF3T3pFVk1CTUdBMVVFQ2hNTWMzbHpkR1Z0T201dlpHVnpNU0l3SUFZRFZRUUREQmx6ZVhOMApaVzA2Ym05a1pUcGtjSFV0ZDI5eWEyVnlMVEF4TURrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RJZ0FDClhXMUdkbUMyMCtEOUFyTGtBVk1QbGxlWmYxMGlZdlFqOVlWaWMwWlMrVm1nQURBS0JnZ3Foa2pPUFFRREFnTUQKQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "ecdsa: invalid uncompressed public key",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: ecdsa: invalid uncompressed public key",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: ecdsa: invalid uncompressed public key",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: ecdsa: invalid uncompressed public key"
+  },
+  {
+    "name": "key-ec-short",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHWU1JR0VBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCQU1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBeWtBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0FBTUFvR0NDcUcKU000OUJBTUNBd01BQVFJPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "invalid P256 point encoding",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: invalid P256 point encoding",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: invalid P256 point encoding",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: invalid P256 point encoding"
+  },
+  {
+    "name": "key-ec-coordinate-too-large",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHeE1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJQLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8KLy8vLy8vLy8vLy8vLy8vLy8vLy8vLytnQURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "invalid P256 element encoding",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: invalid P256 element encoding",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: invalid P256 element encoding",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: invalid P256 element encoding"
+  },
+  {
+    "name": "key-rsa-no-null-params",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQmV6Q0NBV1lDQVFBd096RVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFEREJsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1JSUJJREFMQmdrcWhraUc5dzBCQVFFRGdnRVBBRENDCkFRb0NnZ0VCQUp1SmkyZlZ1Z0NiSEdPSHU4bEQrTGttMERHcmNUNFhvWVhRQUtaN3FMOUhmZUt4NUlibEdTZW4KSVdWWFI1Y3FkVDZFRmNSczkwWU1Qa0lvblA0ZWVOM0NVQmpmdWl5TjAyM3FhQjJIUjEzMmlNK1JNNDFCYzNmawpyeDhjVVNqSEZzd2lQN2NwOFhGeDdTLzlia0s3VEZhZVdwaUV5b0UrZkhnTEp6M1pUcktWR2xwb0d4Z1ZMbWszCm9SK0k1aURkUm83aVR0eWl0ZnpEdHBXOWh6V21CYVNwdUJ4bjMrOWV1b29relpjTTNacEkvcGx5cGpnRm5nREQKL1EwblpPQWsvOXlIOUNFVEV2d2pXUnJYMndOSnRrSUJ1cW9yVnhlVTc5b29LV0R2bythaUVJdlpIRmZRUDNqRApPL0h5U1FZMzFLQ3I4K1ZJODdNc1Y3b3NJQ25UZXRVQ0F3RUFBYUFBTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: RSA key missing NULL parameters",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: RSA key missing NULL parameters",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: RSA key missing NULL parameters",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: RSA key missing NULL parameters"
+  },
+  {
+    "name": "key-rsa-negative-modulus",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUhNd1lBSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3SERBTkJna3Foa2lHOXcwQkFRRUZBQU1MQURBSUFnSDdBZ01CCkFBR2dBREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: RSA modulus is not a positive number",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: RSA modulus is not a positive number",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: RSA modulus is not a positive number",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: RSA modulus is not a positive number"
+  },
+  {
+    "name": "key-rsa-zero-exponent",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQmV6Q0NBV1lDQVFBd096RVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFEREJsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1JSUJJREFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUTBBCk1JSUJDQUtDQVFFQW00bUxaOVc2QUpzY1k0ZTd5VVA0dVNiUU1hdHhQaGVoaGRBQXBudW92MGQ5NHJIa2h1VVoKSjZjaFpWZEhseXAxUG9RVnhHejNSZ3crUWlpYy9oNTQzY0pRR04rNkxJM1RiZXBvSFlkSFhmYUl6NUV6alVGegpkK1N2SHh4UktNY1d6Q0kvdHlueGNYSHRMLzF1UXJ0TVZwNWFtSVRLZ1Q1OGVBc25QZGxPc3BVYVdtZ2JHQlV1CmFUZWhINGptSU4xR2p1Sk8zS0sxL01PMmxiMkhOYVlGcEttNEhHZmY3MTY2aWlUTmx3emRta2orbVhLbU9BV2UKQU1QOURTZGs0Q1QvM0lmMElSTVMvQ05aR3RmYkEwbTJRZ0c2cWl0WEY1VHYyaWdwWU8rajVxSVFpOWtjVjlBLwplTU03OGZKSkJqZlVvS3Z6NVVqenN5eFh1aXdnS2RONjFRSUJBS0FBTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: RSA public exponent is not a positive number",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: RSA public exponent is not a positive number",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: RSA public exponent is not a positive number",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: RSA public exponent is not a positive number"
+  },
+  {
+    "name": "key-rsa-huge-exponent",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQmd6Q0NBVzRDQVFBd096RVZNQk1HQTFVRUNoTU1jM2x6ZEdWdE9tNXZaR1Z6TVNJd0lBWURWUVFEREJsegplWE4wWlcwNmJtOWtaVHBrY0hVdGQyOXlhMlZ5TFRBeE1JSUJLREFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUlVBCk1JSUJFQUtDQVFFQW00bUxaOVc2QUpzY1k0ZTd5VVA0dVNiUU1hdHhQaGVoaGRBQXBudW92MGQ5NHJIa2h1VVoKSjZjaFpWZEhseXAxUG9RVnhHejNSZ3crUWlpYy9oNTQzY0pRR04rNkxJM1RiZXBvSFlkSFhmYUl6NUV6alVGegpkK1N2SHh4UktNY1d6Q0kvdHlueGNYSHRMLzF1UXJ0TVZwNWFtSVRLZ1Q1OGVBc25QZGxPc3BVYVdtZ2JHQlV1CmFUZWhINGptSU4xR2p1Sk8zS0sxL01PMmxiMkhOYVlGcEttNEhHZmY3MTY2aWlUTmx3emRta2orbVhLbU9BV2UKQU1QOURTZGs0Q1QvM0lmMElSTVMvQ05aR3RmYkEwbTJRZ0c2cWl0WEY1VHYyaWdwWU8rajVxSVFpOWtjVjlBLwplTU03OGZKSkJqZlVvS3Z6NVVqenN5eFh1aXdnS2RONjFRSUpBUUlEQkFVR0J3Z0pvQUF3Q2dZSUtvWkl6ajBFCkF3SURBd0FCQWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: invalid RSA public exponent",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: invalid RSA public exponent",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid RSA public exponent",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid RSA public exponent"
+  },
+  {
+    "name": "key-rsa-garbage",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUd3d1dRSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3RlRBTkJna3Foa2lHOXcwQkFRRUZBQU1FQUFFQ0E2QUFNQW9HCkNDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: invalid RSA public key",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: invalid RSA public key",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid RSA public key",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid RSA public key"
+  },
+  {
+    "name": "key-ed25519-wrong-size",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUdRd1VRSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3RFRBRkJnTXJaWEFEQkFBQkFnT2dBREFLQmdncWhrak9QUVFECkFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: wrong Ed25519 public key size",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: wrong Ed25519 public key size",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: wrong Ed25519 public key size",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: wrong Ed25519 public key size"
+  },
+  {
+    "name": "key-ed25519-params",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlHRE1IQUNBUUF3T3pFVk1CTUdBMVVFQ2hNTWMzbHpkR1Z0T201dlpHVnpNU0l3SUFZRFZRUUREQmx6ZVhOMApaVzA2Ym05a1pUcGtjSFV0ZDI5eWEyVnlMVEF4TUN3d0J3WURLMlZ3QlFBRElRQUFBQUFBQUFBQUFBQUFBQUFBCkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFLQUFNQW9HQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: Ed25519 key encoded with illegal parameters",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: Ed25519 key encoded with illegal parameters",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: Ed25519 key encoded with illegal parameters",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: Ed25519 key encoded with illegal parameters"
+  },
+  {
+    "name": "key-dsa-valid",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUhNd1lBSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3SERBVUJnY3Foa2pPT0FRQk1Ba0NBUmNDQVFzQ0FRUURCQUFDCkFRaWdBREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "key-dsa-zero-param",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUhNd1lBSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3SERBVUJnY3Foa2pPT0FRQk1Ba0NBUmNDQVFBQ0FRUURCQUFDCkFRaWdBREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: zero or negative DSA parameter",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: zero or negative DSA parameter",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: zero or negative DSA parameter",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: zero or negative DSA parameter"
+  },
+  {
+    "name": "key-dsa-bad-params",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUdzd1dBSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3RkRBTUJnY3Foa2pPT0FRQkFnRUJBd1FBQWdFSW9BQXdDZ1lJCktvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: invalid DSA parameters",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: invalid DSA parameters",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid DSA parameters",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid DSA parameters"
+  },
+  {
+    "name": "key-spki-not-sequence",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUZnd1JRSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREVFQVFHZ0FEQUtCZ2dxaGtqT1BRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: tags don't match (16 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} publicKeyInfo @66",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} publicKeyInfo @66",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} publicKeyInfo @66",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:4 length:1 isCompound:false}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false} publicKeyInfo @66"
+  },
+  {
+    "name": "key-bitstring-padding",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUdJd1R3SUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTU1HWE41YzNSbApiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3Q3pBRkJnTXFBd1FEQWdFQm9BQXdDZ1lJS29aSXpqMEVBd0lECkF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: invalid padding bits in BIT STRING",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: invalid padding bits in BIT STRING",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid padding bits in BIT STRING",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid padding bits in BIT STRING"
+  },
+  {
+    "name": "ext-san-dns",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIY01JSElBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnS3pBcEJna3Foa2lHOXcwQkNRNHhIREFhTUJnR0ExVWRFUVFSTUErQwpEV1J3ZFMxM2IzSnJaWEl0TURFd0NnWUlLb1pJemowRUF3SURBd0FCQWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-san-dns-nonascii",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIUk1JRzlBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnSURBZUJna3Foa2lHOXcwQkNRNHhFVEFQTUEwR0ExVWRFUVFHTUFTQwpBbWpwTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: SAN dNSName is malformed",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: SAN dNSName is malformed",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: SAN dNSName is malformed",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: SAN dNSName is malformed"
+  },
+  {
+    "name": "ext-san-email-nonascii",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIU01JRytBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnSVRBZkJna3Foa2lHOXcwQkNRNHhFakFRTUE0R0ExVWRFUVFITUFXQgpBK2xBZURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: SAN rfc822Name is malformed",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: SAN rfc822Name is malformed",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: SAN rfc822Name is malformed",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: SAN rfc822Name is malformed"
+  },
+  {
+    "name": "ext-san-ip-bad-length",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIak1JSFBBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTWpBd0Jna3Foa2lHOXcwQkNRNHhJekFoTUI4R0ExVWRFUVFZTUJhQwpEV1J3ZFMxM2IzSnJaWEl0TURHSEJRRUNBd1FGTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse IP address of length 5",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse IP address of length 5",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse IP address of length 5",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse IP address of length 5"
+  },
+  {
+    "name": "ext-san-uri-invalid",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIb01JSFVBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTnpBMUJna3Foa2lHOXcwQkNRNHhLREFtTUNRR0ExVWRFUVFkTUJ1QwpEV1J3ZFMxM2IzSnJaWEl0TURHR0NtaDBkSEE2THk5aElHSXdDZ1lJS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"http://a b\": parse \"http://a b\": invalid character \" \" in host name",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"http://a b\": parse \"http://a b\": invalid character \" \" in host name",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"http://a b\": parse \"http://a b\": invalid character \" \" in host name",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"http://a b\": parse \"http://a b\": invalid character \" \" in host name"
+  },
+  {
+    "name": "ext-san-uri-bad-port",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIck1JSFhBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnT2pBNEJna3Foa2lHOXcwQkNRNHhLekFwTUNjR0ExVWRFUVFnTUI2QwpEV1J3ZFMxM2IzSnJaWEl0TURHR0RXaDBkSEE2THk5NE9tRmlZeTh3Q2dZSUtvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"http://x:abc/\": parse \"http://x:abc/\": invalid port \":abc\" after host",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"http://x:abc/\": parse \"http://x:abc/\": invalid port \":abc\" after host",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"http://x:abc/\": parse \"http://x:abc/\": invalid port \":abc\" after host",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"http://x:abc/\": parse \"http://x:abc/\": invalid port \":abc\" after host"
+  },
+  {
+    "name": "ext-san-uri-bad-escape",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIak1JSFBBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTWpBd0Jna3Foa2lHOXcwQkNRNHhJekFoTUI4R0ExVWRFUVFZTUJhQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0JTOWhKWHA2TUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"/a%zz\": parse \"/a%zz\": invalid URL escape \"%zz\"",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"/a%zz\": parse \"/a%zz\": invalid URL escape \"%zz\"",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"/a%zz\": parse \"/a%zz\": invalid URL escape \"%zz\"",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"/a%zz\": parse \"/a%zz\": invalid URL escape \"%zz\""
+  },
+  {
+    "name": "ext-san-uri-colon-first-segment",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIak1JSFBBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTWpBd0Jna3Foa2lHOXcwQkNRNHhJekFoTUI4R0ExVWRFUVFZTUJhQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0JXRTZZaTlqTUFvR0NDcUdTTTQ5QkFNQ0F3TUFBUUk9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [
+      "a:b/c"
+    ],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[a:b/c])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-san-uri-missing-scheme",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIZ01JSE1BZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTHpBdEJna3Foa2lHOXcwQkNRNHhJREFlTUJ3R0ExVWRFUVFWTUJPQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0FqcDRNQW9HQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \":x\": parse \":x\": missing protocol scheme",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \":x\": parse \":x\": missing protocol scheme",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \":x\": parse \":x\": missing protocol scheme",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \":x\": parse \":x\": missing protocol scheme"
+  },
+  {
+    "name": "ext-san-uri-invalid-domain",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIck1JSFhBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnT2pBNEJna3Foa2lHOXcwQkNRNHhLekFwTUNjR0ExVWRFUVFnTUI2QwpEV1J3ZFMxM2IzSnJaWEl0TURHR0RXaDBkSEJ6T2k4dllTNHVZaTh3Q2dZSUtvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"https://a..b/\": invalid domain",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"https://a..b/\": invalid domain",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://a..b/\": invalid domain",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://a..b/\": invalid domain"
+  },
+  {
+    "name": "ext-san-uri-trailing-dot",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIck1JSFhBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnT2pBNEJna3Foa2lHOXcwQkNRNHhLekFwTUNjR0ExVWRFUVFnTUI2QwpEV1J3ZFMxM2IzSnJaWEl0TURHR0RXaDBkSEJ6T2k4dllTNWlMaTh3Q2dZSUtvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"https://a.b./\": invalid domain",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"https://a.b./\": invalid domain",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://a.b./\": invalid domain",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://a.b./\": invalid domain"
+  },
+  {
+    "name": "ext-san-uri-ipv6",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIeE1JSGRBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUURBK0Jna3Foa2lHOXcwQkNRNHhNVEF2TUMwR0ExVWRFUVFtTUNTQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0UyaDBkSEJ6T2k4dld6bzZNVjA2TkRRekwzZ3dDZ1lJS29aSXpqMEVBd0lECkF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [
+      "https://[::1]:443/x"
+    ],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[https://[::1]:443/x])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-san-uri-ipv4-literal",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIeE1JSGRBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUURBK0Jna3Foa2lHOXcwQkNRNHhNVEF2TUMwR0ExVWRFUVFtTUNTQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0UyaDBkSEJ6T2k4dld6RXVNaTR6TGpSZEwzZ3dDZ1lJS29aSXpqMEVBd0lECkF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"https://[1.2.3.4]/x\": parse \"https://[1.2.3.4]/x\": invalid IP-literal",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"https://[1.2.3.4]/x\": parse \"https://[1.2.3.4]/x\": invalid IP-literal",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://[1.2.3.4]/x\": parse \"https://[1.2.3.4]/x\": invalid IP-literal",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://[1.2.3.4]/x\": parse \"https://[1.2.3.4]/x\": invalid IP-literal"
+  },
+  {
+    "name": "ext-san-uri-opaque",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIbE1JSFJBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTkRBeUJna3Foa2lHOXcwQkNRNHhKVEFqTUNFR0ExVWRFUVFhTUJpQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0IzVnlianA0T25rd0NnWUlLb1pJemowRUF3SURBd0FCQWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [
+      "urn:x:y"
+    ],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[urn:x:y])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-san-uri-userinfo",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIdE1JSFpBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUERBNkJna3Foa2lHOXcwQkNRNHhMVEFyTUNrR0ExVWRFUVFpTUNDQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0QyaDBkSEJ6T2k4dmRUcHdRR2d2ZURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [
+      "https://u:p@h/x"
+    ],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[https://u:p@h/x])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-san-uri-bad-userinfo",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIdE1JSFpBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUERBNkJna3Foa2lHOXcwQkNRNHhMVEFyTUNrR0ExVWRFUVFpTUNDQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0QyaDBkSEJ6T2k4dmRWNXdRR2d2ZURBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"https://u^p@h/x\": parse \"https://u^p@h/x\": net/url: invalid userinfo",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"https://u^p@h/x\": parse \"https://u^p@h/x\": net/url: invalid userinfo",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://u^p@h/x\": parse \"https://u^p@h/x\": net/url: invalid userinfo",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://u^p@h/x\": parse \"https://u^p@h/x\": net/url: invalid userinfo"
+  },
+  {
+    "name": "ext-san-uri-fragment-bad-escape",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIdE1JSFpBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUERBNkJna3Foa2lHOXcwQkNRNHhMVEFyTUNrR0ExVWRFUVFpTUNDQwpEV1J3ZFMxM2IzSnJaWEl0TURHR0QyaDBkSEJ6T2k4dmFDOTRJeVY2ZWpBS0JnZ3Foa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: cannot parse URI \"https://h/x#%zz\": parse \"https://h/x#%zz\": invalid URL escape \"%zz\"",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: cannot parse URI \"https://h/x#%zz\": parse \"https://h/x#%zz\": invalid URL escape \"%zz\"",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://h/x#%zz\": parse \"https://h/x#%zz\": invalid URL escape \"%zz\"",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: cannot parse URI \"https://h/x#%zz\": parse \"https://h/x#%zz\": invalid URL escape \"%zz\""
+  },
+  {
+    "name": "ext-san-othername-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIcU1JSFdBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnT1RBM0Jna3Foa2lHOXcwQkNRNHhLakFvTUNZR0ExVWRFUVFmTUIyQwpEV1J3ZFMxM2IzSnJaWEl0TURHZ0REQUtCZ05WQkFPZ0F3d0JlREFLQmdncWhrak9QUVFEQWdNREFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-san-registeredid-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIZk1JSExBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTGpBc0Jna3Foa2lHOXcwQkNRNHhIekFkTUJzR0ExVWRFUVFVTUJLQwpEV1J3ZFMxM2IzSnJaWEl0TURHSUFTb3dDZ1lJS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-san-not-sequence",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIY01JSElBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnS3pBcEJna3Foa2lHOXcwQkNRNHhIREFhTUJnR0ExVWRFUVFSTVErQwpEV1J3ZFMxM2IzSnJaWEl0TURFd0NnWUlLb1pJemowRUF3SURBd0FCQWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: invalid subject alternative names",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: invalid subject alternative names",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid subject alternative names",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid subject alternative names"
+  },
+  {
+    "name": "ext-san-truncated-name",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIUU1JRzhBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnSHpBZEJna3Foa2lHOXcwQkNRNHhFREFPTUF3R0ExVWRFUVFGTUErQwpEV1F3Q2dZSUtvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: invalid subject alternative names",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: invalid subject alternative names",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid subject alternative names",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid subject alternative names"
+  },
+  {
+    "name": "ext-san-high-tag",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIUU1JRzhBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnSHpBZEJna3Foa2lHOXcwQkNRNHhFREFPTUF3R0ExVWRFUVFGTUFPZgpJUUF3Q2dZSUtvWkl6ajBFQXdJREF3QUJBZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: invalid subject alternative name",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: invalid subject alternative name",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid subject alternative name",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: invalid subject alternative name"
+  },
+  {
+    "name": "ext-san-trailing-after-seq",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIZE1JSEpBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTERBcUJna3Foa2lHOXcwQkNRNHhIVEFiTUJrR0ExVWRFUVFTTUErQwpEV1J3ZFMxM2IzSnJaWEl0TURFQU1Bb0dDQ3FHU000OUJBTUNBd01BQVFJPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-duplicate",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIMk1JSGlBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUlRCREJna3Foa2lHOXcwQkNRNHhOakEwTUJnR0ExVWRFUVFSTUErQwpEV1J3ZFMxM2IzSnJaWEl0TURFd0dBWURWUjBSQkJFd0Q0SU5aSEIxTFhkdmNtdGxjaTB3TVRBS0JnZ3Foa2pPClBRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: certificate request contains duplicate requested extensions",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions"
+  },
+  {
+    "name": "ext-duplicate-across-attrs",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkJ6Q0I4d0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1NR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0ZZd0tRWUpLb1pJaHZjTkFRa09NUnd3R2pBWUJnTlZIUkVFRVRBUApnZzFrY0hVdGQyOXlhMlZ5TFRBeE1Da0dDU3FHU0liM0RRRUpEakVjTUJvd0dBWURWUjBSQkJFd0Q0SU5aSEIxCkxYZHZjbXRsY2kwd01UQUtCZ2dxaGtqT1BRUURBZ01EQUFFQwotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: certificate request contains duplicate requested extensions",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions"
+  },
+  {
+    "name": "ext-critical",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIZk1JSExBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTGpBc0Jna3Foa2lHOXcwQkNRNHhIekFkTUJzR0ExVWRFUUVCL3dRUgpNQStDRFdSd2RTMTNiM0pyWlhJdE1ERXdDZ1lJS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-critical-invalid-bool",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIZk1JSExBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTGpBc0Jna3Foa2lHOXcwQkNRNHhIekFkTUJzR0ExVWRFUUVCQVFRUgpNQStDRFdSd2RTMTNiM0pyWlhJdE1ERXdDZ1lJS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: invalid boolean",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: invalid boolean",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid boolean",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: invalid boolean"
+  },
+  {
+    "name": "ext-key-usage-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIcE1JSFZBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnT0RBMkJna3Foa2lHOXcwQkNRNHhLVEFuTUFzR0ExVWREd1FFQXdJRgpvREFZQmdOVkhSRUVFVEFQZ2cxa2NIVXRkMjl5YTJWeUxUQXhNQW9HQ0NxR1NNNDlCQU1DQXdNQUFRST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "ext-request-not-sequence",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIQ01JR3VBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnRVRBUEJna3Foa2lHOXcwQkNRNHhBakVBTUFvR0NDcUdTTTQ5QkFNQwpBd01BQVFJPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false}  @2",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false}  @2",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false}  @2",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: structure error: tags don't match (16 vs {class:0 tag:17 length:0 isCompound:true}) {optional:false explicit:false application:false private:false defaultValue:\u003cnil\u003e tag:\u003cnil\u003e stringType:0 timeType:0 set:false omitEmpty:false}  @2"
+  },
+  {
+    "name": "ext-request-empty-set-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIQU1JR3NBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnRHpBTkJna3Foa2lHOXcwQkNRNHhBREFLQmdncWhrak9QUVFEQWdNRApBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "ext-request-two-values",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlId01JSGNBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUHpBOUJna3Foa2lHOXcwQkNRNHhNREFhTUJnR0ExVWRFUVFSTUErQwpEV1J3ZFMxM2IzSnJaWEl0TURFd0VqQVFCZ05WSFJFRUNUQUhnZ1Z2ZEdobGNqQUtCZ2dxaGtqT1BRUURBZ01ECkFBRUMKLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "attr-unparseable-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIZk1JSExBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnTGdRQkFUQXBCZ2txaGtpRzl3MEJDUTR4SERBYU1CZ0dBMVVkRVFRUgpNQStDRFdSd2RTMTNiM0pyWlhJdE1ERXdDZ1lJS29aSXpqMEVBd0lEQXdBQkFnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "attr-challenge-password",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIek1JSGZBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnUWpBVkJna3Foa2lHOXcwQkNRY3hDQk1HYzJWamNtVjBNQ2tHQ1NxRwpTSWIzRFFFSkRqRWNNQm93R0FZRFZSMFJCQkV3RDRJTlpIQjFMWGR2Y210bGNpMHdNVEFLQmdncWhrak9QUVFECkFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "attr-trailing-in-attr-ignored",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIK01JSHFBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnVFRBZ0Jna3Foa2lHOXcwQkNRNHhFREFPTUF3R0ExVWRFUVFGTUFPQwpBWGdDQVFFd0tRWUpLb1pJaHZjTkFRa09NUnd3R2pBWUJnTlZIUkVFRVRBUGdnMWtjSFV0ZDI5eWEyVnlMVEF4Ck1Bb0dDQ3FHU000OUJBTUNBd01BQVFJPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "x509: certificate request contains duplicate requested extensions",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: x509: certificate request contains duplicate requested extensions"
+  },
+  {
+    "name": "ext-request-extension-missing-value",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlISk1JRzFBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBd3daYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnR0RBV0Jna3Foa2lHOXcwQkNRNHhDVEFITUFVR0ExVWRFVEFLQmdncQpoa2pPUFFRREFnTURBQUVDCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: sequence truncated",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated"
+  },
+  {
+    "name": "pem-none",
+    "request": "bm90IGEgcGVt",
+    "pemFound": false,
+    "pemType": "",
+    "parseError": "",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to decode PEM block from CSR request",
+    "bootstrapError": "failed to parse CSR: failed to decode PEM block from CSR request",
+    "servingError": "failed to parse CSR: failed to decode PEM block from CSR request"
+  },
+  {
+    "name": "pem-empty",
+    "request": "",
+    "pemFound": false,
+    "pemType": "",
+    "parseError": "",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to decode PEM block from CSR request",
+    "bootstrapError": "failed to parse CSR: failed to decode PEM block from CSR request",
+    "servingError": "failed to parse CSR: failed to decode PEM block from CSR request"
+  },
+  {
+    "name": "pem-junk-before-after",
+    "request": "anVuawotLS0tLUJFR0lOIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQpNSUlCSnpDQnpnSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTVRHWE41CmMzUmxiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3V1RBVEJnY3Foa2pPUFFJQkJnZ3Foa2pPUFFNQkJ3TkMKQUFSZGJVWjJZTGJUNFAwQ3N1UUJVdytXVjVsL1hTSmk5Q1AxaFdKelJsTDVXWHdqcVR5aUJReWl1T09WSzhXaAp5NjdQK3ptQm1yVzZRdnU1dkd3SVZqN3dvREV3THdZSktvWklodmNOQVFrT01TSXdJREFlQmdOVkhSRUVGekFWCmdnMWtjSFV0ZDI5eWEyVnlMVEF4aHdRS0FBQUZNQW9HQ0NxR1NNNDlCQU1DQTBnQU1FVUNJQUw3bFk2di9JRXIKUjl1eldqZGs1aGwrZWtVT2VtTXd2TDMvalpQdEMxSjBBaUVBM0NCbFdDbVdlRlA1bmxaU3UxZXl5aDFKSjNNcgplYnoybXN6TUFsZWE0dlU9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQp0cmFpbGVy",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "pem-crlf",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0NCk1JSUJKekNCemdJQkFEQTdNUlV3RXdZRFZRUUtFd3h6ZVhOMFpXMDZibTlrWlhNeElqQWdCZ05WQkFNVEdYTjUNCmMzUmxiVHB1YjJSbE9tUndkUzEzYjNKclpYSXRNREV3V1RBVEJnY3Foa2pPUFFJQkJnZ3Foa2pPUFFNQkJ3TkMNCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gNCnk2N1Arem1CbXJXNlF2dTV2R3dJVmo3d29ERXdMd1lKS29aSWh2Y05BUWtPTVNJd0lEQWVCZ05WSFJFRUZ6QVYNCmdnMWtjSFV0ZDI5eWEyVnlMVEF4aHdRS0FBQUZNQW9HQ0NxR1NNNDlCQU1DQTBnQU1FVUNJQUw3bFk2di9JRXINClI5dXpXamRrNWhsK2VrVU9lbU13dkwzL2paUHRDMUowQWlFQTNDQmxXQ21XZUZQNW5sWlN1MWV5eWgxSkozTXINCmViejJtc3pNQWxlYTR2VT0NCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQ0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "pem-wrong-type",
+    "request": "LS0tLS1CRUdJTiBORVcgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCk1JSUJKakNCemdJQkFEQTdNUlV3RXdZRFZRUUtFd3h6ZVhOMFpXMDZibTlrWlhNeElqQWdCZ05WQkFNVEdYTjUKYzNSbGJUcHViMlJsT21Sd2RTMTNiM0pyWlhJdE1ERXdXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQwpBQVJkYlVaMllMYlQ0UDBDc3VRQlV3K1dWNWwvWFNKaTlDUDFoV0p6UmxMNVdYd2pxVHlpQlF5aXVPT1ZLOFdoCnk2N1Arem1CbXJXNlF2dTV2R3dJVmo3d29ERXdMd1lKS29aSWh2Y05BUWtPTVNJd0lEQWVCZ05WSFJFRUZ6QVYKZ2cxa2NIVXRkMjl5YTJWeUxUQXhod1FLQUFBRk1Bb0dDQ3FHU000OUJBTUNBMGNBTUVRQ0lDRmtZMW1HeDJKcApDYi9vb3YwaytlcENjSjVYeWREeUk4bTFjKzBDZFoxUUFpQmNWSlV6NnFicHJqcUptcFhjWW1reGNDN3RYOVRPCjI2UmgyaWpjYkl2Nm5BPT0KLS0tLS1FTkQgTkVXIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "NEW CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "failed to parse CSR: unexpected PEM block type \"NEW CERTIFICATE REQUEST\", expected CERTIFICATE REQUEST",
+    "servingError": "failed to parse CSR: unexpected PEM block type \"NEW CERTIFICATE REQUEST\", expected CERTIFICATE REQUEST"
+  },
+  {
+    "name": "pem-with-headers",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KUHJvYy1UeXBlOiA0LEVOQ1JZUFRFRAoKTUlJQkp6Q0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3UUtBQUFGTUFvR0NDcUdTTTQ5QkFNQ0EwZ0FNRVVDSVFEUCsxU1ljemc5CmgzdEZHZ09JUG50eTVScGFRK0puK3pmaU9Sd3lwVks0ZlFJZ1ZwOUUrYS9sSXcvSC9ZbTVKcytWcG80aGMydE8KUXJMNjNZZWtoajhDYXhzPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "pem-bad-base64",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KISEhIQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": false,
+    "pemType": "",
+    "parseError": "",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to decode PEM block from CSR request",
+    "bootstrapError": "failed to parse CSR: failed to decode PEM block from CSR request",
+    "servingError": "failed to parse CSR: failed to decode PEM block from CSR request"
+  },
+  {
+    "name": "pem-bad-then-good",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KISEhIQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkp6Q0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3UUtBQUFGTUFvR0NDcUdTTTQ5QkFNQ0EwZ0FNRVVDSUFMN2xZNnYvSUVyClI5dXpXamRrNWhsK2VrVU9lbU13dkwzL2paUHRDMUowQWlFQTNDQmxXQ21XZUZQNW5sWlN1MWV5eWgxSkozTXIKZWJ6Mm1zek1BbGVhNHZVPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "pem-mismatched-end",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KQVFJRAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+    "pemFound": false,
+    "pemType": "",
+    "parseError": "",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to decode PEM block from CSR request",
+    "bootstrapError": "failed to parse CSR: failed to decode PEM block from CSR request",
+    "servingError": "failed to parse CSR: failed to decode PEM block from CSR request"
+  },
+  {
+    "name": "pem-empty-body",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "asn1: syntax error: sequence truncated",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "bootstrapError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated",
+    "servingError": "failed to parse CSR: failed to parse X509 certificate request: asn1: syntax error: sequence truncated"
+  },
+  {
+    "name": "pem-spaces-in-body",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KIAlNSUlCSnpDQnpnSUJBREE3TVJVd0V3WURWUVFLRXd4emVYTjBaVzA2Ym05a1pYTXhJakFnQmdOVkJBTVRHWE41CiAJYzNSbGJUcHViMlJsT21Sd2RTMTNiM0pyWlhJdE1ERXdXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQwogCUFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKIAl5NjdQK3ptQm1yVzZRdnU1dkd3SVZqN3dvREV3THdZSktvWklodmNOQVFrT01TSXdJREFlQmdOVkhSRUVGekFWCiAJZ2cxa2NIVXRkMjl5YTJWeUxUQXhod1FLQUFBRk1Bb0dDQ3FHU000OUJBTUNBMGdBTUVVQ0lBTDdsWTZ2L0lFcgogCVI5dXpXamRrNWhsK2VrVU9lbU13dkwzL2paUHRDMUowQWlFQTNDQmxXQ21XZUZQNW5sWlN1MWV5eWgxSkozTXIKIAllYnoybXN6TUFsZWE0dlU9Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [
+      "dpu-worker-01"
+    ],
+    "emails": [],
+    "ips": [
+      "10.0.0.5"
+    ],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "bootstrap CSR must not contain SANs (DNS=[dpu-worker-01], IP=[10.0.0.5], email=[], URI=[])",
+    "servingError": ""
+  },
+  {
+    "name": "pem-two-blocks-first-wins",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlIMU1JR2RBZ0VBTURzeEZUQVRCZ05WQkFvVERITjVjM1JsYlRwdWIyUmxjekVpTUNBR0ExVUVBeE1aYzNsegpkR1Z0T201dlpHVTZaSEIxTFhkdmNtdGxjaTB3TVRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBCkJGMXRSblpndHRQZy9RS3k1QUZURDVaWG1YOWRJbUwwSS9XRlluTkdVdmxaZkNPcFBLSUZES0s0NDVVcnhhSEwKcnMvN09ZR2F0YnBDKzdtOGJBaFdQdkNnQURBS0JnZ3Foa2pPUFFRREFnTkhBREJFQWlCSitnYm9qQlRpd2V0VQowUEdtVS9HTjVsS1JBSnRuaWRJZFFMcnZWYWVjWUFJZ1Ztc2s5YjhURk1XU291MEphMmpQcFpRWHF3L1VMK1h2ClRMOXRPNFNtT2xnPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQkp6Q0J6Z0lCQURBN01SVXdFd1lEVlFRS0V3eHplWE4wWlcwNmJtOWtaWE14SWpBZ0JnTlZCQU1UR1hONQpjM1JsYlRwdWIyUmxPbVJ3ZFMxM2IzSnJaWEl0TURFd1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmRiVVoyWUxiVDRQMENzdVFCVXcrV1Y1bC9YU0ppOUNQMWhXSnpSbEw1V1h3anFUeWlCUXlpdU9PVks4V2gKeTY3UCt6bUJtclc2UXZ1NXZHd0lWajd3b0RFd0x3WUpLb1pJaHZjTkFRa09NU0l3SURBZUJnTlZIUkVFRnpBVgpnZzFrY0hVdGQyOXlhMlZ5TFRBeGh3UUtBQUFGTUFvR0NDcUdTTTQ5QkFNQ0EwZ0FNRVVDSUFMN2xZNnYvSUVyClI5dXpXamRrNWhsK2VrVU9lbU13dkwzL2paUHRDMUowQWlFQTNDQmxXQ21XZUZQNW5sWlN1MWV5eWgxSkozTXIKZWJ6Mm1zek1BbGVhNHZVPQotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0K",
+    "pemFound": true,
+    "pemType": "CERTIFICATE REQUEST",
+    "parseError": "",
+    "cn": "system:node:dpu-worker-01",
+    "org": [
+      "system:nodes"
+    ],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "dpu-worker-01",
+    "extractError": "",
+    "bootstrapError": "",
+    "servingError": "serving identities validation failed: CSR must contain exactly one DNS SAN, got 0: []"
+  },
+  {
+    "name": "pem-missing-padding",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KQVFJCi0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=",
+    "pemFound": false,
+    "pemType": "",
+    "parseError": "",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to decode PEM block from CSR request",
+    "bootstrapError": "failed to parse CSR: failed to decode PEM block from CSR request",
+    "servingError": "failed to parse CSR: failed to decode PEM block from CSR request"
+  },
+  {
+    "name": "pem-end-line-trailing-text",
+    "request": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KQVFJRAotLS0tLUVORCBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0geAo=",
+    "pemFound": false,
+    "pemType": "",
+    "parseError": "",
+    "cn": "",
+    "org": [],
+    "dns": [],
+    "emails": [],
+    "ips": [],
+    "uris": [],
+    "extractHostname": "",
+    "extractError": "failed to decode PEM block from CSR request",
+    "bootstrapError": "failed to parse CSR: failed to decode PEM block from CSR request",
+    "servingError": "failed to parse CSR: failed to decode PEM block from CSR request"
+  }
+]
