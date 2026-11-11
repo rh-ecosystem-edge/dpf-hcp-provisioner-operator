@@ -1,0 +1,7 @@
+{
+  "name": "hc_create_nodeport_no_address",
+  "requeueAfter": "0s",
+  "error": "failed to detect node address: no valid address found on node node-x",
+  "actions": [],
+  "events": []
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "ref": "",
+    "pull": "dpf-hcp-pull-secret-e3b0c442",
+    "ssh": "dpf-hcp-ssh-key-e3b0c442"
+  },
+  {
+    "ref": "a",
+    "pull": "dpf-hcp-pull-secret-ca978112",
+    "ssh": "dpf-hcp-ssh-key-ca978112"
+  },
+  {
+    "ref": "pull-secret",
+    "pull": "dpf-hcp-pull-secret-f36812f5",
+    "ssh": "dpf-hcp-ssh-key-f36812f5"
+  },
+  {
+    "ref": "my-pull-secret",
+    "pull": "dpf-hcp-pull-secret-e72fb833",
+    "ssh": "dpf-hcp-ssh-key-e72fb833"
+  },
+  {
+    "ref": "ssh-key",
+    "pull": "dpf-hcp-pull-secret-9e678778",
+    "ssh": "dpf-hcp-ssh-key-9e678778"
+  },
+  {
+    "ref": "ünïcödé",
+    "pull": "dpf-hcp-pull-secret-b09ad3e2",
+    "ssh": "dpf-hcp-ssh-key-b09ad3e2"
+  },
+  {
+    "ref": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "pull": "dpf-hcp-pull-secret-1329e1bd",
+    "ssh": "dpf-hcp-ssh-key-1329e1bd"
+  }
+]

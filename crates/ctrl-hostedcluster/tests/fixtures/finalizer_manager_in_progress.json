@@ -1,0 +1,14 @@
+{
+  "name": "finalizer_manager_in_progress",
+  "requeueAfter": "10s",
+  "error": "",
+  "actions": [
+    {
+      "verb": "delete",
+      "kind": "HostedCluster",
+      "namespace": "clusters",
+      "name": "dpf-hcp"
+    }
+  ],
+  "events": []
+}

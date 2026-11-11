@@ -1,0 +1,7 @@
+{
+  "name": "cleanup_np_deleting",
+  "requeueAfter": "10s",
+  "error": "",
+  "actions": [],
+  "events": []
+}

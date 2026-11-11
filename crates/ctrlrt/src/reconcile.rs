@@ -101,6 +101,41 @@ pub trait Reconciler: Send + Sync + 'static {
     async fn reconcile(&self, ctx: &Ctx, req: Request) -> Result<ReconcileResult>;
 }
 
+/// Go's `return ctrl.Result{...}, err`: an error that also carries the (ignored) result, so
+/// the controller can emit controller-runtime's "non-zero result and a non-nil error" warning.
+/// `Display`/`source` are transparent.
+#[derive(Debug)]
+pub struct ResultError {
+    pub result: ReconcileResult,
+    pub source: crate::Error,
+}
+impl std::fmt::Display for ResultError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.source, f)
+    }
+}
+impl std::error::Error for ResultError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(self.source.as_ref())
+    }
+}
+
+/// Build the error for Go's `return result, err` (with `err != nil`).
+pub fn with_result(result: ReconcileResult, err: crate::Error) -> crate::Error {
+    if result.is_zero() {
+        return err;
+    }
+    crate::Error::new(ResultError { result, source: err })
+}
+
+/// The result attached to an error by [`with_result`] (zero when none) — Go's `result` value
+/// at a `return result, err` site.
+pub fn result_of_error(err: &crate::Error) -> ReconcileResult {
+    crate::error::find_in_chain::<ResultError>(err)
+        .map(|e| e.result)
+        .unwrap_or_default()
+}
+
 /// `reconcile.TerminalError` marker: errors wrapping it are not retried.
 #[derive(Debug)]
 pub struct TerminalError(pub crate::Error);
@@ -568,4 +603,21 @@ pub trait ManagerHandle: Send + Sync {
     fn event_recorder_for(&self, name: &str) -> Recorder;
     /// Register a controller (`Complete`).
     fn add_controller(&self, spec: ControllerSpec) -> Result<()>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn with_result_is_transparent() {
+        let base: crate::Error = crate::ApiError::not_found("", "secrets", "s").into();
+        let e = with_result(ReconcileResult::requeue(), base);
+        assert_eq!(e.to_string(), r#"secrets "s" not found"#);
+        assert!(crate::error::is_not_found(&e));
+        assert!(result_of_error(&e).requeue);
+        // zero result → plain error
+        let e2 = with_result(ReconcileResult::done(), anyhow::anyhow!("x"));
+        assert!(result_of_error(&e2).is_zero());
+    }
 }

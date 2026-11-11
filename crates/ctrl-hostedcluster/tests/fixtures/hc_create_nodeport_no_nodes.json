@@ -1,0 +1,7 @@
+{
+  "name": "hc_create_nodeport_no_nodes",
+  "requeueAfter": "0s",
+  "error": "failed to detect node address: no nodes found in cluster",
+  "actions": [],
+  "events": []
+}

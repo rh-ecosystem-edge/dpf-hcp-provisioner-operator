@@ -1,0 +1,18 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "MetalLB CRDs not found: creating or updating IPAddressPool: no matches for kind \"IPAddressPool\" in version \"metallb.io/v1beta1\". Install MetalLB operator for LoadBalancer support on bare-metal",
+      "events": [
+        "Warning MetalLBConfigurationFailed LoadBalancer mode requires MetalLB on non-cloud platforms. Install MetalLB operator or remove VirtualIP to use NodePort mode."
+      ]
+    }
+  ],
+  "objects": {
+    "ipaddresspool": "",
+    "l2advertisement": "",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{\"conditions\":[{\"type\":\"MetalLBConfigured\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"MetalLBNotInstalled\",\"message\":\"LoadBalancer mode requires MetalLB on non-cloud platforms. Install MetalLB operator or remove VirtualIP to use NodePort mode.\"}]}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{\"conditions\":[{\"type\":\"MetalLBConfigured\",\"status\":\"False\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"MetalLBNotInstalled\",\"message\":\"LoadBalancer mode requires MetalLB on non-cloud platforms. Install MetalLB operator or remove VirtualIP to use NodePort mode.\"}]}}"
+  }
+}

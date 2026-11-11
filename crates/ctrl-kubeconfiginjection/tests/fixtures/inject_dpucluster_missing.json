@@ -1,0 +1,25 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Warning KubeconfigPending Waiting for DPUCluster dpu-ns/test-dpu"
+      ]
+    },
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": []
+    }
+  ],
+  "objects": {
+    "dpucluster": "",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1001\",\"generation\":2},\"spec\":{\"dpuClusterRef\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{}},\"status\":{\"conditions\":[{\"type\":\"KubeConfigInjected\",\"status\":\"False\",\"observedGeneration\":2,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"KubeconfigPending\",\"message\":\"Waiting for DPUCluster dpu-ns/test-dpu\"}],\"hostedClusterRef\":{\"namespace\":\"test-ns\",\"name\":\"test-provisioner\"}}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1001\",\"generation\":2},\"spec\":{\"dpuClusterRef\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{}},\"status\":{\"conditions\":[{\"type\":\"KubeConfigInjected\",\"status\":\"False\",\"observedGeneration\":2,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"KubeconfigPending\",\"message\":\"Waiting for DPUCluster dpu-ns/test-dpu\"}],\"hostedClusterRef\":{\"namespace\":\"test-ns\",\"name\":\"test-provisioner\"}}}",
+    "secret.dest": "",
+    "secret.source": "{\"metadata\":{\"name\":\"test-provisioner-admin-kubeconfig\",\"namespace\":\"test-ns\",\"resourceVersion\":\"999\",\"labels\":{\"hypershift.openshift.io/hosted-control-plane\":\"true\"},\"annotations\":{\"source\":\"hypershift\"}},\"data\":{\"kubeconfig\":\"ZGF0YQ==\"},\"type\":\"Opaque\"}"
+  }
+}

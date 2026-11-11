@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": []
+    }
+  ],
+  "objects": {
+    "ipaddresspool": "",
+    "l2advertisement": "",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"SingleReplica\"},\"status\":{}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"SingleReplica\"},\"status\":{}}"
+  }
+}

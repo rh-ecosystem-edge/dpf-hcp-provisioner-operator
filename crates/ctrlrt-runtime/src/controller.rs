@@ -350,6 +350,9 @@ impl Controller {
                 metrics::RECONCILE_TOTAL
                     .with_label_values(&[&self.name, LABEL_ERROR])
                     .inc();
+                if !ctrlrt::reconcile::result_of_error(&err).is_zero() {
+                    log.info("Warning: Reconciler returned both a non-zero result and a non-nil error. The result will always be ignored if the error is non-nil and the non-nil error causes requeuing with exponential backoff. For more details, see: https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile#Reconciler", kv![]);
+                }
                 log.error(&err, "Reconciler error", kv![]);
             }
             Ok(result) if !result.requeue_after.is_zero() => {
@@ -398,8 +401,6 @@ impl Controller {
     }
 }
 
-/// Note: Go reconcilers may return `Result` together with an error; the Rust `Reconciler`
-/// returns either, so the "both a non-zero result and a non-nil error" warning cannot occur.
 fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
     if let Some(s) = payload.downcast_ref::<&str>() {
         (*s).to_string()

@@ -1,0 +1,7 @@
+{
+  "name": "etcd_key_noop",
+  "requeueAfter": "0s",
+  "error": "",
+  "actions": [],
+  "events": []
+}

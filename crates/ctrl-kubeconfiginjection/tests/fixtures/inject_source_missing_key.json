@@ -1,0 +1,19 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "source secret missing 'kubeconfig' key",
+      "events": [
+        "Warning InjectionFailed Failed to create kubeconfig secret in namespace dpu-ns: source secret missing 'kubeconfig' key"
+      ]
+    }
+  ],
+  "objects": {
+    "dpucluster": "{\"metadata\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\",\"resourceVersion\":\"999\",\"labels\":{\"a\":\"b\"}},\"spec\":{\"type\":\"static\",\"maxNodes\":10},\"status\":{\"phase\":\"\",\"version\":\"\",\"nodesCount\":0,\"conditions\":null}}",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":2},\"spec\":{\"dpuClusterRef\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{}},\"status\":{\"conditions\":[{\"type\":\"KubeConfigInjected\",\"status\":\"False\",\"observedGeneration\":2,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InjectionFailed\",\"message\":\"Failed to create kubeconfig secret in namespace dpu-ns: source secret missing 'kubeconfig' key\"}],\"hostedClusterRef\":{\"namespace\":\"test-ns\",\"name\":\"test-provisioner\"}}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":2},\"spec\":{\"dpuClusterRef\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{}},\"status\":{\"conditions\":[{\"type\":\"KubeConfigInjected\",\"status\":\"False\",\"observedGeneration\":2,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"InjectionFailed\",\"message\":\"Failed to create kubeconfig secret in namespace dpu-ns: source secret missing 'kubeconfig' key\"}],\"hostedClusterRef\":{\"namespace\":\"test-ns\",\"name\":\"test-provisioner\"}}}",
+    "secret.dest": "",
+    "secret.source": "{\"metadata\":{\"name\":\"test-provisioner-admin-kubeconfig\",\"namespace\":\"test-ns\",\"resourceVersion\":\"999\",\"labels\":{\"hypershift.openshift.io/hosted-control-plane\":\"true\"},\"annotations\":{\"source\":\"hypershift\"}},\"data\":{\"other\":\"eA==\"},\"type\":\"Opaque\"}"
+  }
+}

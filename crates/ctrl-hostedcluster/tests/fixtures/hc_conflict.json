@@ -1,0 +1,7 @@
+{
+  "name": "hc_conflict",
+  "requeueAfter": "0s",
+  "error": "hostedCluster dpf-hcp exists in clusters but is owned by different DPFHCPProvisioner",
+  "actions": [],
+  "events": []
+}

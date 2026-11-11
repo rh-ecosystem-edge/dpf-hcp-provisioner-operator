@@ -1,0 +1,18 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Normal MetalLBCleanupComplete MetalLB resources cleaned up successfully"
+      ]
+    }
+  ],
+  "objects": {
+    "ipaddresspool": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"openshift-operators\",\"resourceVersion\":\"999\",\"labels\":{\"other\":\"owner\"},\"annotations\":{\"note\":\"user\"}},\"spec\":{\"addresses\":[\"192.168.1.200/32\",\"10.0.0.0/24\"],\"autoAssign\":false,\"avoidBuggyIPs\":true,\"serviceAllocation\":{\"priority\":5,\"namespaces\":[\"clusters-test-provisioner\"]}},\"status\":{\"assignedIPv4\":0,\"assignedIPv6\":0,\"availableIPv4\":0,\"availableIPv6\":0}}",
+    "l2advertisement": "{\"metadata\":{\"name\":\"advertise-test-provisioner\",\"namespace\":\"openshift-operators\",\"resourceVersion\":\"999\"},\"spec\":{\"ipAddressPools\":[\"wrong-pool\"],\"interfaces\":[\"eth0\"]},\"status\":{}}",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{}}"
+  }
+}

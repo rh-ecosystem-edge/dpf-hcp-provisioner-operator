@@ -1,0 +1,50 @@
+{
+  "name": "np_create",
+  "requeueAfter": "0s",
+  "error": "",
+  "actions": [
+    {
+      "verb": "create",
+      "kind": "NodePool",
+      "namespace": "clusters",
+      "name": "dpf-hcp",
+      "object": {
+        "kind": "NodePool",
+        "apiVersion": "hypershift.openshift.io/v1beta1",
+        "metadata": {
+          "name": "dpf-hcp",
+          "namespace": "clusters",
+          "ownerReferences": [
+            {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "dpf-hcp",
+              "uid": "cr-uid-1234",
+              "controller": true,
+              "blockOwnerDeletion": true
+            }
+          ]
+        },
+        "spec": {
+          "clusterName": "dpf-hcp",
+          "release": {
+            "image": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi"
+          },
+          "platform": {
+            "type": "None"
+          },
+          "replicas": 0,
+          "management": {
+            "upgradeType": "Replace",
+            "autoRepair": false
+          }
+        },
+        "status": {
+          "replicas": 0
+        }
+      },
+      "raw": "{\"kind\":\"NodePool\",\"apiVersion\":\"hypershift.openshift.io/v1beta1\",\"metadata\":{\"name\":\"dpf-hcp\",\"namespace\":\"clusters\",\"ownerReferences\":[{\"apiVersion\":\"provisioning.dpu.hcp.io/v1alpha1\",\"kind\":\"DPFHCPProvisioner\",\"name\":\"dpf-hcp\",\"uid\":\"cr-uid-1234\",\"controller\":true,\"blockOwnerDeletion\":true}]},\"spec\":{\"clusterName\":\"dpf-hcp\",\"release\":{\"image\":\"quay.io/openshift-release-dev/ocp-release:4.19.0-multi\"},\"platform\":{\"type\":\"None\"},\"replicas\":0,\"management\":{\"upgradeType\":\"Replace\",\"autoRepair\":false}},\"status\":{\"replicas\":0}}"
+    }
+  ],
+  "events": []
+}

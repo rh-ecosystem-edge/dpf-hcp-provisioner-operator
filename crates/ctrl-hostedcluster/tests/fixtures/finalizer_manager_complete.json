@@ -1,0 +1,17 @@
+{
+  "name": "finalizer_manager_complete",
+  "requeueAfter": "0s",
+  "error": "",
+  "actions": [
+    {
+      "verb": "delete",
+      "kind": "Secret",
+      "namespace": "clusters",
+      "name": "dpf-hcp-etcd-encryption-key"
+    }
+  ],
+  "events": [
+    "Normal HostedClusterCleanupSucceeded HostedCluster, NodePool, and secrets deleted successfully",
+    "Normal CleanupSucceeded All resources cleaned up successfully"
+  ]
+}

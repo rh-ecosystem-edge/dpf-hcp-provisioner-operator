@@ -1,0 +1,7 @@
+{
+  "name": "etcd_key_conflict",
+  "requeueAfter": "0s",
+  "error": "etcd encryption key dpf-hcp-etcd-encryption-key exists in clusters but is owned by different DPFHCPProvisioner",
+  "actions": [],
+  "events": []
+}

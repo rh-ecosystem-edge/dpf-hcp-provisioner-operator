@@ -1,0 +1,133 @@
+{
+  "name": "hc_create_loadbalancer",
+  "requeueAfter": "0s",
+  "error": "",
+  "actions": [
+    {
+      "verb": "create",
+      "kind": "HostedCluster",
+      "namespace": "clusters",
+      "name": "dpf-hcp",
+      "object": {
+        "kind": "HostedCluster",
+        "apiVersion": "hypershift.openshift.io/v1beta1",
+        "metadata": {
+          "name": "dpf-hcp",
+          "namespace": "clusters",
+          "ownerReferences": [
+            {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "dpf-hcp",
+              "uid": "cr-uid-1234",
+              "controller": true,
+              "blockOwnerDeletion": true
+            }
+          ]
+        },
+        "spec": {
+          "release": {
+            "image": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi"
+          },
+          "infraID": "INFRAID",
+          "platform": {
+            "type": "None"
+          },
+          "controllerAvailabilityPolicy": "HighlyAvailable",
+          "dns": {
+            "baseDomain": "example.com"
+          },
+          "networking": {
+            "clusterNetwork": [
+              {
+                "cidr": "10.132.0.0/14"
+              }
+            ],
+            "serviceNetwork": [
+              {
+                "cidr": "172.31.0.0/16"
+              }
+            ],
+            "networkType": "Other",
+            "allocateNodeCIDRs": "Enabled"
+          },
+          "autoscaling": {},
+          "etcd": {
+            "managementType": "Managed",
+            "managed": {
+              "storage": {
+                "type": "PersistentVolume",
+                "persistentVolume": {
+                  "storageClassName": "ceph-rbd",
+                  "size": "8Gi"
+                }
+              }
+            }
+          },
+          "services": [
+            {
+              "service": "APIServer",
+              "servicePublishingStrategy": {
+                "type": "LoadBalancer"
+              }
+            },
+            {
+              "service": "OAuthServer",
+              "servicePublishingStrategy": {
+                "type": "Route"
+              }
+            },
+            {
+              "service": "Konnectivity",
+              "servicePublishingStrategy": {
+                "type": "Route"
+              }
+            },
+            {
+              "service": "Ignition",
+              "servicePublishingStrategy": {
+                "type": "Route"
+              }
+            }
+          ],
+          "pullSecret": {
+            "name": "dpf-hcp-pull-secret-e72fb833"
+          },
+          "sshKey": {
+            "name": "dpf-hcp-ssh-key-f9b60cc7"
+          },
+          "secretEncryption": {
+            "type": "aescbc",
+            "aescbc": {
+              "activeKey": {
+                "name": "dpf-hcp-etcd-encryption-key"
+              }
+            }
+          },
+          "fips": false,
+          "nodeSelector": {
+            "node-role.kubernetes.io/control-plane": ""
+          },
+          "capabilities": {
+            "disabled": [
+              "ImageRegistry",
+              "Insights",
+              "Console",
+              "openshift-samples",
+              "Ingress",
+              "NodeTuning"
+            ]
+          }
+        },
+        "status": {
+          "controlPlaneEndpoint": {
+            "host": "",
+            "port": 0
+          }
+        }
+      },
+      "raw": "{\"kind\":\"HostedCluster\",\"apiVersion\":\"hypershift.openshift.io/v1beta1\",\"metadata\":{\"name\":\"dpf-hcp\",\"namespace\":\"clusters\",\"ownerReferences\":[{\"apiVersion\":\"provisioning.dpu.hcp.io/v1alpha1\",\"kind\":\"DPFHCPProvisioner\",\"name\":\"dpf-hcp\",\"uid\":\"cr-uid-1234\",\"controller\":true,\"blockOwnerDeletion\":true}]},\"spec\":{\"release\":{\"image\":\"quay.io/openshift-release-dev/ocp-release:4.19.0-multi\"},\"infraID\":\"INFRAID\",\"platform\":{\"type\":\"None\"},\"controllerAvailabilityPolicy\":\"HighlyAvailable\",\"dns\":{\"baseDomain\":\"example.com\"},\"networking\":{\"clusterNetwork\":[{\"cidr\":\"10.132.0.0/14\"}],\"serviceNetwork\":[{\"cidr\":\"172.31.0.0/16\"}],\"networkType\":\"Other\",\"allocateNodeCIDRs\":\"Enabled\"},\"autoscaling\":{},\"etcd\":{\"managementType\":\"Managed\",\"managed\":{\"storage\":{\"type\":\"PersistentVolume\",\"persistentVolume\":{\"storageClassName\":\"ceph-rbd\",\"size\":\"8Gi\"}}}},\"services\":[{\"service\":\"APIServer\",\"servicePublishingStrategy\":{\"type\":\"LoadBalancer\"}},{\"service\":\"OAuthServer\",\"servicePublishingStrategy\":{\"type\":\"Route\"}},{\"service\":\"Konnectivity\",\"servicePublishingStrategy\":{\"type\":\"Route\"}},{\"service\":\"Ignition\",\"servicePublishingStrategy\":{\"type\":\"Route\"}}],\"pullSecret\":{\"name\":\"dpf-hcp-pull-secret-e72fb833\"},\"sshKey\":{\"name\":\"dpf-hcp-ssh-key-f9b60cc7\"},\"secretEncryption\":{\"type\":\"aescbc\",\"aescbc\":{\"activeKey\":{\"name\":\"dpf-hcp-etcd-encryption-key\"}}},\"fips\":false,\"nodeSelector\":{\"node-role.kubernetes.io/control-plane\":\"\"},\"capabilities\":{\"disabled\":[\"ImageRegistry\",\"Insights\",\"Console\",\"openshift-samples\",\"Ingress\",\"NodeTuning\"]}},\"status\":{\"controlPlaneEndpoint\":{\"host\":\"\",\"port\":0}}}"
+    }
+  ],
+  "events": []
+}

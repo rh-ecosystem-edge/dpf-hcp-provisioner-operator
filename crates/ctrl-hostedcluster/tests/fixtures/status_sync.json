@@ -1,0 +1,58 @@
+{
+  "name": "status_sync",
+  "requeueAfter": "0s",
+  "error": "",
+  "actions": [],
+  "events": [],
+  "conditions": [
+    {
+      "type": "HostedClusterAvailable",
+      "status": "True",
+      "reason": "Reason0",
+      "message": "message 0",
+      "observedGeneration": 2
+    },
+    {
+      "type": "HostedClusterDegraded",
+      "status": "True",
+      "reason": "Reason2",
+      "message": "message 2",
+      "observedGeneration": 2
+    },
+    {
+      "type": "HostedClusterProgressing",
+      "status": "True",
+      "reason": "Reason1",
+      "message": "message 1",
+      "observedGeneration": 2
+    },
+    {
+      "type": "IgnitionEndpointAvailable",
+      "status": "True",
+      "reason": "Reason5",
+      "message": "message 5",
+      "observedGeneration": 2
+    },
+    {
+      "type": "IgnitionServerValidReleaseInfo",
+      "status": "True",
+      "reason": "Reason6",
+      "message": "message 6",
+      "observedGeneration": 2
+    },
+    {
+      "type": "ValidReleaseImage",
+      "status": "True",
+      "reason": "Reason4",
+      "message": "message 4",
+      "observedGeneration": 2
+    },
+    {
+      "type": "ValidReleaseInfo",
+      "status": "True",
+      "reason": "Reason3",
+      "message": "message 3",
+      "observedGeneration": 2
+    }
+  ]
+}

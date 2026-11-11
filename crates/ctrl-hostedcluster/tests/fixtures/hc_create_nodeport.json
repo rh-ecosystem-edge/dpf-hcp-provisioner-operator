@@ -1,0 +1,159 @@
+{
+  "name": "hc_create_nodeport",
+  "requeueAfter": "0s",
+  "error": "",
+  "actions": [
+    {
+      "verb": "create",
+      "kind": "HostedCluster",
+      "namespace": "clusters",
+      "name": "dpf-hcp",
+      "object": {
+        "kind": "HostedCluster",
+        "apiVersion": "hypershift.openshift.io/v1beta1",
+        "metadata": {
+          "name": "dpf-hcp",
+          "namespace": "clusters",
+          "ownerReferences": [
+            {
+              "apiVersion": "provisioning.dpu.hcp.io/v1alpha1",
+              "kind": "DPFHCPProvisioner",
+              "name": "dpf-hcp",
+              "uid": "cr-uid-1234",
+              "controller": true,
+              "blockOwnerDeletion": true
+            }
+          ]
+        },
+        "spec": {
+          "release": {
+            "image": "quay.io/openshift-release-dev/ocp-release:4.19.0-multi"
+          },
+          "infraID": "INFRAID",
+          "platform": {
+            "type": "None"
+          },
+          "controllerAvailabilityPolicy": "SingleReplica",
+          "dns": {
+            "baseDomain": "example.com"
+          },
+          "networking": {
+            "machineNetwork": [
+              {
+                "cidr": "192.168.10.0/24"
+              }
+            ],
+            "clusterNetwork": [
+              {
+                "cidr": "10.244.0.0/16",
+                "hostPrefix": 23
+              }
+            ],
+            "serviceNetwork": [
+              {
+                "cidr": "10.96.0.0/12"
+              }
+            ],
+            "networkType": "Other"
+          },
+          "autoscaling": {},
+          "etcd": {
+            "managementType": "Managed",
+            "managed": {
+              "storage": {
+                "type": "PersistentVolume",
+                "persistentVolume": {
+                  "size": "8Gi"
+                }
+              }
+            }
+          },
+          "services": [
+            {
+              "service": "APIServer",
+              "servicePublishingStrategy": {
+                "type": "NodePort",
+                "nodePort": {
+                  "address": "1.2.3.4"
+                }
+              }
+            },
+            {
+              "service": "Ignition",
+              "servicePublishingStrategy": {
+                "type": "NodePort",
+                "nodePort": {
+                  "address": "1.2.3.4"
+                }
+              }
+            },
+            {
+              "service": "Konnectivity",
+              "servicePublishingStrategy": {
+                "type": "NodePort",
+                "nodePort": {
+                  "address": "1.2.3.4"
+                }
+              }
+            },
+            {
+              "service": "OAuthServer",
+              "servicePublishingStrategy": {
+                "type": "NodePort",
+                "nodePort": {
+                  "address": "1.2.3.4"
+                }
+              }
+            },
+            {
+              "service": "OIDC",
+              "servicePublishingStrategy": {
+                "type": "NodePort",
+                "nodePort": {
+                  "address": "1.2.3.4"
+                }
+              }
+            }
+          ],
+          "pullSecret": {
+            "name": "dpf-hcp-pull-secret-e72fb833"
+          },
+          "sshKey": {
+            "name": "dpf-hcp-ssh-key-f9b60cc7"
+          },
+          "secretEncryption": {
+            "type": "aescbc",
+            "aescbc": {
+              "activeKey": {
+                "name": "dpf-hcp-etcd-encryption-key"
+              }
+            }
+          },
+          "fips": false,
+          "nodeSelector": {
+            "node-role.kubernetes.io/master": "",
+            "zone": "a"
+          },
+          "capabilities": {
+            "disabled": [
+              "ImageRegistry",
+              "Insights",
+              "Console",
+              "openshift-samples",
+              "Ingress",
+              "NodeTuning"
+            ]
+          }
+        },
+        "status": {
+          "controlPlaneEndpoint": {
+            "host": "",
+            "port": 0
+          }
+        }
+      },
+      "raw": "{\"kind\":\"HostedCluster\",\"apiVersion\":\"hypershift.openshift.io/v1beta1\",\"metadata\":{\"name\":\"dpf-hcp\",\"namespace\":\"clusters\",\"ownerReferences\":[{\"apiVersion\":\"provisioning.dpu.hcp.io/v1alpha1\",\"kind\":\"DPFHCPProvisioner\",\"name\":\"dpf-hcp\",\"uid\":\"cr-uid-1234\",\"controller\":true,\"blockOwnerDeletion\":true}]},\"spec\":{\"release\":{\"image\":\"quay.io/openshift-release-dev/ocp-release:4.19.0-multi\"},\"infraID\":\"INFRAID\",\"platform\":{\"type\":\"None\"},\"controllerAvailabilityPolicy\":\"SingleReplica\",\"dns\":{\"baseDomain\":\"example.com\"},\"networking\":{\"machineNetwork\":[{\"cidr\":\"192.168.10.0/24\"}],\"clusterNetwork\":[{\"cidr\":\"10.244.0.0/16\",\"hostPrefix\":23}],\"serviceNetwork\":[{\"cidr\":\"10.96.0.0/12\"}],\"networkType\":\"Other\"},\"autoscaling\":{},\"etcd\":{\"managementType\":\"Managed\",\"managed\":{\"storage\":{\"type\":\"PersistentVolume\",\"persistentVolume\":{\"size\":\"8Gi\"}}}},\"services\":[{\"service\":\"APIServer\",\"servicePublishingStrategy\":{\"type\":\"NodePort\",\"nodePort\":{\"address\":\"1.2.3.4\"}}},{\"service\":\"Ignition\",\"servicePublishingStrategy\":{\"type\":\"NodePort\",\"nodePort\":{\"address\":\"1.2.3.4\"}}},{\"service\":\"Konnectivity\",\"servicePublishingStrategy\":{\"type\":\"NodePort\",\"nodePort\":{\"address\":\"1.2.3.4\"}}},{\"service\":\"OAuthServer\",\"servicePublishingStrategy\":{\"type\":\"NodePort\",\"nodePort\":{\"address\":\"1.2.3.4\"}}},{\"service\":\"OIDC\",\"servicePublishingStrategy\":{\"type\":\"NodePort\",\"nodePort\":{\"address\":\"1.2.3.4\"}}}],\"pullSecret\":{\"name\":\"dpf-hcp-pull-secret-e72fb833\"},\"sshKey\":{\"name\":\"dpf-hcp-ssh-key-f9b60cc7\"},\"secretEncryption\":{\"type\":\"aescbc\",\"aescbc\":{\"activeKey\":{\"name\":\"dpf-hcp-etcd-encryption-key\"}}},\"fips\":false,\"nodeSelector\":{\"node-role.kubernetes.io/master\":\"\",\"zone\":\"a\"},\"capabilities\":{\"disabled\":[\"ImageRegistry\",\"Insights\",\"Console\",\"openshift-samples\",\"Ingress\",\"NodeTuning\"]}},\"status\":{\"controlPlaneEndpoint\":{\"host\":\"\",\"port\":0}}}"
+    }
+  ],
+  "events": []
+}

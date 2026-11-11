@@ -1,0 +1,24 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Normal MetalLBConfigured MetalLB disabled in operator configuration"
+      ]
+    },
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": []
+    }
+  ],
+  "objects": {
+    "ipaddresspool": "",
+    "l2advertisement": "",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{\"conditions\":[{\"type\":\"MetalLBConfigured\",\"status\":\"True\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"MetalLBDisabled\",\"message\":\"MetalLB disabled in operator configuration\"}]}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"1000\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{\"conditions\":[{\"type\":\"MetalLBConfigured\",\"status\":\"True\",\"observedGeneration\":3,\"lastTransitionTime\":\"2025-01-01T00:00:00Z\",\"reason\":\"MetalLBDisabled\",\"message\":\"MetalLB disabled in operator configuration\"}]}}"
+  }
+}

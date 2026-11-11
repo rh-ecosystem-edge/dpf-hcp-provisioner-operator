@@ -1,0 +1,14 @@
+{
+  "name": "cleanup_hc_delete",
+  "requeueAfter": "10s",
+  "error": "",
+  "actions": [
+    {
+      "verb": "delete",
+      "kind": "HostedCluster",
+      "namespace": "clusters",
+      "name": "dpf-hcp"
+    }
+  ],
+  "events": []
+}

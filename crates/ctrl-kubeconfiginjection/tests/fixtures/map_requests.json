@@ -1,0 +1,14 @@
+{
+  "steps": null,
+  "objects": {},
+  "requests": [
+    "test-ns/test-provisioner-admin-kubeconfig -\u003e test-ns/test-provisioner",
+    "test-ns/test-provisioner-admin-kubeconfig: 1",
+    "other/test-provisioner-admin-kubeconfig: 0",
+    "x/a-admin-kubeconfig-admin-kubeconfig -\u003e x/a-admin-kubeconfig",
+    "x/a-admin-kubeconfig-admin-kubeconfig: 1",
+    "test-ns/test-provisioner -\u003e test-ns/test-provisioner",
+    "test-ns/test-provisioner: 1",
+    "test-ns/test-provisioner-admin-kubeconfig: 0"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": [
+        "Normal MetalLBCleanupComplete MetalLB resources cleaned up successfully"
+      ]
+    }
+  ],
+  "objects": {
+    "ipaddresspool": "",
+    "l2advertisement": "",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":3},\"spec\":{\"dpuClusterRef\":{\"name\":\"\",\"namespace\":\"\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{},\"controlPlaneAvailabilityPolicy\":\"HighlyAvailable\",\"virtualIP\":\"192.168.1.100\"},\"status\":{}}"
+  }
+}

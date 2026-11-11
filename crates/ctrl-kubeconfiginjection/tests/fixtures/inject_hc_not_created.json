@@ -1,0 +1,17 @@
+{
+  "steps": [
+    {
+      "requeue": false,
+      "requeueAfter": 0,
+      "error": "",
+      "events": []
+    }
+  ],
+  "objects": {
+    "dpucluster": "{\"metadata\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\",\"resourceVersion\":\"999\",\"labels\":{\"a\":\"b\"}},\"spec\":{\"type\":\"static\",\"maxNodes\":10},\"status\":{\"phase\":\"\",\"version\":\"\",\"nodesCount\":0,\"conditions\":null}}",
+    "provisioner.memory": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":2},\"spec\":{\"dpuClusterRef\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{}},\"status\":{}}",
+    "provisioner.stored": "{\"metadata\":{\"name\":\"test-provisioner\",\"namespace\":\"test-ns\",\"uid\":\"uid-1\",\"resourceVersion\":\"999\",\"generation\":2},\"spec\":{\"dpuClusterRef\":{\"name\":\"test-dpu\",\"namespace\":\"dpu-ns\"},\"baseDomain\":\"\",\"ocpReleaseImage\":\"\",\"sshKeySecretRef\":{},\"pullSecretRef\":{}},\"status\":{}}",
+    "secret.dest": "",
+    "secret.source": "{\"metadata\":{\"name\":\"test-provisioner-admin-kubeconfig\",\"namespace\":\"test-ns\",\"resourceVersion\":\"999\",\"labels\":{\"hypershift.openshift.io/hosted-control-plane\":\"true\"},\"annotations\":{\"source\":\"hypershift\"}},\"data\":{\"kubeconfig\":\"ZGF0YQ==\"},\"type\":\"Opaque\"}"
+  }
+}
