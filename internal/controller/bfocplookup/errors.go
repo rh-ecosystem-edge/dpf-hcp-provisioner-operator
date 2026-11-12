@@ -51,12 +51,29 @@ func (e *RegistryAuthError) Unwrap() error {
 // VersionNotFoundError indicates the OCP version tag was not found in the registry
 // This is a permanent error - the BlueField OCP layer image for this version hasn't been pushed yet
 type VersionNotFoundError struct {
-	Version    string
-	Repository string
+	Version     string
+	DocaVersion string
+	Repository  string
 }
 
 func (e *VersionNotFoundError) Error() string {
-	return fmt.Sprintf("BlueField OCP layer image not found for OCP version %s in repository %s", e.Version, e.Repository)
+	return fmt.Sprintf("BlueField OCP layer image not found for OCP version %s with DOCA version %s.x in repository %s",
+		e.Version, e.DocaVersion, e.Repository)
+}
+
+// DPFVersionError indicates the DOCA version for the installed DPF version could
+// not be determined (DPFOperatorConfig missing, status.version not set, etc.)
+// This is treated as a transient error - the DPF operator may still be updating its status
+type DPFVersionError struct {
+	Err error
+}
+
+func (e *DPFVersionError) Error() string {
+	return fmt.Sprintf("failed to determine DPF version: %v", e.Err)
+}
+
+func (e *DPFVersionError) Unwrap() error {
+	return e.Err
 }
 
 // InvalidImageFormatError indicates the ocpReleaseImage URL is malformed
