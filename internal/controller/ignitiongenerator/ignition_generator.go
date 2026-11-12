@@ -306,7 +306,9 @@ func (ig *IgnitionGenerator) generateIgnition(ctx context.Context, cr *provision
 	// DPF populates it — Redfish installs on DPF newer than 26.4. Older
 	// versions leave the parameter unresolved.
 	bfbRegistryURLTemplate := isRedfishInstall(dpfOperatorConfig) && dpfNewerThan26x4
-	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate)
+	// CATrustBundle is unavailable on DPF 26.4 and older, regardless of transport.
+	caTrustBundleTemplate := dpfNewerThan26x4
+	liveIgnition, err := ig.buildLiveIgnition(targetIgnition, hcpIgnitionBytes, dpuFlavor, zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate, caTrustBundleTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to build live ignition: %w", err)
 	}
@@ -737,7 +739,7 @@ func (ig *IgnitionGenerator) buildTargetIgnition(hcpIgnitionBytes []byte, dpuFla
 }
 
 // buildLiveIgnition builds the live ignition with embedded target ignition
-func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate bool) (*igntypes.Config, error) {
+func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, hcpIgnitionBytes []byte, dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor, zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate, caTrustBundleTemplate bool) (*igntypes.Config, error) {
 	// Parse HCP to extract passwd
 	hcpIgnition := &igntypes.Config{}
 	if err := json.Unmarshal(hcpIgnitionBytes, hcpIgnition); err != nil {
@@ -753,7 +755,7 @@ func (ig *IgnitionGenerator) buildLiveIgnition(targetIgnition *igntypes.Config, 
 	}
 
 	// Add live content files and systemd units
-	liveProvider := live.NewProvider(zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate)
+	liveProvider := live.NewProvider(zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate, caTrustBundleTemplate)
 	if err := igncontent.AddContent(liveIgnition, liveProvider); err != nil {
 		return nil, fmt.Errorf("failed to add live content: %w", err)
 	}

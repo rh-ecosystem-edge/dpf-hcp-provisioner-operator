@@ -18,6 +18,33 @@ package common
 
 import "testing"
 
+func TestDPFVersionGreaterThan(t *testing.T) {
+	for _, tc := range []struct {
+		name, version, threshold string
+		want                     bool
+	}{
+		{"older minor", "v26.3.9", "26.4", false},
+		{"threshold minor", "v26.4.0", "26.4", false},
+		{"threshold patch", "v26.4.999", "26.4", false},
+		{"newer minor", "v26.5.0", "26.4", true},
+		{"numeric minor", "26.11.0", "26.4", true},
+		{"development build", "v26.11.0-main.81164ef.hostname-jsonfix.2", "26.4", true},
+		{"newer major", "v27.0.0", "26.4", true},
+		{"older major", "v25.12.0", "26.4", false},
+		{"missing version", "", "26.4", false},
+		{"invalid version", "not-a-version", "26.4", false},
+		{"missing minor", "v26", "26.4", false},
+		{"missing threshold", "v26.11.0", "", false},
+		{"invalid threshold", "v26.11.0", "invalid", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := DPFVersionGreaterThan(tc.version, tc.threshold); got != tc.want {
+				t.Fatalf("DPFVersionGreaterThan(%q, %q) = %t, want %t", tc.version, tc.threshold, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestDPFMajorMinorFromVersion(t *testing.T) {
 	tests := []struct {
 		name    string
