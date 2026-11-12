@@ -122,6 +122,7 @@ vet: ## Run go vet against code.
 .PHONY: test
 test: manifests generate fmt vet setup-envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest internal/ignition/resources/live/update_ignition_test.py
 
 include Makefile.e2e
 
