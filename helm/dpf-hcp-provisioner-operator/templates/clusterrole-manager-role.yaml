@@ -162,6 +162,14 @@ rules:
       - provisioning.dpu.nvidia.com
     resources:
       - dpuflavors
+    verbs:
+      - get
+      - list
+      - patch
+      - watch
+  - apiGroups:
+      - provisioning.dpu.nvidia.com
+    resources:
       - dpus
     verbs:
       - get
