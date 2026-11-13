@@ -14,7 +14,9 @@ var systemdFS embed.FS
 
 const nl = "%0A" // URL-encoded newline for data URIs
 
-func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
+// NewProvider builds the live-ignition content provider. bootstrapKubeconfig
+// controls whether the dpu-agent bootstrap kubeconfig template is embedded.
+func NewProvider(zeroTrust, bootstrapKubeconfig bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
 
 	dpuMode := "trusted"
@@ -56,7 +58,7 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 		},
 	}
 
-	if zeroTrust {
+	if bootstrapKubeconfig {
 		files = append(files, content.FileDefinition{
 			Path:          "/var/lib/dpf/dpuagent/bootstrap-kubeconfig",
 			Mode:          0600,

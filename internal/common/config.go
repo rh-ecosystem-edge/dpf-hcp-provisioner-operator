@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/blang/semver/v4"
 )
 
 // OperatorConfig holds operator-wide configuration.
@@ -112,4 +114,21 @@ func DPFMajorMinorFromVersion(version string) (string, error) {
 		return "", fmt.Errorf("DPF version %q does not contain a minor component", version)
 	}
 	return parts[0] + "." + parts[1], nil
+}
+
+// DPFVersionGreaterThan reports whether the given DPF version string
+// (e.g. "v26.4.1") is newer than the given major.minor version (e.g. "26.4").
+// Only major and minor are compared, so patch releases of the threshold minor
+// (e.g. "v26.4.2" vs "26.4") are not greater. Returns false when either
+// version is empty or unparseable.
+func DPFVersionGreaterThan(version, majorMinor string) bool {
+	v, err := semver.ParseTolerant(version)
+	if err != nil {
+		return false
+	}
+	threshold, err := semver.ParseTolerant(majorMinor)
+	if err != nil {
+		return false
+	}
+	return v.Major > threshold.Major || (v.Major == threshold.Major && v.Minor > threshold.Minor)
 }
