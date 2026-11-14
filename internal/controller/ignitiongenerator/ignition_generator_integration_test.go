@@ -17,10 +17,14 @@ limitations under the License.
 package ignitiongenerator
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -250,11 +254,83 @@ var _ = Describe("generateIgnition integration", func() {
 					ControlPlaneMTU: &mtu,
 				},
 			},
+			// DPF newer than 26.4: bootstrap kubeconfig in host-trusted mode too.
+			Status: operatorv1alpha1.DPFOperatorConfigStatus{
+				Version: ptr.To("v26.5.1"),
+			},
 		}
 
 		objects := []interface{}{caSecret, tokenSecret, hc, deployment, flavor, operatorConfig}
 		return cr, objects
 	}
+
+	DescribeTable("should gate the CA template on the running DPF version",
+		func(version *string, wantCA bool) {
+			server, caCert := startIgnitionServer(buildRealisticHCPIgnition())
+			defer server.Close()
+			for _, mode := range []operatorv1alpha1.DeploymentMode{
+				operatorv1alpha1.DeploymentModeHostTrusted, operatorv1alpha1.DeploymentModeZeroTrust,
+			} {
+				for _, redfish := range []bool{false, true} {
+					By(fmt.Sprintf("deploymentMode=%s, redfish=%t", mode, redfish))
+					cr, objects := setupClusterObjects(server, caCert)
+					cfg := objects[5].(*operatorv1alpha1.DPFOperatorConfig)
+					cfg.Status.Version = version
+					cfg.Spec.DeploymentMode = mode
+					installInterface := &operatorv1alpha1.ProvisioningInstallInterface{
+						InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{},
+					}
+					if redfish {
+						installInterface = &operatorv1alpha1.ProvisioningInstallInterface{
+							InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{},
+						}
+					}
+					cfg.Spec.ProvisioningController.InstallInterface = installInterface
+					// Keep existing zero-trust URL resolution outside this CA gate test.
+					cfg.Spec.ProvisioningController.Registry = &operatorv1alpha1.RegistryConfiguration{
+						LoadBalancerAddress: ptr.To("https://registry.example.com:30000"),
+					}
+					scheme := newTestScheme()
+					fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(cr).WithObjects(
+						cr, objects[0].(*corev1.Secret), objects[1].(*corev1.Secret),
+						objects[2].(*hyperv1.HostedCluster), objects[3].(*dpuservicev1alpha1.DPUDeployment),
+						objects[4].(*dpuprovisioningv1alpha1.DPUFlavor), cfg,
+					).Build()
+					ig := NewIgnitionGenerator(fakeClient, scheme, recorder)
+					result, err := ig.GenerateIgnition(ctx, cr)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result.RequeueAfter).To(BeZero())
+					cm := &corev1.ConfigMap{}
+					Expect(fakeClient.Get(ctx, types.NamespacedName{
+						Name: ConfigMapName("dpucluster-1"), Namespace: "dpf-operator-system",
+					}, cm)).To(Succeed())
+					var liveIgn igntypes.Config
+					Expect(json.Unmarshal([]byte(cm.Data[configMapKeyName]), &liveIgn)).To(Succeed())
+					var anchors []igntypes.File
+					for _, file := range liveIgn.Storage.Files {
+						if file.Path == caTrustPath {
+							anchors = append(anchors, file)
+						}
+					}
+					if wantCA {
+						Expect(anchors).To(HaveLen(1))
+						Expect(anchors[0].Contents.Source).To(Equal(ptr.To("data:;base64,{{ .CATrustBundle | b64enc }}")))
+					} else {
+						Expect(anchors).To(BeEmpty())
+						Expect(cm.Data[configMapKeyName]).NotTo(ContainSubstring("{{ .CATrustBundle"))
+					}
+				}
+			}
+		},
+		Entry("missing version", (*string)(nil), false),
+		Entry("empty version", ptr.To(""), false),
+		Entry("malformed version", ptr.To("not-a-version"), false),
+		Entry("older minor", ptr.To("v26.3.9"), false),
+		Entry("26.4 patch release", ptr.To("v26.4.999"), false),
+		Entry("newer minor", ptr.To("v26.5.0"), true),
+		Entry("26.11 development build", ptr.To("v26.11.0-main.81164ef.hostname-jsonfix.2"), true),
+		Entry("newer major", ptr.To("v27.0.0"), true),
+	)
 
 	It("should run the full ignition generation pipeline end-to-end", func() {
 		hcpJSON := buildRealisticHCPIgnition()
@@ -316,7 +392,7 @@ var _ = Describe("generateIgnition integration", func() {
 		// Verify live ignition has /var/target.ign (embedded target ignition)
 		var hasTargetIgn bool
 		for _, f := range liveIgn.Storage.Files {
-			if f.Path == "/var/target.ign" {
+			if f.Path == testTargetIgnitionPath {
 				hasTargetIgn = true
 				Expect(f.Contents.Compression).NotTo(BeNil())
 				Expect(*f.Contents.Compression).To(Equal("gzip"))
@@ -335,6 +411,132 @@ var _ = Describe("generateIgnition integration", func() {
 		event := <-recorder.Events
 		Expect(event).To(ContainSubstring("IgnitionConfigured"))
 	})
+
+	DescribeTable("should select the registry template from the configured install interface and DPF version",
+		func(provisioning *operatorv1alpha1.ProvisioningControllerConfiguration, dpfVersion string, wantTemplate, wantLegacyRegistryFile bool) {
+			for _, deploymentMode := range []operatorv1alpha1.DeploymentMode{
+				operatorv1alpha1.DeploymentModeHostTrusted,
+				operatorv1alpha1.DeploymentModeZeroTrust,
+			} {
+				By(fmt.Sprintf("generating ignition for deployment mode %s", deploymentMode))
+				hcpJSON := buildRealisticHCPIgnition()
+				server, caCert := startIgnitionServer(hcpJSON)
+				defer server.Close()
+
+				cr, objects := setupClusterObjects(server, caCert)
+				operatorConfig := objects[5].(*operatorv1alpha1.DPFOperatorConfig)
+				operatorConfig.Spec.DeploymentMode = deploymentMode
+				operatorConfig.Spec.ProvisioningController = provisioning
+				if dpfVersion != "" {
+					operatorConfig.Status.Version = ptr.To(dpfVersion)
+				} else {
+					operatorConfig.Status.Version = nil
+				}
+				scheme := newTestScheme()
+				fakeClient := fake.NewClientBuilder().
+					WithScheme(scheme).
+					WithStatusSubresource(cr).
+					WithObjects(
+						cr,
+						objects[0].(*corev1.Secret),
+						objects[1].(*corev1.Secret),
+						objects[2].(*hyperv1.HostedCluster),
+						objects[3].(*dpuservicev1alpha1.DPUDeployment),
+						objects[4].(*dpuprovisioningv1alpha1.DPUFlavor),
+						operatorConfig,
+					).
+					Build()
+				ig := NewIgnitionGenerator(fakeClient, scheme, recorder)
+				result, err := ig.GenerateIgnition(ctx, cr)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RequeueAfter).To(BeZero())
+
+				cm := &corev1.ConfigMap{}
+				Expect(fakeClient.Get(ctx, types.NamespacedName{
+					Name: ConfigMapName("dpucluster-1"), Namespace: "dpf-operator-system",
+				}, cm)).To(Succeed())
+				liveIgn := &igntypes.Config{}
+				Expect(json.Unmarshal([]byte(cm.Data[configMapKeyName]), liveIgn)).To(Succeed())
+				var envSource string
+				for _, file := range liveIgn.Storage.Files {
+					if file.Path == dpfEnvironmentIgnitionPath {
+						envSource = *file.Contents.Source
+						break
+					}
+				}
+				Expect(envSource).NotTo(BeEmpty())
+				if wantTemplate {
+					Expect(envSource).To(ContainSubstring("BFBRegistryURL={{.BFBRegistryURL}}"))
+				} else {
+					Expect(envSource).NotTo(ContainSubstring("BFBRegistryURL="))
+				}
+				if deploymentMode == operatorv1alpha1.DeploymentModeZeroTrust {
+					Expect(envSource).To(ContainSubstring("DPUMode=zero-trust"))
+				} else {
+					Expect(envSource).To(ContainSubstring("DPUMode=trusted"))
+				}
+
+				// Legacy path for DPF 26.4 and older: zero-trust embeds the
+				// resolved bfb-registry URL as a target environment file.
+				if deploymentMode == operatorv1alpha1.DeploymentModeZeroTrust && wantLegacyRegistryFile {
+					var targetFile *igntypes.File
+					for i := range liveIgn.Storage.Files {
+						if liveIgn.Storage.Files[i].Path == testTargetIgnitionPath {
+							targetFile = &liveIgn.Storage.Files[i]
+							break
+						}
+					}
+					Expect(targetFile).NotTo(BeNil())
+					compressed, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*targetFile.Contents.Source, "data:;base64,"))
+					Expect(err).NotTo(HaveOccurred())
+					zr, err := gzip.NewReader(bytes.NewReader(compressed))
+					Expect(err).NotTo(HaveOccurred())
+					targetJSON, err := io.ReadAll(zr)
+					Expect(err).NotTo(HaveOccurred())
+					targetIgn := &igntypes.Config{}
+					Expect(json.Unmarshal(targetJSON, targetIgn)).To(Succeed())
+
+					var registryFile *igntypes.File
+					for i := range targetIgn.Storage.Files {
+						if targetIgn.Storage.Files[i].Path == "/etc/dpf/bfb-registry" {
+							registryFile = &targetIgn.Storage.Files[i]
+							break
+						}
+					}
+					Expect(registryFile).NotTo(BeNil())
+					registryB64, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*registryFile.Contents.Source, "data:;base64,"))
+					Expect(err).NotTo(HaveOccurred())
+					registryZr, err := gzip.NewReader(bytes.NewReader(registryB64))
+					Expect(err).NotTo(HaveOccurred())
+					registryContent, err := io.ReadAll(registryZr)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(registryContent)).To(ContainSubstring("BFBRegistryURL=http://192.168.1.1:30080"))
+				}
+			}
+		},
+		Entry("missing provisioning configuration", (*operatorv1alpha1.ProvisioningControllerConfiguration)(nil), "v26.5.1", false, false),
+		Entry("missing install interface", &operatorv1alpha1.ProvisioningControllerConfiguration{}, "v26.5.1", false, false),
+		Entry("empty install interface", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{},
+		}, "v26.5.1", false, false),
+		Entry("hostagent", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{}},
+		}, "v26.5.1", false, false),
+		Entry("legacy GNOI", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaGNOI: &operatorv1alpha1.InstallViaGNOI{}},
+		}, "v26.5.1", false, false),
+		Entry("Redfish on DPF newer than 26.4", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{}},
+		}, "v26.5.1", true, false),
+		Entry("Redfish on DPF 26.4", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{}},
+			Registry:         &operatorv1alpha1.RegistryConfiguration{LoadBalancerAddress: ptr.To("http://192.168.1.1:30080")},
+		}, "v26.4.1", false, true),
+		Entry("Redfish with unset DPF version", &operatorv1alpha1.ProvisioningControllerConfiguration{
+			InstallInterface: &operatorv1alpha1.ProvisioningInstallInterface{InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{}},
+			Registry:         &operatorv1alpha1.RegistryConfiguration{LoadBalancerAddress: ptr.To("http://192.168.1.1:30080")},
+		}, "", false, true),
+	)
 
 	It("should produce validated ignition with MTU=1500 (no NM connections)", func() {
 		hcpJSON := buildRealisticHCPIgnition()
@@ -667,6 +869,13 @@ var _ = Describe("generateIgnition integration", func() {
 		resolved = strings.ReplaceAll(resolved, "{{.DPUUID}}", "12345678-1234-1234-1234-123456789abc")
 		resolved = strings.ReplaceAll(resolved, "{{.KernelParameters}}", "console=ttyAMA0")
 		resolved = strings.ReplaceAll(resolved, "{{.ControlPlaneMTU}}", "1500")
+		// This pipeline uses host-trusted mode; bootstrap credentials must still be present.
+		Expect(resolved).To(ContainSubstring("{{ .BootstrapKubeconfig | b64enc }}"))
+		bootstrapKubeconfig := "apiVersion: v1\nkind: Config\n"
+		bootstrapKubeconfigB64 := base64.StdEncoding.EncodeToString([]byte(bootstrapKubeconfig))
+		resolved = strings.ReplaceAll(resolved, "{{.BFBRegistryURL}}", "http://192.168.1.1:30080")
+		resolved = strings.ReplaceAll(resolved, "{{ .BootstrapKubeconfig | b64enc }}", bootstrapKubeconfigB64)
+		resolved = strings.ReplaceAll(resolved, "{{ .CATrustBundle | b64enc }}", base64.StdEncoding.EncodeToString(caCert))
 
 		// Parse the resolved live ignition
 		liveIgn := &igntypes.Config{}
@@ -686,6 +895,47 @@ var _ = Describe("generateIgnition integration", func() {
 		for _, f := range liveIgn.Storage.Files {
 			filePaths[f.Path] = true
 		}
-		Expect(filePaths).To(HaveKey("/var/target.ign"), "should embed target ignition")
+		Expect(filePaths).To(HaveKey(testTargetIgnitionPath), "should embed target ignition")
+		Expect(filePaths).To(HaveKey(caTrustPath), "DPF newer than 26.4 should include the CA anchor")
+		for _, file := range liveIgn.Storage.Files {
+			if file.Path == caTrustPath {
+				Expect(file.Contents.Source).To(Equal(ptr.To("data:;base64," + base64.StdEncoding.EncodeToString(caCert))))
+			}
+		}
+		Expect(filePaths).To(HaveKey("/var/lib/dpf/dpuagent/bootstrap-kubeconfig"))
+		for _, file := range liveIgn.Storage.Files {
+			if file.Path == "/var/lib/dpf/dpuagent/bootstrap-kubeconfig" {
+				Expect(file.Mode).To(Equal(ptr.To(0600)))
+				Expect(file.Contents.Source).To(Equal(ptr.To("data:;base64," + bootstrapKubeconfigB64)))
+				decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*file.Contents.Source, "data:;base64,"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(decoded)).To(Equal(bootstrapKubeconfig))
+			}
+		}
+
+		// DPF 26.5 (> 26.4) loads the DPUFlavor from the Kubernetes API, so
+		// dpu-agent must not be started with the deprecated --dpuflavor flag.
+		var targetFile *igntypes.File
+		for i := range liveIgn.Storage.Files {
+			if liveIgn.Storage.Files[i].Path == testTargetIgnitionPath {
+				targetFile = &liveIgn.Storage.Files[i]
+				break
+			}
+		}
+		Expect(targetFile).NotTo(BeNil())
+		compressed, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*targetFile.Contents.Source, "data:;base64,"))
+		Expect(err).NotTo(HaveOccurred())
+		zr, err := gzip.NewReader(bytes.NewReader(compressed))
+		Expect(err).NotTo(HaveOccurred())
+		targetJSON, err := io.ReadAll(zr)
+		Expect(err).NotTo(HaveOccurred())
+		targetIgn := &igntypes.Config{}
+		Expect(json.Unmarshal(targetJSON, targetIgn)).To(Succeed())
+		for _, u := range targetIgn.Systemd.Units {
+			if u.Name == testDPUAgentUnitName {
+				Expect(u.Contents).NotTo(BeNil())
+				Expect(*u.Contents).NotTo(ContainSubstring("--dpuflavor"))
+			}
+		}
 	})
 })
