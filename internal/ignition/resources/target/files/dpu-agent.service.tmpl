@@ -25,7 +25,7 @@ ExecStart=/usr/local/bin/dpu-agent \
   --skip-start-kubelet \
   --skip-ovs-raw-script \
   --kubeadm-secret-name=unused{{- if .ZeroTrust }} \
-  --zero-trust-mode \
+  --zero-trust-mode{{- end }}{{- if .BootstrapKubeconfig }} \
   --bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig{{- end }}
 Restart=on-failure
 RestartSec=5
