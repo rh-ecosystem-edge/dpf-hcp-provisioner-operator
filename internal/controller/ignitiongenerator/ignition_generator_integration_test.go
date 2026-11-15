@@ -17,11 +17,14 @@ limitations under the License.
 package ignitiongenerator
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -321,7 +324,7 @@ var _ = Describe("generateIgnition integration", func() {
 		// Verify live ignition has /var/target.ign (embedded target ignition)
 		var hasTargetIgn bool
 		for _, f := range liveIgn.Storage.Files {
-			if f.Path == "/var/target.ign" {
+			if f.Path == testTargetIgnitionPath {
 				hasTargetIgn = true
 				Expect(f.Contents.Compression).NotTo(BeNil())
 				Expect(*f.Contents.Compression).To(Equal("gzip"))
@@ -696,7 +699,7 @@ var _ = Describe("generateIgnition integration", func() {
 		for _, f := range liveIgn.Storage.Files {
 			filePaths[f.Path] = true
 		}
-		Expect(filePaths).To(HaveKey("/var/target.ign"), "should embed target ignition")
+		Expect(filePaths).To(HaveKey(testTargetIgnitionPath), "should embed target ignition")
 		Expect(filePaths).To(HaveKey("/var/lib/dpf/dpuagent/bootstrap-kubeconfig"))
 		for _, file := range liveIgn.Storage.Files {
 			if file.Path == "/var/lib/dpf/dpuagent/bootstrap-kubeconfig" {
@@ -705,6 +708,31 @@ var _ = Describe("generateIgnition integration", func() {
 				decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*file.Contents.Source, "data:;base64,"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(decoded)).To(Equal(bootstrapKubeconfig))
+			}
+		}
+
+		// DPF 26.5 (> 26.4) loads the DPUFlavor from the Kubernetes API, so
+		// dpu-agent must not be started with the deprecated --dpuflavor flag.
+		var targetFile *igntypes.File
+		for i := range liveIgn.Storage.Files {
+			if liveIgn.Storage.Files[i].Path == testTargetIgnitionPath {
+				targetFile = &liveIgn.Storage.Files[i]
+				break
+			}
+		}
+		Expect(targetFile).NotTo(BeNil())
+		compressed, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(*targetFile.Contents.Source, "data:;base64,"))
+		Expect(err).NotTo(HaveOccurred())
+		zr, err := gzip.NewReader(bytes.NewReader(compressed))
+		Expect(err).NotTo(HaveOccurred())
+		targetJSON, err := io.ReadAll(zr)
+		Expect(err).NotTo(HaveOccurred())
+		targetIgn := &igntypes.Config{}
+		Expect(json.Unmarshal(targetJSON, targetIgn)).To(Succeed())
+		for _, u := range targetIgn.Systemd.Units {
+			if u.Name == testDPUAgentUnitName {
+				Expect(u.Contents).NotTo(BeNil())
+				Expect(*u.Contents).NotTo(ContainSubstring("--dpuflavor"))
 			}
 		}
 	})

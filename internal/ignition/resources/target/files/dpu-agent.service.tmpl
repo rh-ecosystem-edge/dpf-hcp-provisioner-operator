@@ -13,8 +13,8 @@ EnvironmentFile=/etc/dpf/environment
 ExecStart=/usr/local/bin/dpu-agent \
   --dpu-name $DPUName \
   --dpu-namespace $DPUNamespace \
-  --dpu-uid $DPUUID \
-  --dpuflavor /etc/dpf/dpuflavor.yaml \
+  --dpu-uid $DPUUID \{{if .DPUFlavorFlag }}
+  --dpuflavor /etc/dpf/dpuflavor.yaml \{{end }}
   --control-plane-mtu $ControlPlaneMTU \
   --skip-containerd-config \
   --skip-dns-config \
