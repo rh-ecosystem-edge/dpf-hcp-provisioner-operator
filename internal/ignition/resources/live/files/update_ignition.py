@@ -8,6 +8,7 @@ import sys
 IGNITION_FILE = sys.argv[1]
 ENV_FILE = '/etc/dpf/environment'
 BOOTSTRAP_KUBECONFIG = '/var/lib/dpf/dpuagent/bootstrap-kubeconfig'
+CA_TRUST_BUNDLE = '/etc/pki/ca-trust/source/anchors/dpf-ca.crt'
 
 ignition = json.load(open(IGNITION_FILE))
 
@@ -38,6 +39,26 @@ if os.path.exists(BOOTSTRAP_KUBECONFIG):
     if kubeconfig:
         kc_b64 = base64.b64encode(kubeconfig.encode()).decode()
         add_file(BOOTSTRAP_KUBECONFIG, 384, 'data:;base64,' + kc_b64)
+
+# Keep the PEM bytes intact, including certificate separators and final newlines.
+# Older DPF versions may not supply a bundle; other read failures are fatal.
+try:
+    with open(CA_TRUST_BUNDLE, 'rb') as f:
+        ca_bundle = f.read()
+except FileNotFoundError:
+    ca_bundle = b''
+
+if ca_bundle.strip():
+    files = ignition['storage']['files']
+    files[:] = [entry for entry in files if entry['path'] != CA_TRUST_BUNDLE]
+    files.append({
+        'path': CA_TRUST_BUNDLE,
+        'overwrite': True,
+        'mode': 420,
+        'contents': {
+            'source': 'data:;base64,' + base64.b64encode(ca_bundle).decode()
+        }
+    })
 
 with open(IGNITION_FILE, 'w') as f:
     json.dump(ignition, f, indent=4)

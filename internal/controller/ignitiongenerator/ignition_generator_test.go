@@ -803,7 +803,7 @@ var _ = Describe("buildLiveIgnition", func() {
 				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
 			},
 		}
-		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false, false, false)
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false, false, false, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Ignition.Version).To(Equal(testIgnitionVersion))
 
@@ -837,7 +837,7 @@ var _ = Describe("buildLiveIgnition", func() {
 			targetIgnition := ignition.NewEmptyIgnition("3.4.0")
 			hcpJSON, err := json.Marshal(ignition.NewEmptyIgnition("3.4.0"))
 			Expect(err).NotTo(HaveOccurred())
-			result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, &dpuprovisioningv1alpha1.DPUFlavor{}, zeroTrust, true, false)
+			result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, &dpuprovisioningv1alpha1.DPUFlavor{}, zeroTrust, true, false, false)
 			Expect(err).NotTo(HaveOccurred())
 
 			var kubeconfigs []igntypes.File
@@ -869,7 +869,7 @@ var _ = Describe("buildLiveIgnition", func() {
 				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
 			},
 		}
-		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false, false, false)
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false, false, false, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Passwd.Users).To(HaveLen(1))
 		Expect(result.Passwd.Users[0].Name).To(Equal("core"))
@@ -883,7 +883,7 @@ var _ = Describe("buildLiveIgnition", func() {
 				OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
 			},
 		}
-		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false, false, false)
+		result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, false, false, false, false)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Passwd.Users).To(BeEmpty())
 	})
@@ -892,7 +892,7 @@ var _ = Describe("buildLiveIgnition", func() {
 		targetIgnition := ignition.NewEmptyIgnition("3.4.0")
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 
-		_, err := ig.buildLiveIgnition(targetIgnition, []byte("invalid"), flavor, false, false, false)
+		_, err := ig.buildLiveIgnition(targetIgnition, []byte("invalid"), flavor, false, false, false, false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to parse HCP ignition for passwd"))
 	})
@@ -907,7 +907,7 @@ var _ = Describe("buildLiveIgnition", func() {
 					OVS: dpuprovisioningv1alpha1.DPUFlavorOVS{RawConfigScript: "#!/bin/bash\necho ovs"},
 				},
 			}
-			result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, zeroTrust, true, bfbRegistryURLTemplate)
+			result, err := ig.buildLiveIgnition(targetIgnition, hcpJSON, flavor, zeroTrust, true, bfbRegistryURLTemplate, false)
 			Expect(err).NotTo(HaveOccurred())
 
 			var envFile *igntypes.File

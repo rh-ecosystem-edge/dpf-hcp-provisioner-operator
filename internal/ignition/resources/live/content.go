@@ -17,8 +17,9 @@ const nl = "%0A" // URL-encoded newline for data URIs
 // NewProvider builds the live-ignition content provider. bootstrapKubeconfig
 // controls whether the dpu-agent bootstrap kubeconfig template is embedded;
 // bfbRegistryURLTemplate controls whether the BFBRegistryURL environment
-// template parameter is included.
-func NewProvider(zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate bool) *content.EmbeddedProvider {
+// template parameter is included; caTrustBundleTemplate independently controls
+// whether the CA template is included for supported DPF versions.
+func NewProvider(zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate, caTrustBundleTemplate bool) *content.EmbeddedProvider {
 	f := func(name string) []byte { return content.EmbedFile(filesFS, "files/"+name) }
 
 	dpuMode := "trusted"
@@ -64,6 +65,15 @@ func NewProvider(zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate bool) *c
 			Mode:          0755,
 			ContentSource: f("update_ignition.py"),
 		},
+	}
+
+	if caTrustBundleTemplate {
+		files = append(files, content.FileDefinition{
+			// DPF supplies raw PEM; encode it when the outer bf.cfg template is rendered.
+			Path:          "/etc/pki/ca-trust/source/anchors/dpf-ca.crt",
+			Mode:          0644,
+			ContentSource: "data:;base64,{{ .CATrustBundle | b64enc }}",
+		})
 	}
 
 	if bootstrapKubeconfig {

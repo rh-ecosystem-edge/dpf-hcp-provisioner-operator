@@ -264,6 +264,74 @@ var _ = Describe("generateIgnition integration", func() {
 		return cr, objects
 	}
 
+	DescribeTable("should gate the CA template on the running DPF version",
+		func(version *string, wantCA bool) {
+			server, caCert := startIgnitionServer(buildRealisticHCPIgnition())
+			defer server.Close()
+			for _, mode := range []operatorv1alpha1.DeploymentMode{
+				operatorv1alpha1.DeploymentModeHostTrusted, operatorv1alpha1.DeploymentModeZeroTrust,
+			} {
+				for _, redfish := range []bool{false, true} {
+					By(fmt.Sprintf("deploymentMode=%s, redfish=%t", mode, redfish))
+					cr, objects := setupClusterObjects(server, caCert)
+					cfg := objects[5].(*operatorv1alpha1.DPFOperatorConfig)
+					cfg.Status.Version = version
+					cfg.Spec.DeploymentMode = mode
+					installInterface := &operatorv1alpha1.ProvisioningInstallInterface{
+						InstallViaHostAgent: &operatorv1alpha1.InstallViaHostAgent{},
+					}
+					if redfish {
+						installInterface = &operatorv1alpha1.ProvisioningInstallInterface{
+							InstallViaRedfish: &operatorv1alpha1.InstallViaRedfish{},
+						}
+					}
+					cfg.Spec.ProvisioningController.InstallInterface = installInterface
+					// Keep existing zero-trust URL resolution outside this CA gate test.
+					cfg.Spec.ProvisioningController.Registry = &operatorv1alpha1.RegistryConfiguration{
+						LoadBalancerAddress: ptr.To("https://registry.example.com:30000"),
+					}
+					scheme := newTestScheme()
+					fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(cr).WithObjects(
+						cr, objects[0].(*corev1.Secret), objects[1].(*corev1.Secret),
+						objects[2].(*hyperv1.HostedCluster), objects[3].(*dpuservicev1alpha1.DPUDeployment),
+						objects[4].(*dpuprovisioningv1alpha1.DPUFlavor), cfg,
+					).Build()
+					ig := NewIgnitionGenerator(fakeClient, scheme, recorder)
+					result, err := ig.GenerateIgnition(ctx, cr)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result.RequeueAfter).To(BeZero())
+					cm := &corev1.ConfigMap{}
+					Expect(fakeClient.Get(ctx, types.NamespacedName{
+						Name: ConfigMapName("dpucluster-1"), Namespace: "dpf-operator-system",
+					}, cm)).To(Succeed())
+					var liveIgn igntypes.Config
+					Expect(json.Unmarshal([]byte(cm.Data[configMapKeyName]), &liveIgn)).To(Succeed())
+					var anchors []igntypes.File
+					for _, file := range liveIgn.Storage.Files {
+						if file.Path == caTrustPath {
+							anchors = append(anchors, file)
+						}
+					}
+					if wantCA {
+						Expect(anchors).To(HaveLen(1))
+						Expect(anchors[0].Contents.Source).To(Equal(ptr.To("data:;base64,{{ .CATrustBundle | b64enc }}")))
+					} else {
+						Expect(anchors).To(BeEmpty())
+						Expect(cm.Data[configMapKeyName]).NotTo(ContainSubstring("{{ .CATrustBundle"))
+					}
+				}
+			}
+		},
+		Entry("missing version", (*string)(nil), false),
+		Entry("empty version", ptr.To(""), false),
+		Entry("malformed version", ptr.To("not-a-version"), false),
+		Entry("older minor", ptr.To("v26.3.9"), false),
+		Entry("26.4 patch release", ptr.To("v26.4.999"), false),
+		Entry("newer minor", ptr.To("v26.5.0"), true),
+		Entry("26.11 development build", ptr.To("v26.11.0-main.81164ef.hostname-jsonfix.2"), true),
+		Entry("newer major", ptr.To("v27.0.0"), true),
+	)
+
 	It("should run the full ignition generation pipeline end-to-end", func() {
 		hcpJSON := buildRealisticHCPIgnition()
 		server, caCert := startIgnitionServer(hcpJSON)
@@ -807,6 +875,7 @@ var _ = Describe("generateIgnition integration", func() {
 		bootstrapKubeconfigB64 := base64.StdEncoding.EncodeToString([]byte(bootstrapKubeconfig))
 		resolved = strings.ReplaceAll(resolved, "{{.BFBRegistryURL}}", "http://192.168.1.1:30080")
 		resolved = strings.ReplaceAll(resolved, "{{ .BootstrapKubeconfig | b64enc }}", bootstrapKubeconfigB64)
+		resolved = strings.ReplaceAll(resolved, "{{ .CATrustBundle | b64enc }}", base64.StdEncoding.EncodeToString(caCert))
 
 		// Parse the resolved live ignition
 		liveIgn := &igntypes.Config{}
@@ -827,6 +896,12 @@ var _ = Describe("generateIgnition integration", func() {
 			filePaths[f.Path] = true
 		}
 		Expect(filePaths).To(HaveKey(testTargetIgnitionPath), "should embed target ignition")
+		Expect(filePaths).To(HaveKey(caTrustPath), "DPF newer than 26.4 should include the CA anchor")
+		for _, file := range liveIgn.Storage.Files {
+			if file.Path == caTrustPath {
+				Expect(file.Contents.Source).To(Equal(ptr.To("data:;base64," + base64.StdEncoding.EncodeToString(caCert))))
+			}
+		}
 		Expect(filePaths).To(HaveKey("/var/lib/dpf/dpuagent/bootstrap-kubeconfig"))
 		for _, file := range liveIgn.Storage.Files {
 			if file.Path == "/var/lib/dpf/dpuagent/bootstrap-kubeconfig" {
