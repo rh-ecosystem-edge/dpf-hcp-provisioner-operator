@@ -23,6 +23,15 @@ import (
 	dpuprovisioningv1alpha1 "github.com/nvidia/doca-platform/api/provisioning/v1alpha1"
 )
 
+// isRedfishInstall reports whether the configured installation transport is Redfish.
+func isRedfishInstall(cfg *operatorv1alpha1.DPFOperatorConfig) bool {
+	if cfg == nil || cfg.Spec.ProvisioningController == nil {
+		return false
+	}
+	installInterface := cfg.Spec.ProvisioningController.InstallInterface
+	return installInterface != nil && installInterface.InstallViaRedfish != nil
+}
+
 // dpuModeFromFlavor reads DPUFlavor.spec.dpuMode (26.4 GA path).
 func dpuModeFromFlavor(dpuFlavor *dpuprovisioningv1alpha1.DPUFlavor) (dpuprovisioningv1alpha1.DpuModeType, error) {
 	if dpuFlavor == nil {
@@ -70,9 +79,7 @@ func detectDPUMode(
 	case operatorv1alpha1.DeploymentModeHostTrusted:
 		return dpuprovisioningv1alpha1.DpuMode, nil
 	case "":
-		if cfg.Spec.ProvisioningController != nil &&
-			cfg.Spec.ProvisioningController.InstallInterface != nil &&
-			cfg.Spec.ProvisioningController.InstallInterface.InstallViaRedfish != nil {
+		if isRedfishInstall(cfg) {
 			return dpuprovisioningv1alpha1.ZeroTrustMode, nil
 		}
 		return "", fmt.Errorf("DPU mode is empty: set DPFOperatorConfig.spec.deploymentMode or DPUFlavor.spec.dpuMode")
