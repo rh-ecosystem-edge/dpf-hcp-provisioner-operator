@@ -1,5 +1,8 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "github>konflux-ci/mintmaker-presets:refresh-rpm-lockfiles"
+    ],
     "commitMessagePrefix": "NO-ISSUE: ",
     "labels": [
         "lgtm",
@@ -9,11 +12,19 @@
     "prConcurrentLimit": 0,
     "enabledManagers": [
         "tekton",
-        "rpm-lockfile"
+        "rpm-lockfile",
+        "dockerfile"
     ],
     "tekton": {
         "managerFilePatterns": [
             "/^.tekton/*/"
+        ]
+    },
+    "lockFileMaintenance": {
+        "enabled": true,
+        "recreateWhen": "always",
+        "schedule": [
+            "at any time"
         ]
     },
     "packageRules": [
