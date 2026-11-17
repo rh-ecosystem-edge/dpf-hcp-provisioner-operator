@@ -61,6 +61,11 @@ func NewProvider(zeroTrust, bootstrapKubeconfig, bfbRegistryURLTemplate, caTrust
 			ContentSource: f("install-rhcos-dpf.sh"),
 		},
 		{
+			Path:          "/usr/local/bin/save-live-journal.sh",
+			Mode:          0755,
+			ContentSource: f("save-live-journal.sh"),
+		},
+		{
 			Path:          "/usr/local/bin/update_ignition.py",
 			Mode:          0755,
 			ContentSource: f("update_ignition.py"),
