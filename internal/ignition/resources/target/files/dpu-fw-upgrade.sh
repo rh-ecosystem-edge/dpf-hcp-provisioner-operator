@@ -31,12 +31,44 @@ function_exists() {
     return $?
 }
 
-STAMP="/var/dpf/fw-installed-version"
+STAMP_DIR="/var/dpf"
 
 current_ver=$(rpm -q --qf '%{VERSION}-%{RELEASE}' doca-runtime 2>/dev/null || echo "unknown")
 
-if [ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$current_ver" ]; then
-    log "INFO: Firmware already upgraded for doca-runtime $current_ver, skipping"
+# Per-component stamp files: /var/dpf/fw-installed-version-{uefi,nic,bmc}.
+# Each holds the doca-runtime version the component was last upgraded for.
+stamp_file() { echo "$STAMP_DIR/fw-installed-version-$1"; }
+
+write_stamp() {
+    mkdir -p "$STAMP_DIR"
+    echo "$current_ver" >"$(stamp_file "$1")"
+}
+
+# should_update <component> <skip-flag-value>
+# Returns 0 if the component needs to be upgraded, 1 if it should be skipped.
+should_update() {
+    local comp="$1" skip="$2" stamp
+    stamp=$(stamp_file "$comp")
+    if [ "$skip" = "1" ]; then
+        log "INFO: Skipping ${comp^^} firmware upgrade (SKIP_${comp^^}=1)"
+        return 1
+    fi
+    if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$current_ver" ]; then
+        log "INFO: ${comp^^} firmware already upgraded for doca-runtime $current_ver, skipping"
+        return 1
+    fi
+    return 0
+}
+
+do_uefi=0
+do_nic=0
+do_bmc=0
+should_update uefi "${SKIP_UEFI:-0}" && do_uefi=1
+should_update nic "${SKIP_NIC:-0}" && do_nic=1
+should_update bmc "${SKIP_BMC:-0}" && do_bmc=1
+
+if [ "$do_uefi" = "0" ] && [ "$do_nic" = "0" ] && [ "$do_bmc" = "0" ]; then
+    log "INFO: No firmware components to upgrade for doca-runtime $current_ver"
     exit 0
 fi
 
@@ -59,9 +91,12 @@ fw_error() {
     exit 1
 }
 
-log "INFO: Updating ATF/UEFI"
-if ! update_atf_uefi; then
-    fw_error "ATF/UEFI update failed"
+if [ "$do_uefi" = "1" ]; then
+    log "INFO: Updating ATF/UEFI"
+    if ! update_atf_uefi; then
+        fw_error "ATF/UEFI update failed"
+    fi
+    write_stamp uefi
 fi
 
 cx_pcidev=$(lspci -nD 2>/dev/null | grep 15b3:a2d[26c] | awk '{print $1}' | head -1)
@@ -75,15 +110,23 @@ fi
 
 PSID=$(mstflint -d $flint_device q | grep PSID | awk '{print $NF}')
 
-log "INFO: Updating NIC firmware"
-fw_condition NICFirmwareUpgraded False Upgrading "NIC firmware upgrade in progress"
-nic_start=$(date +%s)
-if ! update_nic_firmware; then
-    ilog "ERROR: See /tmp/mlnx_fw_update.log for details"
-    fw_error "NIC firmware update failed"
+if [ "$do_nic" = "1" ]; then
+    log "INFO: Updating NIC firmware"
+    fw_condition NICFirmwareUpgraded False Upgrading "NIC firmware upgrade in progress"
+    nic_start=$(date +%s)
+    if ! update_nic_firmware; then
+        ilog "ERROR: See /tmp/mlnx_fw_update.log for details"
+        fw_error "NIC firmware update failed"
+    fi
+    nic_elapsed=$(($(date +%s) - nic_start))
+    write_stamp nic
+    fw_condition NICFirmwareUpgraded True Upgraded "NIC firmware upgrade completed in ${nic_elapsed}s"
 fi
-nic_elapsed=$(($(date +%s) - nic_start))
-fw_condition NICFirmwareUpgraded True Upgraded "NIC firmware upgrade completed in ${nic_elapsed}s"
+
+if [ "$do_bmc" = "0" ]; then
+    log "INFO: Firmware upgrade complete (doca-runtime $current_ver)"
+    exit 0
+fi
 
 # BMC Update
 RC=0 # Variable used in /opt/mellanox/bfb/bmc
@@ -126,12 +169,11 @@ bmc_rc=0
 bmc_components_update || bmc_rc=$?
 bmc_elapsed=$(($(date +%s) - bmc_start))
 if [ "$bmc_rc" -eq 0 ]; then
+    write_stamp bmc
     fw_condition BMCFirmwareUpgraded True Upgraded "BMC firmware upgrade completed in ${bmc_elapsed}s"
 else
     log "WARNING: BMC components update returned rc=$bmc_rc"
     fw_condition BMCFirmwareUpgraded False Failed "BMC firmware upgrade failed after ${bmc_elapsed}s"
 fi
 
-mkdir -p /var/dpf
-echo "$current_ver" >"$STAMP"
 log "INFO: Firmware upgrade complete (doca-runtime $current_ver)"
