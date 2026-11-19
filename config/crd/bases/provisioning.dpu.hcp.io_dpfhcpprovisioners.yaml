@@ -107,7 +107,7 @@ spec:
                   DPUDeploymentRef is a cross-namespace reference to a DPUDeployment CR for ignition generation
                   This field is used for ignition generation to retrieve DPU flavor information
                   It may be left unset at creation and populated later, once the referenced DPUDeployment
-                  exists, since DPUDeployments are typically created after the hosted control plane is ready
+                  exists, since DPUDeployments are typically created after the hosted control plane is ready.
                 properties:
                   name:
                     description: Name is the name of the DPUDeployment CR
