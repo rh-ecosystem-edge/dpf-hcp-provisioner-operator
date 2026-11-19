@@ -1153,6 +1153,21 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 		}
 	}
 
+	if cr.Spec.DPUDeploymentRef == nil {
+		log.V(1).Info("Deferring ignition generation - dpuDeploymentRef not set")
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:               provisioningv1alpha1.IgnitionConfigured,
+			Status:             metav1.ConditionFalse,
+			Reason:             provisioningv1alpha1.ReasonDPUDeploymentRefNotSet,
+			Message:            "Waiting for spec.dpuDeploymentRef to be set",
+			ObservedGeneration: cr.Generation,
+		})
+		if err := r.Status().Update(ctx, cr); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update status while waiting for dpuDeploymentRef: %w", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	log.V(1).Info("Running ignition generation feature")
 	result, err := r.IgnitionGenerator.GenerateIgnition(ctx, cr)
 	if err != nil {

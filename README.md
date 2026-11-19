@@ -72,7 +72,7 @@ The following operators and components must be installed on the management clust
 | `virtualIP` | `string` | No | Yes | -- | Virtual IP for LoadBalancer (required when `HighlyAvailable`) |
 | `nodeSelector` | `map[string]string` | No | Yes | -- | Node selector for control plane pods (max 20 entries) |
 | `flannelEnabled` | `bool` | No | Yes | `true` | Enable Flannel as the CNI plugin |
-| `dpuDeploymentRef` | `{name, namespace}` | Yes | Yes | -- | Cross-namespace reference to DPUDeployment for ignition generation |
+| `dpuDeploymentRef` | `{name, namespace}` | No | Yes, once set | -- | Cross-namespace reference to DPUDeployment for ignition generation. May be left unset at creation and populated later (e.g. by the DPF Operator) once the DPUDeployment exists. |
 | `machineOSURL` | `string` | No | No | -- | Custom OS image URL for ignition configuration |
 
 #### Status
