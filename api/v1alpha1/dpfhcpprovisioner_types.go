@@ -347,9 +347,11 @@ const (
 	// This invalidates the current ignition ConfigMap and triggers regeneration.
 	ReasonDPUDeploymentChanged string = "DPUDeploymentChanged"
 
-	// ReasonDependencyDeleted indicates a required dependency (DPUDeployment or DPUFlavor) is missing.
-	// The ignition ConfigMap is removed and will be regenerated once the dependency is recreated.
-	ReasonDependencyDeleted string = "DependencyDeleted"
+	// ReasonDependencyMissing indicates a referenced dependency (DPUDeployment or DPUFlavor) is not found.
+	// This occurs when spec.dpuDeploymentRef IS set but the referenced resource doesn't exist
+	// (either not created yet, or was deleted). The ignition ConfigMap is removed and will be
+	// regenerated once the dependency becomes available.
+	ReasonDependencyMissing string = "DependencyMissing"
 
 	// ReasonDPUDeploymentRefNotSet indicates spec.dpuDeploymentRef has not been set yet.
 	// Ignition generation is deferred until the DPUDeployment reference is populated, since

@@ -184,6 +184,37 @@ func (r *DPFHCPProvisionerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Recompute phase after validations to ensure HostedCluster creation only proceeds if all validations pass
 	r.updatePhaseFromConditions(ctx, &cr)
 
+	// Feature: DPUDeployment Validation
+	// Validate that DPUDeployment exists if dpuDeploymentRef is set.
+	// This check must happen BEFORE HostedCluster creation to avoid creating orphaned clusters.
+	if cr.Spec.DPUDeploymentRef != nil {
+		log.V(1).Info("Validating DPUDeployment reference")
+		dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
+		dpuDeploymentKey := types.NamespacedName{
+			Name:      cr.Spec.DPUDeploymentRef.Name,
+			Namespace: cr.Spec.DPUDeploymentRef.Namespace,
+		}
+		if err := r.Get(ctx, dpuDeploymentKey, dpuDeployment); err != nil {
+			if apierrors.IsNotFound(err) {
+				log.Info("DPUDeployment not found, deferring provisioning", "dpuDeployment", dpuDeploymentKey)
+				meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+					Type:               provisioningv1alpha1.IgnitionConfigured,
+					Status:             metav1.ConditionFalse,
+					Reason:             provisioningv1alpha1.ReasonDependencyMissing,
+					Message:            fmt.Sprintf("Waiting for DPUDeployment '%s/%s' to be created", dpuDeploymentKey.Namespace, dpuDeploymentKey.Name),
+					ObservedGeneration: cr.Generation,
+				})
+				if updateErr := r.Status().Update(ctx, &cr); updateErr != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to update status while waiting for DPUDeployment: %w", updateErr)
+				}
+				// Return without error - the watch on DPUDeployment will trigger reconciliation when it appears
+				return ctrl.Result{}, nil
+			}
+			// Real error (not NotFound)
+			return ctrl.Result{}, fmt.Errorf("failed to get DPUDeployment: %w", err)
+		}
+	}
+
 	// Feature: MetalLB Configuration
 	// Configure MetalLB resources (IPAddressPool and L2Advertisement) when LoadBalancer exposure is needed
 	log.V(1).Info("Running MetalLB configuration feature")
@@ -766,7 +797,11 @@ func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Contex
 
 	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 	ignitionWasConfigured := ignConfigured != nil && ignConfigured.Status == metav1.ConditionTrue
-	if !ignitionWasConfigured && !r.ignitionPrerequisitesMet(cr) {
+	// Allow ignition generation to run if:
+	// 1. Ignition was already configured (need to check for updates), OR
+	// 2. Prerequisites are met (HostedCluster available, kubeconfig injected), OR
+	// 3. DPUDeploymentRef is set (so we can check if DPUDeployment exists and set proper condition)
+	if !ignitionWasConfigured && !r.ignitionPrerequisitesMet(cr) && cr.Spec.DPUDeploymentRef == nil {
 		return false, ctrl.Result{}, nil
 	}
 
@@ -890,12 +925,12 @@ func (r *DPFHCPProvisionerReconciler) invalidateIgnitionForDependencyDeletion(ct
 	condChanged := meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
 		Type:               provisioningv1alpha1.IgnitionConfigured,
 		Status:             metav1.ConditionFalse,
-		Reason:             provisioningv1alpha1.ReasonDependencyDeleted,
+		Reason:             provisioningv1alpha1.ReasonDependencyMissing,
 		Message:            message,
 		ObservedGeneration: cr.Generation,
 	})
 	if condChanged {
-		r.Recorder.Event(cr, corev1.EventTypeWarning, "DependencyDeleted", message)
+		r.Recorder.Event(cr, corev1.EventTypeWarning, "DependencyMissing", message)
 	}
 	r.computeReadyCondition(ctx, cr)
 	oldPhase := cr.Status.Phase
@@ -1087,6 +1122,28 @@ func (r *DPFHCPProvisionerReconciler) lookupBlueFieldOCPLayerImage(ctx context.C
 				return ctrl.Result{}, err
 			}
 		}
+		return ctrl.Result{}, nil
+	}
+
+	// Skip lookup if dpuDeploymentRef not set OR DPUDeployment doesn't exist yet.
+	// Ignition generation requires it, and the lookup may fail without DPUDeployment's
+	// DPUFlavor to determine DPF version.
+	if cr.Spec.DPUDeploymentRef != nil {
+		dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
+		deploymentKey := types.NamespacedName{
+			Name:      cr.Spec.DPUDeploymentRef.Name,
+			Namespace: cr.Spec.DPUDeploymentRef.Namespace,
+		}
+		if err := r.Get(ctx, deploymentKey, dpuDeployment); err != nil {
+			if apierrors.IsNotFound(err) {
+				log.V(1).Info("Skipping BlueField OCP layer lookup - DPUDeployment not found yet")
+				return ctrl.Result{}, nil
+			}
+			// Real error (not NotFound) - return it
+			return ctrl.Result{}, fmt.Errorf("failed to check DPUDeployment existence: %w", err)
+		}
+	} else {
+		log.V(1).Info("Skipping BlueField OCP layer lookup - dpuDeploymentRef not set")
 		return ctrl.Result{}, nil
 	}
 

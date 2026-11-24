@@ -248,7 +248,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
 
 			// ConfigMap should be deleted
 			deletedCM := &corev1.ConfigMap{}
@@ -324,7 +324,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
 			Expect(cond.Message).To(ContainSubstring("DPUFlavor dpf-operator-system/deleted-flavor not found"))
 
 			// ConfigMap should be deleted
@@ -445,7 +445,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 						{
 							Type:               provisioningv1alpha1.IgnitionConfigured,
 							Status:             metav1.ConditionFalse,
-							Reason:             provisioningv1alpha1.ReasonDependencyDeleted,
+							Reason:             provisioningv1alpha1.ReasonDependencyMissing,
 							LastTransitionTime: metav1.Now(),
 						},
 					},

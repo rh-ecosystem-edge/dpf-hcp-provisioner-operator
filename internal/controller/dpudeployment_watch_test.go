@@ -512,7 +512,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 			cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			Expect(cond).NotTo(BeNil())
 			Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+			Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
 		})
 
 		It("should return false when ConfigMap is not found", func() {
@@ -746,7 +746,7 @@ var _ = Describe("handleDependencyChanges dependency readiness", func() {
 		cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
 		Expect(cond.Message).To(ContainSubstring("dpudeployment"))
 		Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition))
 	})
@@ -815,7 +815,7 @@ var _ = Describe("handleDependencyChanges dependency readiness", func() {
 
 		cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 		Expect(cond).NotTo(BeNil())
-		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
 		Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition))
 	})
 
@@ -1169,7 +1169,7 @@ var _ = Describe("DPUFlavor deletion integration (envtest)", func() {
 			cond := meta.FindStatusCondition(fresh.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
 			g.Expect(cond).NotTo(BeNil(), "IgnitionConfigured condition should exist")
 			g.Expect(cond.Status).To(Equal(metav1.ConditionFalse), "IgnitionConfigured should be False after DPUFlavor deletion")
-			g.Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyDeleted))
+			g.Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
 		}, "30s", "1s").Should(Succeed())
 
 		By("verifying the ignition ConfigMap was deleted")

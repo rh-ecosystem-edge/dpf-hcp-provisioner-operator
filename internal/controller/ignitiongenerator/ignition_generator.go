@@ -157,6 +157,29 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 			return ctrl.Result{RequeueAfter: ignitionSyncRequeueAfter}, nil
 		}
 
+		// Check if a referenced dependency (DPUDeployment or DPUFlavor) is not found.
+		// Note: If spec.dpuDeploymentRef itself is nil, the controller catches that
+		// before calling generateIgnition and sets ReasonDPUDeploymentRefNotSet instead.
+		// This path handles the case where the reference IS set but the resource doesn't exist.
+		var notFoundErr *apierrors.StatusError
+		isDependencyNotFound := errors.As(err, &notFoundErr) && apierrors.IsNotFound(notFoundErr)
+
+		if isDependencyNotFound {
+			log.Info("Referenced dependency not found, deferring ignition generation", "error", err)
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionFalse,
+				Reason:             provisioningv1alpha1.ReasonDependencyMissing,
+				Message:            fmt.Sprintf("Referenced dependency not found: %v", err),
+				ObservedGeneration: cr.Generation,
+			})
+			if updateErr := ig.Client.Status().Update(ctx, cr); updateErr != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to update status while waiting for dependency: %w", updateErr)
+			}
+			// Return without error - the watch on DPUDeployment/DPUFlavor will trigger reconciliation when it appears
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, "Ignition generation failed")
 
 		// Set error condition and persist immediately — this is an early-return error path
