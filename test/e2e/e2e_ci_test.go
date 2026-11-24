@@ -104,37 +104,6 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 			By("creating the DPFHCPProvisioner CR without DPUDeployment")
 			createDPFHCPProvisioner(ciNamespace, provisionerName)
 
-			By("waiting for IgnitionConfigured=False with DependencyDeleted reason")
-			Eventually(func(g Gomega) {
-				conditions := getCRConditions(ciNamespace, provisionerName)
-				var ignCond *metav1.Condition
-				for i := range conditions {
-					if conditions[i].Type == "IgnitionConfigured" {
-						ignCond = &conditions[i]
-						break
-					}
-				}
-				g.Expect(ignCond).NotTo(BeNil(), "IgnitionConfigured condition should exist")
-				g.Expect(ignCond.Status).To(Equal(metav1.ConditionFalse),
-					"IgnitionConfigured should be False while DPUDeployment is missing")
-				g.Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing),
-					"IgnitionConfigured reason should be DependencyDeleted")
-			}, 2*time.Minute, pollingInterval).Should(Succeed())
-
-			By("verifying CR does not enter Failed phase while waiting for DPUDeployment")
-			phase := getCRPhase(provisionerName)
-			Expect(phase).NotTo(Equal("Failed"),
-				"CR should wait for DPUDeployment, not fail (current phase: %s)", phase)
-
-			By("creating DPUFlavor stub")
-			createDPUFlavorStub(dpuClusterNS, dpuFlavorName)
-
-			By("creating DPUDeployment stub")
-			createDPUDeploymentStub(dpuClusterNS, dpuDeploymentName, dpuFlavorName)
-
-			By("waiting for CR to pass validation and begin provisioning")
-			waitForCRPhase(provisionerName, "WaitingForControlPlane", 5*time.Minute)
-
 			By("verifying HostedCluster was created")
 			var hcName string
 			Eventually(func(g Gomega) {
@@ -145,6 +114,7 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 					Name:      provisionerName,
 				}, provisioner)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(provisioner.Status.HostedClusterRef).NotTo(BeNil())
 				hcName = provisioner.Status.HostedClusterRef.Name
 				g.Expect(hcName).NotTo(BeEmpty(),
 					"HostedCluster not yet created")
@@ -169,6 +139,34 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 				}
 				g.Expect(available).To(BeTrue(), "HostedCluster not yet available")
 			}, hostedClusterReadyTimeout, pollingInterval).Should(Succeed())
+
+			By("waiting for IgnitionConfigured=False with DependencyMissing reason")
+			Eventually(func(g Gomega) {
+				conditions := getCRConditions(ciNamespace, provisionerName)
+				var ignCond *metav1.Condition
+				for i := range conditions {
+					if conditions[i].Type == "IgnitionConfigured" {
+						ignCond = &conditions[i]
+						break
+					}
+				}
+				g.Expect(ignCond).NotTo(BeNil(), "IgnitionConfigured condition should exist")
+				g.Expect(ignCond.Status).To(Equal(metav1.ConditionFalse),
+					"IgnitionConfigured should be False while DPUDeployment is missing")
+				g.Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing),
+					"IgnitionConfigured reason should be DependencyMissing")
+			}, crReadyTimeout, pollingInterval).Should(Succeed())
+
+			By("verifying CR does not enter Failed phase while waiting for DPUDeployment")
+			phase := getCRPhase(provisionerName)
+			Expect(phase).NotTo(Equal("Failed"),
+				"CR should wait for DPUDeployment, not fail (current phase: %s)", phase)
+
+			By("creating DPUFlavor stub")
+			createDPUFlavorStub(dpuClusterNS, dpuFlavorName)
+
+			By("creating DPUDeployment stub")
+			createDPUDeploymentStub(dpuClusterNS, dpuDeploymentName, dpuFlavorName)
 
 			By("waiting for CR to reach Ready state")
 			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)

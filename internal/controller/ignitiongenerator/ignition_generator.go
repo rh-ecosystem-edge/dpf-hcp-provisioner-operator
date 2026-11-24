@@ -157,12 +157,14 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 			return ctrl.Result{RequeueAfter: ignitionSyncRequeueAfter}, nil
 		}
 
-		// Check if a referenced dependency (DPUDeployment or DPUFlavor) is not found.
-		// Note: If spec.dpuDeploymentRef itself is nil, the controller catches that
-		// before calling generateIgnition and sets ReasonDPUDeploymentRefNotSet instead.
-		// This path handles the case where the reference IS set but the resource doesn't exist.
-		var notFoundErr *apierrors.StatusError
-		isDependencyNotFound := errors.As(err, &notFoundErr) && apierrors.IsNotFound(notFoundErr)
+		// Only defer for resources watched by the provisioner controller.
+		var statusErr *apierrors.StatusError
+		isDependencyNotFound := false
+		if apierrors.IsNotFound(err) && errors.As(err, &statusErr) && statusErr.ErrStatus.Details != nil {
+			details := statusErr.ErrStatus.Details
+			isDependencyNotFound = (details.Group == dpuservicev1alpha1.GroupVersion.Group && details.Kind == "dpudeployments") ||
+				(details.Group == dpuprovisioningv1alpha1.GroupVersion.Group && details.Kind == "dpuflavors")
+		}
 
 		if isDependencyNotFound {
 			log.Info("Referenced dependency not found, deferring ignition generation", "error", err)

@@ -179,7 +179,7 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 	})
 
 	Context("Controller-Driven Phase Computation", func() {
-		It("should transition to Pending when all validations pass", func() {
+		It("should transition to Pending while the referenced DPUDeployment is missing", func() {
 			// Create DPFHCPProvisioner with valid configuration
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
@@ -248,13 +248,8 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					return false
 				}
 
-				// 5. BlueField OCP layer image should be found (BlueFieldOCPLayerImageFound should be True)
-				imageCond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound)
-				if imageCond == nil || imageCond.Status != metav1.ConditionTrue {
-					return false
-				}
-
-				return true
+				// Image lookup is deferred until the referenced DPUDeployment exists.
+				return meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound) == nil
 			}, timeout, interval).Should(BeTrue())
 		})
 
