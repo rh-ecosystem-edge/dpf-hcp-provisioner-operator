@@ -23,7 +23,8 @@ ExecStart=/usr/local/bin/dpu-agent \
   --skip-remove-builtin-kubelet \
   --skip-configure-kubelet \
   --skip-start-kubelet \
-  --skip-ovs-raw-script \
+  --skip-ovs-raw-script \{{if .SkipNodeLabeling }}
+  --skip-node-labeling \{{end }}
   --kubeadm-secret-name=unused{{- if .ZeroTrust }} \
   --zero-trust-mode{{- end }}{{- if .BootstrapKubeconfig }} \
   --bootstrap-kubeconfig=/var/lib/dpf/dpuagent/bootstrap-kubeconfig{{- end }}

@@ -153,8 +153,9 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 
 // RenderDPUAgentServiceUnit renders the dpu-agent systemd unit. bootstrapKubeconfig
 // controls whether dpu-agent is started with --bootstrap-kubeconfig; dpuFlavorFlag
-// controls whether dpu-agent is started with --dpuflavor.
-func RenderDPUAgentServiceUnit(zeroTrust, bootstrapKubeconfig, dpuFlavorFlag bool) (string, string, error) {
+// controls whether dpu-agent is started with --dpuflavor; skipNodeLabeling controls
+// whether dpu-agent is started with --skip-node-labeling.
+func RenderDPUAgentServiceUnit(zeroTrust, bootstrapKubeconfig, dpuFlavorFlag, skipNodeLabeling bool) (string, string, error) {
 	tmplBytes := content.EmbedFile(filesFS, "files/dpu-agent.service.tmpl")
 	tmpl, err := template.New("dpu-agent.service").Parse(string(tmplBytes))
 	if err != nil {
@@ -165,7 +166,13 @@ func RenderDPUAgentServiceUnit(zeroTrust, bootstrapKubeconfig, dpuFlavorFlag boo
 		ZeroTrust           bool
 		BootstrapKubeconfig bool
 		DPUFlavorFlag       bool
-	}{ZeroTrust: zeroTrust, BootstrapKubeconfig: bootstrapKubeconfig, DPUFlavorFlag: dpuFlavorFlag}
+		SkipNodeLabeling    bool
+	}{
+		ZeroTrust:           zeroTrust,
+		BootstrapKubeconfig: bootstrapKubeconfig,
+		DPUFlavorFlag:       dpuFlavorFlag,
+		SkipNodeLabeling:    skipNodeLabeling,
+	}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", "", fmt.Errorf("failed to render dpu-agent.service template: %w", err)
