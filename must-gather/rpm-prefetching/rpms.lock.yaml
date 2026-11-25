@@ -246,13 +246,13 @@ arches:
     name: popt
     evr: 1.19-8.el10
     sourcerpm: popt-1.19-8.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/r/rsync-3.5.0-3.el10_2.ppc64le.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/r/rsync-3.5.0-4.el10_3.ppc64le.rpm
     repoid: ubi-10-for-ppc64le-baseos-rpms
-    size: 507199
-    checksum: sha256:035ad8fe14360e86d368e240e97b3ffec1b890927f1bbfb04340465f336dc5e8
+    size: 509273
+    checksum: sha256:d605c14b807c551e833f3c3de4c8c6876fb3a8c85abd15cfe04dea60b9566aad
     name: rsync
-    evr: 3.5.0-3.el10_2
-    sourcerpm: rsync-3.5.0-3.el10_2.src.rpm
+    evr: 3.5.0-4.el10_3
+    sourcerpm: rsync-3.5.0-4.el10_3.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/s/sed-4.9-5.el10.ppc64le.rpm
     repoid: ubi-10-for-ppc64le-baseos-rpms
     size: 336796
