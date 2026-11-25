@@ -87,9 +87,9 @@ func NewProvider(zeroTrust bool) *content.EmbeddedProvider {
 				ContentSource: f("dpu-fw-upgrade.sh"),
 			},
 			{
-				Path:          "/usr/local/bin/wait-for-sfs.sh",
+				Path:          "/usr/local/bin/wait-for-dpu-agent.sh",
 				Mode:          0755,
-				ContentSource: f("wait-for-sfs.sh"),
+				ContentSource: f("wait-for-dpu-agent.sh"),
 			},
 			{
 				Path:          "/usr/local/bin/tmfifo-agent-link.sh",
