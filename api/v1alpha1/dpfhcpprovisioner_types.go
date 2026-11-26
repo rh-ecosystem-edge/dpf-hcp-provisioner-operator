@@ -169,7 +169,9 @@ type DPFHCPProvisionerSpec struct {
 	// This field is used for ignition generation to retrieve DPU flavor information
 	// It may be left unset at creation and populated later, once the referenced DPUDeployment
 	// exists, since DPUDeployments are typically created after the hosted control plane is ready.
+	// Once set, it cannot be changed or removed.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="dpuDeploymentRef is immutable"
+	// +kubebuilder:validation:XValidation:rule="oldSelf == null || self != null",message="dpuDeploymentRef cannot be removed once set"
 	// +immutable
 	// +optional
 	DPUDeploymentRef *DPUDeploymentReference `json:"dpuDeploymentRef,omitempty"`
