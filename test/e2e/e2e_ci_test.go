@@ -101,8 +101,8 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 
 	Context("HostedCluster Lifecycle", func() {
 		It("should create DPFHCPProvisioner and reach Ready state", func() {
-			By("creating the DPFHCPProvisioner CR without DPUDeployment")
-			createDPFHCPProvisioner(ciNamespace, provisionerName)
+			By("creating the DPFHCPProvisioner CR without dpuDeploymentRef")
+			createDPFHCPProvisionerWithoutDPUDeploymentRef(ciNamespace, provisionerName, dpuClusterName, dpuClusterNS)
 
 			By("verifying HostedCluster was created")
 			var hcName string
@@ -140,6 +140,39 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 				g.Expect(available).To(BeTrue(), "HostedCluster not yet available")
 			}, hostedClusterReadyTimeout, pollingInterval).Should(Succeed())
 
+			By("waiting for IgnitionConfigured=False with DPUDeploymentRefNotSet reason")
+			Eventually(func(g Gomega) {
+				conditions := getCRConditions(ciNamespace, provisionerName)
+				var ignCond *metav1.Condition
+				for i := range conditions {
+					if conditions[i].Type == "IgnitionConfigured" {
+						ignCond = &conditions[i]
+						break
+					}
+				}
+				g.Expect(ignCond).NotTo(BeNil(), "IgnitionConfigured condition should exist")
+				g.Expect(ignCond.Status).To(Equal(metav1.ConditionFalse),
+					"IgnitionConfigured should be False while dpuDeploymentRef is not set")
+				g.Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonDPUDeploymentRefNotSet),
+					"IgnitionConfigured reason should be DPUDeploymentRefNotSet")
+			}, crReadyTimeout, pollingInterval).Should(Succeed())
+
+			By("patching the provisioner to set dpuDeploymentRef")
+			ctx := context.Background()
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
+			err := k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: ciNamespace,
+				Name:      provisionerName,
+			}, provisioner)
+			Expect(err).NotTo(HaveOccurred())
+
+			provisioner.Spec.DPUDeploymentRef = &provisioningv1alpha1.DPUDeploymentReference{
+				Name:      dpuDeploymentName,
+				Namespace: dpuClusterNS,
+			}
+			err = k8sClient.Update(ctx, provisioner)
+			Expect(err).NotTo(HaveOccurred(), "Failed to patch dpuDeploymentRef")
+
 			By("waiting for IgnitionConfigured=False with DependencyMissing reason")
 			Eventually(func(g Gomega) {
 				conditions := getCRConditions(ciNamespace, provisionerName)
@@ -172,9 +205,8 @@ var _ = Describe("DPFHCPProvisioner E2E", Ordered, Label("ocp-required"), func()
 			waitForCRPhase(provisionerName, "Ready", crReadyTimeout)
 
 			By("verifying status fields are populated")
-			ctx := context.Background()
-			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{}
-			err := k8sClient.Get(ctx, types.NamespacedName{
+			provisioner = &provisioningv1alpha1.DPFHCPProvisioner{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
 				Namespace: ciNamespace,
 				Name:      provisionerName,
 			}, provisioner)

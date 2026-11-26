@@ -450,6 +450,65 @@ func createDPFHCPProvisionerWithCluster(ns, name, clusterName, clusterNS, deploy
 	}
 }
 
+// createDPFHCPProvisionerWithoutDPUDeploymentRef creates a DPFHCPProvisioner CR
+// without a DPUDeploymentRef (to test setting it later).
+func createDPFHCPProvisionerWithoutDPUDeploymentRef(ns, name, clusterName, clusterNS string) {
+	ctx := context.Background()
+	releaseImage := detectOCPReleaseImage()
+	baseDomain := getBaseDomain()
+	availability := getControlPlaneAvailability()
+	machineOSURL := getMachineOSURL()
+	etcdSC := getEtcdStorageClass()
+
+	_, _ = fmt.Fprintf(GinkgoWriter,
+		"Creating DPFHCPProvisioner WITHOUT dpuDeploymentRef:\n"+
+			"  releaseImage=%s\n  baseDomain=%s\n"+
+			"  availability=%s\n  machineOSURL=%s\n"+
+			"  etcdStorageClass=%s\n"+
+			"  virtualIP=192.168.100.100 (dummy IP for AWS LoadBalancer mode)\n"+
+			"  dpuCluster=%s/%s\n"+
+			"  dpuDeploymentRef=nil (to be set later)\n",
+		releaseImage, baseDomain, availability, machineOSURL, etcdSC, clusterNS, clusterName)
+
+	availabilityPolicy := hyperv1.AvailabilityPolicy(availability)
+
+	provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+			DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+				Name:      clusterName,
+				Namespace: clusterNS,
+			},
+			BaseDomain:      baseDomain,
+			OCPReleaseImage: releaseImage,
+			SSHKeySecretRef: corev1.LocalObjectReference{
+				Name: sshKeySecretName,
+			},
+			PullSecretRef: corev1.LocalObjectReference{
+				Name: pullSecretName,
+			},
+			ControlPlaneAvailabilityPolicy: availabilityPolicy,
+			VirtualIP: "192.168.100.100",
+			// dpuDeploymentRef is intentionally nil
+		},
+	}
+
+	if machineOSURL != "" {
+		provisioner.Spec.MachineOSURL = machineOSURL
+	}
+	if etcdSC != "" {
+		provisioner.Spec.EtcdStorageClass = etcdSC
+	}
+
+	err := k8sClient.Create(ctx, provisioner)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to create DPFHCPProvisioner")
+	}
+}
+
 // waitForCRPhase waits for a DPFHCPProvisioner to reach a specific phase.
 func waitForCRPhase(name, phase string, timeout time.Duration) {
 	EventuallyWithOffset(1, func(g Gomega) {

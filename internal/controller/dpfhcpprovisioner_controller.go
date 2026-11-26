@@ -753,20 +753,31 @@ func (r *DPFHCPProvisionerReconciler) dpuFlavorToRequests(ctx context.Context, o
 	return requests
 }
 
-// handleDependencyChanges ensures ignition dependencies exist and detects DPUDeployment or
-// DPUFlavor changes/deletions. A missing dependency invalidates ignition and stops
+// handleDependencyChanges detects DPUDeployment or DPUFlavor changes/deletions after
+// ignition was already configured. A missing dependency invalidates ignition and stops
 // reconciliation until DPUDeployment/DPUFlavor watches requeue. Returns (true, result, err)
 // if reconciliation should stop early.
 func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
+	// Check if ignition was already configured (this is about detecting changes, not waiting for first generation)
+	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+	ignitionWasConfigured := ignConfigured != nil && ignConfigured.Status == metav1.ConditionTrue
+
+	// Handle dpuDeploymentRef being cleared
 	if cr.Spec.DPUDeploymentRef == nil {
+		// If ignition was configured but ref is now nil, invalidate ignition
+		if ignitionWasConfigured {
+			log.Info("dpuDeploymentRef was cleared, invalidating ignition")
+			return r.invalidateIgnitionForDependencyDeletion(ctx, cr,
+				"dpuDeploymentRef was removed, removing ignition ConfigMap")
+		}
+		// If ignition was never configured and ref is nil, nothing to do
 		return false, ctrl.Result{}, nil
 	}
 
-	ignConfigured := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
-	ignitionWasConfigured := ignConfigured != nil && ignConfigured.Status == metav1.ConditionTrue
-	if !ignitionWasConfigured && !r.ignitionPrerequisitesMet(cr) {
+	// Only check for dependency changes if ignition was already configured
+	if !ignitionWasConfigured {
 		return false, ctrl.Result{}, nil
 	}
 
@@ -802,14 +813,8 @@ func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Contex
 			return r.invalidateIgnitionForDependencyDeletion(ctx, cr,
 				fmt.Sprintf("DPUFlavor %s not found, removing ignition ConfigMap", flavorKey.String()))
 		}
-		if ignitionWasConfigured {
-			log.V(1).Info("Cannot fetch DPUFlavor for change detection, skipping", "error", err)
-		} else {
-			return false, ctrl.Result{}, err
-		}
-	}
-
-	if ignConfigured == nil || ignConfigured.Status != metav1.ConditionTrue {
+		// Non-NotFound error - log and skip change detection this reconcile
+		log.V(1).Info("Cannot fetch DPUFlavor for change detection, skipping", "error", err)
 		return false, ctrl.Result{}, nil
 	}
 
@@ -826,15 +831,15 @@ func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Contex
 	}
 	annotations := cm.Annotations
 
-	currentFlavor := ptr.Deref(dpuDeployment.Spec.DPUs.Flavor, "")
+	// Reuse flavorName from above instead of reading again
 	storedFlavor := annotations[ignitiongenerator.BfcfgTemplateDPUFlavorNameAnnotation]
 	currentBFB := ptr.Deref(dpuDeployment.Spec.DPUs.BFB, "")
 	storedBFB := annotations[ignitiongenerator.BfcfgTemplateBFBNameAnnotation]
 
 	// Flavor changed → delete CM and regenerate ignition (content depends on flavor)
-	if currentFlavor != storedFlavor {
+	if flavorName != storedFlavor {
 		log.Info("DPUDeployment Flavor changed, deleting stale ignition ConfigMap and regenerating",
-			"currentFlavor", currentFlavor, "storedFlavor", storedFlavor)
+			"currentFlavor", flavorName, "storedFlavor", storedFlavor)
 
 		if _, err := r.deleteIgnitionConfigMap(ctx, cr); err != nil {
 			return true, ctrl.Result{}, err
@@ -873,6 +878,93 @@ func (r *DPFHCPProvisionerReconciler) handleDependencyChanges(ctx context.Contex
 		return true, ctrl.Result{}, nil
 	}
 
+	return false, ctrl.Result{}, nil
+}
+
+// deferIgnitionForDependency sets IgnitionConfigured=False with the given reason and message,
+// recomputes the phase, and persists the status (only if changed).
+// This helper consolidates the repeated pattern across validateIgnitionDependencies.
+func (r *DPFHCPProvisionerReconciler) deferIgnitionForDependency(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner, reason, message string) (bool, ctrl.Result, error) {
+	oldPhase := cr.Status.Phase
+	condChanged := meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		Type:               provisioningv1alpha1.IgnitionConfigured,
+		Status:             metav1.ConditionFalse,
+		Reason:             reason,
+		Message:            message,
+		ObservedGeneration: cr.Generation,
+	})
+
+	// Recompute phase based on updated conditions to avoid stale phase
+	r.updatePhaseFromConditions(ctx, cr)
+	phaseChanged := cr.Status.Phase != oldPhase
+
+	// Update status if either condition or phase changed
+	if condChanged || phaseChanged {
+		if err := r.Status().Update(ctx, cr); err != nil {
+			return true, ctrl.Result{}, fmt.Errorf("failed to update status while waiting for dependency: %w", err)
+		}
+	}
+	return true, ctrl.Result{}, nil
+}
+
+// validateIgnitionDependencies is the single gate that validates all ignition dependencies
+// (dpuDeploymentRef, DPUDeployment, DPUFlavor) before calling GenerateIgnition.
+// Returns (true, result, err) if reconciliation should stop early (dependency missing or error).
+func (r *DPFHCPProvisionerReconciler) validateIgnitionDependencies(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (bool, ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	// Check 1: dpuDeploymentRef must be set
+	if cr.Spec.DPUDeploymentRef == nil {
+		log.V(1).Info("Deferring ignition generation - dpuDeploymentRef not set")
+		return r.deferIgnitionForDependency(ctx, cr,
+			provisioningv1alpha1.ReasonDPUDeploymentRefNotSet,
+			"Waiting for spec.dpuDeploymentRef to be set")
+	}
+
+	// Check 2: DPUDeployment must exist
+	dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
+	deploymentKey := types.NamespacedName{
+		Name:      cr.Spec.DPUDeploymentRef.Name,
+		Namespace: cr.Spec.DPUDeploymentRef.Namespace,
+	}
+	if err := r.Get(ctx, deploymentKey, dpuDeployment); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("Deferring ignition generation - DPUDeployment not found", "dpuDeployment", deploymentKey)
+			return r.deferIgnitionForDependency(ctx, cr,
+				provisioningv1alpha1.ReasonDependencyMissing,
+				fmt.Sprintf("Waiting for DPUDeployment '%s/%s' to be created", deploymentKey.Namespace, deploymentKey.Name))
+		}
+		// Real error (not NotFound)
+		return true, ctrl.Result{}, fmt.Errorf("failed to get DPUDeployment: %w", err)
+	}
+
+	// Check 3: DPUDeployment must have a flavor configured
+	flavorName := ptr.Deref(dpuDeployment.Spec.DPUs.Flavor, "")
+	if flavorName == "" {
+		log.Info("Deferring ignition generation - DPUDeployment has no flavor configured", "dpuDeployment", deploymentKey)
+		return r.deferIgnitionForDependency(ctx, cr,
+			provisioningv1alpha1.ReasonDependencyMissing,
+			fmt.Sprintf("DPUDeployment '%s/%s' has no flavor configured", deploymentKey.Namespace, deploymentKey.Name))
+	}
+
+	// Check 4: DPUFlavor must exist
+	dpuFlavor := &dpuprovisioningv1alpha1.DPUFlavor{}
+	flavorKey := types.NamespacedName{
+		Name:      flavorName,
+		Namespace: cr.Spec.DPUDeploymentRef.Namespace,
+	}
+	if err := r.Get(ctx, flavorKey, dpuFlavor); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Info("Deferring ignition generation - DPUFlavor not found", "dpuFlavor", flavorKey)
+			return r.deferIgnitionForDependency(ctx, cr,
+				provisioningv1alpha1.ReasonDependencyMissing,
+				fmt.Sprintf("Waiting for DPUFlavor '%s/%s' to be created", flavorKey.Namespace, flavorKey.Name))
+		}
+		// Real error (not NotFound)
+		return true, ctrl.Result{}, fmt.Errorf("failed to get DPUFlavor: %w", err)
+	}
+
+	// All dependencies validated - proceed with ignition generation
 	return false, ctrl.Result{}, nil
 }
 
@@ -1090,29 +1182,8 @@ func (r *DPFHCPProvisionerReconciler) lookupBlueFieldOCPLayerImage(ctx context.C
 		return ctrl.Result{}, nil
 	}
 
-	// Skip lookup if dpuDeploymentRef not set OR DPUDeployment doesn't exist yet.
-	// Ignition generation requires it, and the lookup may fail without DPUDeployment's
-	// DPUFlavor to determine DPF version.
-	if cr.Spec.DPUDeploymentRef != nil {
-		dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
-		deploymentKey := types.NamespacedName{
-			Name:      cr.Spec.DPUDeploymentRef.Name,
-			Namespace: cr.Spec.DPUDeploymentRef.Namespace,
-		}
-		if err := r.Get(ctx, deploymentKey, dpuDeployment); err != nil {
-			if apierrors.IsNotFound(err) {
-				log.V(1).Info("Skipping BlueField OCP layer lookup - DPUDeployment not found yet")
-				return ctrl.Result{}, nil
-			}
-			// Real error (not NotFound) - return it
-			return ctrl.Result{}, fmt.Errorf("failed to check DPUDeployment existence: %w", err)
-		}
-	} else {
-		log.V(1).Info("Skipping BlueField OCP layer lookup - dpuDeploymentRef not set")
-		return ctrl.Result{}, nil
-	}
-
 	// Run lookup (phase-gated)
+	// Note: Lookup gets DOCA version from DPFOperatorConfig, not DPUDeployment
 	r.ImageLookup.Repository = operatorConfig.BlueFieldOCPLayerRepo
 	if cr.Status.Phase == provisioningv1alpha1.PhasePending || cr.Status.Phase == provisioningv1alpha1.PhaseFailed || cr.Status.Phase == provisioningv1alpha1.PhaseGeneratingIgnition {
 		log.V(1).Info("Running BlueField OCP layer image lookup")
@@ -1175,19 +1246,10 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 		}
 	}
 
-	if cr.Spec.DPUDeploymentRef == nil {
-		log.V(1).Info("Deferring ignition generation - dpuDeploymentRef not set")
-		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
-			Type:               provisioningv1alpha1.IgnitionConfigured,
-			Status:             metav1.ConditionFalse,
-			Reason:             provisioningv1alpha1.ReasonDPUDeploymentRefNotSet,
-			Message:            "Waiting for spec.dpuDeploymentRef to be set",
-			ObservedGeneration: cr.Generation,
-		})
-		if err := r.Status().Update(ctx, cr); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to update status while waiting for dpuDeploymentRef: %w", err)
-		}
-		return ctrl.Result{}, nil
+	// Validate ignition dependencies before calling GenerateIgnition.
+	// This is the single gate that checks dpuDeploymentRef, DPUDeployment, and DPUFlavor existence.
+	if shouldDefer, deferResult, deferErr := r.validateIgnitionDependencies(ctx, cr); shouldDefer {
+		return deferResult, deferErr
 	}
 
 	log.V(1).Info("Running ignition generation feature")
@@ -1215,22 +1277,6 @@ func (r *DPFHCPProvisionerReconciler) generateIgnition(ctx context.Context, cr *
 	}
 
 	return result, err
-}
-
-// ignitionPrerequisitesMet reports whether HostedCluster and kubeconfig injection are ready
-// for ignition generation.
-func (r *DPFHCPProvisionerReconciler) ignitionPrerequisitesMet(cr *provisioningv1alpha1.DPFHCPProvisioner) bool {
-	if cr.Status.HostedClusterRef == nil {
-		return false
-	}
-
-	hcAvailable := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.HostedClusterAvailable)
-	if hcAvailable == nil || hcAvailable.Status != metav1.ConditionTrue {
-		return false
-	}
-
-	kubeconfigInjected := meta.FindStatusCondition(cr.Status.Conditions, provisioningv1alpha1.KubeConfigInjected)
-	return kubeconfigInjected != nil && kubeconfigInjected.Status == metav1.ConditionTrue
 }
 
 // computeReadyCondition determines if the DPFHCPProvisioner is fully operational and sets the Ready condition.

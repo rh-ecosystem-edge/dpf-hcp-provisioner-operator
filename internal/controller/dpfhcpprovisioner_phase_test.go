@@ -248,8 +248,10 @@ var _ = Describe("DPFHCPProvisioner Phase Transitions", func() {
 					return false
 				}
 
-				// Image lookup is deferred until the referenced DPUDeployment exists.
-				return meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound) == nil
+				// 5. BlueField OCP layer image lookup should run (gets DOCA version from DPFOperatorConfig)
+				// Image lookup no longer waits for DPUDeployment - it runs independently
+				imageFoundCond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.BlueFieldOCPLayerImageFound)
+				return imageFoundCond != nil && imageFoundCond.Status == metav1.ConditionTrue
 			}, timeout, interval).Should(BeTrue())
 		})
 

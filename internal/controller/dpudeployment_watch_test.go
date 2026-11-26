@@ -221,7 +221,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 			}()).To(BeFalse())
 		})
 
-		It("should return false when DPUDeploymentRef is nil", func() {
+		It("should return false when DPUDeploymentRef is nil and ignition was never configured", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -237,8 +237,8 @@ var _ = Describe("DPUDeployment Watch", func() {
 					Conditions: []metav1.Condition{
 						{
 							Type:               provisioningv1alpha1.IgnitionConfigured,
-							Status:             metav1.ConditionTrue,
-							Reason:             provisioningv1alpha1.ReasonIgnitionGenerated,
+							Status:             metav1.ConditionFalse,
+							Reason:             provisioningv1alpha1.ReasonDPUDeploymentRefNotSet,
 							LastTransitionTime: metav1.Now(),
 						},
 					},
@@ -252,6 +252,56 @@ var _ = Describe("DPUDeployment Watch", func() {
 				Expect(err).NotTo(HaveOccurred())
 				return changed
 			}()).To(BeFalse())
+		})
+
+		It("should invalidate ignition when DPUDeploymentRef is cleared after being set", func() {
+			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: provisioningv1alpha1.DPFHCPProvisionerSpec{
+					DPUClusterRef: provisioningv1alpha1.DPUClusterReference{
+						Name:      "cluster",
+						Namespace: "dpu-system",
+					},
+					// dpuDeploymentRef is nil (was cleared)
+				},
+				Status: provisioningv1alpha1.DPFHCPProvisionerStatus{
+					Phase: provisioningv1alpha1.PhaseReady,
+					HostedClusterRef: &corev1.ObjectReference{
+						Name:      "hc",
+						Namespace: "clusters-test",
+					},
+					Conditions: []metav1.Condition{
+						{
+							Type:               provisioningv1alpha1.IgnitionConfigured,
+							Status:             metav1.ConditionTrue,
+							Reason:             provisioningv1alpha1.ReasonIgnitionGenerated,
+							LastTransitionTime: metav1.Now(),
+						},
+					},
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(provisioner).
+				WithStatusSubresource(provisioner).
+				Build()
+			r := &DPFHCPProvisionerReconciler{Client: fakeClient, Recorder: record.NewFakeRecorder(10)}
+
+			changed, _, err := r.handleDependencyChanges(context.TODO(), provisioner)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(changed).To(BeTrue(), "should invalidate ignition when ref is cleared")
+
+			// Verify IgnitionConfigured was set to False
+			persisted := &provisioningv1alpha1.DPFHCPProvisioner{}
+			Expect(fakeClient.Get(context.TODO(), types.NamespacedName{Name: "test", Namespace: "default"}, persisted)).To(Succeed())
+			ignCond := meta.FindStatusCondition(persisted.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
+			Expect(ignCond).NotTo(BeNil())
+			Expect(ignCond.Status).To(Equal(metav1.ConditionFalse))
+			Expect(ignCond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
 		})
 
 		It("should return false when Flavor matches ConfigMap annotation", func() {
@@ -470,7 +520,7 @@ var _ = Describe("DPUDeployment Watch", func() {
 			}()).To(BeTrue())
 		})
 
-		It("should delete ConfigMap and set DependencyDeleted when DPUDeployment is not found", func() {
+		It("should delete ConfigMap and set DependencyMissing when DPUDeployment is not found", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -688,7 +738,9 @@ var _ = Describe("handleDependencyChanges dependency readiness", func() {
 		Expect(dpuprovisioningv1alpha1.AddToScheme(scheme)).To(Succeed())
 	})
 
-	It("should wait instead of failing when DPUDeployment is not found", func() {
+	It("should not handle missing DPUDeployment before ignition was configured (validateIgnitionDependencies handles that)", func() {
+		// This test verifies that handleDependencyChanges only detects changes AFTER ignition was configured.
+		// Initial dependency validation is now handled by validateIgnitionDependencies (called before GenerateIgnition).
 		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       "doca",
@@ -724,6 +776,7 @@ var _ = Describe("handleDependencyChanges dependency readiness", func() {
 						Reason:             provisioningv1alpha1.ReasonKubeConfigInjected,
 						LastTransitionTime: metav1.Now(),
 					},
+					// Note: No IgnitionConfigured=True, so handleDependencyChanges should do nothing
 				},
 			},
 		}
@@ -740,18 +793,15 @@ var _ = Describe("handleDependencyChanges dependency readiness", func() {
 
 		changed, result, err := r.handleDependencyChanges(context.Background(), provisioner)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(changed).To(BeTrue())
+		Expect(changed).To(BeFalse(), "handleDependencyChanges should not handle initial missing dependencies")
 		Expect(result.RequeueAfter).To(BeZero())
-
-		cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
-		Expect(cond).NotTo(BeNil())
-		Expect(cond.Status).To(Equal(metav1.ConditionFalse))
-		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
-		Expect(cond.Message).To(ContainSubstring("dpudeployment"))
 		Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition))
 	})
 
-	It("should wait instead of retrying when recovering from IgnitionGenerationFailed due to missing DPUDeployment", func() {
+	It("should not change condition when recovering from IgnitionGenerationFailed (validateIgnitionDependencies handles retry)", func() {
+		// This test verifies that handleDependencyChanges doesn't interfere with retry logic.
+		// When IgnitionConfigured=False with ReasonIgnitionGenerationFailed, validateIgnitionDependencies
+		// will check dependencies again on the next reconcile attempt.
 		provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       "doca",
@@ -810,13 +860,8 @@ var _ = Describe("handleDependencyChanges dependency readiness", func() {
 
 		changed, result, err := r.handleDependencyChanges(context.Background(), provisioner)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(changed).To(BeTrue())
+		Expect(changed).To(BeFalse(), "handleDependencyChanges should not change condition when ignition was never configured successfully")
 		Expect(result.RequeueAfter).To(BeZero())
-
-		cond := meta.FindStatusCondition(provisioner.Status.Conditions, provisioningv1alpha1.IgnitionConfigured)
-		Expect(cond).NotTo(BeNil())
-		Expect(cond.Reason).To(Equal(provisioningv1alpha1.ReasonDependencyMissing))
-		Expect(provisioner.Status.Phase).To(Equal(provisioningv1alpha1.PhaseGeneratingIgnition))
 	})
 
 	It("should not block reconciliation before ignition prerequisites are met", func() {
@@ -1159,7 +1204,7 @@ var _ = Describe("DPUFlavor deletion integration (envtest)", func() {
 		By("deleting the DPUFlavor")
 		Expect(k8sClient.Delete(ctx, flavor)).To(Succeed())
 
-		By("verifying IgnitionConfigured=False with DependencyDeleted reason")
+		By("verifying IgnitionConfigured=False with DependencyMissing reason")
 		Eventually(func(g Gomega) {
 			fresh := &provisioningv1alpha1.DPFHCPProvisioner{}
 			g.Expect(k8sClient.Get(ctx, types.NamespacedName{

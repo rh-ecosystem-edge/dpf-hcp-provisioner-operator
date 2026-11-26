@@ -198,7 +198,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 	})
 
 	Describe("handleDependencyChanges with missing dependencies", func() {
-		It("should delete ConfigMap and set DependencyDeleted when DPUDeployment is deleted", func() {
+		It("should delete ConfigMap and set DependencyMissing when DPUDeployment is deleted", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -259,7 +259,7 @@ var _ = Describe("DPUFlavor Watch", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should delete ConfigMap and set DependencyDeleted when DPUFlavor is deleted", func() {
+		It("should delete ConfigMap and set DependencyMissing when DPUFlavor is deleted", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
@@ -410,8 +410,8 @@ var _ = Describe("DPUFlavor Watch", func() {
 		})
 	})
 
-	Describe("Phase computation with DependencyDeleted", func() {
-		It("should transition to IgnitionGenerating (not Failed) when reason is DependencyDeleted", func() {
+	Describe("Phase computation with DependencyMissing", func() {
+		It("should transition to IgnitionGenerating (not Failed) when reason is DependencyMissing", func() {
 			provisioner := &provisioningv1alpha1.DPFHCPProvisioner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "test",

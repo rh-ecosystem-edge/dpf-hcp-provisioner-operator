@@ -218,8 +218,11 @@ var _ = BeforeSuite(func() {
 		"--wait", "--timeout", "5m",
 	)
 
-	// On kind, nodes have control-plane role, not master. Remove nodeSelector.
-	if !testingOnOCP {
+	// Allow overriding placement target via environment variable (useful for ROSA clusters)
+	if placementTarget := os.Getenv("OPERATOR_PLACEMENT_TARGET"); placementTarget != "" {
+		helmArgs = append(helmArgs, "--set", fmt.Sprintf("placement.target=%s", placementTarget))
+	} else if !testingOnOCP {
+		// On kind, nodes have control-plane role, not master. Remove nodeSelector.
 		helmArgs = append(helmArgs, "--set", "placement.target=custom")
 	}
 
