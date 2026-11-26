@@ -157,6 +157,25 @@ func (ig *IgnitionGenerator) GenerateIgnition(ctx context.Context, cr *provision
 			return ctrl.Result{RequeueAfter: ignitionSyncRequeueAfter}, nil
 		}
 
+		// Safety net: if DPUDeployment or DPUFlavor was deleted mid-flight (after controller validated it),
+		// set DependencyMissing. The controller's validateIgnitionDependencies handles the common case.
+		// Only catch NotFound for watched dependencies (DPUDeployment/DPUFlavor), not other resources.
+		if apierrors.IsNotFound(err) && isDPUDependencyNotFound(err) {
+			log.Info("DPU dependency not found during generation (may have been deleted mid-flight)", "error", err)
+			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+				Type:               provisioningv1alpha1.IgnitionConfigured,
+				Status:             metav1.ConditionFalse,
+				Reason:             provisioningv1alpha1.ReasonDependencyMissing,
+				Message:            fmt.Sprintf("DPU dependency not found: %v", err),
+				ObservedGeneration: cr.Generation,
+			})
+			if updateErr := ig.Client.Status().Update(ctx, cr); updateErr != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to update status after dependency not found: %w", updateErr)
+			}
+			// Return with RequeueAfter as safety net (watches should also trigger when resource appears)
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+
 		log.Error(err, "Ignition generation failed")
 
 		// Set error condition and persist immediately — this is an early-return error path
@@ -626,8 +645,39 @@ func (ig *IgnitionGenerator) downloadHCPIgnition(ctx context.Context, cr *provis
 	return nil, fmt.Errorf("all %d token candidate(s) rejected by ignition server at %s", len(tokens), ignitionURL)
 }
 
-// getDPUDeployment fetches the DPUDeployment CR referenced by the provisioner
+// isDPUDependencyNotFound checks if a NotFound error is for a DPU dependency (DPUDeployment or DPUFlavor).
+// Uses structured error checking via StatusError.Details to avoid false positives from resource names.
+func isDPUDependencyNotFound(err error) bool {
+	if !apierrors.IsNotFound(err) {
+		return false
+	}
+
+	// Extract StatusError from potentially wrapped errors using errors.As
+	var statusErr *apierrors.StatusError
+	if !errors.As(err, &statusErr) {
+		return false
+	}
+
+	if statusErr.Status().Details == nil {
+		return false
+	}
+
+	// Check the actual resource type (Group and Kind) to avoid false positives
+	// DPUDeployment: svc.dpu.nvidia.com/dpudeployments
+	// DPUFlavor: provisioning.dpu.nvidia.com/dpuflavors
+	details := statusErr.Status().Details
+	isDPUDeployment := details.Group == "svc.dpu.nvidia.com" && details.Kind == "dpudeployments"
+	isDPUFlavor := details.Group == "provisioning.dpu.nvidia.com" && details.Kind == "dpuflavors"
+	return isDPUDeployment || isDPUFlavor
+}
+
+// getDPUDeployment fetches the DPUDeployment CR referenced by the provisioner.
+// Note: The controller's validateIgnitionDependencies ensures dpuDeploymentRef is set before calling GenerateIgnition.
+// This check is defensive for direct generator calls (e.g., in tests).
 func (ig *IgnitionGenerator) getDPUDeployment(ctx context.Context, cr *provisioningv1alpha1.DPFHCPProvisioner) (*dpuservicev1alpha1.DPUDeployment, error) {
+	if cr.Spec.DPUDeploymentRef == nil {
+		return nil, fmt.Errorf("dpuDeploymentRef is not set")
+	}
 	dpuDeployment := &dpuservicev1alpha1.DPUDeployment{}
 	deploymentKey := types.NamespacedName{
 		Name:      cr.Spec.DPUDeploymentRef.Name,

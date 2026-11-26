@@ -167,8 +167,13 @@ type DPFHCPProvisionerSpec struct {
 
 	// DPUDeploymentRef is a cross-namespace reference to a DPUDeployment CR for ignition generation
 	// This field is used for ignition generation to retrieve DPU flavor information
+	// It may be left unset at creation and populated later, once the referenced DPUDeployment
+	// exists, since DPUDeployments are typically created after the hosted control plane is ready.
+	// Once set, it cannot be changed or removed.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="dpuDeploymentRef is immutable"
-	// +required
+	// +kubebuilder:validation:XValidation:rule="oldSelf == null || self != null",message="dpuDeploymentRef cannot be removed once set"
+	// +immutable
+	// +optional
 	DPUDeploymentRef *DPUDeploymentReference `json:"dpuDeploymentRef,omitempty"`
 
 	// MachineOSURL is the URL for the DPU machine OS image to be used in the ignition configuration
@@ -344,9 +349,16 @@ const (
 	// This invalidates the current ignition ConfigMap and triggers regeneration.
 	ReasonDPUDeploymentChanged string = "DPUDeploymentChanged"
 
-	// ReasonDependencyDeleted indicates a required dependency (DPUDeployment or DPUFlavor) is missing.
-	// The ignition ConfigMap is removed and will be regenerated once the dependency is recreated.
-	ReasonDependencyDeleted string = "DependencyDeleted"
+	// ReasonDependencyMissing indicates a referenced dependency (DPUDeployment or DPUFlavor) is not found.
+	// This occurs when spec.dpuDeploymentRef IS set but the referenced resource doesn't exist
+	// (either not created yet, or was deleted). The ignition ConfigMap is removed and will be
+	// regenerated once the dependency becomes available.
+	ReasonDependencyMissing string = "DependencyMissing"
+
+	// ReasonDPUDeploymentRefNotSet indicates spec.dpuDeploymentRef has not been set yet.
+	// Ignition generation is deferred until the DPUDeployment reference is populated, since
+	// DPUDeployments are typically created after the hosted control plane is ready.
+	ReasonDPUDeploymentRefNotSet string = "DPUDeploymentRefNotSet"
 
 	// ReasonReleaseImageUpdated indicates ignition was invalidated because the OCP release image changed.
 	ReasonReleaseImageUpdated string = "ReleaseImageUpdated"
