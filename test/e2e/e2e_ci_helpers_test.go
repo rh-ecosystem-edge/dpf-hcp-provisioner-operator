@@ -491,7 +491,7 @@ func createDPFHCPProvisionerWithoutDPUDeploymentRef(ns, name, clusterName, clust
 				Name: pullSecretName,
 			},
 			ControlPlaneAvailabilityPolicy: availabilityPolicy,
-			VirtualIP: "192.168.100.100",
+			VirtualIP:                      "192.168.100.100",
 			// dpuDeploymentRef is intentionally nil
 		},
 	}
