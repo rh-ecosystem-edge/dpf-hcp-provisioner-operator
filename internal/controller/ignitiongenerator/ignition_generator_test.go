@@ -524,7 +524,7 @@ var _ = Describe("buildTargetIgnition", func() {
 			},
 		}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false, false, false, "")
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false, false, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).NotTo(BeNil())
 
@@ -553,11 +553,12 @@ var _ = Describe("buildTargetIgnition", func() {
 		Expect(*dpuAgentUnit.Contents).NotTo(ContainSubstring("--dpuflavor"))
 		Expect(*dpuAgentUnit.Contents).NotTo(ContainSubstring("--zero-trust-mode"))
 		Expect(*dpuAgentUnit.Contents).NotTo(ContainSubstring("--bootstrap-kubeconfig"))
+		Expect(*dpuAgentUnit.Contents).NotTo(ContainSubstring("--skip-node-labeling"))
 	})
 
 	DescribeTable("should always configure dpu-agent with a bootstrap kubeconfig",
 		func(zeroTrust bool) {
-			result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, zeroTrust, true, false, "")
+			result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, zeroTrust, true, false, false, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			var dpuAgentUnit *igntypes.Unit
@@ -580,7 +581,7 @@ var _ = Describe("buildTargetIgnition", func() {
 
 	DescribeTable("should gate the dpu-agent --dpuflavor flag",
 		func(dpuFlavorFlag bool) {
-			result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, false, false, dpuFlavorFlag, "")
+			result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, false, false, dpuFlavorFlag, false, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			var dpuAgentUnit *igntypes.Unit
@@ -600,8 +601,34 @@ var _ = Describe("buildTargetIgnition", func() {
 		Entry("DPF > 26.4 drops --dpuflavor", false),
 	)
 
+	DescribeTable("should gate the dpu-agent --skip-node-labeling flag",
+		func(skipNodeLabeling bool) {
+			result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, false, false, false, skipNodeLabeling, "")
+			Expect(err).NotTo(HaveOccurred())
+
+			var dpuAgentUnit *igntypes.Unit
+			for i := range result.Systemd.Units {
+				if result.Systemd.Units[i].Name == testDPUAgentUnitName {
+					dpuAgentUnit = &result.Systemd.Units[i]
+					break
+				}
+			}
+			Expect(dpuAgentUnit).NotTo(BeNil())
+			Expect(dpuAgentUnit.Contents).NotTo(BeNil())
+			unit := *dpuAgentUnit.Contents
+			Expect(strings.Contains(unit, "--skip-node-labeling")).To(Equal(skipNodeLabeling))
+			// Neither branch may leave a bare line continuation behind.
+			for _, line := range strings.Split(unit, "\n") {
+				Expect(strings.TrimSpace(line)).NotTo(Equal("\\"))
+			}
+			Expect(unit).NotTo(ContainSubstring("{{"))
+		},
+		Entry("DPF > 26.4 passes --skip-node-labeling", true),
+		Entry("DPF <= 26.4 omits --skip-node-labeling", false),
+	)
+
 	It("should embed the bfb-registry environment file when a URL is provided", func() {
-		result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, true, true, false, "http://192.168.1.1:30080")
+		result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, true, true, false, false, "http://192.168.1.1:30080")
 		Expect(err).NotTo(HaveOccurred())
 
 		var registryFile *igntypes.File
@@ -616,7 +643,7 @@ var _ = Describe("buildTargetIgnition", func() {
 	})
 
 	It("should not embed the bfb-registry environment file without a URL", func() {
-		result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, true, true, false, "")
+		result, err := ig.buildTargetIgnition(buildHCPIgnitionJSON(), &dpuprovisioningv1alpha1.DPUFlavor{}, "https://new-image.example.com", 1500, true, true, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
 		for i := range result.Storage.Files {
@@ -651,14 +678,14 @@ var _ = Describe("buildTargetIgnition", func() {
 		data, _ := json.Marshal(ign)
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 
-		result, err := ig.buildTargetIgnition(data, flavor, "https://new-image.example.com", 1500, false, false, false, "")
+		result, err := ig.buildTargetIgnition(data, flavor, "https://new-image.example.com", 1500, false, false, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.Ignition.Version).To(Equal("3.2.0"))
 	})
 
 	It("should return error for invalid JSON", func() {
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
-		_, err := ig.buildTargetIgnition([]byte("not-json"), flavor, "https://example.com", 1500, false, false, false, "")
+		_, err := ig.buildTargetIgnition([]byte("not-json"), flavor, "https://example.com", 1500, false, false, false, false, "")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to parse HCP ignition"))
 	})
@@ -667,7 +694,7 @@ var _ = Describe("buildTargetIgnition", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 1500, false, false, false, "")
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 1500, false, false, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
 		// No p0/p1/pf0hpf/pf1hpf NM connections should be added
@@ -680,7 +707,7 @@ var _ = Describe("buildTargetIgnition", func() {
 		hcpJSON := buildHCPIgnitionJSON()
 		flavor := &dpuprovisioningv1alpha1.DPUFlavor{}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 9000, false, false, false, "")
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://example.com", 9000, false, false, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Should have p0 NM connection with MTU
@@ -703,7 +730,7 @@ var _ = Describe("buildTargetIgnition", func() {
 			},
 		}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, true, false, "")
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, true, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
 		for _, u := range result.Systemd.Units {
@@ -721,7 +748,7 @@ var _ = Describe("buildTargetIgnition", func() {
 			},
 		}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, true, false, "")
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, true, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
 		for _, f := range result.Storage.Files {
@@ -738,7 +765,7 @@ var _ = Describe("buildTargetIgnition", func() {
 			},
 		}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false, false, false, "")
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, false, false, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
 		var hasPfMonitorUnit, hasPfMonitorFile bool
@@ -774,7 +801,7 @@ var _ = Describe("buildTargetIgnition", func() {
 			},
 		}
 
-		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, true, false, "")
+		result, err := ig.buildTargetIgnition(hcpJSON, flavor, "https://new-image.example.com", 1500, true, true, false, false, "")
 		Expect(err).NotTo(HaveOccurred())
 
 		unitNames := make(map[string]bool)
